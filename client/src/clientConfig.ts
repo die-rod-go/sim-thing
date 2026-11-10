@@ -28,7 +28,6 @@ export const clientConfig = {
     speechBubbleWrapWidth: 110,
     speechBubbleGap: 2,
     textResolution: 4,
-    agentRadius: 5,
     selectionRingRadius: 8,
     visibleTileAlpha: 0.28,
     speechReachLineWidth: 1,
