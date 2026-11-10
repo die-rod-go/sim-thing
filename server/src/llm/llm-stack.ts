@@ -1,0 +1,54 @@
+import { z } from "zod";
+import { createStructuredCaller, type StructuredCaller } from "./call-structured";
+import { ConcurrencyLimiter } from "./concurrency-limiter";
+import { readLlmEnv } from "./env";
+import { FakeLlmClient } from "./fake-llm-client";
+import { createFakeResponder } from "./fake-responder";
+import { OpenAiCompatibleClient } from "./open-ai-compatible-client";
+import { TokenBudget } from "./token-budget";
+import type { LlmCallSink, LlmClient, TokenUsageStore } from "./types";
+
+export const llmProviderSchema = z.enum(["openai", "fake"]).default("openai");
+
+export type LlmProvider = z.infer<typeof llmProviderSchema>;
+
+export interface LlmStackOptions {
+  provider: LlmProvider;
+  tokenUsageStore: TokenUsageStore;
+  dailyTokenBudget: number;
+  recordLlmCall: LlmCallSink;
+  /** Supplies the client directly (tests); otherwise built from the provider. */
+  client?: LlmClient;
+  pause?: (milliseconds: number) => Promise<void>;
+}
+
+/** The one LLM pipeline everything calls through: client, limiter, budget and call log. */
+export interface LlmStack {
+  client: LlmClient;
+  limiter: ConcurrencyLimiter;
+  budget: TokenBudget;
+  callStructured: StructuredCaller;
+}
+
+/** `fake` runs offline with a seeded responder; `openai` reads LLM_* from the environment. */
+export function createLlmClient(provider: LlmProvider): LlmClient {
+  return provider === "fake"
+    ? new FakeLlmClient(createFakeResponder(), { isKeepingRequests: false })
+    : new OpenAiCompatibleClient(readLlmEnv());
+}
+
+export function buildLlmStack(options: LlmStackOptions): LlmStack {
+  const client = options.client ?? createLlmClient(options.provider);
+  const limiter = new ConcurrencyLimiter();
+  const budget = new TokenBudget(options.tokenUsageStore, {
+    dailyTokenBudget: options.dailyTokenBudget,
+  });
+  const callStructured = createStructuredCaller({
+    client,
+    limiter,
+    budget,
+    recordLlmCall: options.recordLlmCall,
+    pause: options.pause,
+  });
+  return { client, limiter, budget, callStructured };
+}

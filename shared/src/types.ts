@@ -38,6 +38,8 @@ export interface Goal {
 export interface CurrentAction {
   kind: string;
   target?: string;
+  /** The running interaction's canonical name (e.g. "bake bread") while interacting or sleeping. */
+  interaction?: string;
   endsAtTick: number | null;
 }
 

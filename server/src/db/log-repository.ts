@@ -1,4 +1,5 @@
 import type { LlmCallRecord, PersonalityChange, WorldEvent } from "@village/shared";
+import type { TokenUsageStore } from "../llm/types";
 import type { Database } from "./database";
 
 interface LlmCallRow {
@@ -160,4 +161,14 @@ export function listPersonalityHistory(database: Database, agentId: string): Per
     newValue: row.new_value,
     reason: row.reason,
   }));
+}
+
+/** The `token_usage` table as the LLM budget's store. */
+export function createTokenUsageStore(database: Database): TokenUsageStore {
+  return {
+    getTokens: (day) => getTokenUsage(database, day),
+    addTokens: (day, tokens) => {
+      addTokenUsage(database, day, tokens);
+    },
+  };
 }

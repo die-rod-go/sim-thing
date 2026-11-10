@@ -65,7 +65,21 @@ export function startSimServer(options: SimServerOptions): Promise<SimServer> {
 
   const publishTickResult = (result: TickResult) => {
     for (const move of result.moves) broadcaster.broadcast({ type: "agent_moved", ...move });
-    for (const event of result.events) broadcaster.broadcast({ type: "event_logged", event });
+    for (const start of result.interactionStarts) {
+      broadcaster.broadcast({ type: "interacted", ...start, tick: result.tick });
+    }
+    for (const event of result.events) {
+      if (event.speech !== undefined) {
+        broadcaster.broadcast({
+          type: "said",
+          agentId: event.actorId,
+          text: event.speech.words,
+          volume: event.speech.volume,
+          tick: event.tick,
+        });
+      }
+      broadcaster.broadcast({ type: "event_logged", event });
+    }
     const state = context.loop.getState();
     const changedAgents = state.agents.filter((agent) => result.changedAgentIds.includes(agent.id));
     const changedObjects = state.objects.filter((object) =>

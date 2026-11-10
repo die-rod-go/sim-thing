@@ -6,33 +6,44 @@ import type {
 } from "@village/shared";
 import { config } from "../config";
 import type { Database } from "../db/database";
-import {
-  formatCalendarDay,
-  getTokenUsage,
-  listLlmCalls,
-  listPersonalityHistory,
-  listRecentEvents,
-} from "../db/log-repository";
+import { listLlmCalls, listPersonalityHistory, listRecentEvents } from "../db/log-repository";
+import type { TokenBudget } from "../llm/token-budget";
+import { computeVisibleTiles } from "../perception/sight";
+import { computeSpeechReachTiles } from "../perception/sound";
 import type { SimLoop } from "../sim/loop";
-import type { SimSettings } from "../sim/world-state";
+import { buildPerceptionWorld } from "../sim/world-access";
+import type { SimSettings, WorldState } from "../sim/world-state";
 
 /** What the WebSocket layer reads to describe the sim. */
 export interface SimServerContext {
   loop: SimLoop;
   database: Database;
   settings: SimSettings;
-  /** Live LLM calls in flight; integration supplies the real count. */
+  /** Live LLM calls in flight, from the concurrency limiter. */
   countInFlightLlmCalls: () => number;
+  /** Today's token count and the live daily budget. */
+  tokenBudget: TokenBudget;
+  /** Why the sim must stay paused (e.g. over budget), or null when it may run. */
+  findPauseReason: () => string | null;
 }
 
 export function buildStats(context: SimServerContext): SimStats {
-  const tokensToday = getTokenUsage(context.database, formatCalendarDay(new Date()));
-  const { dailyTokenBudget } = context.settings;
+  const { tokensToday, dailyTokenBudget } = context.tokenBudget;
   return {
     inFlightLlmCalls: context.countInFlightLlmCalls(),
     tokensToday,
     dailyTokenBudget,
-    isOverBudget: tokensToday >= dailyTokenBudget,
+    isOverBudget: context.tokenBudget.isOverBudget(),
+  };
+}
+
+function buildPerceptionView(state: WorldState, agentId: string) {
+  const agent = state.agents.find((candidate) => candidate.id === agentId);
+  if (!agent) return null;
+  const world = buildPerceptionWorld(state);
+  return {
+    visibleTiles: computeVisibleTiles(world, agent.pos, config.perception.sightRangeTiles),
+    speechReachTiles: computeSpeechReachTiles(world, agent.pos, "normal"),
   };
 }
 
@@ -74,9 +85,9 @@ export function buildAgentDetail(
     type: "agent_detail",
     agentId,
     agent,
-    memories: state.memories.filter((memory) => memory.agentId === agentId),
+    memories: state.memoryStore.listByAgent(agentId),
     llmCalls: listLlmCalls(context.database, agentId, config.server.llmCallsInDetail),
     personalityHistory: listPersonalityHistory(context.database, agentId),
-    perceptionView: null,
+    perceptionView: buildPerceptionView(state, agentId),
   };
 }

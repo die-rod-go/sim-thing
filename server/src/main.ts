@@ -5,13 +5,16 @@ import { z } from "zod";
 import { formatSimTime } from "@village/shared";
 import { config } from "./config";
 import { openDatabase, wipeDatabase, type Database } from "./db/database";
-import { appendEvent } from "./db/log-repository";
+import { appendEvent, appendLlmCall, createTokenUsageStore } from "./db/log-repository";
 import { loadWorld, saveWorld } from "./db/world-repository";
+import { buildLlmStack, llmProviderSchema } from "./llm/llm-stack";
+import type { TokenBudget } from "./llm/token-budget";
 import { createLogger } from "./logger";
 import { buildSeededWorld, loadSeedFile } from "./seeds";
 import { SimLoop } from "./sim/loop";
-import { createRandomWalkStrategy } from "./sim/random-walk";
+import { createNoReflectionHook } from "./sim/reflection-hook";
 import { createRealScheduler } from "./sim/scheduler";
+import { createDecisionStrategy } from "./sim/tick-pipeline";
 import {
   createDefaultSettings,
   createWorldState,
@@ -34,6 +37,7 @@ const timeSettings = {
 const environmentSchema = z.object({
   SIM_PORT: z.coerce.number().int().min(0).max(65535).default(config.server.defaultPort),
   SIM_DATABASE_PATH: z.string().min(1).default(config.server.defaultDatabasePath),
+  LLM_PROVIDER: llmProviderSchema,
 });
 
 function loadEnvironment(): z.infer<typeof environmentSchema> {
@@ -42,6 +46,7 @@ function loadEnvironment(): z.infer<typeof environmentSchema> {
   return environmentSchema.parse({
     SIM_PORT: process.env.SIM_PORT || undefined,
     SIM_DATABASE_PATH: process.env.SIM_DATABASE_PATH || undefined,
+    LLM_PROVIDER: process.env.LLM_PROVIDER?.trim().toLowerCase() || undefined,
   });
 }
 
@@ -60,6 +65,14 @@ function resetDatabase(database: Database, map: WorldMap, settings: SimSettings)
   const state = seedNewWorld(map);
   saveState(database, state, settings);
   return state;
+}
+
+function describeBudgetPause(budget: TokenBudget): string | null {
+  if (!budget.isOverBudget()) return null;
+  return (
+    `Daily token budget reached (${budget.tokensToday} of ${budget.dailyTokenBudget} tokens). ` +
+    "Raise the budget in settings to resume."
+  );
 }
 
 async function run(): Promise<void> {
@@ -86,15 +99,31 @@ async function run(): Promise<void> {
     `${restored ? "resumed" : "seeded"} world at ${formatSimTime(initialState.tick, timeSettings)}`,
   );
 
+  const llm = buildLlmStack({
+    provider: environment.LLM_PROVIDER,
+    tokenUsageStore: createTokenUsageStore(database),
+    dailyTokenBudget: settings.dailyTokenBudget,
+    recordLlmCall: (record) => {
+      appendLlmCall(database, record);
+    },
+  });
+  logger.info(`LLM provider: ${environment.LLM_PROVIDER} (model ${llm.client.model})`);
+  const findPauseReason = () => describeBudgetPause(llm.budget);
+
   const loop = new SimLoop({
     state: initialState,
-    advanceTick: createRandomWalkStrategy(),
+    advanceTick: createDecisionStrategy({
+      callStructured: llm.callStructured,
+      reflectionHook: createNoReflectionHook(),
+    }),
     scheduler: createRealScheduler(),
     speed: settings.speed,
   });
   loop.addTickListener((result, state) => {
     for (const event of result.events) appendEvent(database, event);
     if (state.tick % config.clock.saveEveryTicks === 0) saveState(database, state, settings);
+    const pauseReason = findPauseReason();
+    if (pauseReason !== null) loop.pause(pauseReason);
   });
 
   const server = await startSimServer({
@@ -102,11 +131,15 @@ async function run(): Promise<void> {
     loop,
     database,
     settings,
-    countInFlightLlmCalls: () => 0,
+    countInFlightLlmCalls: () => llm.limiter.inFlightCount,
+    tokenBudget: llm.budget,
+    findPauseReason,
     resetWorld: () =>
       loop.runBetweenTicks(() => loop.replaceState(resetDatabase(database, map, settings))),
   });
   loop.start();
+  const startupPauseReason = findPauseReason();
+  if (startupPauseReason !== null) loop.pause(startupPauseReason);
 
   let isShuttingDown = false;
   const shutDown = async (signal: string) => {

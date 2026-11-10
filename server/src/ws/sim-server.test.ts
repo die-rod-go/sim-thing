@@ -2,6 +2,7 @@ import { afterEach, beforeEach, describe, expect, it } from "vitest";
 import { WebSocket } from "ws";
 import type { ServerMessage } from "@village/shared";
 import { IN_MEMORY_DATABASE, openDatabase, type Database } from "../db/database";
+import { InMemoryTokenUsageStore, TokenBudget } from "../llm/token-budget";
 import { SimLoop } from "../sim/loop";
 import { ManualScheduler } from "../sim/manual-scheduler";
 import {
@@ -89,6 +90,7 @@ describe("sim WebSocket server", () => {
   let server: SimServer;
   let settings: SimSettings;
   let resetCount: number;
+  let tokenBudget: TokenBudget;
   const clients: TestClient[] = [];
 
   async function connect(): Promise<TestClient> {
@@ -122,12 +124,15 @@ describe("sim WebSocket server", () => {
     });
     settings = createDefaultSettings();
     resetCount = 0;
+    tokenBudget = new TokenBudget(new InMemoryTokenUsageStore(), { dailyTokenBudget: 1000 });
     server = await startSimServer({
       port: 0,
       loop,
       database,
       settings,
       countInFlightLlmCalls: () => 0,
+      tokenBudget,
+      findPauseReason: () => (tokenBudget.isOverBudget() ? "Daily token budget reached" : null),
       resetWorld: () => {
         resetCount += 1;
         return Promise.resolve();
@@ -175,13 +180,32 @@ describe("sim WebSocket server", () => {
     expect(settings.speed).toBe(4);
     first.send({ type: "update_settings", dailyTokenBudget: 5000 });
     expect(await second.waitFor("settings")).toMatchObject({ dailyTokenBudget: 5000 });
+    expect(tokenBudget.dailyTokenBudget).toBe(5000);
+  });
+
+  it("stays paused with a reason while over the token budget, and resumes once under it", async () => {
+    const client = await connect();
+    await client.waitFor("snapshot");
+    tokenBudget.addTokens(2000);
+    client.send({ type: "resume" });
+    expect(await client.waitFor("paused")).toEqual({
+      type: "paused",
+      isPaused: true,
+      reason: "Daily token budget reached",
+    });
+    expect(loop.isPaused()).toBe(true);
+    client.send({ type: "update_settings", dailyTokenBudget: 5000 });
+    await client.waitFor("settings");
+    client.send({ type: "resume" });
+    expect(await client.waitFor("paused")).toMatchObject({ isPaused: false });
   });
 
   it("answers inspect_agent with the agent's detail", async () => {
     const client = await connect();
     client.send({ type: "inspect_agent", agentId: "mara" });
     const detail = await client.waitFor("agent_detail");
-    expect(detail).toMatchObject({ agentId: "mara", llmCalls: [], perceptionView: null });
+    expect(detail).toMatchObject({ agentId: "mara", llmCalls: [] });
+    expect(detail.perceptionView?.visibleTiles).toEqual([0, 1]);
   });
 
   it("ignores invalid messages and keeps serving", async () => {
