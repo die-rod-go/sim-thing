@@ -460,7 +460,11 @@ export const config = {
     retryBackoffMs: 1500,
     requestTimeoutMs: 60000,
     temperature: 0.8,
-    maxReplyTokens: { decision: 400, interact: 150, morning: 500, night: 900, weekly: 1200 },
+    /**
+     * Ceilings, not targets: only generated tokens are billed. Some models tokenize JSON at barely
+     * over one character per token, so a full decision reply can need several hundred tokens.
+     */
+    maxReplyTokens: { decision: 1500, interact: 500, morning: 1500, night: 3000, weekly: 3000 },
     dailyTokenBudget: 10_000_000,
     /** One first try plus one retry on invalid output or an API error. */
     attemptsPerCall: 2,

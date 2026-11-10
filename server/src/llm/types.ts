@@ -23,6 +23,8 @@ export interface LlmResponse {
   completionTokens: number;
   latencyMs: number;
   model: string;
+  /** The provider stopped because the reply reached `maxTokens`. */
+  wasCutOff: boolean;
 }
 
 export interface LlmClient {

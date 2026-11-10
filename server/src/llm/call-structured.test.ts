@@ -51,6 +51,16 @@ describe("callStructured", () => {
     expect(pauses).toHaveLength(1);
   });
 
+  it("explains a reply cut off at the token limit", async () => {
+    const cutOffReply = { text: '{"answer":"bre', wasCutOff: true };
+    const { callStructured, request, records } = setUp([cutOffReply, cutOffReply]);
+    const result = await callStructured({ ...request, maxTokens: 400 });
+    expect(!result.ok && result.error).toBe(
+      "reply cut off at the 400-token limit (config.llm.maxReplyTokens.decision)",
+    );
+    expect(records[0]?.error).toMatch(/cut off/);
+  });
+
   it("retries once on API error", async () => {
     const { client, callStructured, request } = setUp([new Error("HTTP 503"), '{"answer":"ale"}']);
     const result = await callStructured(request);

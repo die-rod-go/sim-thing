@@ -84,6 +84,15 @@ describe("OpenAiCompatibleClient", () => {
     expect(response.model).toBe("test/model");
   });
 
+  it("reports a reply that stopped at the token limit as cut off", async () => {
+    stubFetch({
+      choices: [{ message: { content: '{"thought":"I wil' }, finish_reason: "length" }],
+    });
+    const client = new OpenAiCompatibleClient(settings);
+    const response = await client.complete({ prompt: "hi", maxTokens: 5, temperature: 0 });
+    expect(response.wasCutOff).toBe(true);
+  });
+
   it("throws with the status on an HTTP error without leaking the key", async () => {
     stubFetch({ error: "rate limited" }, 429);
     const client = new OpenAiCompatibleClient(settings);

@@ -7,7 +7,14 @@ import { toMessages } from "./types";
 
 const chatCompletionSchema = z.object({
   model: z.string().optional(),
-  choices: z.array(z.object({ message: z.object({ content: z.string().nullable() }) })).min(1),
+  choices: z
+    .array(
+      z.object({
+        message: z.object({ content: z.string().nullable() }),
+        finish_reason: z.string().nullish(),
+      }),
+    )
+    .min(1),
   usage: z
     .object({ prompt_tokens: z.number().optional(), completion_tokens: z.number().optional() })
     .nullish(),
@@ -58,6 +65,7 @@ export class OpenAiCompatibleClient implements LlmClient {
         completionTokens: completion.usage?.completion_tokens ?? estimateTokens(text),
         latencyMs,
         model: completion.model ?? this.model,
+        wasCutOff: completion.choices[0]?.finish_reason === "length",
       };
     } catch (error) {
       if (abortController.signal.aborted) {

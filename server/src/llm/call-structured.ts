@@ -76,6 +76,18 @@ function parseReply<Value>(
   return { ok: true, value: validation.data, parsed: validation.data };
 }
 
+/** A cut-off reply fails as broken JSON; say why, so the cap can be raised instead of guessed at. */
+function describeCutOff<Result extends { ok: boolean; error?: string }>(
+  parseResult: Result,
+  wasCutOff: boolean,
+  request: StructuredCallRequest<unknown>,
+): Result {
+  if (parseResult.ok || !wasCutOff) return parseResult;
+  const limit = request.maxTokens ?? config.llm.maxReplyTokens[request.kind];
+  const error = `reply cut off at the ${limit}-token limit (config.llm.maxReplyTokens.${request.kind})`;
+  return { ...parseResult, error };
+}
+
 async function attemptCall<Value>(
   client: LlmClient,
   request: StructuredCallRequest<Value>,
@@ -95,7 +107,11 @@ async function attemptCall<Value>(
       maxTokens: request.maxTokens ?? config.llm.maxReplyTokens[request.kind],
       temperature: request.temperature ?? config.llm.temperature,
     });
-    const parseResult = parseReply(response.text, request.schema);
+    const parseResult = describeCutOff(
+      parseReply(response.text, request.schema),
+      response.wasCutOff,
+      request,
+    );
     const record: LlmCallDraft = {
       ...baseRecord,
       model: response.model,

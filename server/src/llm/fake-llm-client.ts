@@ -51,6 +51,7 @@ export class FakeLlmClient implements LlmClient {
       completionTokens: response.completionTokens ?? FAKE_COMPLETION_TOKENS,
       latencyMs: response.latencyMs ?? 0,
       model: response.model ?? FAKE_MODEL,
+      wasCutOff: response.wasCutOff ?? false,
     };
   }
 
