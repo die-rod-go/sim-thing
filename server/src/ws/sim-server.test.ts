@@ -1,0 +1,197 @@
+import { afterEach, beforeEach, describe, expect, it } from "vitest";
+import { WebSocket } from "ws";
+import type { ServerMessage } from "@village/shared";
+import { IN_MEMORY_DATABASE, openDatabase, type Database } from "../db/database";
+import { SimLoop } from "../sim/loop";
+import { ManualScheduler } from "../sim/manual-scheduler";
+import {
+  createDefaultSettings,
+  createEmptyTickResult,
+  createWorldState,
+  type SimSettings,
+} from "../sim/world-state";
+import { startSimServer, WEBSOCKET_PATH, type SimServer } from "./sim-server";
+
+const agent = {
+  id: "mara",
+  name: "Mara",
+  place: "bakery",
+  pos: { x: 0, y: 0 },
+  personality: {
+    traits: {
+      extraversion: 0,
+      agreeableness: 0,
+      conscientiousness: 0,
+      neuroticism: 0,
+      openness: 0,
+    },
+    core: "",
+    selfImage: "",
+  },
+  body: { sleepRecoveryPerHour: 0.15 },
+  profession: "baker",
+  coins: 30,
+  inventory: {},
+  needs: { hunger: 0.8, energy: 0.8, social: 0.8, fun: 0.8 },
+  mood: "",
+  goals: [],
+  dailyPlan: "",
+  intention: "",
+  currentAction: null,
+  workingMemory: [],
+  awareness: {},
+};
+
+/** Collects messages from one client and lets a test wait for a given type. */
+class TestClient {
+  readonly received: ServerMessage[] = [];
+  private waiters: { type: string; resolve: (message: ServerMessage) => void }[] = [];
+
+  constructor(readonly socket: WebSocket) {
+    socket.on("message", (data) => {
+      const message = JSON.parse(String(data)) as ServerMessage;
+      this.received.push(message);
+      const waiter = this.waiters.find((candidate) => candidate.type === message.type);
+      if (waiter) {
+        this.waiters = this.waiters.filter((candidate) => candidate !== waiter);
+        waiter.resolve(message);
+      }
+    });
+  }
+
+  waitFor<Type extends ServerMessage["type"]>(
+    type: Type,
+  ): Promise<Extract<ServerMessage, { type: Type }>> {
+    const already = this.received.find((message) => message.type === type);
+    if (already) {
+      this.received.splice(this.received.indexOf(already), 1);
+      return Promise.resolve(already as Extract<ServerMessage, { type: Type }>);
+    }
+    return new Promise((resolveMessage) => {
+      this.waiters.push({
+        type,
+        resolve: (message) => {
+          this.received.splice(this.received.indexOf(message), 1);
+          resolveMessage(message as Extract<ServerMessage, { type: Type }>);
+        },
+      });
+    });
+  }
+
+  send(message: unknown): void {
+    this.socket.send(typeof message === "string" ? message : JSON.stringify(message));
+  }
+}
+
+describe("sim WebSocket server", () => {
+  let database: Database;
+  let loop: SimLoop;
+  let server: SimServer;
+  let settings: SimSettings;
+  let resetCount: number;
+  const clients: TestClient[] = [];
+
+  async function connect(): Promise<TestClient> {
+    const socket = new WebSocket(`ws://127.0.0.1:${server.port}${WEBSOCKET_PATH}`);
+    const client = new TestClient(socket);
+    clients.push(client);
+    await new Promise((resolveOpen) => socket.once("open", resolveOpen));
+    return client;
+  }
+
+  beforeEach(async () => {
+    database = openDatabase(IN_MEMORY_DATABASE);
+    const state = createWorldState(
+      {
+        grid: { width: 2, height: 1, isWall: [false, false] },
+        places: [],
+        objects: [],
+        spawnPoints: {},
+      },
+      { agents: [structuredClone(agent)], memories: [] },
+    );
+    loop = new SimLoop({
+      state,
+      advanceTick: (current) => {
+        const result = createEmptyTickResult(current.tick);
+        result.moves.push({ agentId: "mara", pos: { x: 1, y: 0 }, place: "bakery" });
+        return Promise.resolve(result);
+      },
+      scheduler: new ManualScheduler(),
+      isPaused: true,
+    });
+    settings = createDefaultSettings();
+    resetCount = 0;
+    server = await startSimServer({
+      port: 0,
+      loop,
+      database,
+      settings,
+      countInFlightLlmCalls: () => 0,
+      resetWorld: () => {
+        resetCount += 1;
+        return Promise.resolve();
+      },
+    });
+    loop.start();
+  });
+
+  afterEach(async () => {
+    for (const client of clients.splice(0)) client.socket.close();
+    await server.close();
+    database.close();
+  });
+
+  it("sends a snapshot on connect", async () => {
+    const client = await connect();
+    const snapshot = await client.waitFor("snapshot");
+    expect(snapshot.clock).toEqual({ tick: 0, isPaused: true, speed: 1 });
+    expect(snapshot.agents.map((candidate) => candidate.id)).toEqual(["mara"]);
+    expect(snapshot.stats).toMatchObject({ inFlightLlmCalls: 0, tokensToday: 0 });
+  });
+
+  it("steps one tick and streams the move and the tick", async () => {
+    const client = await connect();
+    await client.waitFor("snapshot");
+    client.send({ type: "step" });
+    expect(await client.waitFor("agent_moved")).toMatchObject({
+      agentId: "mara",
+      pos: { x: 1, y: 0 },
+    });
+    expect((await client.waitFor("tick")).tick).toBe(1);
+  });
+
+  it("broadcasts pause changes and settings to every client", async () => {
+    const first = await connect();
+    const second = await connect();
+    first.send({ type: "resume" });
+    expect(await second.waitFor("paused")).toEqual({
+      type: "paused",
+      isPaused: false,
+      reason: null,
+    });
+    first.send({ type: "set_speed", speed: 4 });
+    expect(await second.waitFor("settings")).toMatchObject({ speed: 4 });
+    expect(settings.speed).toBe(4);
+    first.send({ type: "update_settings", dailyTokenBudget: 5000 });
+    expect(await second.waitFor("settings")).toMatchObject({ dailyTokenBudget: 5000 });
+  });
+
+  it("answers inspect_agent with the agent's detail", async () => {
+    const client = await connect();
+    client.send({ type: "inspect_agent", agentId: "mara" });
+    const detail = await client.waitFor("agent_detail");
+    expect(detail).toMatchObject({ agentId: "mara", llmCalls: [], perceptionView: null });
+  });
+
+  it("ignores invalid messages and keeps serving", async () => {
+    const client = await connect();
+    await client.waitFor("snapshot");
+    client.send("not json");
+    client.send({ type: "set_speed", speed: -2 });
+    client.send({ type: "reset" });
+    await client.waitFor("snapshot");
+    expect(resetCount).toBe(1);
+    expect(loop.getSpeed()).toBe(1);
+  });
+});
