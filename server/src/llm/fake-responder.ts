@@ -1,3 +1,4 @@
+import { TRAIT_NAMES } from "@village/shared";
 import { config } from "../config";
 import { SeededRandom } from "../random";
 import type { FakeResponder } from "./fake-llm-client";
@@ -173,31 +174,56 @@ function promptText(request: LlmRequest): string {
     .join("\n");
 }
 
+type FakeAnswer = (request: LlmRequest, random: SeededRandom) => unknown;
+
+const BUILT_IN_ANSWERS: Record<string, FakeAnswer> = {
+  decision_reply: (request, random) =>
+    buildDecisionReply(random, readDecisionChoices(request.jsonSchema ?? {}, promptText(request))),
+  interact_reply: (request, random) => ({
+    interaction: random.pick(readEnum(request.jsonSchema ?? {}, "interaction")),
+    text: random.pick(config.llm.fakeResponder.lines),
+    minutes: null,
+  }),
+  morning_reply: () => ({
+    dailyPlan: "Work in the morning, eat at midday, see who is around in the afternoon.",
+    mood: "ready for the day",
+  }),
+  night_reply: () => ({
+    summary: "I went about my work and talked with a few people.",
+    moodEntry: "tired but settled",
+    insights: [{ text: "Keeping busy makes the day go well." }],
+    peopleNotes: [],
+  }),
+  weekly_reply: (_request, random) => ({
+    traitChanges: [
+      {
+        trait: random.pick(TRAIT_NAMES),
+        delta: (random.next() < 0.5 ? -1 : 1) * config.traits.weeklyDeltaClamp,
+        reason: "This week I acted a little differently from how I used to.",
+      },
+    ],
+    core: null,
+    selfImage: null,
+    goals: [],
+  }),
+};
+
 /**
- * Answers decision and interact calls with plausible choices and any other structured call
- * (e.g. reflection) with a minimal valid object. `answerOverrides` lets tests or reflection
- * code supply smarter answers per schema name.
+ * Answers decision, interact and reflection calls with plausible valid replies, and any other
+ * structured call with a minimal valid object. `answerOverrides` replaces answers per schema name.
  */
 export function createFakeResponder(
-  answerOverrides: Record<string, (request: LlmRequest, random: SeededRandom) => unknown> = {},
+  answerOverrides: Record<string, FakeAnswer> = {},
   seed: number = config.llm.fakeResponder.seed,
 ): FakeResponder {
   const random = new SeededRandom(seed);
   return (request) => {
-    const schema = request.jsonSchema ?? {};
     const prompt = promptText(request);
-    const override = request.schemaName ? answerOverrides[request.schemaName] : undefined;
-    let answer: unknown;
-    if (override) answer = override(request, random);
-    else if (request.schemaName === "decision_reply") {
-      answer = buildDecisionReply(random, readDecisionChoices(schema, prompt));
-    } else if (request.schemaName === "interact_reply") {
-      answer = {
-        interaction: random.pick(readEnum(schema, "interaction")),
-        text: random.pick(config.llm.fakeResponder.lines),
-        minutes: null,
-      };
-    } else answer = sampleFromJsonSchema(schema, random);
+    const schemaName = request.schemaName ?? "";
+    const answerFor = answerOverrides[schemaName] ?? BUILT_IN_ANSWERS[schemaName];
+    const answer = answerFor
+      ? answerFor(request, random)
+      : sampleFromJsonSchema(request.jsonSchema ?? {}, random);
     const text = JSON.stringify(answer);
     return {
       text,

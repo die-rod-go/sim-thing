@@ -316,6 +316,7 @@ Resolved details:
 - **Changing course:** choosing anything but `continue` stops the current action first: an interaction is cancelled with no refund, a sleeper wakes, a walk or wait ends. `give` is instant and leaves the agent free to decide again on the next tick.
 - **Failures** are broadcast as `action_failed` events, so the actor files "I tried to ... but ..." in `did` and onlookers see it; the text is also shown once as "What just went wrong" in the next prompt.
 - **Offline runs:** `LLM_PROVIDER=fake` replaces the LLM with a seeded stand-in that picks valid actions from the reply schema, for running without a key and for the headless soak test (`npm run soak -w @village/server`).
+- **Reflection timing:** falling asleep or waking only notes which pass is due; the passes run at the end of that tick (all agents in parallel), and the clock waits for them as it waits for decisions. Reflection calls count against the token budget and are logged like decisions.
 - **Reset** keeps the `token_usage` table, so resetting the world never resets the daily spend.
 
 **Spend cap:** the server counts tokens per calendar day and pauses the sim with a banner when `DAILY_TOKEN_BUDGET` is reached (default 10,000,000). The budget is editable in config and in a UI settings field without a restart. As a rough guide, expect 6 agents to use 1–3 million tokens per sim-day; measure and adjust.

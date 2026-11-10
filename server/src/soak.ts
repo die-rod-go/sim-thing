@@ -5,6 +5,8 @@ import { runSoak } from "./sim/soak-run";
 const logger = createLogger("soak");
 const MINUTES_PER_DAY = 1440;
 const DEFAULT_DAYS = 3;
+/** From this many days on, the run must also show a weekly personality change. */
+const WEEKLY_DAYS = 7;
 
 async function main(): Promise<void> {
   const days = Number(process.argv[2] ?? DEFAULT_DAYS);
@@ -19,6 +21,10 @@ async function main(): Promise<void> {
   logger.info(
     `${report.ticks} ticks, ${report.llmCalls} LLM calls, ${report.events} events in ${seconds}s`,
   );
+  logger.info(`${report.personalityChanges.length} personality changes`);
+  if (days >= WEEKLY_DAYS && report.personalityChanges.length === 0) {
+    report.problems.push("no personality change after a week");
+  }
   if (report.problems.length > 0) {
     logger.error(`${report.problems.length} problems`, report.problems.slice(0, 20));
     process.exit(1);

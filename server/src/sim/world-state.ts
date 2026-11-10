@@ -5,6 +5,7 @@ import type { SavedWorld } from "../db/world-repository";
 import { createConversationLog, type ConversationLog } from "../memory/conversation";
 import { MemoryIdGenerator, MemoryStore } from "../memory/memory-store";
 import type { SeededWorld } from "../seeds";
+import type { ReflectionSchedule } from "../reflection/schedule";
 import type { WorldMap } from "../world/types";
 import { createAgentRuntime, type AgentRuntime, type SimRuntime } from "./agent-runtime";
 
@@ -22,8 +23,8 @@ export interface WorldState {
   conversationLog: ConversationLog;
   agentRuntimes: Record<string, AgentRuntime>;
   lastForgettingTick: number;
-  /** Owned by the reflection hook (schedules etc.); persisted with the world. */
-  reflectionState: Record<string, unknown>;
+  /** Reflection bookkeeping per agent, owned by the reflection hook. */
+  reflectionSchedules: Record<string, ReflectionSchedule>;
 }
 
 /** Settings that persist with the world and can change at runtime. */
@@ -78,7 +79,7 @@ export function createWorldState(map: WorldMap, seededWorld: SeededWorld): World
     conversationLog: createConversationLog(),
     agentRuntimes: createAgentRuntimes(seededWorld.agents),
     lastForgettingTick: 0,
-    reflectionState: {},
+    reflectionSchedules: {},
   };
 }
 
@@ -110,7 +111,7 @@ function toSimRuntime(state: WorldState): SimRuntime {
     conversationLog: state.conversationLog,
     memoryIdCounter: state.memoryIds.getState(),
     lastForgettingTick: state.lastForgettingTick,
-    reflectionState: state.reflectionState,
+    reflectionSchedules: state.reflectionSchedules,
   };
 }
 
@@ -152,7 +153,7 @@ export function restoreWorldState(
       conversationLog: runtime?.conversationLog ?? createConversationLog(),
       agentRuntimes: runtime?.agentRuntimes ?? createAgentRuntimes(saved.agents),
       lastForgettingTick: runtime?.lastForgettingTick ?? saved.tick,
-      reflectionState: runtime?.reflectionState ?? {},
+      reflectionSchedules: runtime?.reflectionSchedules ?? {},
     },
     settings: { speed: saved.speed, dailyTokenBudget: saved.dailyTokenBudget },
   };

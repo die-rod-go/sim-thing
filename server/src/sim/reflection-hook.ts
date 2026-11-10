@@ -3,7 +3,7 @@ import type { TickResult, WorldState } from "./world-state";
 /**
  * Where reflection plugs into the tick. The sleep callbacks are synchronous and only record what
  * happened; `afterTick` runs last in every tick and may make async LLM calls (the clock waits for
- * it). It may change agents, memories and its own `state.reflectionState`, and should report
+ * it). It may change agents, memories and `state.reflectionSchedules`, and should report
  * agents it changed in `result.changedAgentIds`.
  */
 export interface ReflectionHook {

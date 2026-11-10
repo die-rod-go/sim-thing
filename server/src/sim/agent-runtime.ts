@@ -62,8 +62,15 @@ export const simRuntimeSchema = z.object({
   conversationLog: z.object({ lines: z.array(spokenLineSchema) }),
   memoryIdCounter: z.number().int().nonnegative(),
   lastForgettingTick: z.number().int().nonnegative(),
-  /** Owned by the reflection hook; opaque to the rest of the sim. */
-  reflectionState: z.record(z.string(), z.unknown()),
+  /** Per agent: when reflection passes last ran and whether the agent is asleep; see `reflection/schedule`. */
+  reflectionSchedules: z.record(
+    z.string(),
+    z.object({
+      lastNightPassTick: z.number().int().nullable(),
+      nightPassCount: z.number().int().nonnegative(),
+      sleepStartedAtTick: z.number().int().nullable(),
+    }),
+  ),
 });
 
 export type SimRuntime = z.infer<typeof simRuntimeSchema>;

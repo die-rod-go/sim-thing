@@ -1,8 +1,7 @@
-import { BUCKETS, type WorldEventKind } from "@village/shared";
+import { BUCKETS, type PersonalityChange, type WorldEventKind } from "@village/shared";
 import { config } from "../config";
 import { isAsleep } from "../economy/sleep";
 import { createFakeResponder } from "../llm/fake-responder";
-import type { ReflectionHook } from "./reflection-hook";
 import { createTestSim, type TestSim } from "./test-sim";
 
 /** Events that only a decision can start, so each needs an LLM call by the actor on that tick. */
@@ -14,12 +13,12 @@ export interface SoakReport {
   events: number;
   /** Human-readable problems; empty when the run is healthy. */
   problems: string[];
+  personalityChanges: Omit<PersonalityChange, "id">[];
   sim: TestSim;
 }
 
 export interface SoakOptions {
   ticks: number;
-  reflectionHook?: ReflectionHook;
   /** Called every sim-hour, e.g. for progress output. */
   onHour?: (tick: number) => void;
 }
@@ -32,9 +31,10 @@ const ticksPerHour = 60 / config.clock.minutesPerTick;
  * act traceable to a stored LLM call, and every agent's buckets within their cap.
  */
 export async function runSoak(options: SoakOptions): Promise<SoakReport> {
+  const personalityChanges: Omit<PersonalityChange, "id">[] = [];
   const sim = createTestSim({
     responder: createFakeResponder(),
-    reflectionHook: options.reflectionHook,
+    reflection: (change) => personalityChanges.push(change),
   });
   sim.client.requests.length = 0;
   const problems: string[] = [];
@@ -81,5 +81,5 @@ export async function runSoak(options: SoakOptions): Promise<SoakReport> {
         problems.push(`${agent.id} has ${count} ${bucket} memories`);
     }
   }
-  return { ticks: options.ticks, llmCalls, events: eventCount, problems, sim };
+  return { ticks: options.ticks, llmCalls, events: eventCount, problems, personalityChanges, sim };
 }

@@ -5,14 +5,19 @@ import { z } from "zod";
 import { formatSimTime } from "@village/shared";
 import { config } from "./config";
 import { openDatabase, wipeDatabase, type Database } from "./db/database";
-import { appendEvent, appendLlmCall, createTokenUsageStore } from "./db/log-repository";
+import {
+  appendEvent,
+  appendLlmCall,
+  appendPersonalityChange,
+  createTokenUsageStore,
+} from "./db/log-repository";
 import { loadWorld, saveWorld } from "./db/world-repository";
 import { buildLlmStack, llmProviderSchema } from "./llm/llm-stack";
 import type { TokenBudget } from "./llm/token-budget";
 import { createLogger } from "./logger";
 import { buildSeededWorld, loadSeedFile } from "./seeds";
 import { SimLoop } from "./sim/loop";
-import { createNoReflectionHook } from "./sim/reflection-hook";
+import { createReflectionHook } from "./sim/reflection-passes";
 import { createRealScheduler } from "./sim/scheduler";
 import { createDecisionStrategy } from "./sim/tick-pipeline";
 import {
@@ -114,7 +119,12 @@ async function run(): Promise<void> {
     state: initialState,
     advanceTick: createDecisionStrategy({
       callStructured: llm.callStructured,
-      reflectionHook: createNoReflectionHook(),
+      reflectionHook: createReflectionHook({
+        callStructured: llm.callStructured,
+        recordPersonalityChange: (change) => {
+          appendPersonalityChange(database, change);
+        },
+      }),
     }),
     scheduler: createRealScheduler(),
     speed: settings.speed,

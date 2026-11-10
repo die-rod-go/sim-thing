@@ -1,5 +1,5 @@
 import { resolve } from "node:path";
-import type { Agent, Position } from "@village/shared";
+import type { Agent, PersonalityChange, Position } from "@village/shared";
 import { config } from "../config";
 import type { LlmCallDraft } from "../llm/call-structured";
 import { FakeLlmClient, type FakeResponder } from "../llm/fake-llm-client";
@@ -8,7 +8,8 @@ import { InMemoryTokenUsageStore } from "../llm/token-budget";
 import type { LlmRequest } from "../llm/types";
 import { buildSeededWorld, loadSeedFile } from "../seeds";
 import { findPlaceAt, loadWorldMap } from "../world/map-loader";
-import { createNoReflectionHook, type ReflectionHook } from "./reflection-hook";
+import { createNoReflectionHook } from "./reflection-hook";
+import { createReflectionHook } from "./reflection-passes";
 import { createDecisionStrategy } from "./tick-pipeline";
 import { findAgent, replaceAgent } from "./world-access";
 import { createWorldState, type TickResult, type WorldState } from "./world-state";
@@ -67,7 +68,8 @@ export interface TestSimOptions {
   responder: FakeResponder;
   /** Keep only these seed agents (all when omitted). */
   agentIds?: string[];
-  reflectionHook?: ReflectionHook;
+  /** Runs the real reflection passes, handing personality changes here; off when omitted. */
+  reflection?: (change: Omit<PersonalityChange, "id">) => void;
   dailyTokenBudget?: number;
 }
 
@@ -93,7 +95,12 @@ export function createTestSim(options: TestSimOptions): TestSim {
   });
   const advanceTick = createDecisionStrategy({
     callStructured: llm.callStructured,
-    reflectionHook: options.reflectionHook ?? createNoReflectionHook(),
+    reflectionHook: options.reflection
+      ? createReflectionHook({
+          callStructured: llm.callStructured,
+          recordPersonalityChange: options.reflection,
+        })
+      : createNoReflectionHook(),
   });
   const results: TickResult[] = [];
   return {
