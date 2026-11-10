@@ -18,7 +18,10 @@ export function openDatabase(databasePath: string): Database {
   return database;
 }
 
-/** Deletes every saved row, for a reset. */
+/**
+ * Deletes every saved row, for a reset. `token_usage` is kept: the daily spend cap must not be
+ * bypassable by resetting the world.
+ */
 export function wipeDatabase(database: Database): void {
   const tables = [
     "meta",
@@ -27,7 +30,6 @@ export function wipeDatabase(database: Database): void {
     "memories",
     "events",
     "llm_calls",
-    "token_usage",
     "personality_history",
   ];
   database.transaction(() => {

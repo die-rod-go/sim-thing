@@ -17,14 +17,21 @@ export class FakeLlmClient implements LlmClient {
   readonly requests: LlmRequest[] = [];
   private readonly queuedReplies: FakeReply[];
   private readonly responder: FakeResponder | null;
+  private readonly isKeepingRequests: boolean;
+  private completedCount = 0;
 
-  constructor(replies: FakeReply[] | FakeResponder = []) {
+  /** Long offline runs pass `isKeepingRequests: false` so requests don't pile up in memory. */
+  constructor(
+    replies: FakeReply[] | FakeResponder = [],
+    options: { isKeepingRequests?: boolean } = {},
+  ) {
     this.queuedReplies = Array.isArray(replies) ? [...replies] : [];
     this.responder = Array.isArray(replies) ? null : replies;
+    this.isKeepingRequests = options.isKeepingRequests ?? true;
   }
 
   get callCount(): number {
-    return this.requests.length;
+    return this.completedCount;
   }
 
   queueReply(reply: FakeReply): void {
@@ -32,8 +39,9 @@ export class FakeLlmClient implements LlmClient {
   }
 
   async complete(request: LlmRequest): Promise<LlmResponse> {
-    const callIndex = this.requests.length;
-    this.requests.push(request);
+    const callIndex = this.completedCount;
+    this.completedCount += 1;
+    if (this.isKeepingRequests) this.requests.push(request);
     const reply = await this.nextReply(request, callIndex);
     if (reply instanceof Error) throw reply;
     const response = typeof reply === "string" ? { text: reply } : reply;

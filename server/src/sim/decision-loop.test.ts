@@ -1,0 +1,229 @@
+import { describe, expect, it } from "vitest";
+import { config } from "../config";
+import { SimLoop } from "./loop";
+import { ManualScheduler } from "./manual-scheduler";
+import { createDecisionStrategy } from "./tick-pipeline";
+import { createNoReflectionHook } from "./reflection-hook";
+import {
+  createTestSim,
+  decisionReply,
+  findPromptAgentName,
+  promptOf,
+  scriptByAgent,
+} from "./test-sim";
+
+const SQUARE = { x: 19, y: 15 };
+const NEXT_TO_OVEN = { x: 4, y: 13 };
+
+function memoriesOf(sim: ReturnType<typeof createTestSim>, agentId: string) {
+  return sim.state.memoryStore.listByAgent(agentId);
+}
+
+describe("decision loop", () => {
+  it("an agent with no action gets a decision and walks to the chosen place", async () => {
+    const sim = createTestSim({
+      agentIds: ["mara"],
+      responder: scriptByAgent({
+        Mara: (_request, callIndex) =>
+          callIndex === 0 ? decisionReply({ action: "walk_to", target: "town square" }) : undefined,
+      }),
+    });
+    sim.placeAgent("mara", { x: 6, y: 14 });
+    await sim.advance();
+    expect(sim.agent("mara").currentAction).toMatchObject({
+      kind: "walk_to",
+      target: "town square",
+    });
+    expect(sim.records[0]).toMatchObject({ kind: "decision", agentId: "mara", tick: 0 });
+    await sim.advance(40);
+    expect(sim.agent("mara").place).toBe("town square");
+    const kinds = sim.results.flatMap((result) => result.events.map((event) => event.kind));
+    expect(kinds).toContain("walk_started");
+    expect(kinds).toContain("arrived");
+    expect(memoriesOf(sim, "mara").map((memory) => memory.text)).toContain(
+      "I visited the town square for the first time; I found the notice board and the bench here",
+    );
+  });
+
+  it("the clock waits for every pending decision", async () => {
+    const releases: (() => void)[] = [];
+    const sim = createTestSim({
+      agentIds: ["mara", "ilsa"],
+      responder: (request) =>
+        new Promise((resolveReply) => {
+          releases.push(() =>
+            resolveReply(
+              decisionReply({
+                action: "wait",
+                minutes: 30,
+                intention: findPromptAgentName(request),
+              }),
+            ),
+          );
+        }),
+    });
+    const loop = new SimLoop({
+      state: sim.state,
+      advanceTick: createDecisionStrategy({
+        callStructured: sim.llm.callStructured,
+        reflectionHook: createNoReflectionHook(),
+      }),
+      scheduler: new ManualScheduler(),
+      isPaused: true,
+    });
+    loop.start();
+    const stepping = loop.step();
+    await new Promise((resolveWait) => setTimeout(resolveWait, 10));
+    expect(releases).toHaveLength(2);
+    expect(sim.llm.limiter.inFlightCount).toBe(2);
+    releases[0]?.();
+    await new Promise((resolveWait) => setTimeout(resolveWait, 10));
+    expect(sim.state.tick).toBe(0);
+    releases[1]?.();
+    await stepping;
+    expect(sim.state.tick).toBe(1);
+  });
+
+  it("an invalid reply falls back to wait and is still logged", async () => {
+    const sim = createTestSim({ agentIds: ["mara"], responder: () => "not json" });
+    await sim.advance();
+    expect(sim.agent("mara").currentAction).toEqual({
+      kind: "wait",
+      endsAtTick: config.decision.defaultWaitMinutes,
+    });
+    expect(sim.records).toHaveLength(config.llm.attemptsPerCall);
+    expect(sim.records.every((record) => record.error?.startsWith("invalid JSON"))).toBe(true);
+  });
+
+  it("interact without an interaction asks a second question", async () => {
+    const sim = createTestSim({
+      agentIds: ["mara"],
+      responder: (request, callIndex) => {
+        if (request.schemaName === "interact_reply")
+          return JSON.stringify({ interaction: "bake bread" });
+        return callIndex === 0
+          ? decisionReply({ action: "interact", target: "oven" })
+          : decisionReply({ action: "continue" });
+      },
+    });
+    sim.placeAgent("mara", NEXT_TO_OVEN);
+    await sim.advance();
+    expect(sim.client.requests[1]?.schemaName).toBe("interact_reply");
+    expect(promptOf(sim.client.requests[1]!)).toContain("bake bread");
+    expect(sim.agent("mara").currentAction).toMatchObject({
+      kind: "interact",
+      interaction: "bake bread",
+    });
+    expect(sim.agent("mara").inventory).toMatchObject({ wheat: 2, wood: 1 });
+    expect(sim.results[0]?.events[0]?.description).toBe("started baking bread at the oven");
+    await sim.advance(90);
+    expect(sim.agent("mara").inventory.bread).toBe(6);
+  });
+
+  it("interact walks to the object first, then starts", async () => {
+    const sim = createTestSim({
+      agentIds: ["mara"],
+      responder: scriptByAgent({
+        Mara: (_request, callIndex) =>
+          callIndex === 0
+            ? decisionReply({ action: "interact", target: "oven", interaction: "bake bread" })
+            : undefined,
+      }),
+    });
+    sim.placeAgent("mara", { x: 8, y: 15 });
+    await sim.advance();
+    expect(sim.agent("mara").currentAction).toMatchObject({ kind: "walk_to", target: "oven" });
+    await sim.advance(12);
+    expect(sim.agent("mara").currentAction).toMatchObject({ interaction: "bake bread" });
+  });
+
+  it("a give between adjacent agents moves coins and both remember it", async () => {
+    const sim = createTestSim({
+      agentIds: ["mara", "ilsa"],
+      responder: scriptByAgent({
+        Mara: (_request, callIndex) =>
+          callIndex === 0
+            ? decisionReply({ action: "give", target: "Ilsa", item: "coins", amount: 3 })
+            : undefined,
+      }),
+    });
+    sim.placeAgent("mara", SQUARE);
+    sim.placeAgent("ilsa", { x: SQUARE.x + 1, y: SQUARE.y });
+    await sim.advance();
+    expect(sim.agent("mara").coins).toBe(27);
+    expect(sim.agent("ilsa").coins).toBe(13);
+    expect(memoriesOf(sim, "mara").map((memory) => memory.text)).toContain("I gave Ilsa 3 coins");
+    expect(memoriesOf(sim, "ilsa")).toContainEqual(
+      expect.objectContaining({ bucket: "did", text: "Mara gave me 3 coins" }),
+    );
+  });
+
+  it("a give to an agent out of reach fails in the world and is remembered", async () => {
+    const sim = createTestSim({
+      agentIds: ["mara", "ilsa"],
+      responder: scriptByAgent({
+        Mara: (_request, callIndex) =>
+          callIndex === 0
+            ? decisionReply({ action: "give", target: "Ilsa", item: "bread", amount: 1 })
+            : undefined,
+      }),
+    });
+    sim.placeAgent("mara", SQUARE);
+    sim.placeAgent("ilsa", { x: SQUARE.x + 4, y: SQUARE.y });
+    await sim.advance();
+    const failure = "I tried to hand Ilsa 1 bread but Ilsa is too far away to hand anything to";
+    expect(sim.agent("mara").inventory.bread).toBe(2);
+    expect(memoriesOf(sim, "mara")).toContainEqual(
+      expect.objectContaining({ bucket: "did", text: failure }),
+    );
+    expect(sim.agent("mara").workingMemory.at(-1)).toContain(failure);
+    expect(sim.agent("mara").currentAction).toBeNull();
+    await sim.advance();
+    const secondPrompt = promptOf(
+      sim.client.requests.filter((request) => findPromptAgentName(request) === "Mara")[1]!,
+    );
+    expect(secondPrompt).toContain(`What just went wrong: ${failure}`);
+  });
+
+  it("recall puts results in working memory and decides again in the same tick", async () => {
+    const sim = createTestSim({
+      agentIds: ["mara", "tobias"],
+      responder: scriptByAgent({
+        Mara: (_request, callIndex) =>
+          callIndex === 0
+            ? decisionReply({ action: "recall", query: "What do I know about Tobias?" })
+            : undefined,
+      }),
+    });
+    await sim.advance();
+    const decisions = sim.records.filter((record) => record.agentId === "mara");
+    expect(decisions.map((record) => [record.kind, record.tick])).toEqual([
+      ["decision", 0],
+      ["decision", 0],
+    ]);
+    expect(decisions[1]?.prompt).toContain("I recall: Tobias:");
+    expect(
+      sim.agent("mara").workingMemory.some((entry) => entry.includes("I recall: Tobias:")),
+    ).toBe(true);
+    expect(sim.agent("mara").currentAction?.kind).toBe("wait");
+  });
+
+  it("a need crossing its threshold triggers a decision", async () => {
+    const sim = createTestSim({
+      agentIds: ["mara"],
+      responder: () => decisionReply({ action: "continue" }),
+    });
+    const mara = sim.agent("mara");
+    sim.state.agents[0] = {
+      ...mara,
+      needs: { ...mara.needs, hunger: config.needs.decisionThreshold + 0.0001 },
+      currentAction: { kind: "wait", endsAtTick: 200 },
+    };
+    await sim.advance();
+    expect(sim.records).toHaveLength(1);
+    expect(sim.client.requests[0]?.jsonSchema).toMatchObject({
+      properties: { action: { enum: expect.arrayContaining(["continue"]) } },
+    });
+    expect(sim.agent("mara").currentAction).toEqual({ kind: "wait", endsAtTick: 200 });
+  });
+});

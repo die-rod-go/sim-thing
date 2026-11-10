@@ -75,7 +75,8 @@ describe("database repositories", () => {
     state.tick = 42;
     state.nextEventId = 7;
     state.agents = state.agents.slice(0, 2);
-    state.memories = state.memories.slice(0, 3);
+    state.memoryStore.replaceAll(state.memoryStore.all().slice(0, 3));
+    state.memoryIds.nextId("mara", 42);
     const saved = toSavedWorld(state, settings);
     saveWorld(database, saved);
 
@@ -127,12 +128,14 @@ describe("database repositories", () => {
     expect(listPersonalityHistory(database, "mara")).toEqual([]);
   });
 
-  it("wipes everything on reset", () => {
+  it("wipes everything on reset except the token usage", () => {
     const state = createWorldState(map, buildSeededWorld(seedFile, map));
     saveWorld(database, toSavedWorld(state, createDefaultSettings()));
     appendEvent(database, buildEvent(1));
     appendLlmCall(database, buildLlmCall("mara", 1));
+    addTokenUsage(database, "2026-11-10", 500);
     wipeDatabase(database);
+    expect(getTokenUsage(database, "2026-11-10")).toBe(500);
     expect(loadWorld(database)).toBeNull();
     expect(listRecentEvents(database, 10)).toEqual([]);
     expect(listLlmCalls(database, "mara", 10)).toEqual([]);

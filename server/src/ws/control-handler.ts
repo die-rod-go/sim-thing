@@ -41,12 +41,18 @@ export async function handleClientMessage(
     case "pause":
       context.loop.pause();
       return;
-    case "resume":
-      context.loop.resume();
+    case "resume": {
+      const reason = context.findPauseReason();
+      if (reason !== null) session.send({ type: "paused", isPaused: true, reason });
+      else context.loop.resume();
       return;
-    case "step":
-      await context.loop.step();
+    }
+    case "step": {
+      const reason = context.findPauseReason();
+      if (reason !== null) session.send({ type: "paused", isPaused: true, reason });
+      else await context.loop.step();
       return;
+    }
     case "set_speed":
       context.loop.setSpeed(message.speed);
       context.settings.speed = message.speed;
@@ -58,6 +64,7 @@ export async function handleClientMessage(
       return;
     case "update_settings":
       context.settings.dailyTokenBudget = message.dailyTokenBudget;
+      context.tokenBudget.dailyTokenBudget = message.dailyTokenBudget;
       broadcaster.broadcast(buildSettingsMessage(context));
       return;
     case "reset":

@@ -1,5 +1,6 @@
 import { z } from "zod";
 import type { Agent, Bucket, Memory, WorldObject } from "@village/shared";
+import { simRuntimeSchema, type SimRuntime } from "../sim/agent-runtime";
 import type { Database } from "./database";
 
 /** Everything needed to resume a sim, apart from the map, which is reloaded from its file. */
@@ -12,7 +13,11 @@ export interface SavedWorld {
   agents: Agent[];
   objects: WorldObject[];
   memories: Memory[];
+  /** Null for saves made before the runtime was persisted; the sim then starts it fresh. */
+  runtime: SimRuntime | null;
 }
+
+const RUNTIME_KEY = "runtime";
 
 const metaSchema = z.object({
   tick: z.coerce.number().int().nonnegative(),
@@ -56,6 +61,7 @@ export function saveWorld(database: Database, world: SavedWorld): void {
       database.exec(`DELETE FROM ${table}`);
     }
     for (const [key, value] of Object.entries(meta)) insertMeta.run(key, String(value));
+    if (world.runtime !== null) insertMeta.run(RUNTIME_KEY, JSON.stringify(world.runtime));
     for (const agent of world.agents) insertAgent.run(agent.id, JSON.stringify(agent));
     for (const object of world.objects) insertObject.run(object.id, JSON.stringify(object));
     for (const memory of world.memories) {
@@ -94,6 +100,8 @@ export function loadWorld(database: Database): SavedWorld | null {
   }[];
   if (metaRows.length === 0) return null;
   const meta = metaSchema.parse(Object.fromEntries(metaRows.map((row) => [row.key, row.value])));
+  const runtimeRow = metaRows.find((row) => row.key === RUNTIME_KEY);
+  const runtime = runtimeRow ? simRuntimeSchema.parse(JSON.parse(runtimeRow.value)) : null;
 
   // Events are appended every tick but the world is saved less often, so after a crash the log
   // can be ahead of the saved counter; never hand out an id that is already taken.
@@ -120,5 +128,6 @@ export function loadWorld(database: Database): SavedWorld | null {
     agents,
     objects,
     memories,
+    runtime,
   };
 }

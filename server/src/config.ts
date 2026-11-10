@@ -318,6 +318,79 @@ export const config = {
     },
   } satisfies Record<string, InteractionRecipe> as Record<string, InteractionRecipe>,
 
+  /**
+   * How each interaction reads in events, awareness and prompts. `{target}` is the object or held
+   * item. `ongoing` follows "started ..." and describes the running action; `done` is the
+   * finished act; `attempt` follows "I tried to ..." when it fails.
+   */
+  interactionPhrases: {
+    "harvest wheat": {
+      ongoing: "harvesting wheat at the {target}",
+      done: "harvested wheat",
+      attempt: "harvest wheat at the {target}",
+    },
+    "chop wood": {
+      ongoing: "chopping wood at the {target}",
+      done: "chopped wood",
+      attempt: "chop wood at the {target}",
+    },
+    "bake bread": {
+      ongoing: "baking bread at the {target}",
+      done: "baked bread",
+      attempt: "bake bread at the {target}",
+    },
+    "brew ale": {
+      ongoing: "brewing ale at the {target}",
+      done: "brewed ale",
+      attempt: "brew ale at the {target}",
+    },
+    eat: {
+      ongoing: "eating {target}",
+      done: "ate {target}",
+      attempt: "eat {target}",
+    },
+    drink: {
+      ongoing: "drinking {target}",
+      done: "drank {target}",
+      attempt: "drink {target}",
+    },
+    "play cards": {
+      ongoing: "playing cards at the {target}",
+      done: "played cards",
+      attempt: "play cards at the {target}",
+    },
+    sit: {
+      ongoing: "sitting on the {target}",
+      done: "sat on the {target}",
+      attempt: "sit on the {target}",
+    },
+    sleep: {
+      ongoing: "sleeping in the {target}",
+      done: "slept in the {target}",
+      attempt: "sleep in the {target}",
+    },
+    read: {
+      ongoing: "reading the {target}",
+      done: "read the {target}",
+      attempt: "read the {target}",
+    },
+    "post a note": {
+      ongoing: "posting a note on the {target}",
+      done: "posted a note",
+      attempt: "post a note on the {target}",
+    },
+    open: {
+      ongoing: "opening the {target}",
+      done: "opened the {target}",
+      attempt: "open the {target}",
+    },
+    close: {
+      ongoing: "closing the {target}",
+      done: "closed the {target}",
+      attempt: "close the {target}",
+    },
+  } as Record<string, { ongoing: string; done: string; attempt: string }>,
+
   playCards: { funPerOtherPlayer: 0.1 },
 
   noticeBoard: { notesShownOnRead: 5, maxNoteChars: 200, maxNotesKept: 30 },
@@ -355,6 +428,8 @@ export const config = {
     /** An agent takes part in a conversation if it spoke within earshot of the speaker this recently. */
     participationWindowTicks: 10,
     workingMemorySize: 8,
+    /** Memories fade (applyForgetting) every this many ticks; bucket caps are enforced every tick. */
+    forgettingEveryTicks: 60,
     recallActionResultLimit: 6,
     reflectionInsightStrength: 1.0,
     newMemoryStrength: 1.0,
@@ -393,6 +468,23 @@ export const config = {
     errorBodyPreviewChars: 500,
     /** Sent as OpenRouter's X-Title header; a generic app name, never personal details. */
     appTitle: "Village Sim",
+    /** The offline `LLM_PROVIDER=fake` responder: seeded, and weights for the actions it picks. */
+    fakeResponder: {
+      seed: 7,
+      actionWeights: { walk_to: 3, interact: 4, wait: 2, give: 0.5, recall: 0.5 },
+      continueChance: 0.5,
+      sayChance: 0.3,
+      omitInteractionChance: 0.25,
+      waitMinutes: { min: 5, max: 30 },
+      lines: [
+        "Good morning!",
+        "Fine weather today.",
+        "Anyone need bread?",
+        "I could use some wheat.",
+        "How are you keeping?",
+        "I'll pay two coins for that.",
+      ],
+    },
   },
 
   reflection: {

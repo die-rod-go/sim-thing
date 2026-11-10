@@ -1,9 +1,13 @@
-import type { Agent, Memory, Position, WorldEvent, WorldObject } from "@village/shared";
+import type { Agent, Position, WorldEvent, WorldObject } from "@village/shared";
 import { config } from "../config";
 import { SeededRandom } from "../random";
 import type { SavedWorld } from "../db/world-repository";
+import { createConversationLog, type ConversationLog } from "../memory/conversation";
+import { MemoryIdGenerator, MemoryStore } from "../memory/memory-store";
 import type { SeededWorld } from "../seeds";
+import type { ReflectionSchedule } from "../reflection/schedule";
 import type { WorldMap } from "../world/types";
+import { createAgentRuntime, type AgentRuntime, type SimRuntime } from "./agent-runtime";
 
 /** All mutable sim state. The sim loop is its only writer. */
 export interface WorldState {
@@ -14,7 +18,13 @@ export interface WorldState {
   map: WorldMap;
   random: SeededRandom;
   nextEventId: number;
-  memories: Memory[];
+  memoryStore: MemoryStore;
+  memoryIds: MemoryIdGenerator;
+  conversationLog: ConversationLog;
+  agentRuntimes: Record<string, AgentRuntime>;
+  lastForgettingTick: number;
+  /** Reflection bookkeeping per agent, owned by the reflection hook. */
+  reflectionSchedules: Record<string, ReflectionSchedule>;
 }
 
 /** Settings that persist with the world and can change at runtime. */
@@ -29,6 +39,13 @@ export interface AgentMove {
   place: string;
 }
 
+/** An interaction that started this tick, for the viewer's `interacted` message. */
+export interface InteractionStart {
+  agentId: string;
+  objectId: string;
+  interaction: string;
+}
+
 /** What one tick produced, for the server to log, persist and broadcast. */
 export interface TickResult {
   /** The tick that was simulated. */
@@ -38,9 +55,18 @@ export interface TickResult {
   /** Agents whose data changed beyond position (action, needs, inventory, ...). */
   changedAgentIds: string[];
   changedObjectIds: string[];
+  interactionStarts: InteractionStart[];
+  /** Agents who got a decision this tick. */
+  decidedAgentIds: string[];
+}
+
+function createAgentRuntimes(agents: readonly Agent[]): Record<string, AgentRuntime> {
+  return Object.fromEntries(agents.map((agent) => [agent.id, createAgentRuntime(agent.place)]));
 }
 
 export function createWorldState(map: WorldMap, seededWorld: SeededWorld): WorldState {
+  const memoryStore = new MemoryStore();
+  memoryStore.addAll(seededWorld.memories);
   return {
     tick: 0,
     agents: seededWorld.agents,
@@ -48,7 +74,12 @@ export function createWorldState(map: WorldMap, seededWorld: SeededWorld): World
     map,
     random: new SeededRandom(config.seed),
     nextEventId: 1,
-    memories: seededWorld.memories,
+    memoryStore,
+    memoryIds: new MemoryIdGenerator(),
+    conversationLog: createConversationLog(),
+    agentRuntimes: createAgentRuntimes(seededWorld.agents),
+    lastForgettingTick: 0,
+    reflectionSchedules: {},
   };
 }
 
@@ -57,13 +88,31 @@ export function createDefaultSettings(): SimSettings {
 }
 
 export function createEmptyTickResult(tick: number): TickResult {
-  return { tick, moves: [], events: [], changedAgentIds: [], changedObjectIds: [] };
+  return {
+    tick,
+    moves: [],
+    events: [],
+    changedAgentIds: [],
+    changedObjectIds: [],
+    interactionStarts: [],
+    decidedAgentIds: [],
+  };
 }
 
 export function takeNextEventId(state: WorldState): number {
   const eventId = state.nextEventId;
   state.nextEventId += 1;
   return eventId;
+}
+
+function toSimRuntime(state: WorldState): SimRuntime {
+  return {
+    agentRuntimes: state.agentRuntimes,
+    conversationLog: state.conversationLog,
+    memoryIdCounter: state.memoryIds.getState(),
+    lastForgettingTick: state.lastForgettingTick,
+    reflectionSchedules: state.reflectionSchedules,
+  };
 }
 
 export function toSavedWorld(state: WorldState, settings: SimSettings): SavedWorld {
@@ -75,7 +124,8 @@ export function toSavedWorld(state: WorldState, settings: SimSettings): SavedWor
     dailyTokenBudget: settings.dailyTokenBudget,
     agents: state.agents,
     objects: state.objects,
-    memories: state.memories,
+    memories: state.memoryStore.all(),
+    runtime: toSimRuntime(state),
   };
 }
 
@@ -87,6 +137,9 @@ export function restoreWorldState(
   const savedObjects = new Map(saved.objects.map((object) => [object.id, object]));
   const random = new SeededRandom(config.seed);
   random.setState(saved.rngState);
+  const memoryStore = new MemoryStore();
+  memoryStore.addAll(saved.memories);
+  const runtime = saved.runtime;
   return {
     state: {
       tick: saved.tick,
@@ -95,7 +148,12 @@ export function restoreWorldState(
       map,
       random,
       nextEventId: saved.nextEventId,
-      memories: saved.memories,
+      memoryStore,
+      memoryIds: new MemoryIdGenerator(runtime?.memoryIdCounter ?? 0),
+      conversationLog: runtime?.conversationLog ?? createConversationLog(),
+      agentRuntimes: runtime?.agentRuntimes ?? createAgentRuntimes(saved.agents),
+      lastForgettingTick: runtime?.lastForgettingTick ?? saved.tick,
+      reflectionSchedules: runtime?.reflectionSchedules ?? {},
     },
     settings: { speed: saved.speed, dailyTokenBudget: saved.dailyTokenBudget },
   };
