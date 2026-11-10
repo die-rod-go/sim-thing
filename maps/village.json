@@ -1,0 +1,1412 @@
+{
+ "type": "map",
+ "version": "1.10",
+ "tiledversion": "1.10.2",
+ "orientation": "orthogonal",
+ "renderorder": "right-down",
+ "infinite": false,
+ "compressionlevel": -1,
+ "width": 40,
+ "height": 30,
+ "tilewidth": 16,
+ "tileheight": 16,
+ "nextlayerid": 7,
+ "nextobjectid": 42,
+ "layers": [
+  {
+   "id": 1,
+   "name": "ground",
+   "type": "tilelayer",
+   "width": 40,
+   "height": 30,
+   "x": 0,
+   "y": 0,
+   "opacity": 1,
+   "visible": true,
+   "data": [1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1,
+  1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1,
+  1, 1, 3, 3, 3, 3, 3, 3, 1, 3, 3, 3, 3, 3, 3, 1, 3, 3, 3, 3, 3, 3, 1, 3, 3, 3, 3, 3, 3, 1, 3, 3, 3, 3, 3, 3, 1, 1, 1, 1,
+  1, 1, 3, 3, 3, 3, 3, 3, 1, 3, 3, 3, 3, 3, 3, 1, 3, 3, 3, 3, 3, 3, 1, 3, 3, 3, 3, 3, 3, 1, 3, 3, 3, 3, 3, 3, 1, 1, 1, 1,
+  1, 1, 3, 3, 3, 3, 3, 3, 1, 3, 3, 3, 3, 3, 3, 1, 3, 3, 3, 3, 3, 3, 1, 3, 3, 3, 3, 3, 3, 1, 3, 3, 3, 3, 3, 3, 1, 1, 1, 1,
+  1, 1, 3, 3, 3, 3, 3, 3, 1, 3, 3, 3, 3, 3, 3, 1, 3, 3, 3, 3, 3, 3, 1, 3, 3, 3, 3, 3, 3, 1, 3, 3, 3, 3, 3, 3, 1, 1, 1, 1,
+  1, 1, 3, 3, 3, 3, 3, 3, 1, 3, 3, 3, 3, 3, 3, 1, 3, 3, 3, 3, 3, 3, 1, 3, 3, 3, 3, 3, 3, 1, 3, 3, 3, 3, 3, 3, 1, 1, 1, 1,
+  1, 1, 1, 1, 2, 1, 1, 1, 1, 1, 1, 2, 1, 1, 1, 1, 1, 1, 2, 1, 1, 1, 1, 1, 1, 2, 1, 1, 1, 1, 1, 1, 2, 1, 1, 1, 1, 1, 1, 1,
+  1, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 1,
+  1, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 1,
+  1, 1, 1, 1, 1, 1, 2, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 2, 1, 1, 1, 1, 1, 2, 1, 1, 1, 1, 1, 1, 1, 1,
+  1, 1, 4, 4, 4, 4, 4, 4, 4, 4, 4, 1, 1, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 1, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 1, 1,
+  1, 1, 4, 4, 4, 4, 4, 4, 4, 4, 4, 1, 1, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 1, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 1, 1,
+  1, 1, 4, 4, 4, 4, 4, 4, 4, 4, 4, 1, 1, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 1, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 1, 1,
+  1, 1, 4, 4, 4, 4, 4, 4, 4, 4, 4, 1, 1, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 1, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 1, 1,
+  1, 1, 4, 4, 4, 4, 4, 4, 4, 4, 4, 1, 1, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 1, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 1, 1,
+  1, 1, 4, 4, 4, 4, 4, 4, 4, 4, 4, 1, 1, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 1, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 1, 1,
+  1, 1, 4, 4, 4, 4, 4, 4, 4, 4, 4, 1, 1, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 1, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 1, 1,
+  1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 1, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 1, 1,
+  1, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 1, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 1, 1,
+  1, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 1, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 1, 1,
+  1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 2, 2, 2, 2, 2, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1,
+  1, 1, 1, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 2, 1, 1, 1, 2, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1,
+  1, 1, 1, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 2, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1,
+  1, 1, 1, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 2, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1,
+  1, 1, 1, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 2, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1,
+  1, 1, 1, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 2, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1,
+  1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 2, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1,
+  1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1,
+  1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1]
+  },
+  {
+   "id": 2,
+   "name": "walls",
+   "type": "tilelayer",
+   "width": 40,
+   "height": 30,
+   "x": 0,
+   "y": 0,
+   "opacity": 1,
+   "visible": true,
+   "data": [9, 9, 9, 9, 9, 9, 9, 9, 9, 9, 9, 9, 9, 9, 9, 9, 9, 9, 9, 9, 9, 9, 9, 9, 9, 9, 9, 9, 9, 9, 9, 9, 9, 9, 9, 9, 9, 9, 9, 9,
+  9, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 9,
+  9, 0, 5, 5, 5, 5, 5, 5, 0, 5, 5, 5, 5, 5, 5, 0, 5, 5, 5, 5, 5, 5, 0, 5, 5, 5, 5, 5, 5, 0, 5, 5, 5, 5, 5, 5, 0, 0, 0, 9,
+  9, 0, 5, 0, 0, 0, 0, 5, 0, 5, 0, 0, 0, 0, 5, 0, 5, 0, 0, 0, 0, 5, 0, 5, 0, 0, 0, 0, 5, 0, 5, 0, 0, 0, 0, 5, 0, 0, 0, 9,
+  9, 0, 5, 0, 0, 0, 0, 5, 0, 5, 0, 0, 0, 0, 5, 0, 5, 0, 0, 0, 0, 5, 0, 5, 0, 0, 0, 0, 5, 0, 5, 0, 0, 0, 0, 5, 0, 0, 0, 9,
+  9, 0, 5, 0, 0, 0, 0, 5, 0, 5, 0, 0, 0, 0, 5, 0, 5, 0, 0, 0, 0, 5, 0, 5, 0, 0, 0, 0, 5, 0, 5, 0, 0, 0, 0, 5, 0, 0, 0, 9,
+  9, 0, 5, 5, 0, 5, 5, 5, 0, 5, 5, 0, 5, 5, 5, 0, 5, 5, 0, 5, 5, 5, 0, 5, 5, 0, 5, 5, 5, 0, 5, 5, 0, 5, 5, 5, 0, 0, 0, 9,
+  9, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 9,
+  9, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 9,
+  9, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 9,
+  9, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 9,
+  9, 0, 5, 5, 5, 5, 0, 5, 5, 5, 5, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 5, 5, 5, 5, 0, 5, 5, 5, 5, 5, 5, 0, 9,
+  9, 0, 5, 0, 0, 0, 0, 0, 0, 0, 5, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 5, 0, 0, 0, 0, 0, 0, 0, 0, 0, 5, 0, 9,
+  9, 0, 5, 0, 0, 0, 0, 0, 0, 0, 5, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 5, 0, 0, 0, 0, 0, 0, 0, 0, 0, 5, 0, 9,
+  9, 0, 5, 0, 0, 0, 0, 0, 0, 0, 5, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 5, 0, 0, 0, 0, 0, 0, 0, 0, 0, 5, 0, 9,
+  9, 0, 5, 0, 0, 0, 0, 0, 0, 0, 5, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 5, 0, 0, 0, 0, 0, 0, 0, 0, 0, 5, 0, 9,
+  9, 0, 5, 0, 0, 0, 0, 0, 0, 0, 5, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 5, 5, 5, 5, 5, 5, 5, 5, 0, 5, 5, 0, 9,
+  9, 0, 5, 5, 5, 5, 5, 5, 5, 5, 5, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 5, 0, 0, 0, 0, 0, 0, 0, 0, 0, 5, 0, 9,
+  9, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 5, 0, 0, 0, 0, 0, 0, 0, 0, 0, 5, 0, 9,
+  9, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 5, 0, 0, 0, 0, 0, 0, 0, 0, 0, 5, 0, 9,
+  9, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 5, 5, 0, 5, 5, 5, 5, 5, 5, 5, 5, 0, 9,
+  9, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 9,
+  9, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 9,
+  9, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 9,
+  9, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 9,
+  9, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 9,
+  9, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 9,
+  9, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 9,
+  9, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 9,
+  9, 9, 9, 9, 9, 9, 9, 9, 9, 9, 9, 9, 9, 9, 9, 9, 9, 9, 9, 9, 9, 9, 9, 9, 9, 9, 9, 9, 9, 9, 9, 9, 9, 9, 9, 9, 9, 9, 9, 9]
+  },
+  {
+   "id": 3,
+   "name": "decor",
+   "type": "tilelayer",
+   "width": 40,
+   "height": 30,
+   "x": 0,
+   "y": 0,
+   "opacity": 1,
+   "visible": true,
+   "data": [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+  0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+  0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+  0, 0, 0, 11, 0, 0, 0, 0, 0, 0, 11, 0, 0, 0, 0, 0, 0, 11, 0, 0, 0, 0, 0, 0, 11, 0, 0, 0, 0, 0, 0, 11, 0, 0, 0, 0, 0, 8, 0, 0,
+  0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+  0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+  0, 0, 0, 0, 6, 0, 0, 0, 0, 0, 0, 6, 0, 0, 0, 0, 0, 0, 6, 0, 0, 0, 0, 0, 0, 6, 0, 0, 0, 0, 0, 0, 6, 0, 0, 0, 0, 0, 0, 0,
+  0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+  0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+  0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+  0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+  0, 0, 0, 0, 0, 0, 6, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 6, 0, 0, 0, 0, 0, 0, 0, 0,
+  0, 0, 0, 12, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 16, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 13, 0, 0, 0,
+  0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 8, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+  0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 14, 0, 0, 0, 0, 0, 0, 0, 0,
+  0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+  0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 15, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+  0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+  0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 11, 0, 0, 0,
+  0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+  0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 6, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+  0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+  0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+  0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+  0, 0, 0, 0, 0, 0, 0, 0, 7, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 8, 0, 0, 0, 0, 0, 0, 8, 0, 0, 0, 0, 0, 0, 8, 0, 0, 0, 0, 0,
+  0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 8, 0, 0, 0, 0, 0, 0, 0, 0,
+  0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 8, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 8, 0, 0, 0,
+  0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 8, 0, 0, 0, 0, 8, 0, 0, 0, 0, 0, 0,
+  0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+  0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0]
+  },
+  {
+   "id": 4,
+   "name": "places",
+   "type": "objectgroup",
+   "draworder": "topdown",
+   "x": 0,
+   "y": 0,
+   "opacity": 1,
+   "visible": true,
+   "objects": [
+    {
+     "id": 1,
+     "name": "rose cottage",
+     "type": "",
+     "rotation": 0,
+     "visible": true,
+     "x": 32,
+     "y": 32,
+     "width": 96,
+     "height": 80,
+     "properties": [
+      {
+       "name": "isIndoor",
+       "type": "bool",
+       "value": true
+      }
+     ]
+    },
+    {
+     "id": 2,
+     "name": "ivy cottage",
+     "type": "",
+     "rotation": 0,
+     "visible": true,
+     "x": 144,
+     "y": 32,
+     "width": 96,
+     "height": 80,
+     "properties": [
+      {
+       "name": "isIndoor",
+       "type": "bool",
+       "value": true
+      }
+     ]
+    },
+    {
+     "id": 3,
+     "name": "stone cottage",
+     "type": "",
+     "rotation": 0,
+     "visible": true,
+     "x": 256,
+     "y": 32,
+     "width": 96,
+     "height": 80,
+     "properties": [
+      {
+       "name": "isIndoor",
+       "type": "bool",
+       "value": true
+      }
+     ]
+    },
+    {
+     "id": 4,
+     "name": "willow cottage",
+     "type": "",
+     "rotation": 0,
+     "visible": true,
+     "x": 368,
+     "y": 32,
+     "width": 96,
+     "height": 80,
+     "properties": [
+      {
+       "name": "isIndoor",
+       "type": "bool",
+       "value": true
+      }
+     ]
+    },
+    {
+     "id": 5,
+     "name": "hill cottage",
+     "type": "",
+     "rotation": 0,
+     "visible": true,
+     "x": 480,
+     "y": 32,
+     "width": 96,
+     "height": 80,
+     "properties": [
+      {
+       "name": "isIndoor",
+       "type": "bool",
+       "value": true
+      }
+     ]
+    },
+    {
+     "id": 6,
+     "name": "bakery",
+     "type": "",
+     "rotation": 0,
+     "visible": true,
+     "x": 32,
+     "y": 176,
+     "width": 144,
+     "height": 112,
+     "properties": [
+      {
+       "name": "isIndoor",
+       "type": "bool",
+       "value": true
+      }
+     ]
+    },
+    {
+     "id": 7,
+     "name": "tavern",
+     "type": "",
+     "rotation": 0,
+     "visible": true,
+     "x": 432,
+     "y": 176,
+     "width": 176,
+     "height": 160,
+     "properties": [
+      {
+       "name": "isIndoor",
+       "type": "bool",
+       "value": true
+      }
+     ]
+    },
+    {
+     "id": 8,
+     "name": "town square",
+     "type": "",
+     "rotation": 0,
+     "visible": true,
+     "x": 208,
+     "y": 176,
+     "width": 192,
+     "height": 128,
+     "properties": [
+      {
+       "name": "isIndoor",
+       "type": "bool",
+       "value": false
+      }
+     ]
+    },
+    {
+     "id": 9,
+     "name": "farm",
+     "type": "",
+     "rotation": 0,
+     "visible": true,
+     "x": 32,
+     "y": 336,
+     "width": 208,
+     "height": 112,
+     "properties": [
+      {
+       "name": "isIndoor",
+       "type": "bool",
+       "value": false
+      }
+     ]
+    },
+    {
+     "id": 10,
+     "name": "woodlot",
+     "type": "",
+     "rotation": 0,
+     "visible": true,
+     "x": 416,
+     "y": 368,
+     "width": 192,
+     "height": 80,
+     "properties": [
+      {
+       "name": "isIndoor",
+       "type": "bool",
+       "value": false
+      }
+     ]
+    }
+   ]
+  },
+  {
+   "id": 5,
+   "name": "objects",
+   "type": "objectgroup",
+   "draworder": "topdown",
+   "x": 0,
+   "y": 0,
+   "opacity": 1,
+   "visible": true,
+   "objects": [
+    {
+     "id": 11,
+     "name": "rose cottage bed",
+     "type": "",
+     "rotation": 0,
+     "visible": true,
+     "x": 48,
+     "y": 48,
+     "width": 16,
+     "height": 16,
+     "properties": [
+      {
+       "name": "name",
+       "type": "string",
+       "value": "rose cottage bed"
+      },
+      {
+       "name": "kind",
+       "type": "string",
+       "value": "bed"
+      },
+      {
+       "name": "place",
+       "type": "string",
+       "value": "rose cottage"
+      },
+      {
+       "name": "interactions",
+       "type": "string",
+       "value": "[\"sleep\"]"
+      }
+     ]
+    },
+    {
+     "id": 12,
+     "name": "ivy cottage bed",
+     "type": "",
+     "rotation": 0,
+     "visible": true,
+     "x": 160,
+     "y": 48,
+     "width": 16,
+     "height": 16,
+     "properties": [
+      {
+       "name": "name",
+       "type": "string",
+       "value": "ivy cottage bed"
+      },
+      {
+       "name": "kind",
+       "type": "string",
+       "value": "bed"
+      },
+      {
+       "name": "place",
+       "type": "string",
+       "value": "ivy cottage"
+      },
+      {
+       "name": "interactions",
+       "type": "string",
+       "value": "[\"sleep\"]"
+      }
+     ]
+    },
+    {
+     "id": 13,
+     "name": "stone cottage bed",
+     "type": "",
+     "rotation": 0,
+     "visible": true,
+     "x": 272,
+     "y": 48,
+     "width": 16,
+     "height": 16,
+     "properties": [
+      {
+       "name": "name",
+       "type": "string",
+       "value": "stone cottage bed"
+      },
+      {
+       "name": "kind",
+       "type": "string",
+       "value": "bed"
+      },
+      {
+       "name": "place",
+       "type": "string",
+       "value": "stone cottage"
+      },
+      {
+       "name": "interactions",
+       "type": "string",
+       "value": "[\"sleep\"]"
+      }
+     ]
+    },
+    {
+     "id": 14,
+     "name": "willow cottage bed",
+     "type": "",
+     "rotation": 0,
+     "visible": true,
+     "x": 384,
+     "y": 48,
+     "width": 16,
+     "height": 16,
+     "properties": [
+      {
+       "name": "name",
+       "type": "string",
+       "value": "willow cottage bed"
+      },
+      {
+       "name": "kind",
+       "type": "string",
+       "value": "bed"
+      },
+      {
+       "name": "place",
+       "type": "string",
+       "value": "willow cottage"
+      },
+      {
+       "name": "interactions",
+       "type": "string",
+       "value": "[\"sleep\"]"
+      }
+     ]
+    },
+    {
+     "id": 15,
+     "name": "hill cottage bed",
+     "type": "",
+     "rotation": 0,
+     "visible": true,
+     "x": 496,
+     "y": 48,
+     "width": 16,
+     "height": 16,
+     "properties": [
+      {
+       "name": "name",
+       "type": "string",
+       "value": "hill cottage bed"
+      },
+      {
+       "name": "kind",
+       "type": "string",
+       "value": "bed"
+      },
+      {
+       "name": "place",
+       "type": "string",
+       "value": "hill cottage"
+      },
+      {
+       "name": "interactions",
+       "type": "string",
+       "value": "[\"sleep\"]"
+      }
+     ]
+    },
+    {
+     "id": 16,
+     "name": "oven",
+     "type": "",
+     "rotation": 0,
+     "visible": true,
+     "x": 48,
+     "y": 192,
+     "width": 16,
+     "height": 16,
+     "properties": [
+      {
+       "name": "name",
+       "type": "string",
+       "value": "oven"
+      },
+      {
+       "name": "kind",
+       "type": "string",
+       "value": "oven"
+      },
+      {
+       "name": "place",
+       "type": "string",
+       "value": "bakery"
+      },
+      {
+       "name": "interactions",
+       "type": "string",
+       "value": "[\"bake bread\"]"
+      }
+     ]
+    },
+    {
+     "id": 17,
+     "name": "brew kettle",
+     "type": "",
+     "rotation": 0,
+     "visible": true,
+     "x": 576,
+     "y": 192,
+     "width": 16,
+     "height": 16,
+     "properties": [
+      {
+       "name": "name",
+       "type": "string",
+       "value": "brew kettle"
+      },
+      {
+       "name": "kind",
+       "type": "string",
+       "value": "brew_kettle"
+      },
+      {
+       "name": "place",
+       "type": "string",
+       "value": "tavern"
+      },
+      {
+       "name": "interactions",
+       "type": "string",
+       "value": "[\"brew ale\"]"
+      }
+     ]
+    },
+    {
+     "id": 18,
+     "name": "card table",
+     "type": "",
+     "rotation": 0,
+     "visible": true,
+     "x": 496,
+     "y": 224,
+     "width": 16,
+     "height": 16,
+     "properties": [
+      {
+       "name": "name",
+       "type": "string",
+       "value": "card table"
+      },
+      {
+       "name": "kind",
+       "type": "string",
+       "value": "card_table"
+      },
+      {
+       "name": "place",
+       "type": "string",
+       "value": "tavern"
+      },
+      {
+       "name": "interactions",
+       "type": "string",
+       "value": "[\"play cards\"]"
+      }
+     ]
+    },
+    {
+     "id": 19,
+     "name": "spare bed",
+     "type": "",
+     "rotation": 0,
+     "visible": true,
+     "x": 576,
+     "y": 288,
+     "width": 16,
+     "height": 16,
+     "properties": [
+      {
+       "name": "name",
+       "type": "string",
+       "value": "spare bed"
+      },
+      {
+       "name": "kind",
+       "type": "string",
+       "value": "bed"
+      },
+      {
+       "name": "place",
+       "type": "string",
+       "value": "tavern"
+      },
+      {
+       "name": "interactions",
+       "type": "string",
+       "value": "[\"sleep\"]"
+      }
+     ]
+    },
+    {
+     "id": 20,
+     "name": "notice board",
+     "type": "",
+     "rotation": 0,
+     "visible": true,
+     "x": 288,
+     "y": 192,
+     "width": 16,
+     "height": 16,
+     "properties": [
+      {
+       "name": "name",
+       "type": "string",
+       "value": "notice board"
+      },
+      {
+       "name": "kind",
+       "type": "string",
+       "value": "notice_board"
+      },
+      {
+       "name": "place",
+       "type": "string",
+       "value": "town square"
+      },
+      {
+       "name": "interactions",
+       "type": "string",
+       "value": "[\"read\",\"post a note\"]"
+      }
+     ]
+    },
+    {
+     "id": 21,
+     "name": "bench",
+     "type": "",
+     "rotation": 0,
+     "visible": true,
+     "x": 256,
+     "y": 256,
+     "width": 16,
+     "height": 16,
+     "properties": [
+      {
+       "name": "name",
+       "type": "string",
+       "value": "bench"
+      },
+      {
+       "name": "kind",
+       "type": "string",
+       "value": "bench"
+      },
+      {
+       "name": "place",
+       "type": "string",
+       "value": "town square"
+      },
+      {
+       "name": "interactions",
+       "type": "string",
+       "value": "[\"sit\"]"
+      }
+     ]
+    },
+    {
+     "id": 22,
+     "name": "wheat field",
+     "type": "",
+     "rotation": 0,
+     "visible": true,
+     "x": 128,
+     "y": 384,
+     "width": 16,
+     "height": 16,
+     "properties": [
+      {
+       "name": "name",
+       "type": "string",
+       "value": "wheat field"
+      },
+      {
+       "name": "kind",
+       "type": "string",
+       "value": "wheat_field"
+      },
+      {
+       "name": "place",
+       "type": "string",
+       "value": "farm"
+      },
+      {
+       "name": "interactions",
+       "type": "string",
+       "value": "[\"harvest wheat\"]"
+      },
+      {
+       "name": "stock",
+       "type": "int",
+       "value": 12
+      }
+     ]
+    },
+    {
+     "id": 23,
+     "name": "trees",
+     "type": "",
+     "rotation": 0,
+     "visible": true,
+     "x": 496,
+     "y": 400,
+     "width": 16,
+     "height": 16,
+     "properties": [
+      {
+       "name": "name",
+       "type": "string",
+       "value": "trees"
+      },
+      {
+       "name": "kind",
+       "type": "string",
+       "value": "trees"
+      },
+      {
+       "name": "place",
+       "type": "string",
+       "value": "woodlot"
+      },
+      {
+       "name": "interactions",
+       "type": "string",
+       "value": "[\"chop wood\"]"
+      },
+      {
+       "name": "stock",
+       "type": "int",
+       "value": 10
+      }
+     ]
+    },
+    {
+     "id": 24,
+     "name": "rose cottage door",
+     "type": "",
+     "rotation": 0,
+     "visible": true,
+     "x": 64,
+     "y": 96,
+     "width": 16,
+     "height": 16,
+     "properties": [
+      {
+       "name": "name",
+       "type": "string",
+       "value": "rose cottage door"
+      },
+      {
+       "name": "kind",
+       "type": "string",
+       "value": "door"
+      },
+      {
+       "name": "place",
+       "type": "string",
+       "value": "rose cottage"
+      },
+      {
+       "name": "interactions",
+       "type": "string",
+       "value": "[\"open\",\"close\"]"
+      },
+      {
+       "name": "isOpen",
+       "type": "bool",
+       "value": true
+      }
+     ]
+    },
+    {
+     "id": 25,
+     "name": "ivy cottage door",
+     "type": "",
+     "rotation": 0,
+     "visible": true,
+     "x": 176,
+     "y": 96,
+     "width": 16,
+     "height": 16,
+     "properties": [
+      {
+       "name": "name",
+       "type": "string",
+       "value": "ivy cottage door"
+      },
+      {
+       "name": "kind",
+       "type": "string",
+       "value": "door"
+      },
+      {
+       "name": "place",
+       "type": "string",
+       "value": "ivy cottage"
+      },
+      {
+       "name": "interactions",
+       "type": "string",
+       "value": "[\"open\",\"close\"]"
+      },
+      {
+       "name": "isOpen",
+       "type": "bool",
+       "value": true
+      }
+     ]
+    },
+    {
+     "id": 26,
+     "name": "stone cottage door",
+     "type": "",
+     "rotation": 0,
+     "visible": true,
+     "x": 288,
+     "y": 96,
+     "width": 16,
+     "height": 16,
+     "properties": [
+      {
+       "name": "name",
+       "type": "string",
+       "value": "stone cottage door"
+      },
+      {
+       "name": "kind",
+       "type": "string",
+       "value": "door"
+      },
+      {
+       "name": "place",
+       "type": "string",
+       "value": "stone cottage"
+      },
+      {
+       "name": "interactions",
+       "type": "string",
+       "value": "[\"open\",\"close\"]"
+      },
+      {
+       "name": "isOpen",
+       "type": "bool",
+       "value": true
+      }
+     ]
+    },
+    {
+     "id": 27,
+     "name": "willow cottage door",
+     "type": "",
+     "rotation": 0,
+     "visible": true,
+     "x": 400,
+     "y": 96,
+     "width": 16,
+     "height": 16,
+     "properties": [
+      {
+       "name": "name",
+       "type": "string",
+       "value": "willow cottage door"
+      },
+      {
+       "name": "kind",
+       "type": "string",
+       "value": "door"
+      },
+      {
+       "name": "place",
+       "type": "string",
+       "value": "willow cottage"
+      },
+      {
+       "name": "interactions",
+       "type": "string",
+       "value": "[\"open\",\"close\"]"
+      },
+      {
+       "name": "isOpen",
+       "type": "bool",
+       "value": true
+      }
+     ]
+    },
+    {
+     "id": 28,
+     "name": "hill cottage door",
+     "type": "",
+     "rotation": 0,
+     "visible": true,
+     "x": 512,
+     "y": 96,
+     "width": 16,
+     "height": 16,
+     "properties": [
+      {
+       "name": "name",
+       "type": "string",
+       "value": "hill cottage door"
+      },
+      {
+       "name": "kind",
+       "type": "string",
+       "value": "door"
+      },
+      {
+       "name": "place",
+       "type": "string",
+       "value": "hill cottage"
+      },
+      {
+       "name": "interactions",
+       "type": "string",
+       "value": "[\"open\",\"close\"]"
+      },
+      {
+       "name": "isOpen",
+       "type": "bool",
+       "value": true
+      }
+     ]
+    },
+    {
+     "id": 29,
+     "name": "bakery door",
+     "type": "",
+     "rotation": 0,
+     "visible": true,
+     "x": 96,
+     "y": 176,
+     "width": 16,
+     "height": 16,
+     "properties": [
+      {
+       "name": "name",
+       "type": "string",
+       "value": "bakery door"
+      },
+      {
+       "name": "kind",
+       "type": "string",
+       "value": "door"
+      },
+      {
+       "name": "place",
+       "type": "string",
+       "value": "bakery"
+      },
+      {
+       "name": "interactions",
+       "type": "string",
+       "value": "[\"open\",\"close\"]"
+      },
+      {
+       "name": "isOpen",
+       "type": "bool",
+       "value": true
+      }
+     ]
+    },
+    {
+     "id": 30,
+     "name": "tavern front door",
+     "type": "",
+     "rotation": 0,
+     "visible": true,
+     "x": 496,
+     "y": 176,
+     "width": 16,
+     "height": 16,
+     "properties": [
+      {
+       "name": "name",
+       "type": "string",
+       "value": "tavern front door"
+      },
+      {
+       "name": "kind",
+       "type": "string",
+       "value": "door"
+      },
+      {
+       "name": "place",
+       "type": "string",
+       "value": "tavern"
+      },
+      {
+       "name": "interactions",
+       "type": "string",
+       "value": "[\"open\",\"close\"]"
+      },
+      {
+       "name": "isOpen",
+       "type": "bool",
+       "value": true
+      }
+     ]
+    },
+    {
+     "id": 31,
+     "name": "tavern back door",
+     "type": "",
+     "rotation": 0,
+     "visible": true,
+     "x": 464,
+     "y": 320,
+     "width": 16,
+     "height": 16,
+     "properties": [
+      {
+       "name": "name",
+       "type": "string",
+       "value": "tavern back door"
+      },
+      {
+       "name": "kind",
+       "type": "string",
+       "value": "door"
+      },
+      {
+       "name": "place",
+       "type": "string",
+       "value": "tavern"
+      },
+      {
+       "name": "interactions",
+       "type": "string",
+       "value": "[\"open\",\"close\"]"
+      },
+      {
+       "name": "isOpen",
+       "type": "bool",
+       "value": true
+      }
+     ]
+    }
+   ]
+  },
+  {
+   "id": 6,
+   "name": "spawns",
+   "type": "objectgroup",
+   "draworder": "topdown",
+   "x": 0,
+   "y": 0,
+   "opacity": 1,
+   "visible": true,
+   "objects": [
+    {
+     "id": 32,
+     "name": "rose cottage",
+     "type": "",
+     "rotation": 0,
+     "visible": true,
+     "x": 88,
+     "y": 72,
+     "width": 0,
+     "height": 0,
+     "point": true
+    },
+    {
+     "id": 33,
+     "name": "ivy cottage",
+     "type": "",
+     "rotation": 0,
+     "visible": true,
+     "x": 200,
+     "y": 72,
+     "width": 0,
+     "height": 0,
+     "point": true
+    },
+    {
+     "id": 34,
+     "name": "stone cottage",
+     "type": "",
+     "rotation": 0,
+     "visible": true,
+     "x": 312,
+     "y": 72,
+     "width": 0,
+     "height": 0,
+     "point": true
+    },
+    {
+     "id": 35,
+     "name": "willow cottage",
+     "type": "",
+     "rotation": 0,
+     "visible": true,
+     "x": 424,
+     "y": 72,
+     "width": 0,
+     "height": 0,
+     "point": true
+    },
+    {
+     "id": 36,
+     "name": "hill cottage",
+     "type": "",
+     "rotation": 0,
+     "visible": true,
+     "x": 536,
+     "y": 72,
+     "width": 0,
+     "height": 0,
+     "point": true
+    },
+    {
+     "id": 37,
+     "name": "bakery",
+     "type": "",
+     "rotation": 0,
+     "visible": true,
+     "x": 104,
+     "y": 232,
+     "width": 0,
+     "height": 0,
+     "point": true
+    },
+    {
+     "id": 38,
+     "name": "tavern",
+     "type": "",
+     "rotation": 0,
+     "visible": true,
+     "x": 520,
+     "y": 216,
+     "width": 0,
+     "height": 0,
+     "point": true
+    },
+    {
+     "id": 39,
+     "name": "town square",
+     "type": "",
+     "rotation": 0,
+     "visible": true,
+     "x": 312,
+     "y": 248,
+     "width": 0,
+     "height": 0,
+     "point": true
+    },
+    {
+     "id": 40,
+     "name": "farm",
+     "type": "",
+     "rotation": 0,
+     "visible": true,
+     "x": 136,
+     "y": 360,
+     "width": 0,
+     "height": 0,
+     "point": true
+    },
+    {
+     "id": 41,
+     "name": "woodlot",
+     "type": "",
+     "rotation": 0,
+     "visible": true,
+     "x": 472,
+     "y": 392,
+     "width": 0,
+     "height": 0,
+     "point": true
+    }
+   ]
+  }
+ ],
+ "tilesets": [
+  {
+   "firstgid": 1,
+   "name": "village",
+   "image": "tileset.png",
+   "imagewidth": 128,
+   "imageheight": 32,
+   "columns": 8,
+   "tilecount": 16,
+   "tilewidth": 16,
+   "tileheight": 16,
+   "margin": 0,
+   "spacing": 0,
+   "tiles": [
+    {
+     "id": 0,
+     "type": "grass",
+     "properties": [
+      {
+       "name": "collides",
+       "type": "bool",
+       "value": false
+      }
+     ]
+    },
+    {
+     "id": 1,
+     "type": "path",
+     "properties": [
+      {
+       "name": "collides",
+       "type": "bool",
+       "value": false
+      }
+     ]
+    },
+    {
+     "id": 2,
+     "type": "wood_floor",
+     "properties": [
+      {
+       "name": "collides",
+       "type": "bool",
+       "value": false
+      }
+     ]
+    },
+    {
+     "id": 3,
+     "type": "stone_floor",
+     "properties": [
+      {
+       "name": "collides",
+       "type": "bool",
+       "value": false
+      }
+     ]
+    },
+    {
+     "id": 4,
+     "type": "wall",
+     "properties": [
+      {
+       "name": "collides",
+       "type": "bool",
+       "value": true
+      }
+     ]
+    },
+    {
+     "id": 5,
+     "type": "door",
+     "properties": [
+      {
+       "name": "collides",
+       "type": "bool",
+       "value": false
+      }
+     ]
+    },
+    {
+     "id": 6,
+     "type": "field",
+     "properties": [
+      {
+       "name": "collides",
+       "type": "bool",
+       "value": false
+      }
+     ]
+    },
+    {
+     "id": 7,
+     "type": "tree",
+     "properties": [
+      {
+       "name": "collides",
+       "type": "bool",
+       "value": false
+      }
+     ]
+    },
+    {
+     "id": 8,
+     "type": "fence",
+     "properties": [
+      {
+       "name": "collides",
+       "type": "bool",
+       "value": true
+      }
+     ]
+    },
+    {
+     "id": 9,
+     "type": "water",
+     "properties": [
+      {
+       "name": "collides",
+       "type": "bool",
+       "value": true
+      }
+     ]
+    },
+    {
+     "id": 10,
+     "type": "bed",
+     "properties": [
+      {
+       "name": "collides",
+       "type": "bool",
+       "value": false
+      }
+     ]
+    },
+    {
+     "id": 11,
+     "type": "oven",
+     "properties": [
+      {
+       "name": "collides",
+       "type": "bool",
+       "value": false
+      }
+     ]
+    },
+    {
+     "id": 12,
+     "type": "kettle",
+     "properties": [
+      {
+       "name": "collides",
+       "type": "bool",
+       "value": false
+      }
+     ]
+    },
+    {
+     "id": 13,
+     "type": "card_table",
+     "properties": [
+      {
+       "name": "collides",
+       "type": "bool",
+       "value": false
+      }
+     ]
+    },
+    {
+     "id": 14,
+     "type": "bench",
+     "properties": [
+      {
+       "name": "collides",
+       "type": "bool",
+       "value": false
+      }
+     ]
+    },
+    {
+     "id": 15,
+     "type": "notice_board",
+     "properties": [
+      {
+       "name": "collides",
+       "type": "bool",
+       "value": false
+      }
+     ]
+    }
+   ]
+  }
+ ]
+}
