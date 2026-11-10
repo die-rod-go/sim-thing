@@ -1,5 +1,6 @@
 import { TRAIT_NAMES } from "@village/shared";
 import { config } from "../config";
+import { readJsonEnumValues } from "../decision/schema-fields";
 import { SeededRandom } from "../random";
 import type { FakeResponder } from "./fake-llm-client";
 import { toMessages, type JsonSchema, type LlmRequest } from "./types";
@@ -19,9 +20,7 @@ function isRecord(value: unknown): value is JsonRecord {
 function readEnum(schema: JsonSchema, property: string): string[] {
   const properties = schema.properties;
   if (!isRecord(properties)) return [];
-  const field = properties[property];
-  if (!isRecord(field) || !Array.isArray(field.enum)) return [];
-  return field.enum.filter((value): value is string => typeof value === "string");
+  return readJsonEnumValues(properties[property]);
 }
 
 function readLine(prompt: string, prefix: string): string | null {
@@ -147,6 +146,12 @@ function buildDecisionReply(random: SeededRandom, choices: DecisionChoices): Jso
 export function sampleFromJsonSchema(schema: unknown, random: SeededRandom): unknown {
   if (!isRecord(schema)) return null;
   if (Array.isArray(schema.enum)) return schema.enum.find((value) => value !== null) ?? null;
+  if (Array.isArray(schema.anyOf)) {
+    const nonNullOption = schema.anyOf.find(
+      (option: unknown) => isRecord(option) && option.type !== "null",
+    );
+    return sampleFromJsonSchema(nonNullOption, random);
+  }
   const types = Array.isArray(schema.type) ? schema.type : [schema.type];
   if (types.includes("object") && isRecord(schema.properties)) {
     return Object.fromEntries(

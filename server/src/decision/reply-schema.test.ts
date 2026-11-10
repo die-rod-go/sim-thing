@@ -3,6 +3,7 @@ import type { DecisionTargets } from "./context";
 import { buildInteractPrompt, buildInteractReplySchema } from "./interact-prompt";
 import { buildDecisionReplySchema } from "./reply-schema";
 import { resolveName } from "./resolve-name";
+import { readJsonEnumValues } from "./schema-fields";
 
 const targets: DecisionTargets = {
   places: ["bakery", "town square"],
@@ -48,16 +49,15 @@ describe("buildDecisionReplySchema", () => {
     expect(schema.safeParse({ ...walk, target: "brewery" }).success).toBe(false);
     expect(schema.safeParse({ ...walk, action: "fly", target: "bakery" }).success).toBe(false);
     expect(schema.safeParse({ ...walk, action: "continue" }).success).toBe(false);
-    const properties = jsonSchema.properties as Record<string, { enum?: unknown[] }>;
-    expect(properties.target?.enum).toEqual([
+    const properties = jsonSchema.properties as Record<string, unknown>;
+    expect(readJsonEnumValues(properties.target)).toEqual([
       "bakery",
       "town square",
       "Bob",
       "oven",
       "bread",
-      null,
     ]);
-    expect(properties.action?.enum).not.toContain("continue");
+    expect(readJsonEnumValues(properties.action)).not.toContain("continue");
   });
 
   it("accepts continue only when interrupted mid-action", () => {
@@ -67,8 +67,8 @@ describe("buildDecisionReplySchema", () => {
     expect(
       schema.safeParse({ thought: "Fine.", intention: "bake", action: "continue" }).success,
     ).toBe(true);
-    const properties = jsonSchema.properties as Record<string, { enum?: unknown[] }>;
-    expect(properties.action?.enum).toContain("continue");
+    const properties = jsonSchema.properties as Record<string, unknown>;
+    expect(readJsonEnumValues(properties.action)).toContain("continue");
   });
 
   it("requires the fields an action needs", () => {

@@ -10,6 +10,7 @@ import {
   looseEnum,
   nullableJsonEnum,
   nullableJsonInteger,
+  nullableJsonObject,
   nullableJsonString,
   strictJsonObject,
 } from "./schema-fields";
@@ -45,12 +46,9 @@ function buildDecisionJsonSchema(actions: readonly string[], targetNames: string
     amount: nullableJsonInteger(),
     query: nullableJsonString(),
     minutes: nullableJsonInteger(),
-    note: {
-      type: ["object", "null"],
-      properties: { person: { type: "string" }, text: { type: "string" } },
-      required: ["person", "text"],
-      additionalProperties: false,
-    },
+    note: nullableJsonObject(
+      strictJsonObject({ person: { type: "string" }, text: { type: "string" } }),
+    ),
     mood: nullableJsonString(),
   });
 }

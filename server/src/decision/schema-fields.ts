@@ -16,10 +16,32 @@ export function nullableJsonInteger(): JsonSchema {
   return { type: ["integer", "null"] };
 }
 
+/*
+ * Enums and objects are made nullable with `anyOf` rather than a `type` array: some providers
+ * (Anthropic via OpenRouter) reject enum values under a union type.
+ */
 export function nullableJsonEnum(values: readonly string[]): JsonSchema {
   return values.length > 0
-    ? { type: ["string", "null"], enum: [...values, null] }
+    ? { anyOf: [{ type: "string", enum: [...values] }, { type: "null" }] }
     : { type: "null" };
+}
+
+export function nullableJsonObject(schema: JsonSchema): JsonSchema {
+  return { anyOf: [schema, { type: "null" }] };
+}
+
+function isJsonRecord(value: unknown): value is JsonSchema {
+  return typeof value === "object" && value !== null && !Array.isArray(value);
+}
+
+/** The string enum values of a schema, whether given directly or inside a nullable `anyOf`. */
+export function readJsonEnumValues(schema: unknown): string[] {
+  if (!isJsonRecord(schema)) return [];
+  if (Array.isArray(schema.enum)) {
+    return schema.enum.filter((value): value is string => typeof value === "string");
+  }
+  if (!Array.isArray(schema.anyOf)) return [];
+  return schema.anyOf.flatMap((option: unknown) => readJsonEnumValues(option));
 }
 
 export function strictJsonObject(properties: Record<string, JsonSchema>): JsonSchema {
