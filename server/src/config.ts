@@ -68,6 +68,8 @@ export const config = {
     interruptCooldownTicks: 10,
     /** "Around you" lists agents perceived within this many sim-minutes. */
     awarenessPromptWindowMinutes: 60,
+    /** Sound fills cached per source tile, door state and reach; the cache clears when full. */
+    soundCacheMaxEntries: 512,
   },
 
   needs: {
