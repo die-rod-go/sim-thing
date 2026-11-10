@@ -2,6 +2,7 @@ import type { DecisionReply } from "@village/shared";
 import { config } from "../config";
 import { normalizeDisplayName, resolveName } from "../decision/resolve-name";
 import { computeChebyshevDistance, executeGive } from "../economy/give";
+import { describeQuantity } from "../economy/inventory";
 import { filePersonNote } from "../memory/filing";
 import { pushWorkingMemory } from "../memory/working-memory";
 import { WAIT_ACTION } from "./action-phrases";
@@ -137,7 +138,7 @@ function executeGiveAction(
 ): void {
   const { state, result } = context;
   const giver = findAgent(state, agentId);
-  const what = `${action.amount} ${action.item.trim().toLowerCase()}`;
+  const what = describeQuantity(action.amount, action.item.trim().toLowerCase());
   const recipientId = resolveName(action.target, state.agents);
   if (!recipientId) {
     failAction(
@@ -161,7 +162,7 @@ function executeGiveAction(
   markAgentChanged(result, recipientId);
   const event = createEvent(state, given.giver, {
     kind: "gave",
-    description: `gave ${recipient.name} ${given.amount} ${given.item}`,
+    description: `gave ${recipient.name} ${describeQuantity(given.amount, given.item)}`,
     targetId: recipientId,
     targetName: recipient.name,
     item: given.item,

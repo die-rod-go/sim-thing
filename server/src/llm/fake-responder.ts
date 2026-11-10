@@ -69,7 +69,7 @@ function readDecisionChoices(schema: JsonSchema, prompt: string): DecisionChoice
     places: (readLine(prompt, "Places you know: ") ?? "")
       .split(", ")
       .filter((name) => targets.has(name)),
-    currentPlace: (readLine(prompt, "You are at ") ?? "").replace(/\.$/, ""),
+    currentPlace: (readLine(prompt, "You are at the ") ?? "").replace(/\.$/, ""),
     objects: parseNamedUses(readLine(prompt, "Here: ")),
     heldItems: parseNamedUses(readLine(prompt, "Coins: ")?.replace(/^.*You carry: /, "") ?? null),
     inSight: heard

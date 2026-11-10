@@ -1,5 +1,6 @@
 import type { Agent } from "@village/shared";
 import { config } from "../config";
+import { describeQuantity } from "../economy/inventory";
 import { describePlace } from "../memory/filing";
 import type { AgentRuntime } from "./agent-runtime";
 import type { WorldState } from "./world-state";
@@ -35,7 +36,7 @@ export function describeDoneInteraction(interaction: string, targetName: string)
 
 /** "4 bread", "2 wheat and 1 wood" */
 export function describeItemCounts(items: Record<string, number>): string {
-  const parts = Object.entries(items).map(([item, amount]) => `${amount} ${item}`);
+  const parts = Object.entries(items).map(([item, amount]) => describeQuantity(amount, item));
   if (parts.length <= 1) return parts.join("");
   return `${parts.slice(0, -1).join(", ")} and ${parts[parts.length - 1]}`;
 }

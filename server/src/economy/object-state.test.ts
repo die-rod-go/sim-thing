@@ -32,7 +32,7 @@ describe("doors", () => {
   it("fails to close a door that is already closed", () => {
     expect(setDoorOpen(makeObject("door", "tavern door", { isOpen: false }), false)).toEqual({
       isSuccess: false,
-      reason: "Tavern door is already closed",
+      reason: "The tavern door is already closed",
     });
   });
 });

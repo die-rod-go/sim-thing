@@ -222,7 +222,7 @@ describe("starting and finishing interactions", () => {
       interaction: "open",
       tick: 0,
     });
-    expect(result).toEqual({ isSuccess: false, reason: "Bakery door is already open" });
+    expect(result).toEqual({ isSuccess: false, reason: "The bakery door is already open" });
   });
 
   it("sleeping in a bed starts sleep with no end tick", () => {

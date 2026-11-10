@@ -21,7 +21,7 @@ You were: {{intention}}
 {{lastFailure}}
 
 ## Where you are
-You are at {{place}}.
+You are at the {{place}}.
 Here: {{nearbyObjects}}
 Places you know: {{knownPlaces}}
 

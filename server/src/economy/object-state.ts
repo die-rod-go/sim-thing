@@ -1,6 +1,6 @@
 import type { WorldObject } from "@village/shared";
 import { config, type ObjectKindConfig } from "../config";
-import { MINUTES_PER_DAY, capitalize, failWith, type MechanicResult } from "./types";
+import { MINUTES_PER_DAY, failWith, type MechanicResult } from "./types";
 
 export function addObjectUser(object: WorldObject, agentId: string): WorldObject {
   const userIds = object.state.userIds ?? [];
@@ -61,10 +61,10 @@ export function setDoorOpen(
   isOpen: boolean,
 ): MechanicResult<{ object: WorldObject }> {
   if (object.kind !== "door") {
-    return failWith(`${capitalize(object.name)} isn't a door`);
+    return failWith(`The ${object.name} isn't a door`);
   }
   if ((object.state.isOpen ?? false) === isOpen) {
-    return failWith(`${capitalize(object.name)} is already ${isOpen ? "open" : "closed"}`);
+    return failWith(`The ${object.name} is already ${isOpen ? "open" : "closed"}`);
   }
   return { isSuccess: true, object: { ...object, state: { ...object.state, isOpen } } };
 }

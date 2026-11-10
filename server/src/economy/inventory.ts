@@ -46,3 +46,9 @@ export function findMissingItems(inventory: Inventory, required: Inventory): Inv
 function removeEmptyEntries(inventory: Inventory): Inventory {
   return Object.fromEntries(Object.entries(inventory).filter(([, amount]) => amount > 0));
 }
+
+/** "1 coin", "3 coins", "2 bread": coins are the only countable noun among the goods. */
+export function describeQuantity(amount: number, item: string): string {
+  const noun = item === "coins" && amount === 1 ? "coin" : item;
+  return `${amount} ${noun}`;
+}
