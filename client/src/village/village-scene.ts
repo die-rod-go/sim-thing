@@ -128,11 +128,11 @@ export class VillageScene extends Phaser.Scene {
       case "agent_moved":
         this.markers.get(message.agentId)?.moveTo(message.pos, this.moveDurationMs());
         return;
-      case "said":
-        if (this.markers.has(message.agentId)) {
-          this.bubbles.add(message.agentId, message.text, message.volume);
-        }
+      case "said": {
+        const speaker = this.markers.get(message.agentId);
+        if (speaker) this.bubbles.add(message.agentId, speaker.name, message.text, message.volume);
         return;
+      }
       case "state_changed":
         if (message.agents) this.syncAgents(message.agents, false);
         return;

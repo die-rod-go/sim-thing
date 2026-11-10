@@ -23,10 +23,12 @@ export const clientConfig = {
   village: {
     /** Upper bound on a one-tile move tween so slow speeds don't make agents lag behind. */
     maxMoveTweenMs: 1000,
-    speechBubbleLifetimeMs: 4500,
-    speechBubbleFadeMs: 600,
+    speechBubbleLifetimeMs: 8000,
+    speechBubbleFadeMs: 1500,
     speechBubbleWrapWidth: 110,
     speechBubbleGap: 2,
+    speechBubbleLeaderLineWidth: 1,
+    speechBubbleLeaderLineAlpha: 0.6,
     textResolution: 4,
     selectionRingRadius: 8,
     visibleTileAlpha: 0.28,

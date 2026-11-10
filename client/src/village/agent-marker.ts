@@ -49,7 +49,7 @@ export class AgentMarker {
   constructor(
     private readonly scene: Phaser.Scene,
     readonly agentId: string,
-    name: string,
+    readonly name: string,
     color: number,
     position: Position,
     onClick: (agentId: string) => void,
