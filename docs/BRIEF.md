@@ -29,7 +29,7 @@ The sim loop is the only writer of world state; the browser never calls the LLM 
 | Server    | Node or Bun + `ws`                            | No web framework needed                                                                    |
 | Storage   | SQLite (`better-sqlite3` or `bun:sqlite`)     | Agents, memories, event log; leave room for `sqlite-vec` later                             |
 | LLM       | OpenAI-compatible client                      | Base URL, model and key from `.env`; works with OpenRouter or Ollama; use JSON output mode |
-| Rendering | Phaser 3                                      | Tilemap, sprites, speech bubbles, camera                                                   |
+| Rendering | Phaser 4 (latest)                             | Tilemap, sprites, speech bubbles, camera                                                   |
 | UI panels | React via Vite                                | Inspector and controls beside the Phaser canvas                                            |
 | Map       | Tiled JSON + a free CC0 tileset (e.g. Kenney) | Object layer defines interactables                                                         |
 
