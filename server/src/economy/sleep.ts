@@ -1,6 +1,6 @@
 import type { Agent, WorldObject } from "@village/shared";
 import { config } from "../config";
-import { addObjectUser, removeObjectUser } from "./objectState";
+import { addObjectUser, removeObjectUser } from "./object-state";
 import {
   MINUTES_PER_HOUR,
   clampUnit,

@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 import { executeGive } from "./give";
-import { makeAgent } from "./testFixtures";
+import { makeAgent } from "./test-fixtures";
 
 const mara = makeAgent({
   id: "mara",

@@ -1,9 +1,9 @@
 import { describe, expect, it } from "vitest";
 import type { WorldObject } from "@village/shared";
 import { config } from "../config";
-import { postNote, readNoticeBoard } from "./noticeBoard";
-import { regrowStocks, setDoorOpen } from "./objectState";
-import { makeAgent, makeObject } from "./testFixtures";
+import { postNote, readNoticeBoard } from "./notice-board";
+import { regrowStocks, setDoorOpen } from "./object-state";
+import { makeAgent, makeObject } from "./test-fixtures";
 import { MINUTES_PER_DAY } from "./types";
 
 describe("stock regrowth", () => {

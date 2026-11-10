@@ -1,7 +1,7 @@
 import { describe, expect, it } from "vitest";
 import { config } from "../config";
 import { advanceSleep, endSleep, findWakeReason, isAsleep, startSleep } from "./sleep";
-import { makeAgent, makeObject } from "./testFixtures";
+import { makeAgent, makeObject } from "./test-fixtures";
 
 const bed = makeObject("bed", "Mara's bed");
 

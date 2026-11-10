@@ -8,7 +8,7 @@ import {
   decayNeeds,
   findCrossedThresholds,
 } from "./needs";
-import { makeAgent, withExtraversion } from "./testFixtures";
+import { makeAgent, withExtraversion } from "./test-fixtures";
 import { MINUTES_PER_DAY } from "./types";
 
 const full = { hunger: 1, energy: 1, social: 1, fun: 1 };

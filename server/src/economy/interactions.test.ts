@@ -9,7 +9,7 @@ import {
   startInteraction,
   type StartedInteraction,
 } from "./interactions";
-import { makeAgent, makeObject } from "./testFixtures";
+import { makeAgent, makeObject } from "./test-fixtures";
 
 function expectStarted(result: ReturnType<typeof startInteraction>): StartedInteraction {
   if (!result.isSuccess) {

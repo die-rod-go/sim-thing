@@ -2,7 +2,7 @@ import type { Agent, Note, WorldObject } from "@village/shared";
 import { config, type InteractionRecipe } from "../config";
 import { addItems, countItem, findMissingItems, removeItems, type Inventory } from "./inventory";
 import { applyNeedEffects } from "./needs";
-import { postNote, readNoticeBoard } from "./noticeBoard";
+import { postNote, readNoticeBoard } from "./notice-board";
 import {
   addObjectUser,
   countOtherUsers,
@@ -10,7 +10,7 @@ import {
   removeObjectUser,
   setDoorOpen,
   takeStock,
-} from "./objectState";
+} from "./object-state";
 import { SLEEP_INTERACTION, startSleep } from "./sleep";
 import { capitalize, failWith, type InteractionRecord, type MechanicResult } from "./types";
 
