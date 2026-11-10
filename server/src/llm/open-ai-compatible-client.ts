@@ -95,7 +95,7 @@ export class OpenAiCompatibleClient implements LlmClient {
       model: this.model,
       messages: toMessages(request),
       max_tokens: request.maxTokens,
-      temperature: request.temperature,
+      ...(request.temperature === undefined ? {} : { temperature: request.temperature }),
       response_format: responseFormat,
     };
   }

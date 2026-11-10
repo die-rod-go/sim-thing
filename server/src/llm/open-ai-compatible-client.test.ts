@@ -68,6 +68,13 @@ describe("OpenAiCompatibleClient", () => {
     });
   });
 
+  it("leaves temperature out of the request when none is set", async () => {
+    const fetchStub = stubFetch(completion);
+    const client = new OpenAiCompatibleClient(settings);
+    await client.complete({ prompt: "hi", maxTokens: 50 });
+    expect(sentBody(fetchStub)).not.toHaveProperty("temperature");
+  });
+
   it("falls back to json_object mode when structured output is off", async () => {
     const fetchStub = stubFetch(completion);
     const client = new OpenAiCompatibleClient({ ...settings, isStructuredOutputEnabled: false });

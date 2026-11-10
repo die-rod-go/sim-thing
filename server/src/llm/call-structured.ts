@@ -105,7 +105,7 @@ async function attemptCall<Value>(
       jsonSchema: request.jsonSchema,
       schemaName: request.schemaName,
       maxTokens: request.maxTokens ?? config.llm.maxReplyTokens[request.kind],
-      temperature: request.temperature ?? config.llm.temperature,
+      temperature: request.temperature ?? config.llm.temperature ?? undefined,
     });
     const parseResult = describeCutOff(
       parseReply(response.text, request.schema),

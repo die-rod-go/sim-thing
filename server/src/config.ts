@@ -459,7 +459,8 @@ export const config = {
     concurrency: 8,
     retryBackoffMs: 1500,
     requestTimeoutMs: 60000,
-    temperature: 0.8,
+    /** null sends no temperature, so the provider default applies; Anthropic rejects any other value. */
+    temperature: null as number | null,
     /**
      * Ceilings, not targets: only generated tokens are billed. Some models tokenize JSON at barely
      * over one character per token, so a full decision reply can need several hundred tokens.

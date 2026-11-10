@@ -12,7 +12,8 @@ interface LlmRequestOptions {
   jsonSchema?: JsonSchema;
   schemaName?: string;
   maxTokens: number;
-  temperature: number;
+  /** Left out of the request when undefined, so the provider default applies. */
+  temperature?: number;
 }
 
 export type LlmRequest = LlmRequestOptions & ({ prompt: string } | { messages: LlmMessage[] });
