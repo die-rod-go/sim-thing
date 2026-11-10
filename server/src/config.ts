@@ -494,6 +494,14 @@ export const config = {
     maxInsights: 3,
     weeklyEveryNights: 7,
     daySummariesShownWeekly: 7,
+    /** The night pass shows the agent's memories from this many sim-hours back. */
+    nightMemoryWindowHours: 24,
+    /** At most this many of the day's memories (strongest, then newest) reach the night prompt. */
+    nightMemoriesShown: 40,
+    /** The night prompt shows up to this many current notes for each person met today. */
+    peopleNotesShownPerPerson: 3,
+    /** Trait values are rounded to this many decimals after a weekly change. */
+    traitValueDecimals: 3,
   },
 };
 
