@@ -101,6 +101,8 @@ export interface AgentDetailMessage {
   memories: Memory[];
   llmCalls: LlmCallRecord[];
   personalityHistory: PersonalityChange[];
+  /** Tile indexes (y * width + x) for the debug overlay, computed by the server's perception code. */
+  perceptionView: { visibleTiles: number[]; speechReachTiles: number[] } | null;
 }
 
 export type ServerMessage =
