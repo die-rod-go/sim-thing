@@ -1,6 +1,6 @@
 import { z } from "zod";
 import type { JsonSchema } from "../llm/types";
-import { normalizeDisplayName } from "./resolveName";
+import { normalizeDisplayName } from "./resolve-name";
 
 /*
  * Strict structured output requires every property to be listed as required, so optional fields are

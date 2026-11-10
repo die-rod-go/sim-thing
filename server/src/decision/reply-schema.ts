@@ -2,7 +2,7 @@ import type { DecisionAction, DecisionReply, Volume } from "@village/shared";
 import { z } from "zod";
 import type { JsonSchema } from "../llm/types";
 import type { DecisionTargets } from "./context";
-import { listOfferedActions } from "./decisionPrompt";
+import { listOfferedActions } from "./decision-prompt";
 import { listTargetNames } from "./sections";
 import {
   displayNameEnum,
@@ -12,7 +12,7 @@ import {
   nullableJsonInteger,
   nullableJsonString,
   strictJsonObject,
-} from "./schemaFields";
+} from "./schema-fields";
 
 const VOLUMES: readonly [Volume, ...Volume[]] = ["whisper", "normal", "shout"];
 const ACTIONS_NEEDING_TARGET: readonly DecisionAction[] = ["walk_to", "interact", "give"];

@@ -1,8 +1,8 @@
 import { describe, expect, it } from "vitest";
 import type { DecisionTargets } from "./context";
-import { buildInteractPrompt, buildInteractReplySchema } from "./interactPrompt";
-import { buildDecisionReplySchema } from "./replySchema";
-import { resolveName } from "./resolveName";
+import { buildInteractPrompt, buildInteractReplySchema } from "./interact-prompt";
+import { buildDecisionReplySchema } from "./reply-schema";
+import { resolveName } from "./resolve-name";
 
 const targets: DecisionTargets = {
   places: ["bakery", "town square"],

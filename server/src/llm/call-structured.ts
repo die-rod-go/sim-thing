@@ -2,8 +2,8 @@ import type { LlmCallKind, LlmCallRecord } from "@village/shared";
 import { z } from "zod";
 import { config } from "../config";
 import { createLogger } from "../logger";
-import type { ConcurrencyLimiter } from "./concurrencyLimiter";
-import type { TokenBudget } from "./tokenBudget";
+import type { ConcurrencyLimiter } from "./concurrency-limiter";
+import type { TokenBudget } from "./token-budget";
 import type { JsonSchema, LlmCallSink, LlmClient } from "./types";
 
 const logger = createLogger("llm");

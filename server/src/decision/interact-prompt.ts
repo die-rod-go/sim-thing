@@ -1,13 +1,13 @@
 import { z } from "zod";
 import { renderTemplate } from "../llm/templates";
-import type { ReplySchemas } from "./replySchema";
+import type { ReplySchemas } from "./reply-schema";
 import {
   displayNameEnum,
   dropEmptyFields,
   nullableJsonInteger,
   nullableJsonString,
   strictJsonObject,
-} from "./schemaFields";
+} from "./schema-fields";
 
 export interface InteractOption {
   name: string;

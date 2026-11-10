@@ -1,11 +1,11 @@
 import { describe, expect, it } from "vitest";
 import { z } from "zod";
-import type { LlmCallDraft } from "./callStructured";
-import { BUDGET_REACHED_ERROR, createStructuredCaller } from "./callStructured";
-import { ConcurrencyLimiter } from "./concurrencyLimiter";
-import type { FakeReply } from "./fakeLlmClient";
-import { FakeLlmClient } from "./fakeLlmClient";
-import { InMemoryTokenUsageStore, TokenBudget } from "./tokenBudget";
+import type { LlmCallDraft } from "./call-structured";
+import { BUDGET_REACHED_ERROR, createStructuredCaller } from "./call-structured";
+import { ConcurrencyLimiter } from "./concurrency-limiter";
+import type { FakeReply } from "./fake-llm-client";
+import { FakeLlmClient } from "./fake-llm-client";
+import { InMemoryTokenUsageStore, TokenBudget } from "./token-budget";
 
 const replySchema = z.object({ answer: z.string() });
 const NOON = new Date(2026, 10, 10, 12, 0, 0);

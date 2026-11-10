@@ -1,8 +1,8 @@
 import { describe, expect, it } from "vitest";
 import { config } from "../config";
-import { describeAroundYou } from "./aroundYou";
+import { describeAroundYou } from "./around-you";
 import type { DecisionContext, RecalledMemory } from "./context";
-import { buildDecisionPrompt, estimatePromptTokens } from "./decisionPrompt";
+import { buildDecisionPrompt, estimatePromptTokens } from "./decision-prompt";
 import { describeNeeds, describeTraits } from "./words";
 
 function buildContext(overrides: Partial<DecisionContext> = {}): DecisionContext {

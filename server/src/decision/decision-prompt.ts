@@ -2,7 +2,7 @@ import type { Bucket, DecisionAction } from "@village/shared";
 import { config } from "../config";
 import { fillTemplate, loadTemplate } from "../llm/templates";
 import type { TemplateValues } from "../llm/templates";
-import { describeAroundYou } from "./aroundYou";
+import { describeAroundYou } from "./around-you";
 import type { DecisionContext, RecalledMemory } from "./context";
 import {
   describeBelongings,

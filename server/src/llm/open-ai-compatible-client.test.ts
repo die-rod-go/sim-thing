@@ -1,7 +1,7 @@
 import { afterEach, describe, expect, it, vi } from "vitest";
 import type { LlmEnv } from "./env";
 import { readLlmEnv } from "./env";
-import { OpenAiCompatibleClient } from "./openAiCompatibleClient";
+import { OpenAiCompatibleClient } from "./open-ai-compatible-client";
 
 const settings: LlmEnv = {
   baseUrl: "https://llm.example/api/v1",

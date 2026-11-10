@@ -1,7 +1,7 @@
 import { BUCKETS } from "@village/shared";
 import type { Bucket, Goal } from "@village/shared";
 import { config } from "../config";
-import { formatMinutesAgo } from "./aroundYou";
+import { formatMinutesAgo } from "./around-you";
 import type {
   ConversationLine,
   CurrentActionSummary,
