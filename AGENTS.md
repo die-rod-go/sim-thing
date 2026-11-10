@@ -5,9 +5,6 @@ Instructions for AI coding agents (and humans) working in this repo.
 ## Project
 
 A browser-viewable village simulation: LLM-driven agents with memory, needs, goals and personality.
-The full design lives in `docs/BRIEF.md`. Read it before starting a task, and build only what the
-current milestone asks for. If the code needs to differ from the brief, stop and ask; don't
-silently diverge. When a design decision changes, update the brief in the same change.
 
 ## Commands
 
