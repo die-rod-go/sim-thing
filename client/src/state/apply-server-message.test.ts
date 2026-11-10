@@ -1,9 +1,9 @@
 import { describe, expect, it } from "vitest";
 import type { AgentDetailMessage } from "@village/shared";
-import { clientConfig } from "../clientConfig";
-import { makeSampleAgent, makeSampleEvent, makeSampleSnapshot } from "../fixtures/sampleData";
-import { applyServerMessage, selectInspectedAgent } from "./applyServerMessage";
-import { initialClientState, type ClientState } from "./clientState";
+import { clientConfig } from "../client-config";
+import { makeSampleAgent, makeSampleEvent, makeSampleSnapshot } from "../fixtures/sample-data";
+import { applyServerMessage, selectInspectedAgent } from "./apply-server-message";
+import { initialClientState, type ClientState } from "./client-state";
 
 const ada = makeSampleAgent("ada", "Ada", 3, 4);
 const bob = makeSampleAgent("bob", "Bob", 10, 12);

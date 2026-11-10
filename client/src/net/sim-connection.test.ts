@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
-import { clientConfig } from "../clientConfig";
-import { buildSocketUrl, computeReconnectDelayMs } from "./simConnection";
+import { clientConfig } from "../client-config";
+import { buildSocketUrl, computeReconnectDelayMs } from "./sim-connection";
 
 describe("simConnection helpers", () => {
   it("uses wss on https pages and ws otherwise", () => {

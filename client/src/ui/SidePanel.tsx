@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { findAgent, type ClientState } from "../state/clientState";
+import { findAgent, type ClientState } from "../state/client-state";
 import { EventFeed } from "./EventFeed";
 import { InspectorTab } from "./InspectorTab";
 import { MemoryTab } from "./MemoryTab";

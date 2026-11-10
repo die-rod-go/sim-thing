@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
-import { makeSampleAgent, makeSampleEvent } from "../fixtures/sampleData";
-import { describeEvent, filterEvents, listEventPlaces } from "./eventFeed";
+import { makeSampleAgent, makeSampleEvent } from "../fixtures/sample-data";
+import { describeEvent, filterEvents, listEventPlaces } from "./event-feed";
 
 const ada = makeSampleAgent("ada", "Ada", 0, 0);
 const bob = { ...makeSampleAgent("bob", "Bob", 1, 1), place: "tavern" };

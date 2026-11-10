@@ -1,5 +1,5 @@
 import type { ServerMessage } from "@village/shared";
-import type { ClientState } from "../state/clientState";
+import type { ClientState } from "../state/client-state";
 
 export type MapStatus =
   { kind: "loading" } | { kind: "ready" } | { kind: "error"; message: string };

@@ -1,7 +1,7 @@
 import { describe, expect, it } from "vitest";
 import type { Memory } from "@village/shared";
-import { makeSampleAgent } from "../fixtures/sampleData";
-import { buildAwarenessRows, countTags, groupMemoriesByBucket } from "./memoryView";
+import { makeSampleAgent } from "../fixtures/sample-data";
+import { buildAwarenessRows, countTags, groupMemoriesByBucket } from "./memory-view";
 
 function makeMemory(id: string, tick: number, tags: string[], bucket: Memory["bucket"]): Memory {
   return {

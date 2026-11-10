@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { splitPromptSections } from "./splitPromptSections";
+import { splitPromptSections } from "./split-prompt-sections";
 
 describe("splitPromptSections", () => {
   it("keeps text before the first heading as an untitled section", () => {

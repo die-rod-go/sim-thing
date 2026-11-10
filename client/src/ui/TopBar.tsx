@@ -1,8 +1,8 @@
 import { useState, type FormEvent } from "react";
 import { formatSimTime, type ClientMessage } from "@village/shared";
 import { formatCount, parsePositiveInteger } from "../format/formatters";
-import type { ConnectionStatus } from "../net/simConnection";
-import type { ClientState } from "../state/clientState";
+import type { ConnectionStatus } from "../net/sim-connection";
+import type { ClientState } from "../state/client-state";
 
 interface TopBarProps {
   state: ClientState;

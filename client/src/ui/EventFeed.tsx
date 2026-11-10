@@ -1,7 +1,7 @@
 import { useMemo, useState } from "react";
 import { formatSimTime } from "@village/shared";
-import { describeEvent, filterEvents, listEventPlaces } from "../format/eventFeed";
-import type { ClientState } from "../state/clientState";
+import { describeEvent, filterEvents, listEventPlaces } from "../format/event-feed";
+import type { ClientState } from "../state/client-state";
 import { EmptyNote } from "./widgets";
 
 const ALL = "";

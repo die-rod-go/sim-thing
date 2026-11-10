@@ -1,7 +1,7 @@
 import { formatSimTime, type AgentDetailMessage, type LlmCallRecord } from "@village/shared";
 import { formatCount, formatLatency, formatParsedReply } from "../format/formatters";
-import { splitPromptSections } from "../format/splitPromptSections";
-import type { ClientState } from "../state/clientState";
+import { splitPromptSections } from "../format/split-prompt-sections";
+import type { ClientState } from "../state/client-state";
 import { EmptyNote } from "./widgets";
 
 interface PromptsTabProps {

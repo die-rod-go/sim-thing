@@ -1,6 +1,6 @@
 import * as Phaser from "phaser";
 import type { Position } from "@village/shared";
-import { clientConfig } from "../clientConfig";
+import { clientConfig } from "../client-config";
 
 export const AGENT_TEXTURE_KEY = "agent-figure";
 

@@ -1,7 +1,7 @@
 import type * as Phaser from "phaser";
 import type { AgentDetailMessage } from "@village/shared";
-import { clientConfig } from "../clientConfig";
-import { computeRegionOutlineEdges, tileIndexToPosition } from "./villageGeometry";
+import { clientConfig } from "../client-config";
+import { computeRegionOutlineEdges, tileIndexToPosition } from "./village-geometry";
 
 export type PerceptionView = AgentDetailMessage["perceptionView"];
 

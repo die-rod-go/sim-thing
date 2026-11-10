@@ -5,9 +5,9 @@ import {
   type Agent,
   type AgentDetailMessage,
 } from "@village/shared";
-import { clientConfig } from "../clientConfig";
+import { clientConfig } from "../client-config";
 import { describeAction } from "../format/formatters";
-import type { ClientState } from "../state/clientState";
+import type { ClientState } from "../state/client-state";
 import { EmptyNote, MeterBar, PanelSection, TraitSlider } from "./widgets";
 
 interface InspectorTabProps {

@@ -18,7 +18,7 @@ import {
   makeSampleLlmCall,
   makeSampleMemory,
   makeSampleSnapshot,
-} from "../src/fixtures/sampleData";
+} from "../src/fixtures/sample-data";
 
 const DEFAULT_PORT = 8787;
 const MAP_WIDTH = 40;

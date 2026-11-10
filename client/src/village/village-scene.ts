@@ -1,12 +1,12 @@
 import * as Phaser from "phaser";
 import type { Agent, ServerMessage } from "@village/shared";
-import { clientConfig } from "../clientConfig";
+import { clientConfig } from "../client-config";
 import { computeTickDurationMs } from "../format/formatters";
-import { AgentMarker, createAgentTexture } from "./agentMarker";
-import { drawPerceptionOverlay, type PerceptionView } from "./perceptionOverlay";
-import type { SceneBridge } from "./sceneBridge";
-import { SpeechBubbleLayer } from "./speechBubbles";
-import { computeFitZoom, pickAgentColor, summarizeTiledMap } from "./villageGeometry";
+import { AgentMarker, createAgentTexture } from "./agent-marker";
+import { drawPerceptionOverlay, type PerceptionView } from "./perception-overlay";
+import type { SceneBridge } from "./scene-bridge";
+import { SpeechBubbleLayer } from "./speech-bubbles";
+import { computeFitZoom, pickAgentColor, summarizeTiledMap } from "./village-geometry";
 
 const MAP_KEY = "village-map";
 const TILESET_KEY = "village-tileset";

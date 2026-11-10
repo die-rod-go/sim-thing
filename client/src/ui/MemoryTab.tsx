@@ -1,8 +1,8 @@
 import { useMemo, useState } from "react";
 import { formatSimTime, type AgentDetailMessage } from "@village/shared";
 import { formatMinutesAgo } from "../format/formatters";
-import { buildAwarenessRows, countTags, groupMemoriesByBucket } from "../format/memoryView";
-import type { ClientState } from "../state/clientState";
+import { buildAwarenessRows, countTags, groupMemoriesByBucket } from "../format/memory-view";
+import type { ClientState } from "../state/client-state";
 import { EmptyNote, PanelSection, StrengthBar } from "./widgets";
 
 const MAX_TAG_CHIPS = 30;

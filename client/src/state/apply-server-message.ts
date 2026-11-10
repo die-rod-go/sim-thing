@@ -1,6 +1,6 @@
 import type { Agent, ServerMessage, WorldObject } from "@village/shared";
-import { clientConfig } from "../clientConfig";
-import type { ClientState, SpeechBubble } from "./clientState";
+import { clientConfig } from "../client-config";
+import type { ClientState, SpeechBubble } from "./client-state";
 
 function keepNewest<Item>(items: Item[], limit: number): Item[] {
   return items.length > limit ? items.slice(items.length - limit) : items;

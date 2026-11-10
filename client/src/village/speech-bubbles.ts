@@ -1,6 +1,6 @@
 import * as Phaser from "phaser";
 import type { Volume } from "@village/shared";
-import { clientConfig } from "../clientConfig";
+import { clientConfig } from "../client-config";
 
 const BUBBLE_OFFSET_Y = -9;
 

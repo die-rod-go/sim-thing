@@ -1,6 +1,6 @@
 import { clientMessageSchema, parseServerMessage } from "@village/shared";
 import type { ClientMessage, ServerMessage } from "@village/shared";
-import { clientConfig } from "../clientConfig";
+import { clientConfig } from "../client-config";
 
 export type ConnectionStatus = "connecting" | "open" | "closed";
 

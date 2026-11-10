@@ -5,7 +5,7 @@ import {
   pickAgentColor,
   summarizeTiledMap,
   tileIndexToPosition,
-} from "./villageGeometry";
+} from "./village-geometry";
 
 const MAP_WIDTH = 40;
 

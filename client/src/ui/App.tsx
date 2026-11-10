@@ -1,7 +1,7 @@
 import { VillageView } from "../village/VillageView";
 import { SidePanel } from "./SidePanel";
 import { TopBar } from "./TopBar";
-import { useSimClient } from "./useSimClient";
+import { useSimClient } from "./use-sim-client";
 
 export function App() {
   const simClient = useSimClient();

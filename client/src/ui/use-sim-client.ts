@@ -1,9 +1,9 @@
 import { useCallback, useEffect, useReducer, useRef, useState } from "react";
 import type { ClientMessage, ServerMessage } from "@village/shared";
-import { buildSocketUrl, SimConnection, type ConnectionStatus } from "../net/simConnection";
-import { applyServerMessage, selectInspectedAgent } from "../state/applyServerMessage";
-import { initialClientState, type ClientState } from "../state/clientState";
-import { SceneBridge } from "../village/sceneBridge";
+import { buildSocketUrl, SimConnection, type ConnectionStatus } from "../net/sim-connection";
+import { applyServerMessage, selectInspectedAgent } from "../state/apply-server-message";
+import { initialClientState, type ClientState } from "../state/client-state";
+import { SceneBridge } from "../village/scene-bridge";
 
 type ClientAction =
   { kind: "server"; message: ServerMessage } | { kind: "select"; agentId: string | null };

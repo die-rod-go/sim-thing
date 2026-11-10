@@ -1,7 +1,7 @@
 import { useEffect, useRef, useState } from "react";
 import * as Phaser from "phaser";
-import type { MapStatus, SceneBridge } from "./sceneBridge";
-import { VillageScene } from "./VillageScene";
+import type { MapStatus, SceneBridge } from "./scene-bridge";
+import { VillageScene } from "./village-scene";
 
 const CANVAS_BACKGROUND = "#14161c";
 
