@@ -296,6 +296,28 @@ Why it looks like this:
 
 There is no conversation object and no addressee. The "Around you" section shows who would obviously hear and who else was recently nearby, and the agent decides what to say and to whom in its own words, so group conversations come for free. The "current conversation" in the prompt is up to 12 lines heard in the last 30 ticks.
 
+### Tick order and resolved details
+
+Each tick runs in a fixed order, so runs are reproducible:
+
+1. **Mechanics:** stocks regrow; needs decay (other needs at a quarter rate while asleep); sleepers recover energy; the crowd effect applies to those awake.
+2. **Actions progress:** walkers take one step along their stored path; arrival ends `walk_to` (first visit to a place files a `places` memory); interactions finish at their end tick; sleepers wake on their own (rested, hungry, nap over); waits run out. Every event is broadcast (perceived, filed, added to working memory) as it happens.
+3. **Sight:** each agent's awareness is refreshed from what it can see; someone newly in view is a new perception.
+4. **Needs** that crossed the decision threshold flag a decision.
+5. **Decisions** run in parallel through the concurrency limiter; the tick waits for all of them, then applies them in agent order (speech first, then the act), so the outcome doesn't depend on which call returned first. Events from this step flag decisions for the next tick (a reply to what was just said comes one tick later).
+6. **Upkeep:** bucket caps are enforced, memories fade every sim-hour, old conversation lines are pruned, then the reflection hook runs.
+
+Resolved details:
+
+- **Doors:** pathfinding treats doors as floor. Walking onto a closed door opens it (an event everyone nearby perceives); it stays open until someone closes it with the `close` interaction.
+- **Voices:** in a village everyone knows everyone's voice, so a listener recognizes any agent it hears out of sight.
+- **Who gets a decision:** an agent with no action decides every tick until it has one. Hearing its own name clearly, speech in a conversation it takes part in, being handed something, a need crossing its threshold, or (for sleepers) any sound loud enough to reach them always give a decision. Anything else new it perceives (someone coming into view, an action nearby, overheard speech) gives one at most once per `interruptCooldownTicks`.
+- **Interact:** the interaction is settled when the agent decides (including the second call when needed), then the agent walks to the object if it isn't already next to it, and the interaction starts on arrival. Held items work anywhere.
+- **Changing course:** choosing anything but `continue` stops the current action first: an interaction is cancelled with no refund, a sleeper wakes, a walk or wait ends. `give` is instant and leaves the agent free to decide again on the next tick.
+- **Failures** are broadcast as `action_failed` events, so the actor files "I tried to ... but ..." in `did` and onlookers see it; the text is also shown once as "What just went wrong" in the next prompt.
+- **Offline runs:** `LLM_PROVIDER=fake` replaces the LLM with a seeded stand-in that picks valid actions from the reply schema, for running without a key and for the headless soak test (`npm run soak -w @village/server`).
+- **Reset** keeps the `token_usage` table, so resetting the world never resets the daily spend.
+
 **Spend cap:** the server counts tokens per calendar day and pauses the sim with a banner when `DAILY_TOKEN_BUDGET` is reached (default 10,000,000). The budget is editable in config and in a UI settings field without a restart. As a rough guide, expect 6 agents to use 1–3 million tokens per sim-day; measure and adjust.
 
 ## Reflection

@@ -1,0 +1,124 @@
+import { resolve } from "node:path";
+import type { Agent, Position } from "@village/shared";
+import { config } from "../config";
+import type { LlmCallDraft } from "../llm/call-structured";
+import { FakeLlmClient, type FakeResponder } from "../llm/fake-llm-client";
+import { buildLlmStack, type LlmStack } from "../llm/llm-stack";
+import { InMemoryTokenUsageStore } from "../llm/token-budget";
+import type { LlmRequest } from "../llm/types";
+import { buildSeededWorld, loadSeedFile } from "../seeds";
+import { findPlaceAt, loadWorldMap } from "../world/map-loader";
+import { createNoReflectionHook, type ReflectionHook } from "./reflection-hook";
+import { createDecisionStrategy } from "./tick-pipeline";
+import { findAgent, replaceAgent } from "./world-access";
+import { createWorldState, type TickResult, type WorldState } from "./world-state";
+
+/* Test helpers: a real map and seed world driven by a fake LLM. Not used by the running sim. */
+
+const repositoryRoot = resolve(import.meta.dirname, "../../..");
+
+export function loadTestMap() {
+  return loadWorldMap(resolve(repositoryRoot, config.server.mapPath));
+}
+
+export function loadTestSeeds() {
+  return loadSeedFile(resolve(repositoryRoot, config.server.seedsPath));
+}
+
+/** Who a prompt is for: every decision and interact prompt opens with "You are <name>,". */
+export function findPromptAgentName(request: LlmRequest): string {
+  const prompt = "prompt" in request ? request.prompt : (request.messages[0]?.content ?? "");
+  return /^You are ([^,]+),/.exec(prompt)?.[1] ?? "";
+}
+
+export function promptOf(request: LlmRequest): string {
+  return "prompt" in request
+    ? request.prompt
+    : request.messages.map((message) => message.content).join("\n");
+}
+
+/** A decision reply with the required fields filled in. */
+export function decisionReply(fields: Record<string, unknown>): string {
+  return JSON.stringify({ thought: "Thinking it over.", intention: "getting on", ...fields });
+}
+
+export type AgentScript = (request: LlmRequest, callIndex: number) => string | undefined;
+
+/** Replies per agent name; anyone unscripted (or a script returning undefined) waits a long time. */
+export function scriptByAgent(scripts: Record<string, AgentScript>): FakeResponder {
+  return (request, callIndex) => {
+    const reply = scripts[findPromptAgentName(request)]?.(request, callIndex);
+    return reply ?? decisionReply({ action: "wait", minutes: config.decision.maxWaitMinutes });
+  };
+}
+
+export interface TestSim {
+  state: WorldState;
+  client: FakeLlmClient;
+  llm: LlmStack;
+  records: LlmCallDraft[];
+  results: TickResult[];
+  advance(ticks?: number): Promise<TickResult[]>;
+  placeAgent(agentId: string, pos: Position): void;
+  agent(agentId: string): Agent;
+}
+
+export interface TestSimOptions {
+  responder: FakeResponder;
+  /** Keep only these seed agents (all when omitted). */
+  agentIds?: string[];
+  reflectionHook?: ReflectionHook;
+  dailyTokenBudget?: number;
+}
+
+export function createTestSim(options: TestSimOptions): TestSim {
+  const map = loadTestMap();
+  const state = createWorldState(map, buildSeededWorld(loadTestSeeds(), map));
+  if (options.agentIds) {
+    const kept = new Set(options.agentIds);
+    state.agents = state.agents.filter((agent) => kept.has(agent.id));
+    state.memoryStore.replaceAll(
+      state.memoryStore.all().filter((memory) => kept.has(memory.agentId)),
+    );
+  }
+  const records: LlmCallDraft[] = [];
+  const client = new FakeLlmClient(options.responder);
+  const llm = buildLlmStack({
+    provider: "fake",
+    client,
+    tokenUsageStore: new InMemoryTokenUsageStore(),
+    dailyTokenBudget: options.dailyTokenBudget ?? Number.MAX_SAFE_INTEGER,
+    recordLlmCall: (record) => records.push(record),
+    pause: () => Promise.resolve(),
+  });
+  const advanceTick = createDecisionStrategy({
+    callStructured: llm.callStructured,
+    reflectionHook: options.reflectionHook ?? createNoReflectionHook(),
+  });
+  const results: TickResult[] = [];
+  return {
+    state,
+    client,
+    llm,
+    records,
+    results,
+    async advance(ticks = 1) {
+      const produced: TickResult[] = [];
+      for (let count = 0; count < ticks; count += 1) {
+        const result = await advanceTick(state);
+        state.tick += 1;
+        produced.push(result);
+        results.push(result);
+      }
+      return produced;
+    },
+    placeAgent(agentId, pos) {
+      const agent = findAgent(state, agentId);
+      const place = findPlaceAt(state.map, pos);
+      replaceAgent(state, { ...agent, pos: { ...pos }, place });
+      const runtime = state.agentRuntimes[agentId];
+      if (runtime && !runtime.visitedPlaces.includes(place)) runtime.visitedPlaces.push(place);
+    },
+    agent: (agentId) => findAgent(state, agentId),
+  };
+}
