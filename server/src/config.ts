@@ -366,6 +366,16 @@ export const config = {
     charsPerToken: 4,
     defaultWaitMinutes: 10,
     maxWaitMinutes: 240,
+    /** Recalled memories are trimmed from these buckets first (oldest first) when over the token target. */
+    memoryTrimOrder: [
+      "seen",
+      "overheard",
+      "places",
+      "did",
+      "reflections",
+      "conversations",
+      "people",
+    ] satisfies Bucket[] as Bucket[],
   },
 
   llm: {
@@ -375,6 +385,12 @@ export const config = {
     temperature: 0.8,
     maxReplyTokens: { decision: 400, interact: 150, morning: 500, night: 900, weekly: 1200 },
     dailyTokenBudget: 10_000_000,
+    /** One first try plus one retry on invalid output or an API error. */
+    attemptsPerCall: 2,
+    /** How much of a failed HTTP response body is kept in the error message. */
+    errorBodyPreviewChars: 500,
+    /** Sent as OpenRouter's X-Title header; a generic app name, never personal details. */
+    appTitle: "Village Sim",
   },
 
   reflection: {
