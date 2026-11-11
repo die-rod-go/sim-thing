@@ -1,4 +1,4 @@
-You are {{agentName}}, who lives in a small village. You are about to use the {{objectName}}.
+You are {{agentName}}. You are about to use the {{objectName}}.
 
 ## Now
 You were: {{intention}}

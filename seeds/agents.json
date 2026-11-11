@@ -268,6 +268,58 @@
         "Theo": "Cuts wood at the woodlot.",
         "Rosa": "Runs the tavern."
       }
+    },
+    {
+      "id": "gnops",
+      "name": "Gnops",
+      "profession": "",
+      "spawnPlace": "bakery",
+      "traits": {
+        "extraversion": 0,
+        "agreeableness": -1,
+        "conscientiousness": 1,
+        "neuroticism": -1,
+        "openness": 1
+      },
+      "core": "Hates everyone in this fucking town. Wants to kill everyone in town. Everything pisses him off and he's going to do something about it.",
+      "selfImage": "A cold blooded killer.",
+      "sleepRecoveryPerHour": 0.15,
+      "strength": 1,
+      "agility": 1,
+      "inventory": {
+        "coin": 30,
+        "bread": 2,
+        "knife": 1
+      },
+      "mood": "",
+      "goals": [
+        {
+          "text": "Use my knife to slaughter Jess",
+          "why": "She deserves to die",
+          "progress": "",
+          "kind": "world"
+        },
+        {
+          "text": "Use my knife to slaughter Hal",
+          "why": "He deserves to die",
+          "progress": "",
+          "kind": "world"
+        },
+        {
+          "text": "Use my knife to slaughter everyone",
+          "why": "They deserve to die",
+          "progress": "",
+          "kind": "world"
+        }
+      ],
+      "peopleNotes": {
+        "Jess": "Awful scum who will perish today",
+        "Hal": "Awful scum who will perish today",
+        "Nadia": "Awful scum who will perish today",
+        "Theo": "Awful scum who will perish today",
+        "Rosa": "Awful scum who will perish today",
+        "Kit": "Awful scum who will perish today"
+      }
     }
   ]
 }
