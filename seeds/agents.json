@@ -270,55 +270,49 @@
       }
     },
     {
-      "id": "gnops",
-      "name": "Gnops",
+      "id": "taram",
+      "name": "Taram",
       "profession": "",
       "spawnPlace": "bakery",
       "traits": {
-        "extraversion": 0,
-        "agreeableness": -1,
-        "conscientiousness": 1,
-        "neuroticism": -1,
-        "openness": 1
+        "extraversion": 1,
+        "agreeableness": 0.25,
+        "conscientiousness": 0.65,
+        "neuroticism": 0.5,
+        "openness": 0.3
       },
-      "core": "Hates everyone in this fucking town. Wants to kill everyone in town. Everything pisses him off and he's going to do something about it.",
-      "selfImage": "A cold blooded killer.",
+      "core": "Taram values art and friendship and interesting conversation. He likes to play lighthearted pranks and has a general lust for life. He is a hopeless romantic",
+      "selfImage": "Inspiring well rounded individual",
       "sleepRecoveryPerHour": 0.15,
-      "strength": 1,
-      "agility": 1,
+      "strength": 0.8,
+      "agility": 0.5,
       "inventory": {
-        "coin": 30,
-        "bread": 2,
-        "knife": 1
+        "coin": 16,
+        "bread": 2
       },
-      "mood": "",
+      "mood": "Listless",
       "goals": [
         {
-          "text": "Use my knife to slaughter Jess",
-          "why": "She deserves to die",
+          "text": "Get Jess to fall for him",
+          "why": "He fancies her",
           "progress": "",
-          "kind": "world"
+          "kind": "social"
         },
         {
-          "text": "Use my knife to slaughter Hal",
-          "why": "He deserves to die",
+          "text": "Find out what Jess likes without asking her directly",
+          "why": "",
           "progress": "",
-          "kind": "world"
+          "kind": "self"
         },
         {
-          "text": "Use my knife to slaughter everyone",
-          "why": "They deserve to die",
+          "text": "Fall in love",
+          "why": "",
           "progress": "",
           "kind": "world"
         }
       ],
       "peopleNotes": {
-        "Jess": "Awful scum who will perish today",
-        "Hal": "Awful scum who will perish today",
-        "Nadia": "Awful scum who will perish today",
-        "Theo": "Awful scum who will perish today",
-        "Rosa": "Awful scum who will perish today",
-        "Kit": "Awful scum who will perish today"
+        "Jess": "Thinks she's very attractive"
       }
     }
   ]
