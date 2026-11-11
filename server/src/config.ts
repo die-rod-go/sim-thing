@@ -479,6 +479,8 @@ export const config = {
     /** Rough characters-per-token used to estimate prompt size before trimming memories. */
     charsPerToken: 4,
     defaultWaitMinutes: 10,
+    /** How long a speaker stays to hear an answer when the reply names no minutes. */
+    sayWaitMinutes: 5,
     maxWaitMinutes: 240,
     /** Recalled memories are trimmed from these buckets first (oldest first) when over the token target. */
     memoryTrimOrder: [

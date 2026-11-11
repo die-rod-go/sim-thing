@@ -63,6 +63,7 @@ function buildTemplateValues(context: DecisionContext, memories: RecalledMemorie
     conversation: describeConversation(context.conversation),
     memories: describeMemories(memories, context.foggedBy),
     actions: listOfferedActions(context.isMidActionInterrupt).join(", "),
+    sayWaitMinutes: String(config.decision.sayWaitMinutes),
     targets: listTargetNames(context.validTargets).join(", "),
     items: context.validItems.map((item) => item.name).join(", ") || "none",
   };

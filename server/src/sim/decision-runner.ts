@@ -384,7 +384,7 @@ function planSay(decided: DecidedReply): PlannedAction {
     kind: "say",
     line: { words: reply.say ?? "", volume: reply.volume ?? "normal" },
     origin: { thought: reply.thought, llmCallId },
-    minutes: reply.minutes ?? config.decision.defaultWaitMinutes,
+    minutes: reply.minutes ?? config.decision.sayWaitMinutes,
   };
 }
 

@@ -1,4 +1,5 @@
 import { describe, expect, it } from "vitest";
+import { config } from "../config";
 import type { LlmRequest } from "../llm/types";
 import {
   createTestSim,
@@ -162,7 +163,7 @@ describe("talking and perception", () => {
     expect(said).toEqual([]);
   });
 
-  it("waits for an answer after speaking", async () => {
+  it("waits the minutes the speaker chose after speaking", async () => {
     const sim = createTestSim({
       agentIds: ["ilsa"],
       responder: scriptByAgent({
@@ -171,6 +172,21 @@ describe("talking and perception", () => {
     });
     sim.placeAgent("ilsa", SQUARE);
     await sim.advance(1);
-    expect(sim.state.agents.find((agent) => agent.id === "ilsa")?.currentAction?.kind).toBe("wait");
+    expect(sim.agent("ilsa").currentAction).toEqual({ kind: "wait", endsAtTick: 20 });
+  });
+
+  it("waits the default minutes after speaking when none are chosen", async () => {
+    const sim = createTestSim({
+      agentIds: ["ilsa"],
+      responder: scriptByAgent({
+        Ilsa: () => decisionReply({ say: "Anyone about?", action: "say" }),
+      }),
+    });
+    sim.placeAgent("ilsa", SQUARE);
+    await sim.advance(1);
+    expect(sim.agent("ilsa").currentAction).toEqual({
+      kind: "wait",
+      endsAtTick: config.decision.sayWaitMinutes / config.clock.minutesPerTick,
+    });
   });
 });
