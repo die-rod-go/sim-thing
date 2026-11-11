@@ -103,6 +103,9 @@ export function applyServerMessage(state: ClientState, message: ServerMessage): 
       const isInspected = message.agentId === state.inspectedAgentId;
       return { ...state, agents, agentDetail: isInspected ? message : state.agentDetail };
     }
+    case "seed_file":
+    case "seed_file_saved":
+      return state;
   }
 }
 

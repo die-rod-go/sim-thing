@@ -1,5 +1,6 @@
 import type { ClientMessage, ServerMessage } from "@village/shared";
 import { createLogger } from "../logger";
+import type { SeedEditor } from "../seed-editor";
 import { buildAgentDetail, buildSettingsMessage, type SimServerContext } from "./message-builders";
 
 const logger = createLogger("ws");
@@ -22,6 +23,7 @@ export interface ControlDependencies {
   broadcaster: Broadcaster;
   /** Reseeds the live world; the snapshot is sent afterwards by the handler. */
   resetWorld: () => Promise<void>;
+  seedEditor: SeedEditor;
 }
 
 export function sendAgentDetail(session: ConnectionSession, context: SimServerContext): void {
@@ -29,6 +31,14 @@ export function sendAgentDetail(session: ConnectionSession, context: SimServerCo
   const detail = buildAgentDetail(context, session.inspectedAgentId);
   if (detail) session.send(detail);
   else logger.warn(`inspect_agent for unknown agent "${session.inspectedAgentId}"`);
+}
+
+async function resetAndAnnounce(dependencies: ControlDependencies): Promise<void> {
+  const { context, broadcaster } = dependencies;
+  logger.info("resetting the world from the seed file");
+  await dependencies.resetWorld();
+  broadcaster.sendSnapshotToAll();
+  broadcaster.notifyAgentsChanged(context.loop.getState().agents.map((agent) => agent.id));
 }
 
 export async function handleClientMessage(
@@ -68,10 +78,17 @@ export async function handleClientMessage(
       broadcaster.broadcast(buildSettingsMessage(context));
       return;
     case "reset":
-      logger.info("resetting the world from the seed file");
-      await dependencies.resetWorld();
-      broadcaster.sendSnapshotToAll();
-      broadcaster.notifyAgentsChanged(context.loop.getState().agents.map((agent) => agent.id));
+      await resetAndAnnounce(dependencies);
       return;
+    case "load_seed_file":
+      session.send(dependencies.seedEditor.describeSeedFile());
+      return;
+    case "save_seed_file": {
+      const result = dependencies.seedEditor.saveSeedFile(message.seedFile);
+      const shouldResetWorld = result.isSaved && message.shouldResetWorld;
+      if (shouldResetWorld) await resetAndAnnounce(dependencies);
+      session.send({ type: "seed_file_saved", ...result, isWorldReset: shouldResetWorld });
+      return;
+    }
   }
 }

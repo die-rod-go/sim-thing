@@ -1,8 +1,12 @@
+import { mkdtempSync, readFileSync, rmSync, writeFileSync } from "node:fs";
+import { tmpdir } from "node:os";
+import { join } from "node:path";
 import { afterEach, beforeEach, describe, expect, it } from "vitest";
 import { WebSocket } from "ws";
 import type { ServerMessage } from "@village/shared";
 import { IN_MEMORY_DATABASE, openDatabase, type Database } from "../db/database";
 import { InMemoryTokenUsageStore, TokenBudget } from "../llm/token-budget";
+import { createSeedEditor } from "../seed-editor";
 import { SimLoop } from "../sim/loop";
 import { ManualScheduler } from "../sim/manual-scheduler";
 import {
@@ -41,6 +45,22 @@ const agent = {
   currentAction: null,
   workingMemory: [],
   awareness: {},
+};
+
+const seedAgent = {
+  id: "mara",
+  name: "Mara",
+  profession: "baker",
+  spawnPlace: "bakery",
+  traits: agent.personality.traits,
+  core: "",
+  selfImage: "",
+  sleepRecoveryPerHour: 0.15,
+  coins: 30,
+  inventory: {},
+  mood: "",
+  goals: [],
+  peopleNotes: {},
 };
 
 /** Collects messages from one client and lets a test wait for a given type. */
@@ -91,6 +111,8 @@ describe("sim WebSocket server", () => {
   let settings: SimSettings;
   let resetCount: number;
   let tokenBudget: TokenBudget;
+  let seedDirectory: string;
+  let seedFilePath: string;
   const clients: TestClient[] = [];
 
   async function connect(): Promise<TestClient> {
@@ -103,15 +125,16 @@ describe("sim WebSocket server", () => {
 
   beforeEach(async () => {
     database = openDatabase(IN_MEMORY_DATABASE);
-    const state = createWorldState(
-      {
-        grid: { width: 2, height: 1, isWall: [false, false] },
-        places: [],
-        objects: [],
-        spawnPoints: {},
-      },
-      { agents: [structuredClone(agent)], memories: [] },
-    );
+    const map = {
+      grid: { width: 2, height: 1, isWall: [false, false] },
+      places: [],
+      objects: [],
+      spawnPoints: { bakery: { x: 0, y: 0 } },
+    };
+    const state = createWorldState(map, { agents: [structuredClone(agent)], memories: [] });
+    seedDirectory = mkdtempSync(join(tmpdir(), "village-seeds-"));
+    seedFilePath = join(seedDirectory, "agents.json");
+    writeFileSync(seedFilePath, JSON.stringify({ agents: [seedAgent] }));
     loop = new SimLoop({
       state,
       advanceTick: (current) => {
@@ -133,6 +156,7 @@ describe("sim WebSocket server", () => {
       countInFlightLlmCalls: () => 0,
       tokenBudget,
       findPauseReason: () => (tokenBudget.isOverBudget() ? "Daily token budget reached" : null),
+      seedEditor: createSeedEditor({ seedFilePath, map }),
       resetWorld: () => {
         resetCount += 1;
         return Promise.resolve();
@@ -145,6 +169,7 @@ describe("sim WebSocket server", () => {
     for (const client of clients.splice(0)) client.socket.close();
     await server.close();
     database.close();
+    rmSync(seedDirectory, { recursive: true, force: true });
   });
 
   it("sends a snapshot on connect", async () => {
@@ -217,5 +242,48 @@ describe("sim WebSocket server", () => {
     await client.waitFor("snapshot");
     expect(resetCount).toBe(1);
     expect(loop.getSpeed()).toBe(1);
+  });
+
+  it("sends the seed file and its rules to the character editor", async () => {
+    const client = await connect();
+    client.send({ type: "load_seed_file" });
+    const message = await client.waitFor("seed_file");
+    expect(message.loadError).toBeNull();
+    expect(message.seedFile?.agents[0]?.name).toBe("Mara");
+    expect(message.rules.spawnPlaces).toEqual(["bakery"]);
+    expect(message.rules.itemNames).toContain("bread");
+  });
+
+  it("saves a valid seed file and resets the world when asked", async () => {
+    const client = await connect();
+    await client.waitFor("snapshot");
+    const renamed = { ...seedAgent, name: "Marga", id: "marga" };
+    client.send({
+      type: "save_seed_file",
+      seedFile: { agents: [renamed] },
+      shouldResetWorld: true,
+    });
+    const reply = await client.waitFor("seed_file_saved");
+    expect(reply).toMatchObject({ isSaved: true, isWorldReset: true });
+    expect(resetCount).toBe(1);
+    const written = JSON.parse(readFileSync(seedFilePath, "utf8")) as {
+      agents: { name: string }[];
+    };
+    expect(written.agents.map((saved) => saved.name)).toEqual(["Marga"]);
+  });
+
+  it("refuses to save a seed file with errors and leaves the file alone", async () => {
+    const client = await connect();
+    const homeless = { ...seedAgent, spawnPlace: "the moon" };
+    client.send({
+      type: "save_seed_file",
+      seedFile: { agents: [homeless] },
+      shouldResetWorld: true,
+    });
+    const reply = await client.waitFor("seed_file_saved");
+    expect(reply).toMatchObject({ isSaved: false, isWorldReset: false });
+    expect(reply.problems.map((problem) => problem.field)).toContain("spawnPlace");
+    expect(resetCount).toBe(0);
+    expect(readFileSync(seedFilePath, "utf8")).toContain('"bakery"');
   });
 });

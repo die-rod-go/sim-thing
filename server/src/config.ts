@@ -180,6 +180,14 @@ export const config = {
     giveReachTiles: 1,
   },
 
+  seeds: {
+    /** The usual range for an agent's sleep recovery; the character editor warns outside it. */
+    sleepRecoveryRange: { min: 0.12, max: 0.18 },
+    /** What a character added in the editor starts with; coins come from `economy.startingCoins`. */
+    newAgent: { sleepRecoveryPerHour: 0.15, inventory: { bread: 2 } as Record<string, number> },
+    jsonIndent: 2,
+  },
+
   objects: {
     bed: { interactions: ["sleep"] },
     notice_board: { interactions: ["read", "post a note"] },

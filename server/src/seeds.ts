@@ -1,49 +1,73 @@
 import { readFileSync } from "node:fs";
-import { z } from "zod";
-import { NEED_NAMES, type Agent, type Memory, type Needs } from "@village/shared";
+import {
+  findSeedFileProblems,
+  NEED_NAMES,
+  seedFileSchema,
+  type Agent,
+  type Memory,
+  type Needs,
+  type SeedAgent,
+  type SeedFile,
+  type SeedProblem,
+  type SeedRules,
+} from "@village/shared";
 import { config } from "./config";
 import { findPlaceAt } from "./world/map-loader";
 import type { WorldMap } from "./world/types";
 
-const traitValueSchema = z.number().min(config.traits.min).max(config.traits.max);
-
-const seedAgentSchema = z.object({
-  id: z.string().min(1),
-  name: z.string().min(1),
-  profession: z.string(),
-  spawnPlace: z.string().min(1),
-  traits: z.object({
-    extraversion: traitValueSchema,
-    agreeableness: traitValueSchema,
-    conscientiousness: traitValueSchema,
-    neuroticism: traitValueSchema,
-    openness: traitValueSchema,
-  }),
-  core: z.string(),
-  selfImage: z.string(),
-  sleepRecoveryPerHour: z.number().positive(),
-  coins: z.number().int().nonnegative(),
-  inventory: z.record(z.string(), z.number().int().nonnegative()),
-  mood: z.string(),
-  goals: z.array(
-    z.object({
-      text: z.string(),
-      why: z.string(),
-      progress: z.string(),
-      kind: z.enum(["world", "social", "self"]),
-    }),
-  ),
-  peopleNotes: z.record(z.string(), z.string()),
-});
-
-export const seedFileSchema = z.object({ agents: z.array(seedAgentSchema).min(1) });
-
-export type SeedFile = z.infer<typeof seedFileSchema>;
-type SeedAgent = z.infer<typeof seedAgentSchema>;
-
 export interface SeededWorld {
   agents: Agent[];
   memories: Memory[];
+}
+
+/** Every item name a recipe or held-item interaction knows about, sorted. */
+export function listKnownItemNames(): string[] {
+  const itemNames = new Set(Object.keys(config.heldItems));
+  for (const recipe of Object.values(config.interactions)) {
+    for (const itemName of Object.keys(recipe.inputs)) itemNames.add(itemName);
+    for (const itemName of Object.keys(recipe.outputs)) itemNames.add(itemName);
+  }
+  return [...itemNames].sort();
+}
+
+/** A blank character for the editor: no name or persona yet, with the usual starting state. */
+export function buildNewAgentTemplate(rules: SeedRules): SeedAgent {
+  return {
+    id: "",
+    name: "",
+    profession: "",
+    spawnPlace: rules.spawnPlaces[0] ?? "",
+    traits: {
+      extraversion: 0,
+      agreeableness: 0,
+      conscientiousness: 0,
+      neuroticism: 0,
+      openness: 0,
+    },
+    core: "",
+    selfImage: "",
+    sleepRecoveryPerHour: config.seeds.newAgent.sleepRecoveryPerHour,
+    coins: config.economy.startingCoins,
+    inventory: { ...config.seeds.newAgent.inventory },
+    mood: "",
+    goals: [],
+    peopleNotes: {},
+  };
+}
+
+export function buildSeedRules(map: WorldMap): SeedRules {
+  return {
+    traitRange: { min: config.traits.min, max: config.traits.max },
+    sleepRecoveryRange: { ...config.seeds.sleepRecoveryRange },
+    spawnPlaces: Object.keys(map.spawnPoints).sort(),
+    itemNames: listKnownItemNames(),
+  };
+}
+
+function describeProblem(seedFile: SeedFile, problem: SeedProblem): string {
+  const agent = problem.agentIndex === null ? undefined : seedFile.agents[problem.agentIndex];
+  const owner = agent ? `seed agent ${agent.id || `#${problem.agentIndex}`}` : "seed file";
+  return `${owner} ${problem.field}: ${problem.message}`;
 }
 
 function buildStartingNeeds(): Needs {
@@ -58,10 +82,14 @@ function buildAgent(seed: SeedAgent, map: WorldMap): Agent {
   const pos = { ...spawn };
   return {
     id: seed.id,
-    name: seed.name,
+    name: seed.name.trim(),
     place: findPlaceAt(map, pos),
     pos,
-    personality: { traits: { ...seed.traits }, core: seed.core, selfImage: seed.selfImage },
+    personality: {
+      traits: { ...seed.traits },
+      core: seed.core,
+      selfImage: seed.selfImage,
+    },
     body: { sleepRecoveryPerHour: seed.sleepRecoveryPerHour },
     profession: seed.profession,
     coins: seed.coins,
@@ -78,24 +106,28 @@ function buildAgent(seed: SeedAgent, map: WorldMap): Agent {
 }
 
 function buildPeopleMemories(seed: SeedAgent): Memory[] {
-  return Object.entries(seed.peopleNotes).map(([personName, note], index) => ({
-    id: `${seed.id}-seed-people-${index + 1}`,
-    agentId: seed.id,
-    bucket: "people",
-    tick: 0,
-    text: `${personName}: ${note}`.slice(0, config.memory.maxMemoryChars),
-    tags: [personName.toLowerCase()],
-    strength: config.memory.newMemoryStrength,
-    lastRecalledTick: null,
-  }));
+  return Object.entries(seed.peopleNotes)
+    .filter(([, note]) => note.trim() !== "")
+    .map(([personName, note], index) => ({
+      id: `${seed.id}-seed-people-${index + 1}`,
+      agentId: seed.id,
+      bucket: "people",
+      tick: 0,
+      text: `${personName}: ${note}`.slice(0, config.memory.maxMemoryChars),
+      tags: [personName.toLowerCase()],
+      strength: config.memory.newMemoryStrength,
+      lastRecalledTick: null,
+    }));
 }
 
-/** Builds the starting agents and their seeded people memories from a parsed seed file. */
+/** Builds the starting agents and their seeded people memories; throws on any seed error. */
 export function buildSeededWorld(seedFile: SeedFile, map: WorldMap): SeededWorld {
-  const agentIds = new Set<string>();
-  for (const seed of seedFile.agents) {
-    if (agentIds.has(seed.id)) throw new Error(`Duplicate seed agent id "${seed.id}"`);
-    agentIds.add(seed.id);
+  const errors = findSeedFileProblems(seedFile, buildSeedRules(map)).filter(
+    (problem) => problem.severity === "error",
+  );
+  if (errors.length > 0) {
+    const descriptions = errors.map((problem) => describeProblem(seedFile, problem));
+    throw new Error(`Invalid seed file:\n${descriptions.join("\n")}`);
   }
   return {
     agents: seedFile.agents.map((seed) => buildAgent(seed, map)),

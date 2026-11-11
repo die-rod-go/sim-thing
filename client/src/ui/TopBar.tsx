@@ -113,6 +113,9 @@ export function TopBar(props: TopBarProps) {
           />
           Perception overlay
         </label>
+        <a className="link-button" href="/characters.html" target="_blank" rel="noreferrer">
+          Edit characters
+        </a>
         <button className="danger" disabled={!isLive} onClick={confirmReset}>
           Reset
         </button>

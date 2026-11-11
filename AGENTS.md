@@ -16,7 +16,8 @@ A browser-viewable village simulation: LLM-driven agents with memory, needs, goa
 | `make test`    | Run all tests                              |
 | `make reset`   | Wipe the saved sim and reseed              |
 
-`make check` and `make test` must pass before any task is considered done.
+`make check` and `make test` must pass before any task is considered done. Once they do, commit the
+finished task without waiting to be asked: one commit per task, with a short imperative message.
 
 ## Repo layout
 

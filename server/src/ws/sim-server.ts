@@ -1,6 +1,7 @@
 import { WebSocket, WebSocketServer, type RawData } from "ws";
 import { parseClientMessage, type ServerMessage } from "@village/shared";
 import { createLogger } from "../logger";
+import type { SeedEditor } from "../seed-editor";
 import type { TickResult } from "../sim/world-state";
 import {
   handleClientMessage,
@@ -17,6 +18,7 @@ const logger = createLogger("ws");
 export interface SimServerOptions extends SimServerContext {
   port: number;
   resetWorld: () => Promise<void>;
+  seedEditor: SeedEditor;
 }
 
 export interface SimServer extends Broadcaster {
@@ -35,7 +37,7 @@ function rawDataToText(data: RawData): string {
  * controls, and streams tick results from the loop.
  */
 export function startSimServer(options: SimServerOptions): Promise<SimServer> {
-  const { resetWorld, port, ...context } = options;
+  const { resetWorld, seedEditor, port, ...context } = options;
   const sessions = new Map<WebSocket, ConnectionSession>();
   const webSocketServer = new WebSocketServer({ port, path: WEBSOCKET_PATH });
 
@@ -117,7 +119,7 @@ export function startSimServer(options: SimServerOptions): Promise<SimServer> {
         logger.warn("ignoring invalid client message", error);
         return;
       }
-      handleClientMessage(message, session, { context, broadcaster, resetWorld }).catch(
+      handleClientMessage(message, session, { context, broadcaster, resetWorld, seedEditor }).catch(
         (error: unknown) => logger.error(`failed to handle "${message.type}"`, error),
       );
     });

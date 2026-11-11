@@ -15,6 +15,7 @@ import { loadWorld, saveWorld } from "./db/world-repository";
 import { buildLlmStack, llmProviderSchema } from "./llm/llm-stack";
 import type { TokenBudget } from "./llm/token-budget";
 import { createLogger } from "./logger";
+import { createSeedEditor } from "./seed-editor";
 import { buildSeededWorld, loadSeedFile } from "./seeds";
 import { SimLoop } from "./sim/loop";
 import { createReflectionHook } from "./sim/reflection-passes";
@@ -144,6 +145,10 @@ async function run(): Promise<void> {
     countInFlightLlmCalls: () => llm.limiter.inFlightCount,
     tokenBudget: llm.budget,
     findPauseReason,
+    seedEditor: createSeedEditor({
+      seedFilePath: resolve(repositoryRoot, config.server.seedsPath),
+      map,
+    }),
     resetWorld: () =>
       loop.runBetweenTicks(() => loop.replaceState(resetDatabase(database, map, settings))),
   });

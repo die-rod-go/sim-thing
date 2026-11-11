@@ -59,8 +59,17 @@ describe("seeds", () => {
 
   it("rejects a seed file with out-of-range traits", () => {
     const [first] = seedFile.agents;
-    expect(() =>
-      parseSeedFile({ agents: [{ ...first, traits: { ...first?.traits, openness: 3 } }] }),
-    ).toThrow();
+    const broken = parseSeedFile({
+      agents: [{ ...first, traits: { ...first?.traits, openness: 3 } }],
+    });
+    expect(() => buildSeededWorld(broken, map)).toThrow(/traits.openness/);
+  });
+
+  it("files no people memory for a blank note", () => {
+    const [first] = seedFile.agents;
+    if (!first) throw new Error("seed file has no agents");
+    const withBlankNote = { ...first, peopleNotes: { Edwin: "  ", Wren: "Young farmer." } };
+    const blankWorld = buildSeededWorld({ agents: [withBlankNote] }, map);
+    expect(blankWorld.memories.map((memory) => memory.text)).toEqual(["Wren: Young farmer."]);
   });
 });

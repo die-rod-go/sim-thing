@@ -222,3 +222,16 @@ button.danger {
   overflow-y: auto;
   padding: 10px 12px;
 }
+
+.link-button {
+  color: var(--text);
+  text-decoration: none;
+  background: var(--surface-raised);
+  border: 1px solid var(--border);
+  border-radius: 4px;
+  padding: 3px 8px;
+}
+
+.link-button:hover {
+  border-color: var(--accent);
+}

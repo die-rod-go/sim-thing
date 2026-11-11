@@ -9,6 +9,14 @@ export default defineConfig({
   plugins: [react()],
   // The generated Tiled map and tileset live in the repo's maps/ directory and are served at the root.
   publicDir: fileURLToPath(new URL("../maps", import.meta.url)),
+  build: {
+    rollupOptions: {
+      input: {
+        village: fileURLToPath(new URL("./index.html", import.meta.url)),
+        characters: fileURLToPath(new URL("./characters.html", import.meta.url)),
+      },
+    },
+  },
   server: {
     proxy: {
       "/ws": { target: `http://localhost:${simPort}`, ws: true },

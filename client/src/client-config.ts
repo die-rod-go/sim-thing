@@ -42,6 +42,13 @@ export const clientConfig = {
     maxTagChips: 30,
   },
 
+  characterEditor: {
+    traitStep: 0.05,
+    sleepRecoveryStep: 0.01,
+    defaultTextAreaRows: 2,
+    coreTextAreaRows: 5,
+  },
+
   conversations: {
     /** A line more than this many ticks after the previous one at the same place opens a new thread. */
     maxGapTicks: 10,

@@ -11,6 +11,13 @@ import type {
   WorldEvent,
   WorldObject,
 } from "./types";
+import {
+  seedFileSchema,
+  type SeedAgent,
+  type SeedFile,
+  type SeedProblem,
+  type SeedRules,
+} from "./seed-file";
 import type { SimTimeSettings } from "./time";
 
 export const clientMessageSchema = z.discriminatedUnion("type", [
@@ -24,6 +31,12 @@ export const clientMessageSchema = z.discriminatedUnion("type", [
     dailyTokenBudget: z.number().int().positive(),
   }),
   z.object({ type: z.literal("reset") }),
+  z.object({ type: z.literal("load_seed_file") }),
+  z.object({
+    type: z.literal("save_seed_file"),
+    seedFile: seedFileSchema,
+    shouldResetWorld: z.boolean(),
+  }),
 ]);
 
 export type ClientMessage = z.infer<typeof clientMessageSchema>;
@@ -105,6 +118,25 @@ export interface AgentDetailMessage {
   perceptionView: { visibleTiles: number[]; speechReachTiles: number[] } | null;
 }
 
+/** Sent in reply to load_seed_file: the seed file as it is on disk, and what it is checked against. */
+export interface SeedFileMessage {
+  type: "seed_file";
+  /** Null when the file on disk could not be read; `loadError` says why. */
+  seedFile: SeedFile | null;
+  loadError: string | null;
+  rules: SeedRules;
+  /** Starting values for a character added in the editor, from the server config. */
+  newAgentTemplate: SeedAgent;
+}
+
+/** Sent in reply to save_seed_file. Nothing is written when `problems` has an error. */
+export interface SeedFileSavedMessage {
+  type: "seed_file_saved";
+  isSaved: boolean;
+  isWorldReset: boolean;
+  problems: SeedProblem[];
+}
+
 export type ServerMessage =
   | SnapshotMessage
   | TickMessage
@@ -115,7 +147,9 @@ export type ServerMessage =
   | InteractedMessage
   | StateChangedMessage
   | EventLoggedMessage
-  | AgentDetailMessage;
+  | AgentDetailMessage
+  | SeedFileMessage
+  | SeedFileSavedMessage;
 
 export const SERVER_MESSAGE_TYPES = [
   "snapshot",
@@ -128,6 +162,8 @@ export const SERVER_MESSAGE_TYPES = [
   "state_changed",
   "event_logged",
   "agent_detail",
+  "seed_file",
+  "seed_file_saved",
 ] as const satisfies readonly ServerMessage["type"][];
 
 const serverEnvelopeSchema = z.looseObject({ type: z.enum(SERVER_MESSAGE_TYPES) });

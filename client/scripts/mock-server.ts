@@ -169,6 +169,12 @@ function handleClientMessage(raw: string): void {
       if (agent) broadcast(buildDetail(agent));
       return;
     }
+    case "load_seed_file":
+    case "save_seed_file":
+      process.stdout.write(
+        "The mock server has no seed file; run the real sim to edit characters.\n",
+      );
+      return;
     case "reset":
       snapshot = makeSampleSnapshot(startingAgents());
       broadcast(snapshot);
