@@ -217,6 +217,19 @@ pre {
   color: var(--warning);
 }
 
+.death-note {
+  margin: 0;
+  color: var(--level-0);
+}
+
+.condition-list {
+  margin-top: 6px;
+}
+
+.condition-chip {
+  color: var(--level-1);
+}
+
 .need-grid {
   display: grid;
   gap: 4px;

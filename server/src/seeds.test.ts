@@ -24,6 +24,8 @@ function makeSeedAgent(overrides: Partial<SeedAgent> = {}): SeedAgent {
     core: "Values honest work.",
     selfImage: "A steady baker.",
     sleepRecoveryPerHour: 0.15,
+    strength: 0.5,
+    agility: 0.5,
     coins: 30,
     inventory: { bread: 2, wheat: 4, wood: 2 },
     mood: "Up early.",

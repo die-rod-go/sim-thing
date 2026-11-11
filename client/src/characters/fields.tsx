@@ -1,5 +1,5 @@
 import { useEffect, useId, useState, type ReactNode } from "react";
-import type { SeedProblem, TraitName } from "@village/shared";
+import type { SeedProblem, StatName, TraitName } from "@village/shared";
 import { describeTrait } from "../format/character-sheet";
 import { clientConfig } from "../client-config";
 
@@ -149,6 +149,43 @@ export function NumberInput({
         if (event.target.value.trim() !== "" && Number.isFinite(parsed)) onChange(parsed);
       }}
     />
+  );
+}
+
+/** A 0–1 stat (strength, agility) between its two pole words. */
+export function StatSlider({
+  statName,
+  value,
+  range,
+  onChange,
+}: {
+  statName: StatName;
+  value: number;
+  range: { min: number; max: number };
+  onChange: (value: number) => void;
+}) {
+  const [lowWord, highWord] = clientConfig.characterEditor.statPoles[statName];
+  return (
+    <div className="trait-slider">
+      <div className="trait-slider-heading">
+        <span className="trait-name">{statName}</span>
+        <span className="trait-value">{value.toFixed(2)}</span>
+      </div>
+      <div className="trait-slider-control">
+        <span className="trait-pole">{lowWord}</span>
+        <input
+          className="trait-range"
+          type="range"
+          aria-label={statName}
+          min={range.min}
+          max={range.max}
+          step={clientConfig.characterEditor.statStep}
+          value={value}
+          onChange={(event) => onChange(Number(event.target.value))}
+        />
+        <span className="trait-pole">{highWord}</span>
+      </div>
+    </div>
   );
 }
 

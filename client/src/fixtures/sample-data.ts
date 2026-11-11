@@ -25,11 +25,15 @@ export function makeSampleAgent(id: string, name: string, x: number, y: number):
       core: `${name} is curious and talks a lot.`,
       selfImage: `${name} thinks of themself as a good neighbor.`,
     },
-    body: { sleepRecoveryPerHour: 0.15 },
+    body: { sleepRecoveryPerHour: 0.15, strength: 0.5, agility: 0.5 },
     profession: "baker",
     coins: 12,
     inventory: { bread: 2, wheat: 1 },
     needs: { hunger: 0.7, energy: 0.5, social: 0.3, fun: 0.9 },
+    health: 1,
+    starvingSinceTick: null,
+    conditions: [],
+    death: null,
     mood: "content",
     goals: [
       {

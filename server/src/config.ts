@@ -1,4 +1,4 @@
-import type { Bucket, NeedName, ObjectKind, TraitName, Volume } from "@village/shared";
+import type { Bucket, NeedName, ObjectKind, StatName, TraitName, Volume } from "@village/shared";
 
 /**
  * Every tunable value in the sim lives here: rates, caps, weights, loudness, recipes and budgets.
@@ -31,6 +31,16 @@ export interface NeedWord {
   below: number;
   text: string;
   /** What a pressing need feels like; only the low levels have one. */
+  urge?: string;
+}
+
+/** A health level: what the agent feels about itself, and what others see once it shows. */
+export interface HealthWord {
+  below: number;
+  text: string;
+  /** What others in sight see; only shown below `health.visibleToOthersBelow`. */
+  looks: string;
+  /** What a serious wound feels like; a level with one is put first in the prompt, like a need. */
   urge?: string;
 }
 
@@ -148,6 +158,72 @@ export const config = {
     } satisfies Record<NeedName, NeedWord[]>,
   },
 
+  health: {
+    startValue: 1,
+    /** Hours of hunger at 0 before starvation starts to do damage. */
+    starvationGraceHours: 12,
+    starvationDrainPerHour: 0.1,
+    /** Shown to the viewer as the cause of death; agents only learn it by witnessing. */
+    starvationKilledPhrase: "starved",
+    /** What a sleeper woken by damage knows: they were hurt, not by what. */
+    wokeInPainText: "I woke up in pain",
+    regenPerHourAwake: 0.01,
+    regenPerHourAsleep: 0.04,
+    /** Health regenerates only while hunger is above this. */
+    regenHungerThreshold: 0.4,
+    /** Health crossing below any of these gives the agent a decision. */
+    decisionThresholds: [0.5, 0.25],
+    /** Others see an agent's health as words only once it drops below this. */
+    visibleToOthersBelow: 0.9,
+    /** Checked in order like need words: the first whose `below` exceeds the value wins. */
+    words: [
+      {
+        below: 0.15,
+        text: "near death",
+        looks: "looks near death",
+        urge: "you can barely stand and feel your life slipping away",
+      },
+      {
+        below: 0.35,
+        text: "badly wounded",
+        looks: "looks badly wounded",
+        urge: "your wounds throb and you feel faint",
+      },
+      { below: 0.6, text: "hurt", looks: "looks hurt" },
+      { below: 0.9, text: "bruised", looks: "looks bruised" },
+      { below: Infinity, text: "unhurt", looks: "looks unhurt" },
+    ] satisfies HealthWord[] as HealthWord[],
+  },
+
+  stats: {
+    min: 0,
+    max: 1,
+    /** Prompt words for the agent's own stats, picked by `wordBands` like trait words. */
+    words: {
+      strength: ["very weak", "rather weak", "of average strength", "quite strong", "very strong"],
+      agility: [
+        "very clumsy",
+        "rather clumsy",
+        "of average agility",
+        "quite nimble",
+        "very nimble",
+      ],
+    } satisfies Record<StatName, string[]>,
+    /** Upper bounds of the bands that select each word above. */
+    wordBands: [0.2, 0.4, 0.6, 0.8, Infinity],
+  },
+
+  death: {
+    /** How others see a dead agent, in prompts and as a walk target. */
+    bodyName: "{name}'s body",
+    /** What awareness records a dead agent as doing. */
+    doing: "lying dead",
+    /** The `died` event's description; its subject is the dead agent. */
+    eventDescription: "died",
+    /** Fills `{source}` in a killed phrase when no agent did the damage. */
+    unknownSource: "someone",
+  },
+
   traits: {
     /** Prompt words for trait values (-1..1), checked in order like need words. */
     words: {
@@ -203,7 +279,12 @@ export const config = {
     /** The usual range for an agent's sleep recovery; the character editor warns outside it. */
     sleepRecoveryRange: { min: 0.12, max: 0.18 },
     /** What a character added in the editor starts with; coins come from `economy.startingCoins`. */
-    newAgent: { sleepRecoveryPerHour: 0.15, inventory: { bread: 2 } as Record<string, number> },
+    newAgent: {
+      sleepRecoveryPerHour: 0.15,
+      strength: 0.5,
+      agility: 0.5,
+      inventory: { bread: 2 } as Record<string, number>,
+    },
     jsonIndent: 2,
   },
 

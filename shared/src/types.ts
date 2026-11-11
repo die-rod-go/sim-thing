@@ -53,17 +53,48 @@ export interface Awareness {
   doing: string;
 }
 
+export type StatName = "strength" | "agility";
+
+export const STAT_NAMES: readonly StatName[] = ["strength", "agility"];
+
+/** The agent's physical record. Stats are 0–1, 0.5 is average; only the agent's own prompt sees them. */
+export interface AgentBody extends Record<StatName, number> {
+  sleepRecoveryPerHour: number;
+}
+
+/** A timed state on an agent (bleeding, burning); kept empty until conditions are built. */
+export interface AgentCondition {
+  name: string;
+  /** Tick it runs out; null for one that lasts until something ends it. */
+  endsAtTick: number | null;
+}
+
+export interface AgentDeath {
+  tick: number;
+  /** For the viewer only: "starved", "stabbed by Tobias". Agents learn causes only by witnessing. */
+  cause: string;
+  /** Whoever did the last damage, when someone did. */
+  sourceAgentId: string | null;
+}
+
 export interface Agent {
   id: string;
   name: string;
   place: string;
   pos: Position;
   personality: Personality;
-  body: { sleepRecoveryPerHour: number };
+  body: AgentBody;
   profession: string;
   coins: number;
   inventory: Record<string, number>;
   needs: Needs;
+  /** 0–1, 1 = unhurt. At 0 the agent dies. */
+  health: number;
+  /** Set when hunger reaches 0, cleared when it rises; starvation damage starts after a grace period. */
+  starvingSinceTick: number | null;
+  conditions: AgentCondition[];
+  /** Null while alive. */
+  death: AgentDeath | null;
   mood: string;
   goals: Goal[];
   dailyPlan: string;
@@ -181,7 +212,8 @@ export type WorldEventKind =
   | "gave"
   | "posted_note"
   | "fell_asleep"
-  | "woke";
+  | "woke"
+  | "died";
 
 /**
  * One thing that happened in the world. `description` is a past-tense verb phrase whose subject is
@@ -270,7 +302,8 @@ export type MomentDetail =
       moodEntry: string | null;
       insights: string[];
     }
-  | { kind: "action_failed"; eventId: number; description: string };
+  | { kind: "action_failed"; eventId: number; description: string }
+  | { kind: "died"; cause: string };
 
 export type MomentKind = MomentDetail["kind"];
 

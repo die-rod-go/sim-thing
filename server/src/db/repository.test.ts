@@ -83,6 +83,34 @@ describe("database repositories", () => {
     expect(loadWorld(database)).toEqual(saved);
   });
 
+  it("keeps health, death and stats through a save", () => {
+    const state = createWorldState(map, buildSeededWorld(seedFile, map));
+    const [first] = state.agents;
+    if (!first) throw new Error("no seed agents");
+    state.agents[0] = {
+      ...first,
+      health: 0,
+      death: { tick: 5, cause: "starved", sourceAgentId: null },
+    };
+    saveWorld(database, toSavedWorld(state, createDefaultSettings()));
+    const loaded = loadWorld(database)?.agents[0];
+    expect(loaded?.death).toEqual({ tick: 5, cause: "starved", sourceAgentId: null });
+    expect(loaded?.body.strength).toBe(first.body.strength);
+  });
+
+  it("refuses a save from before health existed and says to reset", () => {
+    const state = createWorldState(map, buildSeededWorld(seedFile, map));
+    saveWorld(database, toSavedWorld(state, createDefaultSettings()));
+    const [first] = state.agents;
+    if (!first) throw new Error("no seed agents");
+    const outdated: Partial<typeof first> = { ...first };
+    delete outdated.health;
+    database
+      .prepare("UPDATE agents SET data = ? WHERE id = ?")
+      .run(JSON.stringify(outdated), first.id);
+    expect(() => loadWorld(database)).toThrow(/make reset/);
+  });
+
   it("never reuses an event id already in the log after resuming", () => {
     const state = createWorldState(map, buildSeededWorld(seedFile, map));
     saveWorld(database, toSavedWorld(state, createDefaultSettings()));

@@ -138,6 +138,9 @@ export const clientConfig = {
 
   characterEditor: {
     traitStep: 0.05,
+    statStep: 0.05,
+    /** Words at the low and high end of each stat's slider. */
+    statPoles: { strength: ["weak", "strong"], agility: ["clumsy", "nimble"] },
     sleepRecoveryStep: 0.01,
     defaultTextAreaRows: 2,
     coreTextAreaRows: 5,
@@ -196,6 +199,13 @@ export const clientConfig = {
       social: ["desperately lonely", "lonely", "could use company", "connected", "fulfilled"],
       fun: ["miserably bored", "bored", "restless", "entertained", "delighted"],
     },
+  },
+
+  /** Words for health levels, from worst to best, split like need levels. */
+  healthLevels: {
+    upperBounds: [0.15, 0.35, 0.6, 0.9],
+    alertLevelIndex: 1,
+    words: ["near death", "badly wounded", "hurt", "bruised", "unhurt"],
   },
 
   /** Words for each trait's low and high end, and how far from 0 each intensity starts. */

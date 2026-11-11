@@ -1,4 +1,4 @@
-import type { AwarenessVia, Bucket, Goal, Needs, Personality } from "@village/shared";
+import type { AgentBody, AwarenessVia, Bucket, Goal, Needs, Personality } from "@village/shared";
 
 /** Names the agent may use as an action `target` right now. */
 export interface DecisionTargets {
@@ -27,6 +27,10 @@ export interface AwarenessEntry {
   doing: string;
   minutesAgo: number;
   isInSight: boolean;
+  /** In sight and dead: shown as their body. */
+  isDead: boolean;
+  /** How their health looks, when they're in sight and it shows; null otherwise. */
+  healthAsSeen: string | null;
 }
 
 export interface AroundYou {
@@ -62,6 +66,8 @@ export interface DecisionContext {
   personality: Personality;
   mood: string;
   needs: Needs;
+  health: number;
+  body: AgentBody;
   goals: Goal[];
   dailyPlan: string;
   intention: string;

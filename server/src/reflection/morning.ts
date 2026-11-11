@@ -1,6 +1,6 @@
 import type { Agent, Memory } from "@village/shared";
 import { describeGoals } from "../decision/sections";
-import { describeNeeds, describeTraits } from "../decision/words";
+import { describeStats, describeStatus, describeTraits } from "../decision/words";
 import type { StructuredCaller } from "../llm/call-structured";
 import { renderTemplate } from "../llm/templates";
 import { describeReflections } from "./prompt-sections";
@@ -27,7 +27,8 @@ export function buildMorningPrompt(input: MorningPassInput): string {
     core: agent.personality.core,
     selfImage: agent.personality.selfImage,
     mood: agent.mood,
-    needs: describeNeeds(agent.needs),
+    body: describeStats(agent.body),
+    status: describeStatus(agent),
     goals: describeGoals(agent.goals),
     reflections: describeReflections(input.recentReflections, "Nothing in particular."),
     simTime: input.timeText,

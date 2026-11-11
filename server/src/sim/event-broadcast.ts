@@ -10,6 +10,7 @@ import {
   buildPerceptionWorld,
   findAgent,
   listKnownNames,
+  listLivingAgents,
   markAgentChanged,
   rememberBriefly,
   replaceAgent,
@@ -73,7 +74,9 @@ function flagDecisions(state: WorldState, event: WorldEvent, perceptions: EventP
   for (const perception of perceptions) {
     const perceiver = findAgent(state, perception.agentId);
     const runtime = getAgentRuntime(state, perceiver.id);
-    if (event.kind === "gave" && event.targetId === perceiver.id) {
+    if (event.kind === "died" && perception.isInSight) {
+      requestDecision(runtime, `I saw ${event.actorName} die`, true);
+    } else if (event.kind === "gave" && event.targetId === perceiver.id) {
       requestDecision(runtime, `${event.actorName} handed me something`, true);
     } else if (toPerceiver(perceiver).isAsleep) {
       requestDecision(runtime, "a loud sound reached me in my sleep", true);
@@ -90,7 +93,7 @@ function flagDecisions(state: WorldState, event: WorldEvent, perceptions: EventP
  */
 export function broadcastEvent(state: WorldState, event: WorldEvent, result: TickResult): void {
   const world = buildPerceptionWorld(state);
-  const perceptions = perceiveEvent(world, event, state.agents.map(toPerceiver));
+  const perceptions = perceiveEvent(world, event, listLivingAgents(state).map(toPerceiver));
   const perceived = { event, perceptions };
   mergeHeardAwareness(state, event, perceptions);
   if (event.kind === "said") state.conversationLog = recordSpeech(state.conversationLog, perceived);

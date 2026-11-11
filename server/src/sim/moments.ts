@@ -136,6 +136,10 @@ export function buildFailureMoment(event: WorldEvent): MomentDraft | null {
   });
 }
 
+export function buildDeathMoment(subject: MomentSubject, tick: number, cause: string): MomentDraft {
+  return draftMoment(subject, tick, `died: ${cause}`, { kind: "died", cause });
+}
+
 /** Gives each draft the next moment id and adds it to the tick's result. */
 export function recordMoments(
   state: WorldState,

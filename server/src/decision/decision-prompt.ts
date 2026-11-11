@@ -15,7 +15,7 @@ import {
   describeWorkingMemory,
   listTargetNames,
 } from "./sections";
-import { describeNeeds, describeTraits } from "./words";
+import { describeStats, describeStatus, describeTraits } from "./words";
 
 const DECISION_TEMPLATE = "decision";
 const BASE_ACTIONS: readonly DecisionAction[] = ["walk_to", "interact", "give", "recall", "wait"];
@@ -39,7 +39,8 @@ function buildTemplateValues(context: DecisionContext, memories: RecalledMemorie
     core: personality.core,
     selfImage: personality.selfImage,
     mood: context.mood,
-    needs: describeNeeds(context.needs),
+    body: describeStats(context.body),
+    status: describeStatus(context),
     goals: describeGoals(context.goals),
     dailyPlan: context.dailyPlan || "none yet",
     simTime: context.simTime,

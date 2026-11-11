@@ -1,17 +1,43 @@
 import { NEED_NAMES, type Agent } from "@village/shared";
-import { formatCarrying } from "../format/character-sheet";
-import { EmptyNote, NeedRow, PanelSection } from "./widgets";
+import { describeCondition, describeDeath, formatCarrying } from "../format/character-sheet";
+import { usePanelContext } from "./panel-context";
+import { EmptyNote, HealthRow, NeedRow, PanelSection } from "./widgets";
+
+/** Health first, then needs, then conditions; for the dead, when and how they died instead. */
+function StatusSection({ agent }: { agent: Agent }) {
+  const { state } = usePanelContext();
+  if (agent.death !== null) {
+    return (
+      <PanelSection title="Status">
+        <p className="death-note">{describeDeath(agent.death, state.timeSettings)}</p>
+      </PanelSection>
+    );
+  }
+  return (
+    <PanelSection title="Status">
+      <div className="need-grid">
+        <HealthRow value={agent.health} />
+        {NEED_NAMES.map((needName) => (
+          <NeedRow key={needName} needName={needName} value={agent.needs[needName]} />
+        ))}
+      </div>
+      {agent.conditions.length > 0 && (
+        <div className="token-list condition-list">
+          {agent.conditions.map((condition) => (
+            <span key={condition.name} className="token condition-chip">
+              {describeCondition(condition, state.clock.tick, state.timeSettings)}
+            </span>
+          ))}
+        </div>
+      )}
+    </PanelSection>
+  );
+}
 
 export function OverviewTab({ agent }: { agent: Agent }) {
   return (
     <div className="overview">
-      <PanelSection title="Needs">
-        <div className="need-grid">
-          {NEED_NAMES.map((needName) => (
-            <NeedRow key={needName} needName={needName} value={agent.needs[needName]} />
-          ))}
-        </div>
-      </PanelSection>
+      <StatusSection agent={agent} />
       <PanelSection title="Carrying">
         <div className="token-list">
           {formatCarrying(agent.coins, agent.inventory).map((entry) => (

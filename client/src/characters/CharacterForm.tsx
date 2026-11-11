@@ -1,5 +1,6 @@
 import type { ReactNode } from "react";
 import {
+  STAT_NAMES,
   TRAIT_NAMES,
   type SeedAgent,
   type SeedFile,
@@ -7,7 +8,16 @@ import {
   type SeedRules,
 } from "@village/shared";
 import { clientConfig } from "../client-config";
-import { CommittedTextInput, Field, NumberInput, TextArea, TextInput, TraitSlider } from "./fields";
+import {
+  CommittedTextInput,
+  Field,
+  NumberInput,
+  ProblemList,
+  StatSlider,
+  TextArea,
+  TextInput,
+  TraitSlider,
+} from "./fields";
 import { GoalsEditor, InventoryEditor, PeopleNotesEditor } from "./list-editors";
 import { selectFieldProblems } from "./seed-edits";
 
@@ -156,6 +166,29 @@ function PersonalitySection({ agent, rules, problems, onChange }: SectionProps) 
   );
 }
 
+function BodySection({ agent, rules, problems, onChange }: SectionProps) {
+  return (
+    <FormSection
+      title="Body"
+      description="Only the character knows these, as words in their own prompt; others learn them by watching. 0.5 is average."
+    >
+      <div className="trait-sliders">
+        {STAT_NAMES.map((statName) => (
+          <div key={statName}>
+            <StatSlider
+              statName={statName}
+              value={agent[statName]}
+              range={rules.statRange}
+              onChange={(value) => onChange({ ...agent, [statName]: value })}
+            />
+            <ProblemList problems={selectFieldProblems(problems, statName)} />
+          </div>
+        ))}
+      </div>
+    </FormSection>
+  );
+}
+
 function StartingStateSection({ agent, rules, problems, onChange }: SectionProps) {
   const { min, max } = rules.sleepRecoveryRange;
   return (
@@ -226,6 +259,7 @@ export function CharacterForm(props: CharacterFormProps) {
     <div className="character-form">
       <IdentitySection {...sectionProps} />
       <PersonalitySection {...sectionProps} />
+      <BodySection {...sectionProps} />
       <StartingStateSection {...sectionProps} />
       <FormSection
         title="Goals"

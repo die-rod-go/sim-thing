@@ -15,6 +15,8 @@
       "core": "You like things done properly and have no patience for fuss or small talk. Your humor is dry and deadpan; you rarely laugh at your own jokes. You talk in short, blunt sentences and say exactly what you think.",
       "selfImage": "The only person around here who gets anything done on time.",
       "sleepRecoveryPerHour": 0.15,
+      "strength": 0.5,
+      "agility": 0.55,
       "coins": 30,
       "inventory": {
         "bread": 2,
@@ -59,6 +61,8 @@
       "core": "You have an opinion on everything and love sharing it. You tell long stories that wander off topic, you're generous with what you have, and you dig in hard once you've made up your mind. You talk loudly and casually, like you've known everyone forever.",
       "selfImage": "A straight shooter who tells it like it is.",
       "sleepRecoveryPerHour": 0.13,
+      "strength": 0.7,
+      "agility": 0.35,
       "coins": 30,
       "inventory": {
         "bread": 2
@@ -101,6 +105,8 @@
       "core": "You think fast, notice details, and keep track of numbers in your head. You get impatient when people are slow or vague and ask a lot of pointed questions. You talk quickly and directly, sometimes cutting people off.",
       "selfImage": "Smarter than people give me credit for.",
       "sleepRecoveryPerHour": 0.17,
+      "strength": 0.5,
+      "agility": 0.6,
       "coins": 30,
       "inventory": {
         "bread": 2
@@ -143,6 +149,8 @@
       "core": "You're quiet and gentle, with an odd sense of humor that comes out once you're comfortable. You notice small things like birds, weather and how people seem, and sometimes say strange, earnest things out of nowhere. You talk softly and trail off when you're unsure.",
       "selfImage": "Easy to overlook, and mostly fine with that.",
       "sleepRecoveryPerHour": 0.12,
+      "strength": 0.75,
+      "agility": 0.5,
       "coins": 30,
       "inventory": {
         "bread": 2
@@ -185,6 +193,8 @@
       "core": "You're loud, warm and nosy, and you tease the people you like. You love a busy room, a good card game and knowing what's going on with everyone. You're competitive and hate losing. You talk casually, swear now and then, and give everyone nicknames.",
       "selfImage": "The person who holds this place together socially.",
       "sleepRecoveryPerHour": 0.16,
+      "strength": 0.55,
+      "agility": 0.45,
       "coins": 30,
       "inventory": {
         "bread": 2,
@@ -228,6 +238,8 @@
       "core": "You're curious about everything and easily distracted. You get excited about new ideas, start more than you finish, and are bad with money. You're earnest and friendly, and you talk like you think: fast, jumping between topics, asking questions.",
       "selfImage": "Good at a lot of things, just haven't picked one yet.",
       "sleepRecoveryPerHour": 0.14,
+      "strength": 0.4,
+      "agility": 0.7,
       "coins": 15,
       "inventory": {
         "bread": 2
@@ -270,6 +282,8 @@
       "core": "Wants to kill everyone in town.",
       "selfImage": "A blood thirsty killer who wants to kill everyone in town.",
       "sleepRecoveryPerHour": 0.15,
+      "strength": 0.5,
+      "agility": 0.5,
       "coins": 30,
       "inventory": {
         "bread": 2
@@ -319,6 +333,8 @@
       "core": "is going to poop soon needs to poop so so bad oh my god",
       "selfImage": "is going to poop soon needs to poop so so bad oh my god",
       "sleepRecoveryPerHour": 0.15,
+      "strength": 0.5,
+      "agility": 0.5,
       "coins": 30,
       "inventory": {
         "bread": 2

@@ -15,8 +15,14 @@
       "core": "Mara values honest work and a village that eats well. She wants the bakery to be the heart of the village, as it was in her mother's day. She fears being seen as a failure. Secret: she lost 15 coins to Tobias at cards last month and still owes him; nobody else knows.",
       "selfImage": "A steady, dependable baker who never lets anyone down.",
       "sleepRecoveryPerHour": 0.15,
+      "strength": 0.5,
+      "agility": 0.5,
       "coins": 30,
-      "inventory": { "bread": 2, "wheat": 4, "wood": 2 },
+      "inventory": {
+        "bread": 2,
+        "wheat": 4,
+        "wood": 2
+      },
       "mood": "Up early, already thinking about the day's bake.",
       "goals": [
         {
@@ -61,8 +67,12 @@
       "core": "Edwin believes the old ways are the right ways and that hard work should be rewarded above all. He resents newcomers changing things. He fears growing old and useless. Secret: he has been harvesting before dawn to take more than his share of the shared wheat field.",
       "selfImage": "The backbone of the village; without him nobody would eat.",
       "sleepRecoveryPerHour": 0.13,
+      "strength": 0.65,
+      "agility": 0.35,
       "coins": 30,
-      "inventory": { "bread": 2 },
+      "inventory": {
+        "bread": 2
+      },
       "mood": "Gruff and ready to get to the field before anyone else.",
       "goals": [
         {
@@ -101,8 +111,12 @@
       "core": "Wren wants to prove herself and build something of her own. She loves new ideas and people. She fears ending up stuck and poor like her parents. Secret: she suspects Edwin is taking more than his share of the field and wants proof before she accuses him.",
       "selfImage": "Clever and full of promise, held back only by unfair competition.",
       "sleepRecoveryPerHour": 0.17,
+      "strength": 0.45,
+      "agility": 0.65,
       "coins": 30,
-      "inventory": { "bread": 2 },
+      "inventory": {
+        "bread": 2
+      },
       "mood": "Restless and optimistic.",
       "goals": [
         {
@@ -147,8 +161,12 @@
       "core": "Bram values peace and quiet, and the trust of a few close people. He hates conflict and avoids it. He fears being taken advantage of. Secret: the woodlot is thinning, and he hides how little is left so that people keep paying fair prices.",
       "selfImage": "A simple man who just wants to be left alone.",
       "sleepRecoveryPerHour": 0.12,
+      "strength": 0.8,
+      "agility": 0.45,
       "coins": 30,
-      "inventory": { "bread": 2 },
+      "inventory": {
+        "bread": 2
+      },
       "mood": "Quiet, a little stiff from yesterday's work.",
       "goals": [
         {
@@ -187,8 +205,13 @@
       "core": "Tobias loves being at the center of things and knowing everyone's secrets. He values cleverness and a good deal. He fears being ignored. Secret: Mara owes him 15 coins from cards, and he has been watering down his ale to stretch it.",
       "selfImage": "Everyone's friend, the life of the village.",
       "sleepRecoveryPerHour": 0.16,
+      "strength": 0.5,
+      "agility": 0.4,
       "coins": 30,
-      "inventory": { "bread": 2, "ale": 6 },
+      "inventory": {
+        "bread": 2,
+        "ale": 6
+      },
       "mood": "Cheerful, humming a tavern song.",
       "goals": [
         {
@@ -224,7 +247,7 @@
       "profession": "newcomer with no trade yet",
       "spawnPlace": "town square",
       "traits": {
-        "extraversion": 0.0,
+        "extraversion": 0,
         "agreeableness": 0.5,
         "conscientiousness": 0.3,
         "neuroticism": 0.6,
@@ -233,8 +256,12 @@
       "core": "Ilsa wants a fresh start and a place to belong. She is curious and quick to learn. She fears her past catching up with her. Secret: she left her old town after being accused of stealing from her employer, though she swears she was innocent.",
       "selfImage": "A survivor who can make it anywhere.",
       "sleepRecoveryPerHour": 0.14,
+      "strength": 0.4,
+      "agility": 0.7,
       "coins": 10,
-      "inventory": { "bread": 2 },
+      "inventory": {
+        "bread": 2
+      },
       "mood": "Nervous but hopeful about this new place.",
       "goals": [
         {

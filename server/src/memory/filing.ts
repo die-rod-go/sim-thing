@@ -94,6 +94,8 @@ function eventTags(event: WorldEvent, context: FilingContext, isActorKnown: bool
 }
 
 function draftsForParticipants(event: WorldEvent, context: FilingContext): MemoryDraft[] {
+  // The dead remember nothing more, not even dying.
+  if (event.kind === "died") return [];
   const tags = eventTags(event, context, true);
   const actorDraft: MemoryDraft = isSpeech(event)
     ? {

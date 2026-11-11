@@ -8,7 +8,7 @@ const bed = makeObject("bed", "Mara's bed");
 describe("sleep", () => {
   it("sleep recovers energy at the agent's own rate", () => {
     const agent = makeAgent({
-      body: { sleepRecoveryPerHour: 0.12 },
+      body: { sleepRecoveryPerHour: 0.12, strength: 0.5, agility: 0.5 },
       needs: { hunger: 0.8, energy: 0.2, social: 0.8, fun: 0.8 },
     });
     const rested = advanceSleep(agent, 60);
@@ -19,7 +19,7 @@ describe("sleep", () => {
   it("sleep recovery is halved while hungry", () => {
     const hunger = config.needs.sleepHungryThreshold - 0.01;
     const agent = makeAgent({
-      body: { sleepRecoveryPerHour: 0.16 },
+      body: { sleepRecoveryPerHour: 0.16, strength: 0.5, agility: 0.5 },
       needs: { hunger, energy: 0.2, social: 0.8, fun: 0.8 },
     });
     expect(advanceSleep(agent, 60).needs.energy).toBeCloseTo(0.28, 9);

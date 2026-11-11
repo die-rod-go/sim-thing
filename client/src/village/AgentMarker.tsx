@@ -18,6 +18,8 @@ interface AgentMarkerProps {
   isHighlighted: boolean;
   isSpeaking: boolean;
   isMuted: boolean;
+  /** Drawn lying down and greyed out. */
+  isDead: boolean;
   activityCue: ActivityCue;
   markerRef: (element: HTMLElement | null) => void;
   onSelect: (agentId: string) => void;
@@ -58,6 +60,7 @@ export function AgentMarker({
   isHighlighted,
   isSpeaking,
   isMuted,
+  isDead,
   activityCue,
   markerRef,
   onSelect,
@@ -72,6 +75,7 @@ export function AgentMarker({
   if (isHighlighted) classNames.push("is-highlighted");
   if (isSpeaking) classNames.push("is-speaking");
   if (isMuted) classNames.push("is-muted");
+  if (isDead) classNames.push("is-dead");
   return (
     <div
       className={classNames.join(" ")}

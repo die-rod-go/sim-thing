@@ -1,6 +1,7 @@
 import type { Memory } from "@village/shared";
 import { config } from "../config";
 import { applyForgetting, forgetMemories, groupByAgentAndBucket } from "../memory/forgetting";
+import { isDead } from "../status/health";
 import type { WorldState } from "./world-state";
 
 function needsTrimming(bucketGroup: readonly Memory[]): boolean {
@@ -22,10 +23,14 @@ export function enforceBucketCaps(state: WorldState): void {
   }
 }
 
-/** Fades memories for the time since the last pass, every `forgettingEveryTicks`. */
+/**
+ * Fades memories for the time since the last pass, every `forgettingEveryTicks`. The dead's
+ * memories stay as they were, readable in the viewer.
+ */
 export function runScheduledForgetting(state: WorldState): void {
   const elapsedTicks = state.tick - state.lastForgettingTick;
   if (elapsedTicks < config.memory.forgettingEveryTicks) return;
-  applyForgetting(state.memoryStore, elapsedTicks, config.clock.minutesPerTick);
+  const deadAgentIds = new Set(state.agents.filter(isDead).map((agent) => agent.id));
+  applyForgetting(state.memoryStore, elapsedTicks, config.clock.minutesPerTick, deadAgentIds);
   state.lastForgettingTick = state.tick;
 }

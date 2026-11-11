@@ -62,9 +62,11 @@ export function applyForgetting(
   store: MemoryStore,
   elapsedTicks: number,
   minutesPerTick: number,
+  frozenAgentIds: ReadonlySet<string> = new Set(),
 ): string[] {
   const elapsedHours = simHoursBetween(0, elapsedTicks, minutesPerTick);
-  const { kept, deletedIds } = forgetMemories(store.all(), elapsedHours);
+  const fading = store.all().filter((memory) => !frozenAgentIds.has(memory.agentId));
+  const { kept, deletedIds } = forgetMemories(fading, elapsedHours);
   for (const memoryId of deletedIds) store.remove(memoryId);
   for (const memory of kept) store.update(memory);
   return deletedIds;

@@ -1,6 +1,6 @@
 import { NEED_NAMES, type Agent } from "@village/shared";
 import { clientConfig } from "../client-config";
-import { describeActivity, describeNeed } from "../format/character-sheet";
+import { describeActivity, describeHealth, describeNeed } from "../format/character-sheet";
 import { usePanelContext } from "./panel-context";
 import { ColorDot } from "./widgets";
 
@@ -28,10 +28,17 @@ function MiniNeedBars({ agent }: { agent: Agent }) {
 
 function RosterCard({ agent, isSelected }: { agent: Agent; isSelected: boolean }) {
   const { state, selectAgent, highlightAgents } = usePanelContext();
-  const hasAlert = NEED_NAMES.some(
-    (needName) => describeNeed(needName, agent.needs[needName]).isAlert,
-  );
-  const classNames = ["roster-card", isSelected && "is-active", hasAlert && "has-alert"]
+  const isDead = agent.death !== null;
+  const hasAlert =
+    !isDead &&
+    (describeHealth(agent.health).isAlert ||
+      NEED_NAMES.some((needName) => describeNeed(needName, agent.needs[needName]).isAlert));
+  const classNames = [
+    "roster-card",
+    isSelected && "is-active",
+    hasAlert && "has-alert",
+    isDead && "is-dead",
+  ]
     .filter(Boolean)
     .join(" ");
   return (
@@ -45,10 +52,10 @@ function RosterCard({ agent, isSelected }: { agent: Agent; isSelected: boolean }
       <span className="roster-card-top">
         <ColorDot agentId={agent.id} />
         <span className="roster-name">{agent.name}</span>
-        <MiniNeedBars agent={agent} />
+        {!isDead && <MiniNeedBars agent={agent} />}
       </span>
       <span className="roster-activity">
-        {describeActivity(agent.currentAction, state.timeSettings)}
+        {isDead ? "dead" : describeActivity(agent.currentAction, state.timeSettings)}
         <span className="muted"> · {agent.place}</span>
       </span>
       <span className="roster-mood">{agent.mood}</span>

@@ -58,6 +58,7 @@ function describeWalkTarget(state: WorldState, runtime: AgentRuntime): string | 
  * "baking bread at the oven", "sleeping in the rose cottage bed".
  */
 export function describeDoing(state: WorldState, agent: Agent, runtime: AgentRuntime): string {
+  if (agent.death !== null) return config.death.doing;
   const action = agent.currentAction;
   if (action === null) return "standing around";
   if (action.kind === WALK_ACTION) {

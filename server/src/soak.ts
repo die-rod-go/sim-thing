@@ -22,6 +22,7 @@ async function main(): Promise<void> {
     `${report.ticks} ticks, ${report.llmCalls} LLM calls, ${report.events} events in ${seconds}s`,
   );
   logger.info(`${report.personalityChanges.length} personality changes`);
+  logger.info(`${report.deaths.length} deaths`, report.deaths);
   if (days >= WEEKLY_DAYS && report.personalityChanges.length === 0) {
     report.problems.push("no personality change after a week");
   }

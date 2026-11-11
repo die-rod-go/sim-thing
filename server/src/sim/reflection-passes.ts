@@ -24,7 +24,13 @@ import {
   recordMoments,
 } from "./moments";
 import type { ReflectionHook } from "./reflection-hook";
-import { findAgent, listKnownNames, markAgentChanged, replaceAgent } from "./world-access";
+import {
+  findAgent,
+  listKnownNames,
+  listLivingAgents,
+  markAgentChanged,
+  replaceAgent,
+} from "./world-access";
 import type { TickResult, WorldState } from "./world-state";
 
 const logger = createLogger("reflection");
@@ -137,7 +143,9 @@ export function createReflectionHook(dependencies: ReflectionPassDependencies): 
       setSchedule(state, agentId, recordWake(schedule));
     },
     async afterTick(state, result) {
-      await Promise.all(state.agents.map((agent) => runDuePasses(state, agent.id, result)));
+      await Promise.all(
+        listLivingAgents(state).map((agent) => runDuePasses(state, agent.id, result)),
+      );
     },
   };
 }

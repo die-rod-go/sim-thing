@@ -1,5 +1,5 @@
 import { z } from "zod";
-import { TRAIT_NAMES, type TraitName } from "./types";
+import { STAT_NAMES, TRAIT_NAMES, type TraitName } from "./types";
 
 const traitValueSchema = z.number();
 
@@ -18,6 +18,8 @@ export const seedAgentSchema = z.object({
   core: z.string(),
   selfImage: z.string(),
   sleepRecoveryPerHour: z.number(),
+  strength: z.number(),
+  agility: z.number(),
   coins: z.number(),
   inventory: z.record(z.string(), z.number()),
   mood: z.string(),
@@ -41,6 +43,7 @@ export type SeedFile = z.infer<typeof seedFileSchema>;
 /** What a seed file is checked against; the server builds this from its map and config. */
 export interface SeedRules {
   traitRange: { min: number; max: number };
+  statRange: { min: number; max: number };
   sleepRecoveryRange: { min: number; max: number };
   spawnPlaces: string[];
   itemNames: string[];
@@ -94,6 +97,17 @@ function findTraitProblems(
       agentIndex,
       field: `traits.${traitName}`,
       message: `${traitName} must be between ${rules.traitRange.min} and ${rules.traitRange.max}.`,
+    }),
+  );
+}
+
+function findStatProblems(agent: SeedAgent, agentIndex: number, rules: SeedRules): SeedProblem[] {
+  return STAT_NAMES.filter((statName) => !isWithin(agent[statName], rules.statRange)).map(
+    (statName) => ({
+      severity: "error",
+      agentIndex,
+      field: statName,
+      message: `${statName} must be between ${rules.statRange.min} and ${rules.statRange.max}.`,
     }),
   );
 }
@@ -211,6 +225,7 @@ export function findSeedFileProblems(seedFile: SeedFile, rules: SeedRules): Seed
     ...agents.flatMap((agent, agentIndex) => [
       ...findIdentityProblems(agent, agentIndex),
       ...findTraitProblems(agent.traits, agentIndex, rules),
+      ...findStatProblems(agent, agentIndex, rules),
       ...findStartingStateProblems(agent, agentIndex, rules),
       ...findPeopleNoteProblems(agent, agentIndex, knownNames),
     ]),
