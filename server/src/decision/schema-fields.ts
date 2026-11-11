@@ -73,7 +73,19 @@ export function looseEnum<Value extends string>(values: readonly [Value, ...Valu
 
 /** A name that must match one of `names` case-insensitively; parses to the canonical spelling. */
 export function displayNameEnum(names: readonly string[], fieldLabel: string) {
-  const canonicalByNormalized = new Map(names.map((name) => [normalizeDisplayName(name), name]));
+  return aliasedNameEnum(names, new Map(), fieldLabel);
+}
+
+/** Like `displayNameEnum`, also accepting other spellings that parse to a name ("coins" → "coin"). */
+export function aliasedNameEnum(
+  names: readonly string[],
+  aliases: ReadonlyMap<string, string>,
+  fieldLabel: string,
+) {
+  const canonicalByNormalized = new Map([
+    ...[...aliases].map(([alias, name]) => [normalizeDisplayName(alias), name] as const),
+    ...names.map((name) => [normalizeDisplayName(name), name] as const),
+  ]);
   return z
     .string()
     .refine((input) => canonicalByNormalized.has(normalizeDisplayName(input)), {

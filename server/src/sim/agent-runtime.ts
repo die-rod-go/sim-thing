@@ -6,11 +6,12 @@ const positionSchema = z.object({ x: z.number().int(), y: z.number().int() });
 const walkDestinationSchema = z.discriminatedUnion("kind", [
   z.object({ kind: z.literal("place"), placeName: z.string() }),
   z.object({ kind: z.literal("agent"), agentId: z.string() }),
-  z.object({ kind: z.literal("object"), objectId: z.string() }),
+  z.object({ kind: z.literal("entity"), entityId: z.string() }),
 ]);
 
-const pendingInteractSchema = z.object({
-  interaction: z.string(),
+/** A verb to start once the agent gets where it is going. */
+const pendingVerbSchema = z.object({
+  verb: z.string(),
   text: z.string().optional(),
   minutes: z.number().optional(),
 });
@@ -18,15 +19,19 @@ const pendingInteractSchema = z.object({
 const walkSchema = z.object({
   destination: walkDestinationSchema,
   remainingSteps: z.array(positionSchema),
-  /** Set when the walk leads to an interaction that starts on arrival. */
-  pendingInteract: pendingInteractSchema.nullable(),
+  /** Set when the walk leads to a verb that starts on arrival. */
+  pendingVerb: pendingVerbSchema.nullable(),
 });
 
-const interactionRecordSchema = z.object({
+/** A verb in progress: what is used, and what its `finish` effects need to know. */
+const verbRunSchema = z.object({
   agentId: z.string(),
-  interaction: z.string(),
-  targetName: z.string(),
-  objectId: z.string().nullable(),
+  verb: z.string(),
+  /** The entity used; null for a verb that needs no item. */
+  usedEntityId: z.string().nullable(),
+  /** Kept so the verb still reads and names it after a `start` effect used it up. */
+  usedDefinitionId: z.string().nullable(),
+  usedName: z.string(),
   startedAtTick: z.number().int(),
 });
 
@@ -38,7 +43,7 @@ const pendingDecisionSchema = z.object({
 
 const agentRuntimeSchema = z.object({
   walk: walkSchema.nullable(),
-  interaction: interactionRecordSchema.nullable(),
+  verbRun: verbRunSchema.nullable(),
   lastInterruptTick: z.number().int().nullable(),
   visibleAgentIds: z.array(z.string()),
   lastFailure: z.string().nullable(),
@@ -56,7 +61,7 @@ const spokenLineSchema = z.object({
   muffledListenerIds: z.array(z.string()),
 });
 
-/** Everything besides agents, objects and memories that the sim needs to resume exactly. */
+/** Everything besides agents, entities and memories that the sim needs to resume exactly. */
 export const simRuntimeSchema = z.object({
   agentRuntimes: z.record(z.string(), agentRuntimeSchema),
   conversationLog: z.object({ lines: z.array(spokenLineSchema) }),
@@ -79,13 +84,14 @@ export type SimRuntime = z.infer<typeof simRuntimeSchema>;
 export type AgentRuntime = z.infer<typeof agentRuntimeSchema>;
 export type Walk = z.infer<typeof walkSchema>;
 export type WalkDestination = z.infer<typeof walkDestinationSchema>;
-export type PendingInteract = z.infer<typeof pendingInteractSchema>;
+export type PendingVerb = z.infer<typeof pendingVerbSchema>;
+export type VerbRun = z.infer<typeof verbRunSchema>;
 export type PendingDecision = z.infer<typeof pendingDecisionSchema>;
 
 export function createAgentRuntime(startPlace: string): AgentRuntime {
   return {
     walk: null,
-    interaction: null,
+    verbRun: null,
     lastInterruptTick: null,
     visibleAgentIds: [],
     lastFailure: null,

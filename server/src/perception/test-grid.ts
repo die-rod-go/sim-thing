@@ -34,7 +34,10 @@ export function buildAsciiWorld(art: string): AsciiWorld {
       if (MARKER_PATTERN.test(character)) markers[character] = { x, y };
     });
   });
-  return { world: { grid, closedDoorTiles }, markers };
+  return {
+    world: { grid, sightBlockingTiles: closedDoorTiles, muffledTiles: closedDoorTiles },
+    markers,
+  };
 }
 
 export function requireMarker(asciiWorld: AsciiWorld, marker: string): Position {

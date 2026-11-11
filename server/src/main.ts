@@ -2,7 +2,7 @@ import { existsSync } from "node:fs";
 import { resolve } from "node:path";
 import { fileURLToPath } from "node:url";
 import { z } from "zod";
-import { formatSimTime } from "@village/shared";
+import { formatSimTime, type ItemCatalog, type SeedFile } from "@village/shared";
 import { config } from "./config";
 import { openDatabase, wipeDatabase, type Database } from "./db/database";
 import {
@@ -13,6 +13,7 @@ import {
   createTokenUsageStore,
 } from "./db/log-repository";
 import { loadWorld, saveWorld } from "./db/world-repository";
+import { listItemReferences, loadItemCatalog } from "./items/load-items";
 import { buildLlmStack, llmProviderSchema } from "./llm/llm-stack";
 import type { TokenBudget } from "./llm/token-budget";
 import { createLogger } from "./logger";
@@ -57,9 +58,27 @@ function loadEnvironment(): z.infer<typeof environmentSchema> {
   });
 }
 
-function seedNewWorld(map: WorldMap): WorldState {
+interface Content {
+  seedFile: SeedFile;
+  items: ItemCatalog;
+}
+
+/**
+ * Reads the seed file and `items.json`, checking the items against what the map and the seed
+ * inventories use. Read at start and again on every reset; throws naming any problem.
+ */
+function loadContent(map: WorldMap): Content {
   const seedFile = loadSeedFile(resolve(repositoryRoot, config.server.seedsPath));
-  return createWorldState(map, buildSeededWorld(seedFile, map));
+  const items = loadItemCatalog(
+    resolve(repositoryRoot, config.server.itemsPath),
+    listItemReferences(map, seedFile),
+  );
+  return { seedFile, items };
+}
+
+function seedNewWorld(map: WorldMap): WorldState {
+  const { seedFile, items } = loadContent(map);
+  return createWorldState(map, buildSeededWorld(seedFile, map, items), items);
 }
 
 function saveState(database: Database, state: WorldState, settings: SimSettings): void {
@@ -90,6 +109,7 @@ async function run(): Promise<void> {
       : resolve(repositoryRoot, environment.SIM_DATABASE_PATH);
   const database = openDatabase(databasePath);
   const map = loadWorldMap(resolve(repositoryRoot, config.server.mapPath));
+  const { items } = loadContent(map);
 
   if (process.argv.includes("--reset-only")) {
     resetDatabase(database, map, createDefaultSettings());
@@ -99,7 +119,7 @@ async function run(): Promise<void> {
   }
 
   const saved = loadWorld(database);
-  const restored = saved ? restoreWorldState(saved, map) : null;
+  const restored = saved ? restoreWorldState(saved, map, items) : null;
   const settings = restored?.settings ?? createDefaultSettings();
   const initialState = restored?.state ?? resetDatabase(database, map, settings);
   logger.info(
@@ -149,6 +169,7 @@ async function run(): Promise<void> {
     seedEditor: createSeedEditor({
       seedFilePath: resolve(repositoryRoot, config.server.seedsPath),
       map,
+      items,
     }),
     resetWorld: () =>
       loop.runBetweenTicks(() => loop.replaceState(resetDatabase(database, map, settings))),

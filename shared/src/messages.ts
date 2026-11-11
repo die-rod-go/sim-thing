@@ -10,8 +10,9 @@ import type {
   SimStats,
   Volume,
   WorldEvent,
-  WorldObject,
 } from "./types";
+import type { Entity } from "./items/entity";
+import type { ItemDefinition } from "./items/item-file";
 import {
   seedFileSchema,
   type SeedAgent,
@@ -50,7 +51,9 @@ export interface SnapshotMessage {
   baseTicksPerSecond: number;
   speedOptions: number[];
   agents: Agent[];
-  objects: WorldObject[];
+  entities: Entity[];
+  /** Every item definition, so the client can draw entities from their sprites and name them. */
+  itemDefinitions: ItemDefinition[];
   recentEvents: WorldEvent[];
   /** The latest moments, oldest first. */
   recentMoments: Moment[];
@@ -93,15 +96,21 @@ export interface SaidMessage {
 export interface InteractedMessage {
   type: "interacted";
   agentId: string;
-  objectId: string;
-  interaction: string;
+  entityId: string;
+  verb: string;
   tick: number;
 }
 
 export interface StateChangedMessage {
   type: "state_changed";
-  agents?: Agent[];
-  objects?: WorldObject[];
+  agents: Agent[];
+}
+
+/** Entities that appeared, moved or changed state this tick, and ids of those that are gone. */
+export interface EntitiesChangedMessage {
+  type: "entities_changed";
+  entities: Entity[];
+  removedEntityIds: string[];
 }
 
 export interface EventLoggedMessage {
@@ -155,6 +164,7 @@ export type ServerMessage =
   | SaidMessage
   | InteractedMessage
   | StateChangedMessage
+  | EntitiesChangedMessage
   | EventLoggedMessage
   | MomentMessage
   | AgentDetailMessage
@@ -170,6 +180,7 @@ export const SERVER_MESSAGE_TYPES = [
   "said",
   "interacted",
   "state_changed",
+  "entities_changed",
   "event_logged",
   "moment",
   "agent_detail",

@@ -2,6 +2,7 @@ import { renameSync, writeFileSync } from "node:fs";
 import {
   findSeedFileProblems,
   hasSeedErrors,
+  type ItemCatalog,
   type SeedFile,
   type SeedFileMessage,
   type SeedProblem,
@@ -35,8 +36,12 @@ function writeFileAtomically(filePath: string, text: string): void {
   renameSync(temporaryPath, filePath);
 }
 
-export function createSeedEditor(options: { seedFilePath: string; map: WorldMap }): SeedEditor {
-  const rules = buildSeedRules(options.map);
+export function createSeedEditor(options: {
+  seedFilePath: string;
+  map: WorldMap;
+  items: ItemCatalog;
+}): SeedEditor {
+  const rules = buildSeedRules(options.map, options.items);
   const newAgentTemplate = buildNewAgentTemplate(rules);
   return {
     describeSeedFile() {

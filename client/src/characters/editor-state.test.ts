@@ -13,8 +13,7 @@ const agent: SeedAgent = {
   sleepRecoveryPerHour: 0.15,
   strength: 0.5,
   agility: 0.5,
-  coins: 30,
-  inventory: {},
+  inventory: { coin: 30 },
   mood: "",
   goals: [],
   peopleNotes: {},
@@ -31,7 +30,7 @@ const loadedMessage: SeedFileMessage = {
     statRange: { min: 0, max: 1 },
     sleepRecoveryRange: { min: 0.12, max: 0.18 },
     spawnPlaces: ["rose cottage"],
-    itemNames: ["bread"],
+    carriableItems: [{ id: "bread", name: "bread" }],
   },
   newAgentTemplate: agent,
 };
@@ -39,7 +38,7 @@ const loadedMessage: SeedFileMessage = {
 const loaded = reduceEditorState(initialEditorState, { kind: "loaded", message: loadedMessage });
 const edited = reduceEditorState(loaded, {
   kind: "edited",
-  draft: { agents: [{ ...agent, coins: 12 }] },
+  draft: { agents: [{ ...agent, inventory: { coin: 12 } }] },
 });
 
 describe("reduceEditorState", () => {

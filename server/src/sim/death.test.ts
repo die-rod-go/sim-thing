@@ -1,5 +1,6 @@
 import { describe, expect, it } from "vitest";
 import { config } from "../config";
+import { replaceEntity } from "../items/entity-store";
 import type { FakeReply } from "../llm/fake-llm-client";
 import { getAgentRuntime } from "./agent-runtime";
 import { applyDamage } from "./damage";
@@ -7,13 +8,14 @@ import { createNoReflectionHook } from "./reflection-hook";
 import {
   createTestSim,
   decisionReply,
+  findEntityByLabel,
   findPromptAgentName,
   promptOf,
   scriptByAgent,
   type TestSim,
 } from "./test-sim";
 import type { TickContext } from "./tick-context";
-import { replaceAgent, replaceObject } from "./world-access";
+import { replaceAgent } from "./world-access";
 import { createEmptyTickResult } from "./world-state";
 
 const SQUARE = { x: 19, y: 15 };
@@ -81,29 +83,23 @@ describe("death", () => {
 
   it("cancels the current action and leaves the object's users", async () => {
     const sim = createTestSim({ agentIds: ["mara"], responder: scriptByAgent({}) });
-    const table = sim.state.objects.find((object) => object.kind === "card_table");
-    if (!table) throw new Error("the map has no card table");
-    replaceObject(sim.state, { ...table, state: { ...table.state, userIds: ["mara"] } });
+    const table = findEntityByLabel(sim.state, "card table");
+    replaceEntity(sim.state, { ...table, state: { ...table.state, userIds: ["mara"] } });
     replaceAgent(sim.state, {
       ...sim.agent("mara"),
-      currentAction: {
-        kind: "interact",
-        target: table.name,
-        interaction: "play cards",
-        endsAtTick: 30,
-      },
+      currentAction: { kind: "interact", target: "card table", verb: "play cards", endsAtTick: 30 },
     });
-    getAgentRuntime(sim.state, "mara").interaction = {
+    getAgentRuntime(sim.state, "mara").verbRun = {
       agentId: "mara",
-      interaction: "play cards",
-      targetName: table.name,
-      objectId: table.id,
+      verb: "play cards",
+      usedEntityId: table.id,
+      usedDefinitionId: table.definitionId,
+      usedName: "card table",
       startedAtTick: 0,
     };
     applyDamage(contextOf(sim), "mara", { amount: LETHAL, killed: "starved", sourceAgentId: null });
     expect(sim.agent("mara").currentAction).toBeNull();
-    const tableAfter = sim.state.objects.find((object) => object.id === table.id);
-    expect(tableAfter?.state.userIds ?? []).not.toContain("mara");
+    expect(findEntityByLabel(sim.state, "card table").state.userIds ?? []).not.toContain("mara");
   });
 
   it("drops a decision still in flight when it arrives", async () => {

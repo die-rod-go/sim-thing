@@ -9,7 +9,7 @@ export type SimilarityScorer = (memory: Memory) => number;
 export interface CueSources {
   place: string;
   aroundAgentNames: readonly string[];
-  nearbyObjectNames: readonly string[];
+  nearbyEntityNames: readonly string[];
   actionTarget: string | null;
   conversationText: string;
   intention: string;
@@ -21,14 +21,14 @@ const HALVING_BASE = 0.5;
 const noSimilarity: SimilarityScorer = () => 0;
 
 /**
- * The recall cue: the place, who is around, nearby objects, the action's target, and known names
- * found in the conversation and intention. The daily plan and goals are deliberately left out.
+ * The recall cue: the place, who is around, nearby entities (objects and ground items), the
+ * action's target, and known names found in the conversation and intention. The daily plan and goals are deliberately left out.
  */
 export function buildCue(sources: CueSources): string[] {
   return uniqueTags([
     sources.place,
     ...sources.aroundAgentNames,
-    ...sources.nearbyObjectNames,
+    ...sources.nearbyEntityNames,
     sources.actionTarget,
     ...extractTags(sources.conversationText, sources.knownNames),
     ...extractTags(sources.intention, sources.knownNames),

@@ -9,22 +9,6 @@ export interface MechanicFailure {
 
 export type MechanicResult<Success> = ({ isSuccess: true } & Success) | MechanicFailure;
 
-/**
- * What an agent is doing right now with an object or held item. `Agent.currentAction` only keeps
- * kind, target and end tick, so integration keeps this record (e.g. in a map by agent id) to know
- * which interaction to finish and, for sleep, when it started.
- */
-export interface InteractionRecord {
-  agentId: string;
-  /** Canonical interaction name from config, e.g. "bake bread". */
-  interaction: string;
-  /** Object name or held item name. */
-  targetName: string;
-  /** Id of the object used; null for held items. */
-  objectId: string | null;
-  startedAtTick: number;
-}
-
 export function failWith(reason: string): MechanicFailure {
   return { isSuccess: false, reason };
 }

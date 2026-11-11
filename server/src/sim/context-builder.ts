@@ -1,11 +1,9 @@
 import { BUCKETS, formatSimTime, type Agent, type Bucket } from "@village/shared";
 import { config } from "../config";
-import { describeObjectCondition } from "../economy/object-state";
 import type {
   AwarenessEntry,
   DecisionContext,
   DecisionTargets,
-  NearbyObject,
   RecalledMemory,
 } from "../decision/context";
 import { currentConversation } from "../memory/conversation";
@@ -14,6 +12,14 @@ import { findObviousListeners } from "../perception/listeners";
 import { describeHealthAsSeen, isDead } from "../status/health";
 import { describeDoing } from "./action-phrases";
 import { getAgentRuntime } from "./agent-runtime";
+import {
+  buildBelongings,
+  groupEntitiesForPrompt,
+  listItemlessVerbNames,
+  listNearbyEntities,
+  listNearbyEntityNames,
+  listValidItems,
+} from "./prompt-entities";
 import {
   buildPerceptionWorld,
   describeAgentAsSeen,
@@ -52,29 +58,12 @@ function buildAwarenessEntries(state: WorldState, agent: Agent): AwarenessEntry[
   });
 }
 
-export function listNearbyObjects(state: WorldState, agent: Agent): NearbyObject[] {
-  return state.objects
-    .filter((object) => object.place === agent.place)
-    .map((object) => ({
-      name: object.name,
-      interactions: config.objects[object.kind].interactions,
-      condition: describeObjectCondition(object),
-    }));
-}
-
-export function listHeldItemsWithUses(agent: Agent): string[] {
-  return Object.entries(agent.inventory)
-    .filter(([item, count]) => count > 0 && config.heldItems[item] !== undefined)
-    .map(([item]) => item);
-}
-
 export function buildValidTargets(state: WorldState, agent: Agent): DecisionTargets {
   const visibleIds = getAgentRuntime(state, agent.id).visibleAgentIds;
   return {
     places: state.map.places.map((place) => place.name),
     agents: visibleIds.map((agentId) => describeAgentAsSeen(findAgent(state, agentId))),
-    objects: listNearbyObjects(state, agent).map((object) => object.name),
-    heldItems: listHeldItemsWithUses(agent),
+    entities: listNearbyEntityNames(state, agent),
   };
 }
 
@@ -82,7 +71,7 @@ function recallMemories(
   state: WorldState,
   agent: Agent,
   aroundYou: AwarenessEntry[],
-  nearbyObjects: NearbyObject[],
+  nearbyEntityNames: string[],
   conversationText: string,
 ): Partial<Record<Bucket, RecalledMemory[]>> {
   const cue = buildCue({
@@ -90,7 +79,7 @@ function recallMemories(
     aroundAgentNames: aroundYou
       .filter((entry) => entry.minutesAgo <= config.perception.awarenessPromptWindowMinutes)
       .map((entry) => entry.name),
-    nearbyObjectNames: nearbyObjects.map((object) => object.name),
+    nearbyEntityNames,
     actionTarget: agent.currentAction?.target ?? null,
     conversationText,
     intention: agent.intention,
@@ -130,7 +119,7 @@ export function buildDecisionContext(
       .map(toPerceiver),
   );
   const aroundYouEntries = buildAwarenessEntries(state, agent);
-  const nearbyObjects = listNearbyObjects(state, agent);
+  const nearbyEntities = groupEntitiesForPrompt(state, agentId, listNearbyEntities(state, agent));
   const conversation = currentConversation(state.conversationLog, agentId, state.tick);
   const conversationText = conversation.map((line) => line.words).join(" ");
   const action = agent.currentAction;
@@ -147,14 +136,14 @@ export function buildDecisionContext(
     intention: agent.intention,
     simTime: formatSimTime(state.tick, config.clock),
     place: agent.place,
-    nearbyObjects,
+    nearbyEntities,
     aroundYou: {
       entries: aroundYouEntries,
       normalHearerIds: listeners.wouldHearNormal,
       whisperHearerIds: listeners.wouldHearWhisper,
     },
-    coins: agent.coins,
-    inventory: agent.inventory,
+    belongings: buildBelongings(state, agent),
+    itemlessVerbs: listItemlessVerbNames(state),
     workingMemory: agent.workingMemory,
     conversation: conversation.map((line) => ({
       speakerName: line.speakerName,
@@ -165,7 +154,7 @@ export function buildDecisionContext(
       state,
       agent,
       aroundYouEntries,
-      nearbyObjects,
+      listNearbyEntityNames(state, agent),
       conversationText,
     ),
     knownPlaces: state.map.places.map((place) => place.name),
@@ -180,5 +169,6 @@ export function buildDecisionContext(
     isMidActionInterrupt,
     lastFailure: runtime.lastFailure,
     validTargets: buildValidTargets(state, agent),
+    validItems: listValidItems(state, agent),
   };
 }

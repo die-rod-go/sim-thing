@@ -1,7 +1,8 @@
-import type { Agent, Moment, Position, WorldEvent, WorldObject } from "@village/shared";
+import type { Agent, Entity, ItemCatalog, Moment, Position, WorldEvent } from "@village/shared";
 import { config } from "../config";
 import { SeededRandom } from "../random";
 import type { SavedWorld } from "../db/world-repository";
+import { findOrphanedEntities } from "../items/entity-store";
 import { createConversationLog, type ConversationLog } from "../memory/conversation";
 import { MemoryIdGenerator, MemoryStore } from "../memory/memory-store";
 import type { SeededWorld } from "../seeds";
@@ -14,7 +15,12 @@ export interface WorldState {
   /** The tick about to be simulated next. */
   tick: number;
   agents: Agent[];
-  objects: WorldObject[];
+  /** Every item and object in the world: placed, on the ground, carried or inside something. */
+  entities: Entity[];
+  /** The counter the next entity id comes from, so runs reproduce. */
+  nextEntityId: number;
+  /** The item definitions and verbs from `items.json`. */
+  items: ItemCatalog;
   map: WorldMap;
   random: SeededRandom;
   nextEventId: number;
@@ -40,11 +46,11 @@ export interface AgentMove {
   place: string;
 }
 
-/** An interaction that started this tick, for the viewer's `interacted` message. */
-export interface InteractionStart {
+/** A verb that started on an entity this tick, for the viewer's `interacted` message. */
+export interface VerbStart {
   agentId: string;
-  objectId: string;
-  interaction: string;
+  entityId: string;
+  verb: string;
 }
 
 /** What one tick produced, for the server to log, persist and broadcast. */
@@ -57,8 +63,10 @@ export interface TickResult {
   moments: Moment[];
   /** Agents whose data changed beyond position (action, needs, inventory, ...). */
   changedAgentIds: string[];
-  changedObjectIds: string[];
-  interactionStarts: InteractionStart[];
+  /** Entities created, moved or changed this tick. */
+  changedEntityIds: string[];
+  removedEntityIds: string[];
+  verbStarts: VerbStart[];
   /** Agents who got a decision this tick. */
   decidedAgentIds: string[];
 }
@@ -67,13 +75,19 @@ function createAgentRuntimes(agents: readonly Agent[]): Record<string, AgentRunt
   return Object.fromEntries(agents.map((agent) => [agent.id, createAgentRuntime(agent.place)]));
 }
 
-export function createWorldState(map: WorldMap, seededWorld: SeededWorld): WorldState {
+export function createWorldState(
+  map: WorldMap,
+  seededWorld: SeededWorld,
+  items: ItemCatalog,
+): WorldState {
   const memoryStore = new MemoryStore();
   memoryStore.addAll(seededWorld.memories);
   return {
     tick: 0,
     agents: seededWorld.agents,
-    objects: structuredClone(map.objects),
+    entities: seededWorld.entities,
+    nextEntityId: seededWorld.nextEntityId,
+    items,
     map,
     random: new SeededRandom(config.seed),
     nextEventId: 1,
@@ -98,8 +112,9 @@ export function createEmptyTickResult(tick: number): TickResult {
     events: [],
     moments: [],
     changedAgentIds: [],
-    changedObjectIds: [],
-    interactionStarts: [],
+    changedEntityIds: [],
+    removedEntityIds: [],
+    verbStarts: [],
     decidedAgentIds: [],
   };
 }
@@ -141,18 +156,33 @@ export function toSavedWorld(state: WorldState, settings: SimSettings): SavedWor
     speed: settings.speed,
     dailyTokenBudget: settings.dailyTokenBudget,
     agents: state.agents,
-    objects: state.objects,
+    entities: state.entities,
+    nextEntityId: state.nextEntityId,
     memories: state.memoryStore.all(),
     runtime: toSimRuntime(state),
   };
 }
 
-/** Rebuilds the world from a save. Objects added to the map since the save start fresh. */
+function assertNoOrphanedEntities(saved: SavedWorld, items: ItemCatalog): void {
+  const orphans = findOrphanedEntities(saved.entities, items);
+  if (orphans.length === 0) return;
+  const definitionIds = [...new Set(orphans.map((entity) => entity.definitionId))].join(", ");
+  throw new Error(
+    `The saved sim has items whose definitions are gone from items.json (${definitionIds}). ` +
+      "Run `make reset` to start fresh, or put the definitions back.",
+  );
+}
+
+/**
+ * Rebuilds the world from a save. Entities come from the save, not the map, so map changes need a
+ * `make reset`. Refuses a save holding entities `items.json` no longer defines.
+ */
 export function restoreWorldState(
   saved: SavedWorld,
   map: WorldMap,
+  items: ItemCatalog,
 ): { state: WorldState; settings: SimSettings } {
-  const savedObjects = new Map(saved.objects.map((object) => [object.id, object]));
+  assertNoOrphanedEntities(saved, items);
   const random = new SeededRandom(config.seed);
   random.setState(saved.rngState);
   const memoryStore = new MemoryStore();
@@ -162,7 +192,9 @@ export function restoreWorldState(
     state: {
       tick: saved.tick,
       agents: saved.agents.map(withLastThought),
-      objects: map.objects.map((object) => savedObjects.get(object.id) ?? structuredClone(object)),
+      entities: saved.entities,
+      nextEntityId: saved.nextEntityId,
+      items,
       map,
       random,
       nextEventId: saved.nextEventId,

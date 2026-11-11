@@ -28,14 +28,21 @@ function readLine(prompt: string, prefix: string): string | null {
   return line === undefined ? null : line.slice(prefix.length).trim();
 }
 
-/** "oven (bake bread), notice board (read, post a note)" → names with their interactions. */
+/** The line after the prompt line starting with `prefix`: the status line follows "It is ...". */
+function readLineAfter(prompt: string, prefix: string): string {
+  const lines = prompt.split("\n");
+  const index = lines.findIndex((candidate) => candidate.startsWith(prefix));
+  return index === -1 ? "" : (lines[index + 1] ?? "");
+}
+
+/** "oven (bake bread), 3 bread (eat), a knife (attack)" → names with their verbs. */
 function parseNamedUses(text: string | null): Map<string, string[]> {
   const uses = new Map<string, string[]>();
   if (text === null) return uses;
-  for (const match of text.matchAll(/(?:^|, )(?:\d+ )?([^,()]+?) \(([^)]*)\)/g)) {
+  for (const match of text.matchAll(/(?:^|, )(?:\d+ |an? )?([^,()]+?) \(([^)]*)\)/g)) {
     const name = match[1]?.trim();
-    const interactionList = (match[2] ?? "").split("; ")[0] ?? "";
-    if (name) uses.set(name, interactionList.split(", ").filter(Boolean));
+    const verbList = (match[2] ?? "").split("; ")[0] ?? "";
+    if (name) uses.set(name, verbList.split(", ").filter(Boolean));
   }
   return uses;
 }
@@ -53,11 +60,16 @@ function pickWeighted(random: SeededRandom, weights: [string, number][]): string
 interface DecisionChoices {
   actions: string[];
   targets: Set<string>;
+  /** What `item` may name: things carried. */
+  items: string[];
   places: string[];
   currentPlace: string;
+  /** Things here, named as `target`, with their verbs. */
   objects: Map<string, string[]>;
+  /** Things carried, named as `item`, with their verbs. */
   heldItems: Map<string, string[]>;
   inSight: string[];
+  isHungry: boolean;
 }
 
 function readDecisionChoices(schema: JsonSchema, prompt: string): DecisionChoices {
@@ -66,18 +78,54 @@ function readDecisionChoices(schema: JsonSchema, prompt: string): DecisionChoice
   return {
     actions: readEnum(schema, "action"),
     targets,
+    items: readEnum(schema, "item"),
     places: (readLine(prompt, "Places you know: ") ?? "")
       .split(", ")
       .filter((name) => targets.has(name)),
     currentPlace: (readLine(prompt, "You are at the ") ?? "").replace(/\.$/, ""),
     objects: parseNamedUses(readLine(prompt, "Here: ")),
-    heldItems: parseNamedUses(readLine(prompt, "Coins: ")?.replace(/^.*You carry: /, "") ?? null),
+    heldItems: parseNamedUses(readLine(prompt, "You carry: ")),
     inSight: heard
       .replace(/\.$/, "")
       .split(", ")
       .map((entry) => entry.replace(/ \(.*$/, "").trim())
       .filter((name) => targets.has(name)),
+    isHungry: config.llm.fakeResponder.hungryWords.some((word) =>
+      readLineAfter(prompt, "It is ").includes(word),
+    ),
   };
+}
+
+/**
+ * Something carried that can be eaten, when the status says the agent is hungry. Not mid-action,
+ * so a meal in progress isn't cancelled for another.
+ */
+function findFoodToEat(choices: DecisionChoices): string | null {
+  if (!choices.isHungry || !choices.actions.includes("interact")) return null;
+  if (choices.actions.includes("continue")) return null;
+  const { eatVerb } = config.llm.fakeResponder;
+  const food = [...choices.heldItems].find(([, verbs]) => verbs.includes(eatVerb));
+  return food?.[0] ?? null;
+}
+
+/** Fills `target` for something here or `item` for something carried, and a verb it offers. */
+function buildInteractFields(
+  random: SeededRandom,
+  choices: DecisionChoices,
+): { fields: JsonRecord; usedName: string } | null {
+  const tuning = config.llm.fakeResponder;
+  const here = [...choices.objects].filter(
+    ([name, verbs]) => choices.targets.has(name) && verbs.length > 0,
+  );
+  const carried = [...choices.heldItems].filter(([, verbs]) => verbs.length > 0);
+  const usable = [
+    ...here.map(([name, verbs]) => ({ field: "target", name, verbs })),
+    ...carried.map(([name, verbs]) => ({ field: "item", name, verbs })),
+  ];
+  if (usable.length === 0) return null;
+  const chosen = random.pick(usable);
+  const verb = random.next() < tuning.omitVerbChance ? null : random.pick(chosen.verbs);
+  return { fields: { [chosen.field]: chosen.name, verb }, usedName: chosen.name };
 }
 
 function buildDecisionReply(random: SeededRandom, choices: DecisionChoices): JsonRecord {
@@ -89,7 +137,7 @@ function buildDecisionReply(random: SeededRandom, choices: DecisionChoices): Jso
     volume: null,
     action: "wait",
     target: null,
-    interaction: null,
+    verb: null,
     text: null,
     item: null,
     amount: null,
@@ -98,18 +146,21 @@ function buildDecisionReply(random: SeededRandom, choices: DecisionChoices): Jso
     note: null,
     mood: null,
   };
+  const food = findFoodToEat(choices);
+  if (food !== null) {
+    const intention = "eating something before I go hungry";
+    return { ...reply, action: "interact", item: food, verb: tuning.eatVerb, intention };
+  }
   if (choices.actions.includes("continue") && random.next() < tuning.continueChance) {
     return { ...reply, action: "continue" };
   }
-  const usable = [...choices.objects, ...choices.heldItems].filter(
-    ([name, uses]) => choices.targets.has(name) && uses.length > 0,
-  );
+  const interact = buildInteractFields(random, choices);
   const otherPlaces = choices.places.filter((place) => place !== choices.currentPlace);
   const weights = Object.entries(tuning.actionWeights).filter(([action]) => {
     if (!choices.actions.includes(action)) return false;
-    if (action === "interact") return usable.length > 0;
+    if (action === "interact") return interact !== null;
     if (action === "walk_to") return otherPlaces.length > 0;
-    if (action === "give") return choices.inSight.length > 0;
+    if (action === "give") return choices.inSight.length > 0 && choices.items.length > 0;
     return true;
   });
   const action = pickWeighted(random, weights);
@@ -118,11 +169,15 @@ function buildDecisionReply(random: SeededRandom, choices: DecisionChoices): Jso
     const say = choices.inSight.length > 0 ? `${random.pick(choices.inSight)}! ${line}` : line;
     Object.assign(reply, { say, volume: "normal" });
   }
-  if (action === "interact") {
-    const [target, uses] = random.pick(usable);
-    const interaction = random.next() < tuning.omitInteractionChance ? null : random.pick(uses);
-    const text = interaction === "post a note" ? random.pick(tuning.lines) : null;
-    return { ...reply, action, target, interaction, text, intention: `using the ${target}` };
+  if (action === "interact" && interact !== null) {
+    const text = random.pick(tuning.lines);
+    return {
+      ...reply,
+      action,
+      ...interact.fields,
+      text,
+      intention: `using the ${interact.usedName}`,
+    };
   }
   if (action === "walk_to") {
     const target = random.pick(otherPlaces);
@@ -130,7 +185,7 @@ function buildDecisionReply(random: SeededRandom, choices: DecisionChoices): Jso
   }
   if (action === "give") {
     const target = random.pick(choices.inSight);
-    return { ...reply, action, target, item: random.pick(["coins", "bread"]), amount: 1 };
+    return { ...reply, action, target, item: random.pick(choices.items), amount: 1 };
   }
   if (action === "recall") {
     return {
@@ -186,7 +241,7 @@ const BUILT_IN_ANSWERS: Record<string, FakeAnswer> = {
   decision_reply: (request, random) =>
     buildDecisionReply(random, readDecisionChoices(request.jsonSchema ?? {}, promptText(request))),
   interact_reply: (request, random) => ({
-    interaction: random.pick(readEnum(request.jsonSchema ?? {}, "interaction")),
+    verb: random.pick(readEnum(request.jsonSchema ?? {}, "verb")),
     text: random.pick(config.llm.fakeResponder.lines),
     minutes: null,
   }),

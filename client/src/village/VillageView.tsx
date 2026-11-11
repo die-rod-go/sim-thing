@@ -163,6 +163,8 @@ export function VillageView({
             map={mapStatus.map}
             tilesetImage={mapStatus.tilesetImage}
             agents={state.agents}
+            entities={state.entities}
+            itemDefinitions={state.itemDefinitions}
             speechBubbles={state.speechBubbles}
             thoughtsByAgent={thoughtsByAgent}
             timeSettings={state.timeSettings}

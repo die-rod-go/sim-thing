@@ -55,3 +55,16 @@ export function describeCount(definition: ItemDefinition, count: number): string
 export function listDefinitionNames(definition: ItemDefinition): string[] {
   return definition.plural === undefined ? [definition.name] : [definition.name, definition.plural];
 }
+
+/** The definition a reply names, by id, name or plural, ignoring case. */
+export function findDefinitionByName(
+  catalog: ItemCatalog,
+  name: string,
+): ItemDefinition | undefined {
+  const wanted = name.trim().toLowerCase();
+  return catalog.file.definitions.find(
+    (definition) =>
+      definition.id === wanted ||
+      listDefinitionNames(definition).some((candidate) => candidate.toLowerCase() === wanted),
+  );
+}

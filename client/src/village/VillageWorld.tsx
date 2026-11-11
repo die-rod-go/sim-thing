@@ -1,5 +1,5 @@
 import { useCallback, useLayoutEffect, useMemo, useRef, useState } from "react";
-import type { Agent, SimTimeSettings } from "@village/shared";
+import type { Agent, Entity, ItemDefinition, SimTimeSettings } from "@village/shared";
 import { clientConfig } from "../client-config";
 import { buildAgentColors } from "../format/agent-colors";
 import type { SpeechBubble } from "../state/client-state";
@@ -12,6 +12,7 @@ import { PerceptionOverlay, type PerceptionView } from "./perception-overlay";
 import { ConversationLinks, PlaceLabels } from "./screen-overlays";
 import { groupBubblesBySpeaker, SpeechBubbleStack, useLiveSpeechBubbles } from "./SpeechBubbles";
 import type { VisibleThought } from "./thought-bubbles";
+import { EntitySprites } from "./EntitySprites";
 import { TileCanvas } from "./TileCanvas";
 import type { TiledMap } from "./tiled-map";
 import { useHoveredAgent } from "./use-hovered-agent";
@@ -30,6 +31,8 @@ interface VillageWorldProps {
   map: TiledMap;
   tilesetImage: HTMLImageElement;
   agents: Agent[];
+  entities: readonly Entity[];
+  itemDefinitions: readonly ItemDefinition[];
   speechBubbles: SpeechBubble[];
   thoughtsByAgent: ReadonlyMap<string, VisibleThought>;
   timeSettings: SimTimeSettings;
@@ -181,6 +184,12 @@ export function VillageWorld(props: VillageWorldProps) {
         style={{ width: mapPixelWidth, height: mapPixelHeight }}
       >
         <TileCanvas map={map} tilesetImage={props.tilesetImage} />
+        <EntitySprites
+          map={map}
+          tilesetImage={props.tilesetImage}
+          entities={props.entities}
+          definitions={props.itemDefinitions}
+        />
         <div className="village-tint" style={{ background: props.daylightTint }} />
         {props.perceptionView && (
           <PerceptionOverlay

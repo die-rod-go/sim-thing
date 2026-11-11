@@ -1,4 +1,3 @@
-import type { ObjectKind } from "@village/shared";
 import { config } from "../../server/src/config";
 import type { BuildingSpec, VillageLayout } from "./layout";
 import {
@@ -23,18 +22,6 @@ const TILED_FORMAT_VERSION = "1.10";
 const TILED_EDITOR_VERSION = "1.10.2";
 const NO_COMPRESSION = -1;
 const EMPTY_TILE = 0;
-
-const OBJECT_KIND_TILES: Record<ObjectKind, TileName> = {
-  bed: "bed",
-  notice_board: "notice_board",
-  bench: "bench",
-  wheat_field: "field",
-  trees: "tree",
-  oven: "oven",
-  brew_kettle: "kettle",
-  card_table: "card_table",
-  door: "door",
-};
 
 class TileLayerBuilder {
   readonly data: number[];
@@ -108,9 +95,8 @@ function buildTileLayers(layout: VillageLayout): Record<"ground" | "walls" | "de
     walls.set(0, y, "fence");
     walls.set(widthTiles - 1, y, "fence");
   }
+  // Placed objects aren't baked in: the client draws each from its entity's sprite.
   for (const tree of layout.decorTrees) decor.set(tree.x, tree.y, "tree");
-  for (const object of layout.objects)
-    decor.set(object.x, object.y, OBJECT_KIND_TILES[object.kind]);
 
   return { ground: ground.data, walls: walls.data, decor: decor.data };
 }
@@ -164,17 +150,9 @@ export function buildTiledMap(layout: VillageLayout): TiledMap {
   const interactableObjects: TiledObject[] = layout.objects.map((object) => {
     const properties: TiledProperty[] = [
       { name: "name", type: "string", value: object.name },
-      { name: "kind", type: "string", value: object.kind },
+      { name: "definition", type: "string", value: object.definitionId },
       { name: "place", type: "string", value: object.place },
-      {
-        name: "interactions",
-        type: "string",
-        value: JSON.stringify(config.objects[object.kind].interactions),
-      },
     ];
-    const stock = (config.objects[object.kind] as { stock?: { capacity: number } }).stock;
-    if (stock) properties.push({ name: "stock", type: "int", value: stock.capacity });
-    if (object.kind === "door") properties.push({ name: "isOpen", type: "bool", value: true });
     return {
       ...baseObject(object.name),
       x: object.x * TILE_SIZE,

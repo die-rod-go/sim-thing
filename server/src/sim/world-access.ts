@@ -1,11 +1,13 @@
-import { toSimTime, type Agent, type WorldObject } from "@village/shared";
+import { readComponentField, toSimTime, type Agent, type Entity } from "@village/shared";
 import { config } from "../config";
 import { isAsleep } from "../economy/sleep";
+import { getDefinition } from "../items/entity-store";
 import { pushWorkingMemory } from "../memory/working-memory";
 import { canSee } from "../perception/sight";
 import { describeBodyName, isDead } from "../status/health";
 import type { PerceptionWorld, Perceiver } from "../perception/types";
-import { tileIndex } from "../world/types";
+import { withBlockedTiles } from "../world/pathfinding";
+import { tileIndex, type TileGrid } from "../world/types";
 import type { TickResult, WorldState } from "./world-state";
 
 export function findAgent(state: WorldState, agentId: string): Agent {
@@ -20,31 +22,59 @@ export function replaceAgent(state: WorldState, updated: Agent): void {
   state.agents[index] = updated;
 }
 
-export function findObjectById(state: WorldState, objectId: string): WorldObject | undefined {
-  return state.objects.find((candidate) => candidate.id === objectId);
-}
-
-export function replaceObject(state: WorldState, updated: WorldObject): void {
-  const index = state.objects.findIndex((candidate) => candidate.id === updated.id);
-  if (index === -1) throw new Error(`Unknown object "${updated.id}"`);
-  state.objects[index] = updated;
-}
-
 export function markAgentChanged(result: TickResult, agentId: string): void {
   if (!result.changedAgentIds.includes(agentId)) result.changedAgentIds.push(agentId);
 }
 
-export function markObjectChanged(result: TickResult, objectId: string): void {
-  if (!result.changedObjectIds.includes(objectId)) result.changedObjectIds.push(objectId);
+export function markEntityChanged(result: TickResult, entityId: string): void {
+  if (!result.changedEntityIds.includes(entityId)) result.changedEntityIds.push(entityId);
 }
 
+export function markEntityRemoved(result: TickResult, entityId: string): void {
+  result.changedEntityIds = result.changedEntityIds.filter((changedId) => changedId !== entityId);
+  if (!result.removedEntityIds.includes(entityId)) result.removedEntityIds.push(entityId);
+}
+
+function readFlag(state: WorldState, entity: Entity, component: string, field: string): boolean {
+  return readComponentField(getDefinition(state, entity), component, field) === true;
+}
+
+function isClosed(entity: Entity): boolean {
+  return entity.state.isOpen === false;
+}
+
+function collectTiles(state: WorldState, isIncluded: (entity: Entity) => boolean): Set<number> {
+  const tiles = new Set<number>();
+  for (const entity of state.entities) {
+    if (entity.location.kind !== "tile" || !isIncluded(entity)) continue;
+    tiles.add(tileIndex(state.map.grid, entity.location.pos));
+  }
+  return tiles;
+}
+
+/** Walls plus what the placed entities add: closed doors and objects in the way. */
 export function buildPerceptionWorld(state: WorldState): PerceptionWorld {
-  const closedDoorTiles = new Set(
-    state.objects
-      .filter((object) => object.kind === "door" && object.state.isOpen === false)
-      .map((object) => tileIndex(state.map.grid, object.pos)),
+  return {
+    grid: state.map.grid,
+    sightBlockingTiles: collectTiles(
+      state,
+      (entity) =>
+        readFlag(state, entity, "blocking", "blocksSight") ||
+        (isClosed(entity) && readFlag(state, entity, "openable", "blocksSightWhenClosed")),
+    ),
+    muffledTiles: collectTiles(
+      state,
+      (entity) => isClosed(entity) && readFlag(state, entity, "openable", "muffleWhenClosed"),
+    ),
+  };
+}
+
+/** The map's grid with tiles under movement-blocking objects walled off, for pathfinding. */
+export function buildWalkingGrid(state: WorldState): TileGrid {
+  const blocked = collectTiles(state, (entity) =>
+    readFlag(state, entity, "blocking", "blocksMovement"),
   );
-  return { grid: state.map.grid, closedDoorTiles };
+  return withBlockedTiles(state.map.grid, blocked);
 }
 
 export function listLivingAgents(state: WorldState): Agent[] {
@@ -73,12 +103,19 @@ export function listVisibleAgentIds(
     .map((other) => other.id);
 }
 
-/** All agent, object and place names: what tags and recall queries are matched against. */
+/**
+ * All agent, place and item names (definition names and map labels): what tags and recall queries
+ * are matched against.
+ */
 export function listKnownNames(state: WorldState): string[] {
+  const labels = state.entities.flatMap((entity) => (entity.label === null ? [] : [entity.label]));
   return [
-    ...state.agents.map((agent) => agent.name),
-    ...state.objects.map((object) => object.name),
-    ...state.map.places.map((place) => place.name),
+    ...new Set([
+      ...state.agents.map((agent) => agent.name),
+      ...labels,
+      ...state.items.file.definitions.map((definition) => definition.name),
+      ...state.map.places.map((place) => place.name),
+    ]),
   ];
 }
 

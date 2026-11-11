@@ -8,4 +8,4 @@ You were: {{intention}}
 
 ## Reply
 Reply with only a JSON object, fields in this order:
-interaction (one of the names above), text (the words, only for an interaction that takes words, like posting a note; otherwise null), minutes (how long, only for a nap; otherwise null).
+verb (one of the names above), text (the words, only for a verb that takes words, like posting a note; otherwise null), minutes (how long, only for a nap; otherwise null).

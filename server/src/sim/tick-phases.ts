@@ -1,7 +1,6 @@
 import type { Needs } from "@village/shared";
 import { config } from "../config";
 import { applyCrowdEffect, decayNeeds, findCrossedThresholds } from "../economy/needs";
-import { regrowStocks } from "../economy/object-state";
 import { advanceSleep, findWakeReason, isAsleep } from "../economy/sleep";
 import { mergeAwareness, observeAgents } from "../perception/awareness";
 import { canInterrupt, detectNewPerceptions } from "../perception/interrupts";
@@ -11,11 +10,14 @@ import {
   regenerateHealth,
   trackStarvation,
 } from "../status/health";
+import { findEntity, replaceEntity } from "../items/entity-store";
+import { countWholeStock, regrowStocks } from "../items/stock";
+import { wakeAgent } from "./action-stopping";
 import { applyDamage } from "./damage";
 import { WAIT_ACTION, WALK_ACTION, describeDoing } from "./action-phrases";
 import { getAgentRuntime, requestDecision } from "./agent-runtime";
-import { finishRunningInteraction, wakeAgent } from "./interaction-runner";
 import type { TickContext } from "./tick-context";
+import { finishRunningVerb } from "./verb-runner";
 import { advanceWalk } from "./walking";
 import {
   buildPerceptionWorld,
@@ -24,6 +26,7 @@ import {
   listLivingAgents,
   listVisibleAgentIds,
   markAgentChanged,
+  markEntityChanged,
   replaceAgent,
   toPerceiver,
 } from "./world-access";
@@ -36,7 +39,14 @@ const { minutesPerTick } = config.clock;
  */
 export function applyMechanics(context: TickContext): Map<string, Needs> {
   const { state } = context;
-  state.objects = regrowStocks(state.objects, minutesPerTick);
+  for (const regrown of regrowStocks(state.entities, state.items, minutesPerTick)) {
+    const before = findEntity(state, regrown.id);
+    replaceEntity(state, regrown);
+    // Fractions grow every tick; viewers only need to hear when a whole unit is back.
+    if (countWholeStock(before) !== countWholeStock(regrown)) {
+      markEntityChanged(context.result, regrown.id);
+    }
+  }
   const world = buildPerceptionWorld(state);
   const needsBefore = new Map<string, Needs>();
   for (const agentId of listLivingAgents(state).map((agent) => agent.id)) {
@@ -63,7 +73,7 @@ function hasEnded(endsAtTick: number | null, tick: number): boolean {
   return endsAtTick !== null && tick >= endsAtTick;
 }
 
-/** Phase 2: walks step, interactions finish, sleepers wake on their own, waits run out. */
+/** Phase 2: walks step, verbs finish, sleepers wake on their own, waits run out. */
 export function progressActions(context: TickContext): void {
   const { state, result } = context;
   for (const agentId of state.agents.map((agent) => agent.id)) {
@@ -74,8 +84,8 @@ export function progressActions(context: TickContext): void {
       advanceWalk(context, agentId);
     } else if (isAsleep(agent)) {
       if (findWakeReason(agent, state.tick) !== null) wakeAgent(context, agentId);
-    } else if (action.interaction !== undefined) {
-      if (hasEnded(action.endsAtTick, state.tick)) finishRunningInteraction(context, agentId);
+    } else if (action.verb !== undefined) {
+      if (hasEnded(action.endsAtTick, state.tick)) finishRunningVerb(context, agentId);
     } else if (action.kind !== WAIT_ACTION || hasEnded(action.endsAtTick, state.tick)) {
       // A wait that ran out, or an action this strategy can't continue (e.g. a stale walk).
       replaceAgent(state, { ...agent, currentAction: null });

@@ -27,8 +27,6 @@ export function makeSampleAgent(id: string, name: string, x: number, y: number):
     },
     body: { sleepRecoveryPerHour: 0.15, strength: 0.5, agility: 0.5 },
     profession: "baker",
-    coins: 12,
-    inventory: { bread: 2, wheat: 1 },
     needs: { hunger: 0.7, energy: 0.5, social: 0.3, fun: 0.9 },
     health: 1,
     starvingSinceTick: null,
@@ -66,7 +64,8 @@ export function makeSampleSnapshot(agents: Agent[]): SnapshotMessage {
     baseTicksPerSecond: 0.8,
     speedOptions: [1, 4, 16],
     agents,
-    objects: [],
+    entities: [],
+    itemDefinitions: [],
     recentEvents: [],
     recentMoments: [],
   };

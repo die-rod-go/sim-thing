@@ -26,7 +26,7 @@ export function wipeDatabase(database: Database): void {
   const tables = [
     "meta",
     "agents",
-    "objects",
+    "entities",
     "memories",
     "events",
     "llm_calls",

@@ -1,10 +1,11 @@
 import type { DecisionAction, DecisionReply, Volume } from "@village/shared";
 import { z } from "zod";
 import type { JsonSchema } from "../llm/types";
-import type { DecisionTargets } from "./context";
+import type { DecisionTargets, ValidItem } from "./context";
 import { listOfferedActions } from "./decision-prompt";
 import { listTargetNames } from "./sections";
 import {
+  aliasedNameEnum,
   displayNameEnum,
   dropEmptyFields,
   looseEnum,
@@ -16,7 +17,7 @@ import {
 } from "./schema-fields";
 
 const VOLUMES: readonly [Volume, ...Volume[]] = ["whisper", "normal", "shout"];
-const ACTIONS_NEEDING_TARGET: readonly DecisionAction[] = ["walk_to", "interact", "give"];
+const ACTIONS_NEEDING_TARGET: readonly DecisionAction[] = ["walk_to", "give"];
 
 export interface ReplySchemas<Value> {
   schema: z.ZodType<Value>;
@@ -29,7 +30,11 @@ export interface DecisionSchemaOptions {
   isMidActionInterrupt?: boolean;
 }
 
-function buildDecisionJsonSchema(actions: readonly string[], targetNames: string[]): JsonSchema {
+function buildDecisionJsonSchema(
+  actions: readonly string[],
+  targetNames: string[],
+  itemNames: string[],
+): JsonSchema {
   return strictJsonObject({
     thought: { type: "string", description: "One or two short private sentences." },
     intention: {
@@ -40,9 +45,9 @@ function buildDecisionJsonSchema(actions: readonly string[], targetNames: string
     volume: nullableJsonEnum(VOLUMES),
     action: { type: "string", enum: [...actions] },
     target: nullableJsonEnum(targetNames),
-    interaction: nullableJsonString(),
+    verb: nullableJsonString(),
     text: nullableJsonString(),
-    item: nullableJsonString(),
+    item: nullableJsonEnum(itemNames),
     amount: nullableJsonInteger(),
     query: nullableJsonString(),
     minutes: nullableJsonInteger(),
@@ -56,6 +61,9 @@ function buildDecisionJsonSchema(actions: readonly string[], targetNames: string
 function requireFieldsForAction(reply: DecisionReply, context: z.RefinementCtx): void {
   const missingFields: (keyof DecisionReply)[] = [];
   if (ACTIONS_NEEDING_TARGET.includes(reply.action) && !reply.target) missingFields.push("target");
+  if (reply.action === "interact" && !reply.target && !reply.item && !reply.verb) {
+    missingFields.push("target");
+  }
   if (reply.action === "give" && !reply.item) missingFields.push("item");
   if (reply.action === "give" && reply.amount === undefined) missingFields.push("amount");
   if (reply.action === "recall" && !reply.query) missingFields.push("query");
@@ -65,16 +73,22 @@ function requireFieldsForAction(reply: DecisionReply, context: z.RefinementCtx):
 }
 
 /**
- * The decision reply as a zod schema plus the matching strict JSON schema. `action` and `target`
- * are enums of what is valid right now, so a structured-output provider can't produce anything else.
+ * The decision reply as a zod schema plus the matching strict JSON schema. `action`, `target` and
+ * `item` are enums of what is valid right now, so a structured-output provider can't produce
+ * anything else; `item` also accepts plurals ("coins").
  */
 export function buildDecisionReplySchema(
   validTargets: DecisionTargets,
+  validItems: ValidItem[],
   options: DecisionSchemaOptions = {},
 ): ReplySchemas<DecisionReply> {
   const [firstAction, ...otherActions] = listOfferedActions(options.isMidActionInterrupt ?? false);
   const actions: [DecisionAction, ...DecisionAction[]] = [firstAction ?? "wait", ...otherActions];
   const targetNames = listTargetNames(validTargets);
+  const itemNames = validItems.map((item) => item.name);
+  const itemAliases = new Map(
+    validItems.flatMap((item) => (item.plural ? [[item.plural, item.name] as const] : [])),
+  );
   const replyObject = z
     .object({
       thought: z.string().trim().min(1),
@@ -83,9 +97,9 @@ export function buildDecisionReplySchema(
       volume: looseEnum(VOLUMES).optional(),
       action: looseEnum(actions),
       target: displayNameEnum(targetNames, "target").optional(),
-      interaction: z.string().trim().optional(),
+      verb: z.string().trim().optional(),
       text: z.string().trim().optional(),
-      item: z.string().trim().optional(),
+      item: aliasedNameEnum(itemNames, itemAliases, "item").optional(),
       amount: z.number().int().positive().optional(),
       query: z.string().trim().optional(),
       minutes: z.number().positive().optional(),
@@ -97,7 +111,7 @@ export function buildDecisionReplySchema(
     .superRefine(requireFieldsForAction);
   return {
     schema: z.preprocess(dropEmptyFields, replyObject),
-    jsonSchema: buildDecisionJsonSchema(actions, targetNames),
+    jsonSchema: buildDecisionJsonSchema(actions, targetNames, itemNames),
     schemaName: "decision_reply",
   };
 }

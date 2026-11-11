@@ -7,6 +7,7 @@ const simLogicFiles = [
   "server/src/perception/**",
   "server/src/memory/**",
   "server/src/economy/**",
+  "server/src/items/**",
   "server/src/decision/**",
   "server/src/sim/**",
   "server/src/reflection/**",

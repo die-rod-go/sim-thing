@@ -20,7 +20,7 @@ export const seedAgentSchema = z.object({
   sleepRecoveryPerHour: z.number(),
   strength: z.number(),
   agility: z.number(),
-  coins: z.number(),
+  /** Starting items by definition id, coins included ("coin": 30). */
   inventory: z.record(z.string(), z.number()),
   mood: z.string(),
   goals: z.array(
@@ -46,7 +46,8 @@ export interface SeedRules {
   statRange: { min: number; max: number };
   sleepRecoveryRange: { min: number; max: number };
   spawnPlaces: string[];
-  itemNames: string[];
+  /** What an inventory may hold: the carriable definitions in `items.json`. */
+  carriableItems: { id: string; name: string }[];
 }
 
 export type SeedProblemSeverity = "error" | "warning";
@@ -123,29 +124,19 @@ function findStartingStateProblems(
   if (!rules.spawnPlaces.includes(agent.spawnPlace)) {
     add("error", "spawnPlace", `"${agent.spawnPlace}" is not a place on the map.`);
   }
-  if (!Number.isInteger(agent.coins) || agent.coins < 0) {
-    add("error", "coins", "Coins must be a whole number, 0 or more.");
-  }
   if (agent.sleepRecoveryPerHour <= 0) {
     add("error", "sleepRecoveryPerHour", "Sleep recovery must be above 0.");
   } else if (!isWithin(agent.sleepRecoveryPerHour, rules.sleepRecoveryRange)) {
     const { min, max } = rules.sleepRecoveryRange;
     add("warning", "sleepRecoveryPerHour", `Sleep recovery is usually between ${min} and ${max}.`);
   }
-  for (const [itemName, amount] of Object.entries(agent.inventory)) {
+  const carriableIds = new Set(rules.carriableItems.map((item) => item.id));
+  for (const [itemId, amount] of Object.entries(agent.inventory)) {
     if (!Number.isInteger(amount) || amount < 0) {
-      add(
-        "error",
-        `inventory.${itemName}`,
-        `${itemName} amount must be a whole number, 0 or more.`,
-      );
+      add("error", `inventory.${itemId}`, `${itemId} amount must be a whole number, 0 or more.`);
     }
-    if (!rules.itemNames.includes(itemName)) {
-      add(
-        "warning",
-        `inventory.${itemName}`,
-        `Nothing in the village uses or makes "${itemName}".`,
-      );
+    if (!carriableIds.has(itemId)) {
+      add("error", `inventory.${itemId}`, `"${itemId}" is not a carriable item in items.json.`);
     }
   }
   agent.goals.forEach((goal, goalIndex) => {

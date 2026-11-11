@@ -5,15 +5,25 @@ export interface DecisionTargets {
   places: string[];
   /** Agents currently in sight. */
   agents: string[];
-  /** Objects at the agent's place. */
-  objects: string[];
-  /** Items the agent carries. */
-  heldItems: string[];
+  /** Things at the agent's place: placed objects and items on the ground. */
+  entities: string[];
 }
 
-export interface NearbyObject {
+/** An item the agent may name as `item`: something it carries, by definition name. */
+export interface ValidItem {
   name: string;
-  interactions: string[];
+  /** Also accepted in replies ("coins" for "coin"). */
+  plural?: string;
+}
+
+/**
+ * One entry in Belongings or Here. Identical, stateless entities are grouped ("3 bread"), and
+ * each lists the verbs it offers.
+ */
+export interface PromptEntityGroup {
+  /** "3 bread", "a knife", "bakery door". */
+  text: string;
+  verbs: string[];
   /** What can be seen of its state, e.g. "empty" or "closed"; null when nothing shows. */
   condition: string | null;
 }
@@ -74,10 +84,12 @@ export interface DecisionContext {
   /** e.g. "Day 1, 06:30" from `formatSimTime`. */
   simTime: string;
   place: string;
-  nearbyObjects: NearbyObject[];
+  /** What is here: placed objects and ground items. */
+  nearbyEntities: PromptEntityGroup[];
   aroundYou: AroundYou;
-  coins: number;
-  inventory: Record<string, number>;
+  belongings: PromptEntityGroup[];
+  /** Verbs that need no item (`punch`), listed after belongings. */
+  itemlessVerbs: string[];
   workingMemory: string[];
   conversation: ConversationLine[];
   recalledMemories: Partial<Record<Bucket, RecalledMemory[]>>;
@@ -87,4 +99,5 @@ export interface DecisionContext {
   isMidActionInterrupt: boolean;
   lastFailure: string | null;
   validTargets: DecisionTargets;
+  validItems: ValidItem[];
 }

@@ -19,7 +19,7 @@ import { createEmptyTickResult, type WorldState } from "./world-state";
 /**
  * The LLM-driven strategy for the sim loop. Each tick, in order:
  * 1. mechanics: stocks regrow, needs decay (slower asleep), sleepers recover, crowds take effect;
- * 2. actions progress: walks step (opening closed doors), arrivals, interactions finish, sleepers
+ * 2. actions progress: walks step (opening closed doors), arrivals, verbs finish, sleepers
  *    wake on their own, waits run out; every event is broadcast (perceived and filed) as it happens;
  * 3. sight: awareness of everyone in view is refreshed; someone newly in view flags a decision;
  * 4. needs that crossed the decision threshold flag a decision;

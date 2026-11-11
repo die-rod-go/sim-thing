@@ -1,20 +1,8 @@
 import { readFileSync } from "node:fs";
 import { z } from "zod";
-import type { ObjectKind, ObjectState, Position, WorldObject } from "@village/shared";
+import type { Position } from "@village/shared";
 import { config } from "../config";
-import type { PlaceArea, WorldMap } from "./types";
-
-const OBJECT_KINDS = [
-  "bed",
-  "notice_board",
-  "bench",
-  "wheat_field",
-  "trees",
-  "oven",
-  "brew_kettle",
-  "card_table",
-  "door",
-] as const satisfies readonly ObjectKind[];
+import type { MapPlacement, PlaceArea, WorldMap } from "./types";
 
 const propertySchema = z.object({
   name: z.string(),
@@ -60,23 +48,11 @@ const tiledMapSchema = z.looseObject({
 type TiledMapJson = z.infer<typeof tiledMapSchema>;
 type TiledObjectJson = z.infer<typeof tiledObjectSchema>;
 
+/** A map object names the item definition it places; `items.json` must have it as a placeable. */
 const objectPropertiesSchema = z.object({
   name: z.string().min(1),
-  kind: z.enum(OBJECT_KINDS),
+  definition: z.string().min(1),
   place: z.string().min(1),
-  interactions: z
-    .string()
-    .transform((text, context) => {
-      try {
-        return JSON.parse(text) as unknown;
-      } catch (error) {
-        context.addIssue({ code: "custom", message: `interactions is not JSON: ${String(error)}` });
-        return z.NEVER;
-      }
-    })
-    .pipe(z.array(z.string())),
-  stock: z.number().int().nonnegative().optional(),
-  isOpen: z.boolean().optional(),
 });
 
 function readProperties(object: TiledObjectJson): Record<string, unknown> {
@@ -99,10 +75,6 @@ function findObjectLayer(tiledMap: TiledMapJson, name: string): TiledObjectJson[
   return objectLayerSchema.parse(layer).objects;
 }
 
-function toObjectId(name: string): string {
-  return name.toLowerCase().trim().replace(/\s+/g, "-");
-}
-
 function buildPlace(object: TiledObjectJson, tileSize: number): PlaceArea {
   const isIndoor = z.boolean().default(false).parse(readProperties(object).isIndoor);
   return {
@@ -115,20 +87,13 @@ function buildPlace(object: TiledObjectJson, tileSize: number): PlaceArea {
   };
 }
 
-function buildObject(object: TiledObjectJson, tileSize: number): WorldObject {
+function buildPlacement(object: TiledObjectJson, tileSize: number): MapPlacement {
   const properties = objectPropertiesSchema.parse(readProperties(object));
-  const state: ObjectState = {};
-  if (properties.stock !== undefined) state.stock = properties.stock;
-  if (properties.isOpen !== undefined) state.isOpen = properties.isOpen;
-  if (properties.kind === "notice_board") state.notes = [];
   return {
-    id: toObjectId(properties.name),
-    name: properties.name,
-    kind: properties.kind,
+    label: properties.name,
+    definitionId: properties.definition,
     place: properties.place,
     pos: { x: Math.floor(object.x / tileSize), y: Math.floor(object.y / tileSize) },
-    interactions: properties.interactions,
-    state,
   };
 }
 
@@ -148,15 +113,15 @@ export function parseWorldMap(json: unknown): WorldMap {
   findTileLayer(tiledMap, "ground");
 
   const places = findObjectLayer(tiledMap, "places").map((object) => buildPlace(object, tileSize));
-  const objects = findObjectLayer(tiledMap, "objects").map((object) =>
-    buildObject(object, tileSize),
+  const placements = findObjectLayer(tiledMap, "objects").map((object) =>
+    buildPlacement(object, tileSize),
   );
   assertUnique(
     places.map((place) => place.name),
     "place",
   );
   assertUnique(
-    objects.map((object) => object.id),
+    placements.map((placement) => placement.label.toLowerCase()),
     "object",
   );
 
@@ -175,7 +140,7 @@ export function parseWorldMap(json: unknown): WorldMap {
       isWall: walls.data.map((gid) => gid !== 0),
     },
     places,
-    objects,
+    placements,
     spawnPoints,
   };
 }

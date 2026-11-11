@@ -38,8 +38,8 @@ export interface Goal {
 export interface CurrentAction {
   kind: string;
   target?: string;
-  /** The running interaction's canonical name (e.g. "bake bread") while interacting or sleeping. */
-  interaction?: string;
+  /** The running verb's name (e.g. "bake bread") while using something or sleeping. */
+  verb?: string;
   endsAtTick: number | null;
 }
 
@@ -85,8 +85,6 @@ export interface Agent {
   personality: Personality;
   body: AgentBody;
   profession: string;
-  coins: number;
-  inventory: Record<string, number>;
   needs: Needs;
   /** 0–1, 1 = unhurt. At 0 the agent dies. */
   health: number;
@@ -147,7 +145,7 @@ export interface DecisionReply {
   volume?: Volume;
   action: DecisionAction;
   target?: string;
-  interaction?: string;
+  verb?: string;
   text?: string;
   item?: string;
   amount?: number;
@@ -162,35 +160,6 @@ export interface Note {
   authorName: string;
   text: string;
   tick: number;
-}
-
-export type ObjectKind =
-  | "bed"
-  | "notice_board"
-  | "bench"
-  | "wheat_field"
-  | "trees"
-  | "oven"
-  | "brew_kettle"
-  | "card_table"
-  | "door";
-
-export interface ObjectState {
-  stock?: number;
-  isOpen?: boolean;
-  notes?: Note[];
-  /** Agent ids currently using the object, e.g. players at the card table. */
-  userIds?: string[];
-}
-
-export interface WorldObject {
-  id: string;
-  name: string;
-  kind: ObjectKind;
-  place: string;
-  pos: Position;
-  interactions: string[];
-  state: ObjectState;
 }
 
 export interface EventSpeech {
@@ -233,8 +202,11 @@ export interface WorldEvent {
   /** Sound reach in tiles; null when the event makes no sound. */
   loudness: number | null;
   speech?: EventSpeech;
+  /** The item definition's name, for something that changed hands ("coin"). */
   item?: string;
   amount?: number;
+  /** The same, counted for reading: "3 coins", "a knife". */
+  itemText?: string;
 }
 
 export type LlmCallKind =

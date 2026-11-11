@@ -59,10 +59,10 @@ export const clientConfig = {
     hoverCardViewMarginPx: 8,
 
     activity: {
-      /** The interaction name the sim uses for sleeping in a bed. */
-      sleepInteraction: "sleep",
-      /** Shown over an agent while it runs one of these interactions. */
-      interactionGlyphs: {
+      /** The verb the sim uses for sleeping in a bed. */
+      sleepVerb: "sleep",
+      /** Shown over an agent while it runs one of these verbs. */
+      verbGlyphs: {
         "bake bread": "🍞",
         "brew ale": "🍺",
         "play cards": "🃏",

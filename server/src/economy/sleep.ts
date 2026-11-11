@@ -1,57 +1,50 @@
-import type { Agent, WorldObject } from "@village/shared";
+import type { Agent } from "@village/shared";
 import { config } from "../config";
-import { addObjectUser, removeObjectUser } from "./object-state";
-import {
-  MINUTES_PER_HOUR,
-  clampUnit,
-  failWith,
-  type InteractionRecord,
-  type MechanicResult,
-} from "./types";
+import { MINUTES_PER_HOUR, clampUnit, failWith, type MechanicResult } from "./types";
 
 export type WakeReason = "rested" | "hungry" | "nap_over";
 
-export const SLEEP_INTERACTION = "sleep";
+/** The current action's kind while asleep. */
+export const SLEEP_ACTION = "sleep";
 
 export function isAsleep(agent: Agent): boolean {
-  return agent.currentAction?.kind === SLEEP_INTERACTION;
+  return agent.currentAction?.kind === SLEEP_ACTION;
+}
+
+/** Why the agent can't fall asleep now, or null. */
+export function findSleepBlocker(agent: Agent, napMinutes?: number): string | null {
+  if (isAsleep(agent)) return "I'm already asleep";
+  if (napMinutes !== undefined && !(napMinutes > 0)) {
+    return "A nap needs a positive number of minutes";
+  }
+  return null;
 }
 
 /**
- * Puts the agent to sleep in a bed. Without `napMinutes` the sleep lasts until a wake reason
- * (or a sound integration decides is loud enough). The returned record keeps the start tick.
+ * Puts the agent to sleep in a bed, as the `sleep` effect does. Without `napMinutes` the sleep
+ * lasts until a wake reason (or a sound loud enough). The action keeps the verb's name.
  */
 export function startSleep(
   agent: Agent,
-  bed: WorldObject,
+  bedName: string,
   tick: number,
   napMinutes?: number,
   minutesPerTick: number = config.clock.minutesPerTick,
-): MechanicResult<{ agent: Agent; bed: WorldObject; record: InteractionRecord }> {
-  if (!config.objects[bed.kind].interactions.includes(SLEEP_INTERACTION)) {
-    return failWith(`I can't sleep in ${bed.name}`);
-  }
-  if (isAsleep(agent)) {
-    return failWith("I'm already asleep");
-  }
-  if (napMinutes !== undefined && !(napMinutes > 0)) {
-    return failWith("A nap needs a positive number of minutes");
-  }
+): MechanicResult<{ agent: Agent }> {
+  const blocker = findSleepBlocker(agent, napMinutes);
+  if (blocker !== null) return failWith(blocker);
   const endsAtTick =
     napMinutes === undefined ? null : tick + Math.max(1, Math.ceil(napMinutes / minutesPerTick));
   return {
     isSuccess: true,
     agent: {
       ...agent,
-      currentAction: { kind: SLEEP_INTERACTION, target: bed.name, endsAtTick },
-    },
-    bed: addObjectUser(bed, agent.id),
-    record: {
-      agentId: agent.id,
-      interaction: SLEEP_INTERACTION,
-      targetName: bed.name,
-      objectId: bed.id,
-      startedAtTick: tick,
+      currentAction: {
+        kind: SLEEP_ACTION,
+        target: bedName,
+        verb: agent.currentAction?.verb,
+        endsAtTick,
+      },
     },
   };
 }
@@ -82,7 +75,7 @@ export function findWakeReason(agent: Agent, tick: number): WakeReason | null {
   return null;
 }
 
-/** Wakes the agent, for any reason, and frees the bed. */
-export function endSleep(agent: Agent, bed: WorldObject): { agent: Agent; bed: WorldObject } {
-  return { agent: { ...agent, currentAction: null }, bed: removeObjectUser(bed, agent.id) };
+/** Wakes the agent, for any reason. */
+export function endSleep(agent: Agent): Agent {
+  return { ...agent, currentAction: null };
 }

@@ -11,7 +11,7 @@ import {
   describeGoals,
   describeLastFailure,
   describeMemories,
-  describeNearbyObjects,
+  describeNearbyEntities,
   describeWorkingMemory,
   listTargetNames,
 } from "./sections";
@@ -48,15 +48,16 @@ function buildTemplateValues(context: DecisionContext, memories: RecalledMemorie
     currentAction: describeCurrentAction(context.currentAction, context.isMidActionInterrupt),
     lastFailure: describeLastFailure(context.lastFailure),
     place: context.place,
-    nearbyObjects: describeNearbyObjects(context.nearbyObjects),
+    here: describeNearbyEntities(context.nearbyEntities),
     knownPlaces: context.knownPlaces.join(", "),
     aroundYou: describeAroundYou(context.aroundYou),
-    belongings: describeBelongings(context.coins, context.inventory),
+    belongings: describeBelongings(context.belongings, context.itemlessVerbs),
     workingMemory: describeWorkingMemory(context.workingMemory),
     conversation: describeConversation(context.conversation),
     memories: describeMemories(memories),
     actions: listOfferedActions(context.isMidActionInterrupt).join(", "),
     targets: listTargetNames(context.validTargets).join(", "),
+    items: context.validItems.map((item) => item.name).join(", ") || "none",
   };
 }
 

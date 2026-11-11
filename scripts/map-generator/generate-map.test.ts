@@ -1,10 +1,11 @@
 import { readFileSync } from "node:fs";
 import { resolve } from "node:path";
 import { inflateSync } from "node:zlib";
+import { buildItemCatalog, parseItemFile } from "@village/shared";
 import { describe, expect, it } from "vitest";
 import { config } from "../../server/src/config";
 import { findPlaceAt, parseWorldMap } from "../../server/src/world/map-loader";
-import { findPathToObject, findPathToPlace } from "../../server/src/world/pathfinding";
+import { findPathToPlace, findPathToTile } from "../../server/src/world/pathfinding";
 import { buildVillageLayout } from "./layout";
 import { buildTiledMap, serializeTiledMap, type TiledObjectLayer } from "./tiled";
 import { generateTilesetPng, TILE_NAMES, TILESET_COLUMNS } from "./tileset";
@@ -24,6 +25,12 @@ const EXPECTED_PLACES = [
 
 const tiledMap = buildTiledMap(buildVillageLayout());
 const worldMap = parseWorldMap(tiledMap);
+const items = buildItemCatalog(
+  parseItemFile(
+    JSON.parse(readFileSync(resolve(import.meta.dirname, "../../seeds/items.json"), "utf8")),
+  ),
+);
+const doors = worldMap.placements.filter((placement) => placement.definitionId === "door");
 
 function objectLayer(name: string): TiledObjectLayer {
   const layer = tiledMap.layers.find((candidate) => candidate.name === name);
@@ -61,47 +68,52 @@ describe("generated village map", () => {
     const start = worldMap.spawnPoints["town square"];
     if (!start) throw new Error("no town square spawn");
     for (const place of worldMap.places) {
-      expect(findPathToPlace(worldMap, start, place.name), place.name).not.toBeNull();
+      expect(
+        findPathToPlace(worldMap, worldMap.grid, start, place.name),
+        place.name,
+      ).not.toBeNull();
     }
-    for (const object of worldMap.objects) {
-      expect(findPathToObject(worldMap, start, object), object.name).not.toBeNull();
+    for (const placement of worldMap.placements) {
+      const path = findPathToTile(worldMap.grid, start, placement.pos);
+      expect(path, placement.label).not.toBeNull();
     }
   });
 
-  it("gives every object a valid kind, its configured interactions and a matching place", () => {
-    for (const object of worldMap.objects) {
-      expect(object.interactions).toEqual(config.objects[object.kind].interactions);
-      expect(findPlaceAt(worldMap, object.pos), object.name).toBe(object.place);
+  it("names a placeable item definition and a matching place for every object", () => {
+    for (const placement of worldMap.placements) {
+      const definition = items.definitionsById.get(placement.definitionId);
+      expect(definition?.form, placement.label).toBe("placeable");
+      expect(findPlaceAt(worldMap, placement.pos), placement.label).toBe(placement.place);
     }
-    const names = worldMap.objects.map((object) => object.name);
-    expect(new Set(names).size).toBe(names.length);
+    const labels = worldMap.placements.map((placement) => placement.label);
+    expect(new Set(labels).size).toBe(labels.length);
   });
 
-  it("starts stock objects full and doors open", () => {
-    const byName = new Map(worldMap.objects.map((object) => [object.name, object]));
-    expect(byName.get("wheat field")?.state.stock).toBe(12);
-    expect(byName.get("trees")?.state.stock).toBe(10);
-    const doors = worldMap.objects.filter((object) => object.kind === "door");
-    expect(doors.every((door) => door.state.isOpen === true)).toBe(true);
+  it("doesn't bake placed objects into the decor layer", () => {
+    const decor = tiledMap.layers.find((layer) => layer.name === "decor");
+    if (!decor || decor.type !== "tilelayer") throw new Error("missing decor layer");
+    for (const placement of worldMap.placements) {
+      const index = placement.pos.y * tiledMap.width + placement.pos.x;
+      expect(decor.data[index], placement.label).toBe(0);
+    }
   });
 
   it("puts at least one door on every indoor place and two on the tavern", () => {
-    const doors = worldMap.objects.filter((object) => object.kind === "door");
     for (const place of worldMap.places.filter((area) => area.isIndoor)) {
       const placeDoors = doors.filter((door) => door.place === place.name);
       expect(placeDoors.length, place.name).toBeGreaterThan(0);
-      expect(placeDoors.every((door) => door.name.startsWith(place.name))).toBe(true);
+      expect(placeDoors.every((door) => door.label.startsWith(place.name))).toBe(true);
     }
     expect(doors.filter((door) => door.place === "tavern")).toHaveLength(2);
-    expect(doors.some((door) => door.name === "bakery door")).toBe(true);
+    expect(doors.some((door) => door.label === "bakery door")).toBe(true);
   });
 
   it("gives each cottage a bed named after it and the tavern a spare bed", () => {
-    const beds = worldMap.objects.filter((object) => object.kind === "bed");
+    const beds = worldMap.placements.filter((placement) => placement.definitionId === "bed");
     for (const placeName of EXPECTED_PLACES.filter((name) => name.endsWith("cottage"))) {
-      expect(beds.find((bed) => bed.name === `${placeName} bed`)?.place).toBe(placeName);
+      expect(beds.find((bed) => bed.label === `${placeName} bed`)?.place).toBe(placeName);
     }
-    expect(beds.find((bed) => bed.name === "spare bed")?.place).toBe("tavern");
+    expect(beds.find((bed) => bed.label === "spare bed")?.place).toBe("tavern");
   });
 
   it("puts interactable objects on the tile's top-left corner in pixels", () => {

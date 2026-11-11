@@ -10,6 +10,7 @@ export interface EventFields {
   loudness?: number | null;
   item?: string;
   amount?: number;
+  itemText?: string;
 }
 
 /** A world event by the agent, at the agent's tile, on the tick being simulated. */
@@ -29,6 +30,7 @@ export function createEvent(state: WorldState, actor: Agent, fields: EventFields
   };
   if (fields.item !== undefined) event.item = fields.item;
   if (fields.amount !== undefined) event.amount = fields.amount;
+  if (fields.itemText !== undefined) event.itemText = fields.itemText;
   return event;
 }
 

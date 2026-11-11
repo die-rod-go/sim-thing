@@ -53,9 +53,8 @@ function buildTinyTiledMap(objectProperties: { name: string; type: string; value
 
 const benchProperties = [
   { name: "name", type: "string", value: "Old Bench" },
-  { name: "kind", type: "string", value: "bench" },
+  { name: "definition", type: "string", value: "bench" },
   { name: "place", type: "string", value: "shed" },
-  { name: "interactions", type: "string", value: '["sit"]' },
 ];
 
 describe("parseWorldMap", () => {
@@ -64,31 +63,14 @@ describe("parseWorldMap", () => {
     expect(map.grid.isWall[tileIndex(map.grid, { x: 1, y: 0 })]).toBe(true);
     expect(map.grid.isWall[tileIndex(map.grid, { x: 0, y: 0 })]).toBe(false);
     expect(map.places).toEqual([{ name: "shed", isIndoor: true, x: 2, y: 0, width: 2, height: 2 }]);
-    expect(map.objects).toEqual([
-      {
-        id: "old-bench",
-        name: "Old Bench",
-        kind: "bench",
-        place: "shed",
-        pos: { x: 3, y: 1 },
-        interactions: ["sit"],
-        state: {},
-      },
+    expect(map.placements).toEqual([
+      { label: "Old Bench", definitionId: "bench", place: "shed", pos: { x: 3, y: 1 } },
     ]);
     expect(map.spawnPoints).toEqual({ shed: { x: 2, y: 0 } });
   });
 
-  it("rejects an object with an unknown kind", () => {
-    const properties = benchProperties.map((property) =>
-      property.name === "kind" ? { ...property, value: "throne" } : property,
-    );
-    expect(() => parseWorldMap(buildTinyTiledMap(properties))).toThrow();
-  });
-
-  it("rejects interactions that are not a JSON string array", () => {
-    const properties = benchProperties.map((property) =>
-      property.name === "interactions" ? { ...property, value: "sit" } : property,
-    );
+  it("rejects an object that names no item definition", () => {
+    const properties = benchProperties.filter((property) => property.name !== "definition");
     expect(() => parseWorldMap(buildTinyTiledMap(properties))).toThrow();
   });
 
@@ -103,7 +85,7 @@ describe("findPlaceAt", () => {
   const map = loadWorldMap(mapPath);
 
   it("names the place whose area holds the tile", () => {
-    const bed = map.objects.find((object) => object.name === "rose cottage bed");
+    const bed = map.placements.find((placement) => placement.label === "rose cottage bed");
     expect(bed && findPlaceAt(map, bed.pos)).toBe("rose cottage");
     expect(findPlaceAt(map, map.spawnPoints["tavern"] ?? { x: -1, y: -1 })).toBe("tavern");
   });
@@ -113,7 +95,7 @@ describe("findPlaceAt", () => {
   });
 
   it("counts a doorway as part of its building", () => {
-    const door = map.objects.find((object) => object.name === "bakery door");
+    const door = map.placements.find((placement) => placement.label === "bakery door");
     expect(door && findPlaceAt(map, door.pos)).toBe("bakery");
   });
 });

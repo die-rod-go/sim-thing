@@ -3,6 +3,7 @@ import { afterEach, beforeEach, describe, expect, it } from "vitest";
 import type { WorldEvent } from "@village/shared";
 import { config } from "../config";
 import { buildSeededWorld, loadSeedFile } from "../seeds";
+import { loadTestItems } from "../sim/test-sim";
 import { createDefaultSettings, createWorldState, toSavedWorld } from "../sim/world-state";
 import { loadWorldMap } from "../world/map-loader";
 import { IN_MEMORY_DATABASE, openDatabase, wipeDatabase, type Database } from "./database";
@@ -21,6 +22,11 @@ import { loadWorld, saveWorld } from "./world-repository";
 const repositoryRoot = resolve(import.meta.dirname, "../../..");
 const map = loadWorldMap(resolve(repositoryRoot, config.server.mapPath));
 const seedFile = loadSeedFile(resolve(repositoryRoot, config.server.seedsPath));
+const items = loadTestItems();
+
+function buildWorld() {
+  return createWorldState(map, buildSeededWorld(seedFile, map, items), items);
+}
 
 function buildEvent(id: number): WorldEvent {
   return {
@@ -67,7 +73,7 @@ describe("database repositories", () => {
   });
 
   it("round-trips the full world, replacing the previous save", () => {
-    const state = createWorldState(map, buildSeededWorld(seedFile, map));
+    const state = buildWorld();
     state.random.next();
     const settings = { ...createDefaultSettings(), speed: 4 };
     saveWorld(database, toSavedWorld(state, settings));
@@ -84,7 +90,7 @@ describe("database repositories", () => {
   });
 
   it("keeps health, death and stats through a save", () => {
-    const state = createWorldState(map, buildSeededWorld(seedFile, map));
+    const state = buildWorld();
     const [first] = state.agents;
     if (!first) throw new Error("no seed agents");
     state.agents[0] = {
@@ -99,7 +105,7 @@ describe("database repositories", () => {
   });
 
   it("refuses a save from before health existed and says to reset", () => {
-    const state = createWorldState(map, buildSeededWorld(seedFile, map));
+    const state = buildWorld();
     saveWorld(database, toSavedWorld(state, createDefaultSettings()));
     const [first] = state.agents;
     if (!first) throw new Error("no seed agents");
@@ -111,8 +117,22 @@ describe("database repositories", () => {
     expect(() => loadWorld(database)).toThrow(/make reset/);
   });
 
+  it("refuses a save from before entities existed and says to reset", () => {
+    saveWorld(database, toSavedWorld(buildWorld(), createDefaultSettings()));
+    database.prepare("DELETE FROM meta WHERE key = 'nextEntityId'").run();
+    expect(() => loadWorld(database)).toThrow(/make reset/);
+  });
+
+  it("keeps entities, their places and their state through a save", () => {
+    const state = buildWorld();
+    saveWorld(database, toSavedWorld(state, createDefaultSettings()));
+    const loaded = loadWorld(database);
+    expect(loaded?.entities).toEqual(state.entities);
+    expect(loaded?.nextEntityId).toBe(state.nextEntityId);
+  });
+
   it("never reuses an event id already in the log after resuming", () => {
-    const state = createWorldState(map, buildSeededWorld(seedFile, map));
+    const state = buildWorld();
     saveWorld(database, toSavedWorld(state, createDefaultSettings()));
     appendEvent(database, buildEvent(1));
     appendEvent(database, buildEvent(2));
@@ -157,7 +177,7 @@ describe("database repositories", () => {
   });
 
   it("wipes everything on reset except the token usage", () => {
-    const state = createWorldState(map, buildSeededWorld(seedFile, map));
+    const state = buildWorld();
     saveWorld(database, toSavedWorld(state, createDefaultSettings()));
     appendEvent(database, buildEvent(1));
     appendLlmCall(database, buildLlmCall("mara", 1));

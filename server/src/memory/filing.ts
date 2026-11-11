@@ -78,6 +78,7 @@ function giveRecipientId(event: WorldEvent): string | null {
 }
 
 function describeGiftForRecipient(event: WorldEvent): string {
+  if (event.itemText !== undefined) return `${event.actorName} gave me ${event.itemText}`;
   if (event.item === undefined) return `${event.actorName} gave me something`;
   const amount = event.amount === undefined ? "" : `${event.amount} `;
   return `${event.actorName} gave me ${amount}${event.item}`;

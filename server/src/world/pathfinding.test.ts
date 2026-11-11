@@ -1,5 +1,11 @@
 import { describe, expect, it } from "vitest";
-import { findPath, findPathToObject, findPathToPlace, listPlaceTiles } from "./pathfinding";
+import {
+  findPath,
+  findPathToPlace,
+  findPathToTile,
+  listPlaceTiles,
+  withBlockedTiles,
+} from "./pathfinding";
 import type { TileGrid, WorldMap } from "./types";
 
 /** Builds a grid from rows of text: "#" is a wall, anything else is open floor. */
@@ -18,7 +24,7 @@ function buildRoomMap(): WorldMap {
   return {
     grid,
     places: [{ name: "hut", isIndoor: true, x: 1, y: 1, width: 5, height: 3 }],
-    objects: [],
+    placements: [],
     spawnPoints: {},
   };
 }
@@ -58,13 +64,14 @@ describe("findPath", () => {
 describe("findPathToPlace", () => {
   it("ends on the nearest walkable tile inside the place, not in its walls or doorway", () => {
     const map = buildRoomMap();
-    const path = findPathToPlace(map, { x: 4, y: 0 }, "hut");
+    const path = findPathToPlace(map, map.grid, { x: 4, y: 0 }, "hut");
     expect(path?.at(-1)).toEqual({ x: 4, y: 2 });
     expect(path).toHaveLength(2);
   });
 
   it("returns null for an unknown place", () => {
-    expect(findPathToPlace(buildRoomMap(), { x: 0, y: 0 }, "castle")).toBeNull();
+    const map = buildRoomMap();
+    expect(findPathToPlace(map, map.grid, { x: 0, y: 0 }, "castle")).toBeNull();
   });
 
   it("lists only interior floor tiles for an indoor place", () => {
@@ -79,14 +86,21 @@ describe("findPathToPlace", () => {
   });
 });
 
-describe("findPathToObject", () => {
-  it("walks onto a walkable object tile", () => {
-    const path = findPathToObject(buildRoomMap(), { x: 0, y: 0 }, { pos: { x: 2, y: 2 } });
+describe("findPathToTile", () => {
+  it("walks onto a walkable tile", () => {
+    const path = findPathToTile(buildRoomMap().grid, { x: 0, y: 0 }, { x: 2, y: 2 });
     expect(path?.at(-1)).toEqual({ x: 2, y: 2 });
   });
 
-  it("stops next to an object that sits on a blocked tile", () => {
-    const path = findPathToObject(buildRoomMap(), { x: 0, y: 4 }, { pos: { x: 3, y: 3 } });
+  it("stops next to a blocked tile", () => {
+    const path = findPathToTile(buildRoomMap().grid, { x: 0, y: 4 }, { x: 3, y: 3 });
     expect(path?.at(-1)).toEqual({ x: 3, y: 4 });
+  });
+
+  it("walks around tiles an object blocks and stops beside it", () => {
+    const grid = withBlockedTiles(buildGrid([".....", "....."]), new Set([2]));
+    const path = findPathToTile(grid, { x: 0, y: 0 }, { x: 2, y: 0 });
+    expect(path?.at(-1)).toEqual({ x: 1, y: 0 });
+    expect(findPath(grid, { x: 0, y: 0 }, { x: 4, y: 0 })).not.toContainEqual({ x: 2, y: 0 });
   });
 });

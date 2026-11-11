@@ -1,4 +1,4 @@
-import type { Agent, DecisionReply } from "@village/shared";
+import { findDefinitionByName, type Agent, type DecisionReply, type Verb } from "@village/shared";
 import { config } from "../config";
 import { formatMinutesAgo } from "../decision/around-you";
 import { buildDecisionPrompt } from "../decision/decision-prompt";
@@ -6,10 +6,14 @@ import { buildInteractPrompt, buildInteractReplySchema } from "../decision/inter
 import { buildDecisionReplySchema } from "../decision/reply-schema";
 import { normalizeDisplayName } from "../decision/resolve-name";
 import {
-  describeInteractionOption,
-  listAvailableInteractions,
-  type InteractionTarget,
-} from "../economy/interactions";
+  describeEntityName,
+  findEntity,
+  getDefinition,
+  listHeldEntities,
+  listHeldOfDefinition,
+  listTileEntitiesAt,
+} from "../items/entity-store";
+import { findVerbByName, listItemlessVerbs, listVerbsForEntity } from "../items/verb-offers";
 import { searchMemories } from "../memory/recall";
 import { extractTags } from "../memory/tags";
 import { pushWorkingMemory } from "../memory/working-memory";
@@ -19,10 +23,19 @@ import type { SimDependencies } from "./tick-context";
 import { findAgent, formatWorkingMemoryEntry, listKnownNames } from "./world-access";
 import type { WorldState } from "./world-state";
 
+/**
+ * What a verb is to be used with. A held item is named by definition, so whichever of them is
+ * oldest when the act is applied gets used; a placed thing by its entity.
+ */
+export type PlannedUse =
+  | { kind: "held"; definitionId: string; name: string }
+  | { kind: "entity"; entityId: string; name: string }
+  | { kind: "user" };
+
 /** The physical act a decision settled on, with names already resolved where that needs the LLM. */
 export type PlannedAction =
   | { kind: "walk_to"; target: string }
-  | { kind: "interact"; target: string; interaction: string; text?: string; minutes?: number }
+  | { kind: "interact"; use: PlannedUse; verb: string; text?: string; minutes?: number }
   | { kind: "give"; target: string; item: string; amount: number }
   | { kind: "wait"; minutes: number }
   | { kind: "continue" }
@@ -67,7 +80,7 @@ async function askForDecision(
     agentOverride,
   );
   const prompt = buildDecisionPrompt(context, dependencies.promptsDirectory);
-  const schemas = buildDecisionReplySchema(context.validTargets, {
+  const schemas = buildDecisionReplySchema(context.validTargets, context.validItems, {
     isMidActionInterrupt: request.isMidActionInterrupt,
   });
   const reply = await dependencies.callStructured({
@@ -111,69 +124,80 @@ function runRecall(state: WorldState, agent: Agent, query: string): string[] {
   return lines.map((line) => formatWorkingMemoryEntry(state.tick, line));
 }
 
-function findInteractTarget(
-  state: WorldState,
-  agent: Agent,
-  name: string,
-): InteractionTarget | null {
-  const wanted = normalizeDisplayName(name);
-  const object = state.objects.find(
-    (candidate) =>
-      candidate.place === agent.place && normalizeDisplayName(candidate.name) === wanted,
-  );
-  if (object) return object;
-  const item = Object.keys(agent.inventory).find(
-    (candidate) =>
-      normalizeDisplayName(candidate) === wanted && (agent.inventory[candidate] ?? 0) > 0,
-  );
-  return item ?? null;
+/** Something the reply might mean to use, with the verbs it offers. */
+interface UseCandidate {
+  use: Exclude<PlannedUse, { kind: "user" }>;
+  verbs: Verb[];
 }
 
-/** Resolves interact: the reply's interaction if valid, otherwise a second call that lists them. */
-async function planInteract(
+function findHeldCandidate(state: WorldState, agent: Agent, itemName: string): UseCandidate | null {
+  const definition = findDefinitionByName(state.items, itemName);
+  const oldest = definition ? listHeldOfDefinition(state, agent.id, definition.id)[0] : undefined;
+  if (!definition || !oldest) return null;
+  return {
+    use: { kind: "held", definitionId: definition.id, name: definition.name },
+    verbs: listVerbsForEntity(state, agent.id, oldest),
+  };
+}
+
+function findNearbyCandidate(state: WorldState, agent: Agent, name: string): UseCandidate | null {
+  const wanted = normalizeDisplayName(name);
+  const entity = listTileEntitiesAt(state, agent.place).find(
+    (candidate) => normalizeDisplayName(describeEntityName(state, candidate)) === wanted,
+  );
+  if (!entity) return null;
+  return {
+    use: { kind: "entity", entityId: entity.id, name: describeEntityName(state, entity) },
+    verbs: listVerbsForEntity(state, agent.id, entity),
+  };
+}
+
+/** Everything carried or here, for a reply that names a verb but not what to use it with. */
+function listAllCandidates(state: WorldState, agent: Agent): UseCandidate[] {
+  const heldNames = new Set(
+    listHeldEntities(state, agent.id).map((entity) => getDefinition(state, entity).name),
+  );
+  const nearbyNames = listTileEntitiesAt(state, agent.place).map((entity) =>
+    describeEntityName(state, entity),
+  );
+  return [
+    ...[...heldNames].map((name) => findHeldCandidate(state, agent, name)),
+    ...nearbyNames.map((name) => findNearbyCandidate(state, agent, name)),
+  ].filter((candidate): candidate is UseCandidate => candidate !== null);
+}
+
+/**
+ * The held `item` comes first, then the `target` here: whichever offers the named verb wins. A
+ * reply naming neither looks through everything carried or here.
+ */
+function listUseCandidates(state: WorldState, agent: Agent, reply: DecisionReply): UseCandidate[] {
+  if (!reply.item && !reply.target) return listAllCandidates(state, agent);
+  return [
+    reply.item ? findHeldCandidate(state, agent, reply.item) : null,
+    reply.target ? findNearbyCandidate(state, agent, reply.target) : null,
+  ].filter((candidate): candidate is UseCandidate => candidate !== null);
+}
+
+function describeUseName(state: WorldState, use: UseCandidate["use"]): string {
+  return use.kind === "held"
+    ? use.name
+    : describeEntityName(state, findEntity(state, use.entityId));
+}
+
+async function askWhichVerb(
   state: WorldState,
   dependencies: SimDependencies,
   agent: Agent,
   reply: DecisionReply,
+  candidate: UseCandidate,
 ): Promise<PlannedAction> {
-  const targetName = reply.target ?? "";
-  const target = findInteractTarget(state, agent, targetName);
-  if (target === null) {
-    return {
-      kind: "fail",
-      attempt: `use the ${targetName}`,
-      reason: `there is no ${targetName} here for me to use`,
-    };
-  }
-  const options = listAvailableInteractions(agent, target);
-  const resolvedName = typeof target === "string" ? target : target.name;
-  const requested = normalizeDisplayName(reply.interaction ?? "");
-  const known = options.find((option) => normalizeDisplayName(option.name) === requested);
-  if (known) {
-    return {
-      kind: "interact",
-      target: resolvedName,
-      interaction: known.name,
-      text: reply.text,
-      minutes: reply.minutes,
-    };
-  }
-  if (options.length === 0) {
-    return {
-      kind: "fail",
-      attempt: `use the ${resolvedName}`,
-      reason: `there is nothing I can do with it`,
-    };
-  }
+  const verbNames = [...new Set(candidate.verbs.map((verb) => verb.name))];
   const prompt = buildInteractPrompt(
     {
       agentName: agent.name,
-      objectName: resolvedName,
+      objectName: describeUseName(state, candidate.use),
       intention: reply.intention,
-      options: options.map((option) => ({
-        name: describeInteractionOption(option),
-        description: "",
-      })),
+      options: verbNames.map((name) => ({ name, description: "" })),
     },
     dependencies.promptsDirectory,
   );
@@ -182,16 +206,55 @@ async function planInteract(
     agentId: agent.id,
     tick: state.tick,
     prompt,
-    ...buildInteractReplySchema(options.map((option) => option.name)),
+    ...buildInteractReplySchema(verbNames),
   });
   if (!answer.ok) return { kind: "wait", minutes: config.decision.defaultWaitMinutes };
   return {
     kind: "interact",
-    target: resolvedName,
-    interaction: answer.value.interaction,
+    use: candidate.use,
+    verb: answer.value.verb,
     text: answer.value.text ?? reply.text,
     minutes: answer.value.minutes ?? reply.minutes,
   };
+}
+
+/**
+ * Resolves interact: what is used (a held `item` or a `target` here, or nothing for a bare-handed
+ * verb) and the reply's verb if that thing offers it; otherwise a second call lists its verbs.
+ */
+async function planInteract(
+  state: WorldState,
+  dependencies: SimDependencies,
+  agent: Agent,
+  reply: DecisionReply,
+): Promise<PlannedAction> {
+  const verbName = reply.verb ?? "";
+  const candidates = listUseCandidates(state, agent, reply);
+  const details = { text: reply.text, minutes: reply.minutes };
+  for (const candidate of candidates) {
+    const verb = findVerbByName(candidate.verbs, verbName);
+    if (verb) return { kind: "interact", use: candidate.use, verb: verb.name, ...details };
+  }
+  const itemless = findVerbByName(listItemlessVerbs(state), verbName);
+  if (itemless) return { kind: "interact", use: { kind: "user" }, verb: itemless.name, ...details };
+  const [first] = reply.item || reply.target ? candidates : [];
+  const name = reply.item ?? reply.target ?? verbName;
+  if (!first) {
+    return {
+      kind: "fail",
+      attempt: `use the ${name}`,
+      reason: `there is no ${name} here for me to use`,
+    };
+  }
+  if (first.verbs.length === 0) {
+    const firstName = describeUseName(state, first.use);
+    return {
+      kind: "fail",
+      attempt: `use the ${firstName}`,
+      reason: "there is nothing I can do with it",
+    };
+  }
+  return askWhichVerb(state, dependencies, agent, reply, first);
 }
 
 function planSimpleAction(reply: DecisionReply): PlannedAction {

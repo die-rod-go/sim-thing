@@ -17,8 +17,8 @@
       "sleepRecoveryPerHour": 0.15,
       "strength": 0.5,
       "agility": 0.55,
-      "coins": 30,
       "inventory": {
+        "coin": 30,
         "bread": 2,
         "wheat": 4,
         "wood": 2
@@ -63,8 +63,8 @@
       "sleepRecoveryPerHour": 0.13,
       "strength": 0.7,
       "agility": 0.35,
-      "coins": 30,
       "inventory": {
+        "coin": 30,
         "bread": 2
       },
       "mood": "In a good mood, wants someone to talk at.",
@@ -107,8 +107,8 @@
       "sleepRecoveryPerHour": 0.17,
       "strength": 0.5,
       "agility": 0.6,
-      "coins": 30,
       "inventory": {
+        "coin": 30,
         "bread": 2
       },
       "mood": "Restless, already making a mental list.",
@@ -151,8 +151,8 @@
       "sleepRecoveryPerHour": 0.12,
       "strength": 0.75,
       "agility": 0.5,
-      "coins": 30,
       "inventory": {
+        "coin": 30,
         "bread": 2
       },
       "mood": "Sleepy and content.",
@@ -195,8 +195,8 @@
       "sleepRecoveryPerHour": 0.16,
       "strength": 0.55,
       "agility": 0.45,
-      "coins": 30,
       "inventory": {
+        "coin": 30,
         "bread": 2,
         "ale": 6
       },
@@ -240,8 +240,8 @@
       "sleepRecoveryPerHour": 0.14,
       "strength": 0.4,
       "agility": 0.7,
-      "coins": 15,
       "inventory": {
+        "coin": 15,
         "bread": 2
       },
       "mood": "Wide awake and looking for something to do.",
@@ -284,8 +284,8 @@
       "sleepRecoveryPerHour": 0.15,
       "strength": 0.5,
       "agility": 0.5,
-      "coins": 30,
       "inventory": {
+        "coin": 30,
         "bread": 2
       },
       "mood": "Angry and hateful",
@@ -335,8 +335,8 @@
       "sleepRecoveryPerHour": 0.15,
       "strength": 0.5,
       "agility": 0.5,
-      "coins": 30,
       "inventory": {
+        "coin": 30,
         "bread": 2
       },
       "mood": "is going to poop soon needs to poop so so bad oh my god",

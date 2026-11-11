@@ -1,12 +1,11 @@
 import { BUCKETS } from "@village/shared";
 import type { Bucket, Goal } from "@village/shared";
-import { config } from "../config";
 import { formatMinutesAgo } from "./around-you";
 import type {
   ConversationLine,
   CurrentActionSummary,
   DecisionTargets,
-  NearbyObject,
+  PromptEntityGroup,
   RecalledMemory,
 } from "./context";
 
@@ -23,28 +22,25 @@ export function describeGoals(goals: Goal[]): string {
   );
 }
 
-/** "wheat field (harvest wheat; empty), bench (sit)": uses first, then what can be seen of it. */
-export function describeNearbyObjects(objects: NearbyObject[]): string {
-  if (objects.length === 0) return NOTHING;
-  return objects.map(describeNearbyObject).join(", ");
+/** "wheat field (harvest wheat; empty)": verbs first, then what can be seen of it. */
+function describeEntityGroup(group: PromptEntityGroup): string {
+  const details = [group.verbs.join(", "), group.condition ?? ""].filter(Boolean);
+  return details.length > 0 ? `${group.text} (${details.join("; ")})` : group.text;
 }
 
-function describeNearbyObject(object: NearbyObject): string {
-  const details = [object.interactions.join(", "), object.condition ?? ""].filter(Boolean);
-  return details.length > 0 ? `${object.name} (${details.join("; ")})` : object.name;
+/** "oven (bake bread), bakery door (open, close; open)" */
+export function describeNearbyEntities(groups: PromptEntityGroup[]): string {
+  if (groups.length === 0) return NOTHING;
+  return groups.map(describeEntityGroup).join(", ");
 }
 
-export function describeBelongings(coins: number, inventory: Record<string, number>): string {
-  const items = Object.entries(inventory)
-    .filter(([, count]) => count > 0)
-    .map(([item, count]) => {
-      const interactions = config.heldItems[item]?.interactions ?? [];
-      return interactions.length > 0
-        ? `${count} ${item} (${interactions.join(", ")})`
-        : `${count} ${item}`;
-    });
-  const carried = items.length > 0 ? items.join(", ") : "nothing else";
-  return `Coins: ${coins}. You carry: ${carried}.`;
+/** "You carry: 30 coins, 3 bread (eat)." then, when there are any, "You can also: punch." */
+export function describeBelongings(groups: PromptEntityGroup[], itemlessVerbs: string[]): string {
+  const carried = groups.length > 0 ? groups.map(describeEntityGroup).join(", ") : "nothing";
+  const belongings = `You carry: ${carried}.`;
+  return itemlessVerbs.length > 0
+    ? `${belongings}\nYou can also: ${itemlessVerbs.join(", ")}.`
+    : belongings;
 }
 
 export function describeWorkingMemory(workingMemory: string[]): string {
@@ -87,6 +83,6 @@ export function describeMemories(memories: Partial<Record<Bucket, RecalledMemory
 }
 
 export function listTargetNames(targets: DecisionTargets): string[] {
-  const allNames = [...targets.places, ...targets.agents, ...targets.objects, ...targets.heldItems];
+  const allNames = [...targets.places, ...targets.agents, ...targets.entities];
   return [...new Set(allNames)];
 }

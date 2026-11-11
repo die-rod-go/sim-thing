@@ -25,7 +25,7 @@ describe("buildCue", () => {
     const cue = buildCue({
       place: "village road",
       aroundAgentNames: ["Clara"],
-      nearbyObjectNames: ["bench"],
+      nearbyEntityNames: ["bench"],
       actionTarget: null,
       conversationText: "Clara: lovely morning",
       intention: "buy bread from Mara at the bakery",
@@ -42,7 +42,7 @@ describe("buildCue", () => {
     const cue = buildCue({
       place: "bakery",
       aroundAgentNames: [],
-      nearbyObjectNames: [],
+      nearbyEntityNames: [],
       actionTarget: "oven",
       conversationText: "Bob: is the tavern open?",
       intention: "",

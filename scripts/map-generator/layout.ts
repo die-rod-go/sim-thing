@@ -1,4 +1,3 @@
-import type { ObjectKind } from "@village/shared";
 import type { TileName } from "./tileset";
 
 /** A tile-space rectangle; `left`/`top` are the top-left tile. */
@@ -38,9 +37,10 @@ export interface OutdoorPlaceSpec {
   ground: TileName;
 }
 
+/** A placed object: the item definition it is (from `seeds/items.json`) and its own name. */
 export interface ObjectSpec {
   name: string;
-  kind: ObjectKind;
+  definitionId: string;
   place: string;
   x: number;
   y: number;
@@ -95,7 +95,7 @@ function buildCottages(): {
     });
     objects.push({
       name: `${name} bed`,
-      kind: "bed",
+      definitionId: "bed",
       place: name,
       x: left + 1,
       y: COTTAGE_TOP + 1,
@@ -141,18 +141,24 @@ export function buildVillageLayout(): VillageLayout {
 
   const objects: ObjectSpec[] = [
     ...cottages.objects,
-    { name: "oven", kind: "oven", place: "bakery", x: 3, y: 12 },
-    { name: "brew kettle", kind: "brew_kettle", place: "tavern", x: 36, y: 12 },
-    { name: "card table", kind: "card_table", place: "tavern", x: 31, y: 14 },
-    { name: "spare bed", kind: "bed", place: "tavern", x: 36, y: 18 },
-    { name: "notice board", kind: "notice_board", place: "town square", x: 18, y: 12 },
-    { name: "bench", kind: "bench", place: "town square", x: 16, y: 16 },
-    { name: "wheat field", kind: "wheat_field", place: "farm", x: 8, y: 24 },
-    { name: "trees", kind: "trees", place: "woodlot", x: 31, y: 25 },
+    { name: "oven", definitionId: "oven", place: "bakery", x: 3, y: 12 },
+    { name: "brew kettle", definitionId: "brew_kettle", place: "tavern", x: 36, y: 12 },
+    { name: "card table", definitionId: "card_table", place: "tavern", x: 31, y: 14 },
+    { name: "spare bed", definitionId: "bed", place: "tavern", x: 36, y: 18 },
+    { name: "notice board", definitionId: "notice_board", place: "town square", x: 18, y: 12 },
+    { name: "bench", definitionId: "bench", place: "town square", x: 16, y: 16 },
+    { name: "wheat field", definitionId: "wheat_field", place: "farm", x: 8, y: 24 },
+    { name: "trees", definitionId: "trees", place: "woodlot", x: 31, y: 25 },
   ];
   for (const building of buildings) {
     for (const door of building.doors) {
-      objects.push({ name: door.name, kind: "door", place: building.name, x: door.x, y: door.y });
+      objects.push({
+        name: door.name,
+        definitionId: "door",
+        place: building.name,
+        x: door.x,
+        y: door.y,
+      });
     }
   }
 

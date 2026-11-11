@@ -1,4 +1,4 @@
-import type { Position, WorldObject } from "@village/shared";
+import type { Position } from "@village/shared";
 import { isInsideGrid, tileIndex, type PlaceArea, type TileGrid, type WorldMap } from "./types";
 
 const NEIGHBOR_OFFSETS: readonly Position[] = [
@@ -106,24 +106,30 @@ export function listPlaceTiles(grid: TileGrid, place: PlaceArea): Position[] {
 /** Path to the nearest walkable tile inside the named place; null for an unknown place. */
 export function findPathToPlace(
   map: WorldMap,
+  grid: TileGrid,
   from: Position,
   placeName: string,
 ): Position[] | null {
   const place = map.places.find((area) => area.name === placeName);
   if (!place) return null;
-  return findPathToAny(map.grid, from, listPlaceTiles(map.grid, place));
+  return findPathToAny(grid, from, listPlaceTiles(grid, place));
 }
 
-/** Path onto the object's tile if it is walkable, otherwise to a walkable tile next to it. */
-export function findPathToObject(
-  map: WorldMap,
-  from: Position,
-  object: Pick<WorldObject, "pos">,
-): Position[] | null {
-  if (isWalkable(map.grid, object.pos)) return findPath(map.grid, from, object.pos);
+/** Path onto the tile if it is walkable, otherwise to a walkable tile next to it. */
+export function findPathToTile(grid: TileGrid, from: Position, tile: Position): Position[] | null {
+  if (isWalkable(grid, tile)) return findPath(grid, from, tile);
   const adjacentTiles = NEIGHBOR_OFFSETS.map((offset) => ({
-    x: object.pos.x + offset.x,
-    y: object.pos.y + offset.y,
+    x: tile.x + offset.x,
+    y: tile.y + offset.y,
   }));
-  return findPathToAny(map.grid, from, adjacentTiles);
+  return findPathToAny(grid, from, adjacentTiles);
+}
+
+/** The grid with more tiles walled off, e.g. where objects stand in the way. */
+export function withBlockedTiles(grid: TileGrid, blockedIndexes: ReadonlySet<number>): TileGrid {
+  if (blockedIndexes.size === 0) return grid;
+  return {
+    ...grid,
+    isWall: grid.isWall.map((isWall, index) => isWall || blockedIndexes.has(index)),
+  };
 }

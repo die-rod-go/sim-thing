@@ -15,36 +15,38 @@ interface AgentEditorProps {
   onChange: (agent: SeedAgent) => void;
 }
 
+/** Starting items by definition id, coins included; the picker lists carriable definitions. */
 export function InventoryEditor({
   agent,
   problems,
   onChange,
-  itemNames,
-}: AgentEditorProps & { itemNames: readonly string[] }) {
+  carriableItems,
+}: AgentEditorProps & { carriableItems: readonly { id: string; name: string }[] }) {
+  const namesById = new Map(carriableItems.map((item) => [item.id, item.name]));
   const heldItems = Object.entries(agent.inventory);
-  const addableItems = itemNames.filter((itemName) => !(itemName in agent.inventory));
-  const setAmount = (itemName: string, amount: number | null) => {
+  const addableItems = carriableItems.filter((item) => !(item.id in agent.inventory));
+  const setAmount = (itemId: string, amount: number | null) => {
     const inventory = { ...agent.inventory };
-    if (amount === null) delete inventory[itemName];
-    else inventory[itemName] = amount;
+    if (amount === null) delete inventory[itemId];
+    else inventory[itemId] = amount;
     onChange({ ...agent, inventory });
   };
   return (
     <div className="row-list">
       {heldItems.length === 0 && <p className="muted">Carries nothing.</p>}
-      {heldItems.map(([itemName, amount]) => (
-        <div className="row-item inventory-row" key={itemName}>
-          <span className="inventory-name">{itemName}</span>
+      {heldItems.map(([itemId, amount]) => (
+        <div className="row-item inventory-row" key={itemId}>
+          <span className="inventory-name">{namesById.get(itemId) ?? itemId}</span>
           <NumberInput
             value={amount}
             min={0}
             step={1}
-            onChange={(next) => setAmount(itemName, next)}
+            onChange={(next) => setAmount(itemId, next)}
           />
-          <button className="icon-button" onClick={() => setAmount(itemName, null)} title="Remove">
+          <button className="icon-button" onClick={() => setAmount(itemId, null)} title="Remove">
             ×
           </button>
-          <ProblemList problems={selectFieldProblems(problems, `inventory.${itemName}`)} />
+          <ProblemList problems={selectFieldProblems(problems, `inventory.${itemId}`)} />
         </div>
       ))}
       {addableItems.length > 0 && (
@@ -55,9 +57,9 @@ export function InventoryEditor({
           onChange={(event) => setAmount(event.target.value, 1)}
         >
           <option value="">+ Add an item…</option>
-          {addableItems.map((itemName) => (
-            <option key={itemName} value={itemName}>
-              {itemName}
+          {addableItems.map((item) => (
+            <option key={item.id} value={item.id}>
+              {item.name}
             </option>
           ))}
         </select>

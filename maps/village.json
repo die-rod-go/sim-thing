@@ -108,29 +108,29 @@
    "data": [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
   0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
   0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
-  0, 0, 0, 11, 0, 0, 0, 0, 0, 0, 11, 0, 0, 0, 0, 0, 0, 11, 0, 0, 0, 0, 0, 0, 11, 0, 0, 0, 0, 0, 0, 11, 0, 0, 0, 0, 0, 8, 0, 0,
-  0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
-  0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
-  0, 0, 0, 0, 6, 0, 0, 0, 0, 0, 0, 6, 0, 0, 0, 0, 0, 0, 6, 0, 0, 0, 0, 0, 0, 6, 0, 0, 0, 0, 0, 0, 6, 0, 0, 0, 0, 0, 0, 0,
+  0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 8, 0, 0,
   0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
   0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
   0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
   0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
-  0, 0, 0, 0, 0, 0, 6, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 6, 0, 0, 0, 0, 0, 0, 0, 0,
-  0, 0, 0, 12, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 16, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 13, 0, 0, 0,
+  0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+  0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+  0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+  0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+  0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
   0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 8, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
-  0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 14, 0, 0, 0, 0, 0, 0, 0, 0,
-  0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
-  0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 15, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
-  0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
-  0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 11, 0, 0, 0,
-  0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
-  0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 6, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
   0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
   0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
   0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
-  0, 0, 0, 0, 0, 0, 0, 0, 7, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 8, 0, 0, 0, 0, 0, 0, 8, 0, 0, 0, 0, 0, 0, 8, 0, 0, 0, 0, 0,
-  0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 8, 0, 0, 0, 0, 0, 0, 0, 0,
+  0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+  0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+  0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+  0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+  0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+  0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+  0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+  0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 8, 0, 0, 0, 0, 0, 0, 8, 0, 0, 0, 0, 0, 0, 8, 0, 0, 0, 0, 0,
+  0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
   0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 8, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 8, 0, 0, 0,
   0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 8, 0, 0, 0, 0, 8, 0, 0, 0, 0, 0, 0,
   0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
@@ -355,7 +355,7 @@
        "value": "rose cottage bed"
       },
       {
-       "name": "kind",
+       "name": "definition",
        "type": "string",
        "value": "bed"
       },
@@ -363,11 +363,6 @@
        "name": "place",
        "type": "string",
        "value": "rose cottage"
-      },
-      {
-       "name": "interactions",
-       "type": "string",
-       "value": "[\"sleep\"]"
       }
      ]
     },
@@ -388,7 +383,7 @@
        "value": "ivy cottage bed"
       },
       {
-       "name": "kind",
+       "name": "definition",
        "type": "string",
        "value": "bed"
       },
@@ -396,11 +391,6 @@
        "name": "place",
        "type": "string",
        "value": "ivy cottage"
-      },
-      {
-       "name": "interactions",
-       "type": "string",
-       "value": "[\"sleep\"]"
       }
      ]
     },
@@ -421,7 +411,7 @@
        "value": "stone cottage bed"
       },
       {
-       "name": "kind",
+       "name": "definition",
        "type": "string",
        "value": "bed"
       },
@@ -429,11 +419,6 @@
        "name": "place",
        "type": "string",
        "value": "stone cottage"
-      },
-      {
-       "name": "interactions",
-       "type": "string",
-       "value": "[\"sleep\"]"
       }
      ]
     },
@@ -454,7 +439,7 @@
        "value": "willow cottage bed"
       },
       {
-       "name": "kind",
+       "name": "definition",
        "type": "string",
        "value": "bed"
       },
@@ -462,11 +447,6 @@
        "name": "place",
        "type": "string",
        "value": "willow cottage"
-      },
-      {
-       "name": "interactions",
-       "type": "string",
-       "value": "[\"sleep\"]"
       }
      ]
     },
@@ -487,7 +467,7 @@
        "value": "hill cottage bed"
       },
       {
-       "name": "kind",
+       "name": "definition",
        "type": "string",
        "value": "bed"
       },
@@ -495,11 +475,6 @@
        "name": "place",
        "type": "string",
        "value": "hill cottage"
-      },
-      {
-       "name": "interactions",
-       "type": "string",
-       "value": "[\"sleep\"]"
       }
      ]
     },
@@ -520,7 +495,7 @@
        "value": "oven"
       },
       {
-       "name": "kind",
+       "name": "definition",
        "type": "string",
        "value": "oven"
       },
@@ -528,11 +503,6 @@
        "name": "place",
        "type": "string",
        "value": "bakery"
-      },
-      {
-       "name": "interactions",
-       "type": "string",
-       "value": "[\"bake bread\"]"
       }
      ]
     },
@@ -553,7 +523,7 @@
        "value": "brew kettle"
       },
       {
-       "name": "kind",
+       "name": "definition",
        "type": "string",
        "value": "brew_kettle"
       },
@@ -561,11 +531,6 @@
        "name": "place",
        "type": "string",
        "value": "tavern"
-      },
-      {
-       "name": "interactions",
-       "type": "string",
-       "value": "[\"brew ale\"]"
       }
      ]
     },
@@ -586,7 +551,7 @@
        "value": "card table"
       },
       {
-       "name": "kind",
+       "name": "definition",
        "type": "string",
        "value": "card_table"
       },
@@ -594,11 +559,6 @@
        "name": "place",
        "type": "string",
        "value": "tavern"
-      },
-      {
-       "name": "interactions",
-       "type": "string",
-       "value": "[\"play cards\"]"
       }
      ]
     },
@@ -619,7 +579,7 @@
        "value": "spare bed"
       },
       {
-       "name": "kind",
+       "name": "definition",
        "type": "string",
        "value": "bed"
       },
@@ -627,11 +587,6 @@
        "name": "place",
        "type": "string",
        "value": "tavern"
-      },
-      {
-       "name": "interactions",
-       "type": "string",
-       "value": "[\"sleep\"]"
       }
      ]
     },
@@ -652,7 +607,7 @@
        "value": "notice board"
       },
       {
-       "name": "kind",
+       "name": "definition",
        "type": "string",
        "value": "notice_board"
       },
@@ -660,11 +615,6 @@
        "name": "place",
        "type": "string",
        "value": "town square"
-      },
-      {
-       "name": "interactions",
-       "type": "string",
-       "value": "[\"read\",\"post a note\"]"
       }
      ]
     },
@@ -685,7 +635,7 @@
        "value": "bench"
       },
       {
-       "name": "kind",
+       "name": "definition",
        "type": "string",
        "value": "bench"
       },
@@ -693,11 +643,6 @@
        "name": "place",
        "type": "string",
        "value": "town square"
-      },
-      {
-       "name": "interactions",
-       "type": "string",
-       "value": "[\"sit\"]"
       }
      ]
     },
@@ -718,7 +663,7 @@
        "value": "wheat field"
       },
       {
-       "name": "kind",
+       "name": "definition",
        "type": "string",
        "value": "wheat_field"
       },
@@ -726,16 +671,6 @@
        "name": "place",
        "type": "string",
        "value": "farm"
-      },
-      {
-       "name": "interactions",
-       "type": "string",
-       "value": "[\"harvest wheat\"]"
-      },
-      {
-       "name": "stock",
-       "type": "int",
-       "value": 12
       }
      ]
     },
@@ -756,7 +691,7 @@
        "value": "trees"
       },
       {
-       "name": "kind",
+       "name": "definition",
        "type": "string",
        "value": "trees"
       },
@@ -764,16 +699,6 @@
        "name": "place",
        "type": "string",
        "value": "woodlot"
-      },
-      {
-       "name": "interactions",
-       "type": "string",
-       "value": "[\"chop wood\"]"
-      },
-      {
-       "name": "stock",
-       "type": "int",
-       "value": 10
       }
      ]
     },
@@ -794,7 +719,7 @@
        "value": "rose cottage door"
       },
       {
-       "name": "kind",
+       "name": "definition",
        "type": "string",
        "value": "door"
       },
@@ -802,16 +727,6 @@
        "name": "place",
        "type": "string",
        "value": "rose cottage"
-      },
-      {
-       "name": "interactions",
-       "type": "string",
-       "value": "[\"open\",\"close\"]"
-      },
-      {
-       "name": "isOpen",
-       "type": "bool",
-       "value": true
       }
      ]
     },
@@ -832,7 +747,7 @@
        "value": "ivy cottage door"
       },
       {
-       "name": "kind",
+       "name": "definition",
        "type": "string",
        "value": "door"
       },
@@ -840,16 +755,6 @@
        "name": "place",
        "type": "string",
        "value": "ivy cottage"
-      },
-      {
-       "name": "interactions",
-       "type": "string",
-       "value": "[\"open\",\"close\"]"
-      },
-      {
-       "name": "isOpen",
-       "type": "bool",
-       "value": true
       }
      ]
     },
@@ -870,7 +775,7 @@
        "value": "stone cottage door"
       },
       {
-       "name": "kind",
+       "name": "definition",
        "type": "string",
        "value": "door"
       },
@@ -878,16 +783,6 @@
        "name": "place",
        "type": "string",
        "value": "stone cottage"
-      },
-      {
-       "name": "interactions",
-       "type": "string",
-       "value": "[\"open\",\"close\"]"
-      },
-      {
-       "name": "isOpen",
-       "type": "bool",
-       "value": true
       }
      ]
     },
@@ -908,7 +803,7 @@
        "value": "willow cottage door"
       },
       {
-       "name": "kind",
+       "name": "definition",
        "type": "string",
        "value": "door"
       },
@@ -916,16 +811,6 @@
        "name": "place",
        "type": "string",
        "value": "willow cottage"
-      },
-      {
-       "name": "interactions",
-       "type": "string",
-       "value": "[\"open\",\"close\"]"
-      },
-      {
-       "name": "isOpen",
-       "type": "bool",
-       "value": true
       }
      ]
     },
@@ -946,7 +831,7 @@
        "value": "hill cottage door"
       },
       {
-       "name": "kind",
+       "name": "definition",
        "type": "string",
        "value": "door"
       },
@@ -954,16 +839,6 @@
        "name": "place",
        "type": "string",
        "value": "hill cottage"
-      },
-      {
-       "name": "interactions",
-       "type": "string",
-       "value": "[\"open\",\"close\"]"
-      },
-      {
-       "name": "isOpen",
-       "type": "bool",
-       "value": true
       }
      ]
     },
@@ -984,7 +859,7 @@
        "value": "bakery door"
       },
       {
-       "name": "kind",
+       "name": "definition",
        "type": "string",
        "value": "door"
       },
@@ -992,16 +867,6 @@
        "name": "place",
        "type": "string",
        "value": "bakery"
-      },
-      {
-       "name": "interactions",
-       "type": "string",
-       "value": "[\"open\",\"close\"]"
-      },
-      {
-       "name": "isOpen",
-       "type": "bool",
-       "value": true
       }
      ]
     },
@@ -1022,7 +887,7 @@
        "value": "tavern front door"
       },
       {
-       "name": "kind",
+       "name": "definition",
        "type": "string",
        "value": "door"
       },
@@ -1030,16 +895,6 @@
        "name": "place",
        "type": "string",
        "value": "tavern"
-      },
-      {
-       "name": "interactions",
-       "type": "string",
-       "value": "[\"open\",\"close\"]"
-      },
-      {
-       "name": "isOpen",
-       "type": "bool",
-       "value": true
       }
      ]
     },
@@ -1060,7 +915,7 @@
        "value": "tavern back door"
       },
       {
-       "name": "kind",
+       "name": "definition",
        "type": "string",
        "value": "door"
       },
@@ -1068,16 +923,6 @@
        "name": "place",
        "type": "string",
        "value": "tavern"
-      },
-      {
-       "name": "interactions",
-       "type": "string",
-       "value": "[\"open\",\"close\"]"
-      },
-      {
-       "name": "isOpen",
-       "type": "bool",
-       "value": true
       }
      ]
     }
@@ -1222,9 +1067,9 @@
    "name": "village",
    "image": "tileset.png",
    "imagewidth": 128,
-   "imageheight": 32,
+   "imageheight": 48,
    "columns": 8,
-   "tilecount": 16,
+   "tilecount": 21,
    "tilewidth": 16,
    "tileheight": 16,
    "margin": 0,
@@ -1398,6 +1243,61 @@
     {
      "id": 15,
      "type": "notice_board",
+     "properties": [
+      {
+       "name": "collides",
+       "type": "bool",
+       "value": false
+      }
+     ]
+    },
+    {
+     "id": 16,
+     "type": "bread",
+     "properties": [
+      {
+       "name": "collides",
+       "type": "bool",
+       "value": false
+      }
+     ]
+    },
+    {
+     "id": 17,
+     "type": "wheat",
+     "properties": [
+      {
+       "name": "collides",
+       "type": "bool",
+       "value": false
+      }
+     ]
+    },
+    {
+     "id": 18,
+     "type": "wood",
+     "properties": [
+      {
+       "name": "collides",
+       "type": "bool",
+       "value": false
+      }
+     ]
+    },
+    {
+     "id": 19,
+     "type": "ale",
+     "properties": [
+      {
+       "name": "collides",
+       "type": "bool",
+       "value": false
+      }
+     ]
+    },
+    {
+     "id": 20,
+     "type": "coin",
      "properties": [
       {
        "name": "collides",

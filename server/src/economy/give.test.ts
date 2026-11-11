@@ -1,70 +1,90 @@
 import { describe, expect, it } from "vitest";
+import { countHeld, createEntity, listHeldEntities, type EntityWorld } from "../items/entity-store";
+import { loadTestItems } from "../sim/test-sim";
 import { executeGive } from "./give";
 import { makeAgent } from "./test-fixtures";
 
-const mara = makeAgent({
-  id: "mara",
-  name: "Mara",
-  pos: { x: 5, y: 5 },
-  coins: 30,
-  inventory: { bread: 1 },
-});
-const bob = makeAgent({ id: "bob", name: "Bob", pos: { x: 6, y: 6 }, coins: 10 });
+const items = loadTestItems();
+
+function buildWorld(): EntityWorld {
+  const mara = makeAgent({ id: "mara", name: "Mara", pos: { x: 5, y: 5 } });
+  const bob = makeAgent({ id: "bob", name: "Bob", pos: { x: 6, y: 6 } });
+  const world: EntityWorld = { agents: [mara, bob], entities: [], nextEntityId: 1, items };
+  const handOut = (agentId: string, definitionId: string, count: number) => {
+    for (let made = 0; made < count; made += 1) {
+      createEntity(world, definitionId, { kind: "inventory", agentId });
+    }
+  };
+  handOut("mara", "coin", 30);
+  handOut("mara", "bread", 1);
+  handOut("bob", "coin", 10);
+  return world;
+}
+
+function giveFromMara(
+  world: EntityWorld,
+  itemName: string,
+  amount: number,
+  bobPos = { x: 6, y: 6 },
+) {
+  const [mara, bob] = world.agents;
+  if (!mara || !bob) throw new Error("missing agents");
+  return executeGive(world, { giver: mara, recipient: { ...bob, pos: bobPos }, itemName, amount });
+}
 
 describe("give", () => {
-  it("give moves coins between adjacent agents", () => {
-    const result = executeGive({ giver: mara, recipient: bob, item: "Coins", amount: 3 });
-    if (!result.isSuccess) {
-      throw new Error(result.reason);
-    }
-    expect(result.giver.coins).toBe(27);
-    expect(result.recipient.coins).toBe(13);
+  it("moves coins as coin entities between adjacent agents", () => {
+    const world = buildWorld();
+    const result = giveFromMara(world, "Coins", 3);
+    if (!result.isSuccess) throw new Error(result.reason);
+    expect(countHeld(world, "mara", "coin")).toBe(27);
+    expect(countHeld(world, "bob", "coin")).toBe(13);
+    expect(result.description).toBe("3 coins");
   });
 
-  it("give moves items and drops emptied entries", () => {
-    const result = executeGive({ giver: mara, recipient: bob, item: "bread", amount: 1 });
-    if (!result.isSuccess) {
-      throw new Error(result.reason);
-    }
-    expect(result.giver.inventory).toEqual({});
-    expect(result.recipient.inventory).toEqual({ bread: 1 });
+  it("hands over the oldest matching entities first", () => {
+    const world = buildWorld();
+    const maraCoins = listHeldEntities(world, "mara").filter(
+      (entity) => entity.definitionId === "coin",
+    );
+    const result = giveFromMara(world, "coin", 2);
+    if (!result.isSuccess) throw new Error(result.reason);
+    expect(result.movedEntityIds).toEqual(maraCoins.slice(0, 2).map((entity) => entity.id));
   });
 
-  it("give fails when the recipient is out of reach", () => {
-    const farBob = { ...bob, pos: { x: 7, y: 5 } };
-    expect(executeGive({ giver: mara, recipient: farBob, item: "coins", amount: 1 })).toEqual({
+  it("moves items like any other entity", () => {
+    const world = buildWorld();
+    const result = giveFromMara(world, "bread", 1);
+    if (!result.isSuccess) throw new Error(result.reason);
+    expect(countHeld(world, "mara", "bread")).toBe(0);
+    expect(countHeld(world, "bob", "bread")).toBe(1);
+  });
+
+  it("fails when the recipient is out of reach", () => {
+    expect(giveFromMara(buildWorld(), "coins", 1, { x: 7, y: 5 })).toEqual({
       isSuccess: false,
       reason: "Bob is too far away to hand anything to",
     });
   });
 
-  it("give fails when the giver doesn't have enough", () => {
-    expect(executeGive({ giver: mara, recipient: bob, item: "bread", amount: 2 })).toEqual({
+  it("fails when the giver doesn't have enough", () => {
+    expect(giveFromMara(buildWorld(), "bread", 2)).toEqual({
       isSuccess: false,
       reason: "I only have 1 bread",
     });
   });
 
-  it("give fails for amounts that aren't positive whole numbers", () => {
+  it("fails for amounts that aren't positive whole numbers", () => {
     for (const amount of [0, -1, 1.5]) {
-      expect(executeGive({ giver: mara, recipient: bob, item: "coins", amount }).isSuccess).toBe(
-        false,
-      );
+      expect(giveFromMara(buildWorld(), "coins", amount).isSuccess).toBe(false);
     }
   });
 
-  it("give never creates coins", () => {
-    const attempts = [
-      { item: "coins", amount: 30 },
-      { item: "coins", amount: 31 },
-      { item: "coins", amount: -5 },
-    ];
-    for (const attempt of attempts) {
-      const result = executeGive({ giver: mara, recipient: bob, ...attempt });
-      const total = result.isSuccess
-        ? result.giver.coins + result.recipient.coins
-        : mara.coins + bob.coins;
-      expect(total).toBe(40);
+  it("never creates or destroys coins", () => {
+    for (const amount of [30, 31, -5]) {
+      const world = buildWorld();
+      giveFromMara(world, "coins", amount);
+      expect(countHeld(world, "mara", "coin") + countHeld(world, "bob", "coin")).toBe(40);
     }
   });
 });

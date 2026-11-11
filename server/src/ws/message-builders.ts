@@ -65,7 +65,8 @@ export function buildSnapshot(context: SimServerContext): SnapshotMessage {
     baseTicksPerSecond: config.clock.baseTicksPerSecond,
     speedOptions: [...config.clock.speedOptions],
     agents: state.agents,
-    objects: state.objects,
+    entities: state.entities,
+    itemDefinitions: state.items.file.definitions,
     recentEvents: listRecentEvents(context.database, config.server.recentEventsInSnapshot),
     recentMoments: listRecentMoments(context.database, config.server.recentMomentsInSnapshot),
   };

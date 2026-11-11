@@ -1,31 +1,10 @@
-import type { Bucket, NeedName, ObjectKind, StatName, TraitName, Volume } from "@village/shared";
+import type { Bucket, NeedName, StatName, TraitName, Volume } from "@village/shared";
 
 /**
- * Every tunable value in the sim lives here: rates, caps, weights, loudness, recipes and budgets.
- * Edit and restart to tune. `dailyTokenBudget` can also be changed live from the UI.
+ * Every global tunable in the sim lives here: rates, caps, weights, loudness and budgets. Item
+ * content (definitions, verbs and their numbers) lives in `seeds/items.json`. Edit and restart to
+ * tune. `dailyTokenBudget` can also be changed live from the UI.
  */
-
-export interface InteractionRecipe {
-  /** Items consumed from the actor's inventory when the interaction starts. */
-  inputs: Record<string, number>;
-  /** Items added to the actor's inventory when the interaction finishes. */
-  outputs: Record<string, number>;
-  /** Units taken from the object's stock when the interaction starts (wheat field, trees). */
-  stockUsed: number;
-  /** Duration in ticks; null for sleep, which ends by its own rules. */
-  ticks: number | null;
-  /** Applied to the actor's needs when the interaction finishes. */
-  needEffects: Partial<Record<NeedName, number>>;
-  /** Sound reach in tiles while the interaction runs; null if silent. */
-  loudness: number | null;
-  /** Whether the interaction takes words from the decision's `text` field. */
-  takesText: boolean;
-}
-
-export interface ObjectKindConfig {
-  interactions: string[];
-  stock?: { capacity: number; regrowPerDay: number };
-}
 
 export interface NeedWord {
   below: number;
@@ -61,6 +40,7 @@ export const config = {
     defaultDatabasePath: "data/village.db",
     mapPath: "maps/village.json",
     seedsPath: "seeds/agents.json",
+    itemsPath: "seeds/items.json",
     promptsDirectory: "server/prompts",
     recentEventsInSnapshot: 200,
     recentMomentsInSnapshot: 100,
@@ -271,237 +251,45 @@ export const config = {
   },
 
   economy: {
-    startingCoins: 30,
+    /** The money item. Nothing makes or destroys it, so the supply is closed. */
+    currencyDefinitionId: "coin",
     giveReachTiles: 1,
   },
 
   seeds: {
     /** The usual range for an agent's sleep recovery; the character editor warns outside it. */
     sleepRecoveryRange: { min: 0.12, max: 0.18 },
-    /** What a character added in the editor starts with; coins come from `economy.startingCoins`. */
+    /** What a character added in the editor starts with; the inventory is by definition id. */
     newAgent: {
       sleepRecoveryPerHour: 0.15,
       strength: 0.5,
       agility: 0.5,
-      inventory: { bread: 2 } as Record<string, number>,
+      inventory: { coin: 30, bread: 2 } as Record<string, number>,
     },
     jsonIndent: 2,
   },
 
-  objects: {
-    bed: { interactions: ["sleep"] },
-    notice_board: { interactions: ["read", "post a note"] },
-    bench: { interactions: ["sit"] },
-    wheat_field: { interactions: ["harvest wheat"], stock: { capacity: 12, regrowPerDay: 12 } },
-    trees: { interactions: ["chop wood"], stock: { capacity: 10, regrowPerDay: 10 } },
-    oven: { interactions: ["bake bread"] },
-    brew_kettle: { interactions: ["brew ale"] },
-    card_table: { interactions: ["play cards"] },
-    door: { interactions: ["open", "close"] },
-  } satisfies Record<ObjectKind, ObjectKindConfig>,
+  verbs: {
+    /** Tiles from the agent to a placed thing it uses. */
+    useReachTiles: 1,
+    /**
+     * Phrases for a verb that leaves some out of `items.json`. `{verb}` is the verb's name and
+     * `{item}` the thing used.
+     */
+    defaultPhrases: {
+      ongoing: "using the {item} ({verb})",
+      done: "used the {item} ({verb})",
+      attempt: "{verb} the {item}",
+    },
+  },
 
-  /** Interactions on items the agent carries. */
-  heldItems: {
-    bread: { interactions: ["eat"] },
-    ale: { interactions: ["drink"] },
-  } as Record<string, { interactions: string[] }>,
+  doors: {
+    /** Walking into a closed door opens it in passing. */
+    openedInPassingLoudness: 3,
+    openedInPassingPhrase: "opened the {item}",
+  },
 
-  interactions: {
-    "harvest wheat": {
-      inputs: {},
-      outputs: { wheat: 3 },
-      stockUsed: 3,
-      ticks: 60,
-      needEffects: { energy: -0.1 },
-      loudness: 4,
-      takesText: false,
-    },
-    "chop wood": {
-      inputs: {},
-      outputs: { wood: 2 },
-      stockUsed: 2,
-      ticks: 60,
-      needEffects: { energy: -0.15 },
-      loudness: 15,
-      takesText: false,
-    },
-    "bake bread": {
-      inputs: { wheat: 2, wood: 1 },
-      outputs: { bread: 4 },
-      stockUsed: 0,
-      ticks: 90,
-      needEffects: { energy: -0.05 },
-      loudness: 3,
-      takesText: false,
-    },
-    "brew ale": {
-      inputs: { wheat: 2, wood: 1 },
-      outputs: { ale: 6 },
-      stockUsed: 0,
-      ticks: 120,
-      needEffects: { energy: -0.05 },
-      loudness: 3,
-      takesText: false,
-    },
-    eat: {
-      inputs: { bread: 1 },
-      outputs: {},
-      stockUsed: 0,
-      ticks: 15,
-      needEffects: { hunger: 0.5 },
-      loudness: null,
-      takesText: false,
-    },
-    drink: {
-      inputs: { ale: 1 },
-      outputs: {},
-      stockUsed: 0,
-      ticks: 15,
-      needEffects: { fun: 0.3, energy: -0.05 },
-      loudness: null,
-      takesText: false,
-    },
-    "play cards": {
-      inputs: {},
-      outputs: {},
-      stockUsed: 0,
-      ticks: 30,
-      needEffects: { fun: 0.2 },
-      loudness: 6,
-      takesText: false,
-    },
-    sit: {
-      inputs: {},
-      outputs: {},
-      stockUsed: 0,
-      ticks: 20,
-      needEffects: { energy: 0.1 },
-      loudness: null,
-      takesText: false,
-    },
-    sleep: {
-      inputs: {},
-      outputs: {},
-      stockUsed: 0,
-      ticks: null,
-      needEffects: {},
-      loudness: null,
-      takesText: false,
-    },
-    read: {
-      inputs: {},
-      outputs: {},
-      stockUsed: 0,
-      ticks: 5,
-      needEffects: {},
-      loudness: null,
-      takesText: false,
-    },
-    "post a note": {
-      inputs: {},
-      outputs: {},
-      stockUsed: 0,
-      ticks: 5,
-      needEffects: {},
-      loudness: null,
-      takesText: true,
-    },
-    open: {
-      inputs: {},
-      outputs: {},
-      stockUsed: 0,
-      ticks: 1,
-      needEffects: {},
-      loudness: 3,
-      takesText: false,
-    },
-    close: {
-      inputs: {},
-      outputs: {},
-      stockUsed: 0,
-      ticks: 1,
-      needEffects: {},
-      loudness: 3,
-      takesText: false,
-    },
-  } satisfies Record<string, InteractionRecipe> as Record<string, InteractionRecipe>,
-
-  /**
-   * How each interaction reads in events, awareness and prompts. `{target}` is the object or held
-   * item. `ongoing` follows "started ..." and describes the running action; `done` is the
-   * finished act; `attempt` follows "I tried to ..." when it fails.
-   */
-  interactionPhrases: {
-    "harvest wheat": {
-      ongoing: "harvesting wheat at the {target}",
-      done: "harvested wheat",
-      attempt: "harvest wheat at the {target}",
-    },
-    "chop wood": {
-      ongoing: "chopping wood at the {target}",
-      done: "chopped wood",
-      attempt: "chop wood at the {target}",
-    },
-    "bake bread": {
-      ongoing: "baking bread at the {target}",
-      done: "baked bread",
-      attempt: "bake bread at the {target}",
-    },
-    "brew ale": {
-      ongoing: "brewing ale at the {target}",
-      done: "brewed ale",
-      attempt: "brew ale at the {target}",
-    },
-    eat: {
-      ongoing: "eating {target}",
-      done: "ate {target}",
-      attempt: "eat {target}",
-    },
-    drink: {
-      ongoing: "drinking {target}",
-      done: "drank {target}",
-      attempt: "drink {target}",
-    },
-    "play cards": {
-      ongoing: "playing cards at the {target}",
-      done: "played cards",
-      attempt: "play cards at the {target}",
-    },
-    sit: {
-      ongoing: "sitting on the {target}",
-      done: "sat on the {target}",
-      attempt: "sit on the {target}",
-    },
-    sleep: {
-      ongoing: "sleeping in the {target}",
-      done: "slept in the {target}",
-      attempt: "sleep in the {target}",
-    },
-    read: {
-      ongoing: "reading the {target}",
-      done: "read the {target}",
-      attempt: "read the {target}",
-    },
-    "post a note": {
-      ongoing: "posting a note on the {target}",
-      done: "posted a note",
-      attempt: "post a note on the {target}",
-    },
-    open: {
-      ongoing: "opening the {target}",
-      done: "opened the {target}",
-      attempt: "open the {target}",
-    },
-    close: {
-      ongoing: "closing the {target}",
-      done: "closed the {target}",
-      attempt: "close the {target}",
-    },
-  } as Record<string, { ongoing: string; done: string; attempt: string }>,
-
-  playCards: { funPerOtherPlayer: 0.1 },
-
-  noticeBoard: { notesShownOnRead: 5, maxNoteChars: 200, maxNotesKept: 30 },
+  noticeBoard: { notesShownOnRead: 5, maxNoteChars: 200 },
 
   memory: {
     maxMemoryChars: 200,
@@ -606,7 +394,10 @@ export const config = {
       actionWeights: { walk_to: 3, interact: 4, wait: 2, give: 0.5, recall: 0.5 },
       continueChance: 0.5,
       sayChance: 0.3,
-      omitInteractionChance: 0.25,
+      omitVerbChance: 0.25,
+      /** A carried item with this verb is eaten whenever the status line holds a hungry word. */
+      eatVerb: "eat",
+      hungryWords: ["starving", "very hungry", "quite hungry"],
       waitMinutes: { min: 5, max: 30 },
       lines: [
         "Good morning!",

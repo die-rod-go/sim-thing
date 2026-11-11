@@ -23,12 +23,12 @@ export interface InteractPromptInput {
 }
 
 export interface InteractReply {
-  interaction: string;
+  verb: string;
   text?: string;
   minutes?: number;
 }
 
-/** The second call of a two-step interact: which of the object's interactions to use. */
+/** The second call of a two-step interact: which of the thing's verbs to use. */
 export function buildInteractPrompt(input: InteractPromptInput, promptsDirectory?: string): string {
   const options = input.options
     .map((option) =>
@@ -49,14 +49,14 @@ export function buildInteractPrompt(input: InteractPromptInput, promptsDirectory
 
 export function buildInteractReplySchema(optionNames: string[]): ReplySchemas<InteractReply> {
   const replyObject = z.object({
-    interaction: displayNameEnum(optionNames, "interaction"),
+    verb: displayNameEnum(optionNames, "verb"),
     text: z.string().trim().optional(),
     minutes: z.number().positive().optional(),
   });
   return {
     schema: z.preprocess(dropEmptyFields, replyObject),
     jsonSchema: strictJsonObject({
-      interaction: { type: "string", enum: [...optionNames] },
+      verb: { type: "string", enum: [...optionNames] },
       text: nullableJsonString(),
       minutes: nullableJsonInteger(),
     }),

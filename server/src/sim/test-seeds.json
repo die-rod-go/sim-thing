@@ -17,8 +17,8 @@
       "sleepRecoveryPerHour": 0.15,
       "strength": 0.5,
       "agility": 0.5,
-      "coins": 30,
       "inventory": {
+        "coin": 30,
         "bread": 2,
         "wheat": 4,
         "wood": 2
@@ -69,8 +69,8 @@
       "sleepRecoveryPerHour": 0.13,
       "strength": 0.65,
       "agility": 0.35,
-      "coins": 30,
       "inventory": {
+        "coin": 30,
         "bread": 2
       },
       "mood": "Gruff and ready to get to the field before anyone else.",
@@ -113,8 +113,8 @@
       "sleepRecoveryPerHour": 0.17,
       "strength": 0.45,
       "agility": 0.65,
-      "coins": 30,
       "inventory": {
+        "coin": 30,
         "bread": 2
       },
       "mood": "Restless and optimistic.",
@@ -163,8 +163,8 @@
       "sleepRecoveryPerHour": 0.12,
       "strength": 0.8,
       "agility": 0.45,
-      "coins": 30,
       "inventory": {
+        "coin": 30,
         "bread": 2
       },
       "mood": "Quiet, a little stiff from yesterday's work.",
@@ -207,8 +207,8 @@
       "sleepRecoveryPerHour": 0.16,
       "strength": 0.5,
       "agility": 0.4,
-      "coins": 30,
       "inventory": {
+        "coin": 30,
         "bread": 2,
         "ale": 6
       },
@@ -258,8 +258,8 @@
       "sleepRecoveryPerHour": 0.14,
       "strength": 0.4,
       "agility": 0.7,
-      "coins": 10,
       "inventory": {
+        "coin": 10,
         "bread": 2
       },
       "mood": "Nervous but hopeful about this new place.",

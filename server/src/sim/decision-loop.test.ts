@@ -1,5 +1,6 @@
 import { describe, expect, it } from "vitest";
 import { config } from "../config";
+import { countHeld } from "../items/entity-store";
 import { SimLoop } from "./loop";
 import { ManualScheduler } from "./manual-scheduler";
 import { createDecisionStrategy } from "./tick-pipeline";
@@ -99,8 +100,7 @@ describe("decision loop", () => {
     const sim = createTestSim({
       agentIds: ["mara"],
       responder: (request, callIndex) => {
-        if (request.schemaName === "interact_reply")
-          return JSON.stringify({ interaction: "bake bread" });
+        if (request.schemaName === "interact_reply") return JSON.stringify({ verb: "bake bread" });
         return callIndex === 0
           ? decisionReply({ action: "interact", target: "oven" })
           : decisionReply({ action: "continue" });
@@ -110,14 +110,12 @@ describe("decision loop", () => {
     await sim.advance();
     expect(sim.client.requests[1]?.schemaName).toBe("interact_reply");
     expect(promptOf(sim.client.requests[1]!)).toContain("bake bread");
-    expect(sim.agent("mara").currentAction).toMatchObject({
-      kind: "interact",
-      interaction: "bake bread",
-    });
-    expect(sim.agent("mara").inventory).toMatchObject({ wheat: 2, wood: 1 });
+    expect(sim.agent("mara").currentAction).toMatchObject({ kind: "interact", verb: "bake bread" });
+    expect(countHeld(sim.state, "mara", "wheat")).toBe(2);
+    expect(countHeld(sim.state, "mara", "wood")).toBe(1);
     expect(sim.results[0]?.events[0]?.description).toBe("started baking bread at the oven");
     await sim.advance(90);
-    expect(sim.agent("mara").inventory.bread).toBe(6);
+    expect(countHeld(sim.state, "mara", "bread")).toBe(6);
   });
 
   it("interact walks to the object first, then starts", async () => {
@@ -126,7 +124,7 @@ describe("decision loop", () => {
       responder: scriptByAgent({
         Mara: (_request, callIndex) =>
           callIndex === 0
-            ? decisionReply({ action: "interact", target: "oven", interaction: "bake bread" })
+            ? decisionReply({ action: "interact", target: "oven", verb: "bake bread" })
             : undefined,
       }),
     });
@@ -134,10 +132,10 @@ describe("decision loop", () => {
     await sim.advance();
     expect(sim.agent("mara").currentAction).toMatchObject({ kind: "walk_to", target: "oven" });
     await sim.advance(12);
-    expect(sim.agent("mara").currentAction).toMatchObject({ interaction: "bake bread" });
+    expect(sim.agent("mara").currentAction).toMatchObject({ verb: "bake bread" });
   });
 
-  it("a give between adjacent agents moves coins and both remember it", async () => {
+  it("a give between adjacent agents moves coin entities and both remember it", async () => {
     const sim = createTestSim({
       agentIds: ["mara", "ilsa"],
       responder: scriptByAgent({
@@ -150,8 +148,8 @@ describe("decision loop", () => {
     sim.placeAgent("mara", SQUARE);
     sim.placeAgent("ilsa", { x: SQUARE.x + 1, y: SQUARE.y });
     await sim.advance();
-    expect(sim.agent("mara").coins).toBe(27);
-    expect(sim.agent("ilsa").coins).toBe(13);
+    expect(countHeld(sim.state, "mara", "coin")).toBe(27);
+    expect(countHeld(sim.state, "ilsa", "coin")).toBe(13);
     expect(memoriesOf(sim, "mara").map((memory) => memory.text)).toContain("I gave Ilsa 3 coins");
     expect(memoriesOf(sim, "ilsa")).toContainEqual(
       expect.objectContaining({ bucket: "did", text: "Mara gave me 3 coins" }),
@@ -172,7 +170,7 @@ describe("decision loop", () => {
     sim.placeAgent("ilsa", { x: SQUARE.x + 4, y: SQUARE.y });
     await sim.advance();
     const failure = "I tried to hand Ilsa 1 bread but Ilsa is too far away to hand anything to";
-    expect(sim.agent("mara").inventory.bread).toBe(2);
+    expect(countHeld(sim.state, "mara", "bread")).toBe(2);
     expect(memoriesOf(sim, "mara")).toContainEqual(
       expect.objectContaining({ bucket: "did", text: failure }),
     );

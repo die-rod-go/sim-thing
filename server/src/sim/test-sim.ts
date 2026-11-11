@@ -1,5 +1,14 @@
+import { readFileSync } from "node:fs";
 import { resolve } from "node:path";
-import type { Agent, PersonalityChange, Position } from "@village/shared";
+import {
+  buildItemCatalog,
+  parseItemFile,
+  type Agent,
+  type Entity,
+  type ItemCatalog,
+  type PersonalityChange,
+  type Position,
+} from "@village/shared";
 import { config } from "../config";
 import type { LlmCallDraft } from "../llm/call-structured";
 import { FakeLlmClient, type FakeResponder } from "../llm/fake-llm-client";
@@ -7,7 +16,7 @@ import { buildLlmStack, type LlmStack } from "../llm/llm-stack";
 import { InMemoryTokenUsageStore } from "../llm/token-budget";
 import type { LlmRequest } from "../llm/types";
 import { CONVERSATION_SUMMARY_SCHEMA_NAME } from "../memory/conversation-summary";
-import { buildSeededWorld, loadSeedFile } from "../seeds";
+import { buildSeededWorld, loadSeedFile, type SeededWorld } from "../seeds";
 import { findPlaceAt, loadWorldMap } from "../world/map-loader";
 import { createNoReflectionHook } from "./reflection-hook";
 import { createReflectionHook } from "./reflection-passes";
@@ -21,6 +30,33 @@ const repositoryRoot = resolve(import.meta.dirname, "../../..");
 
 export function loadTestMap() {
   return loadWorldMap(resolve(repositoryRoot, config.server.mapPath));
+}
+
+/** The project's `items.json`: the verbs and definitions the map's objects need. */
+export function loadTestItems(): ItemCatalog {
+  const json: unknown = JSON.parse(
+    readFileSync(resolve(repositoryRoot, config.server.itemsPath), "utf8"),
+  );
+  return buildItemCatalog(parseItemFile(json));
+}
+
+/** No items at all, for tests whose world holds none. */
+export function buildEmptyItems(): ItemCatalog {
+  return buildItemCatalog(
+    parseItemFile({ components: {}, person: { properties: [] }, definitions: [], verbs: [] }),
+  );
+}
+
+/** A world with no agents, entities or memories beyond those given. */
+export function buildEmptySeededWorld(seeded: Partial<SeededWorld> = {}): SeededWorld {
+  return { agents: [], memories: [], entities: [], nextEntityId: 1, ...seeded };
+}
+
+/** A placed map object by its label ("bakery door"). */
+export function findEntityByLabel(state: WorldState, label: string): Entity {
+  const entity = state.entities.find((candidate) => candidate.label === label);
+  if (!entity) throw new Error(`The map has no "${label}"`);
+  return entity;
 }
 
 /** A fixed cast, so tests do not change when someone edits the project seed file. */
@@ -87,7 +123,8 @@ export interface TestSimOptions {
 
 export function createTestSim(options: TestSimOptions): TestSim {
   const map = loadTestMap();
-  const state = createWorldState(map, buildSeededWorld(loadTestSeeds(), map));
+  const items = loadTestItems();
+  const state = createWorldState(map, buildSeededWorld(loadTestSeeds(), map, items), items);
   if (options.agentIds) {
     const kept = new Set(options.agentIds);
     state.agents = state.agents.filter((agent) => kept.has(agent.id));

@@ -27,7 +27,7 @@ export function failAction(
   replaceAgent(state, agent);
   const runtime = getAgentRuntime(state, agentId);
   runtime.walk = null;
-  runtime.interaction = null;
+  runtime.verbRun = null;
   const description = `tried to ${attempt} but ${continueSentence(reason)}`;
   runtime.lastFailure = `I ${description}`;
   const event = createEvent(state, agent, { kind: "action_failed", description });

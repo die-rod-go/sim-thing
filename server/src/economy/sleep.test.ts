@@ -1,9 +1,7 @@
 import { describe, expect, it } from "vitest";
 import { config } from "../config";
 import { advanceSleep, endSleep, findWakeReason, isAsleep, startSleep } from "./sleep";
-import { makeAgent, makeObject } from "./test-fixtures";
-
-const bed = makeObject("bed", "Mara's bed");
+import { makeAgent } from "./test-fixtures";
 
 describe("sleep", () => {
   it("sleep recovers energy at the agent's own rate", () => {
@@ -35,11 +33,11 @@ describe("sleep", () => {
   });
 
   it("a nap ends when its chosen length runs out", () => {
-    const result = startSleep(makeAgent(), bed, 100, 30, 1);
+    const result = startSleep(makeAgent(), "Mara's bed", 100, 30, 1);
     if (!result.isSuccess) {
       throw new Error(result.reason);
     }
-    expect(result.agent.currentAction).toEqual({
+    expect(result.agent.currentAction).toMatchObject({
       kind: "sleep",
       target: "Mara's bed",
       endsAtTick: 130,
@@ -48,20 +46,21 @@ describe("sleep", () => {
     expect(findWakeReason(result.agent, 130)).toBe("nap_over");
   });
 
-  it("tracks the sleeper on the bed until they wake", () => {
-    const result = startSleep(makeAgent(), bed, 0);
+  it("wakes into no action at all", () => {
+    const result = startSleep(makeAgent(), "Mara's bed", 0);
     if (!result.isSuccess) {
       throw new Error(result.reason);
     }
     expect(isAsleep(result.agent)).toBe(true);
-    expect(result.bed.state.userIds).toEqual(["mara"]);
-    const woken = endSleep(result.agent, result.bed);
-    expect(isAsleep(woken.agent)).toBe(false);
-    expect(woken.bed.state.userIds).toEqual([]);
+    expect(isAsleep(endSleep(result.agent))).toBe(false);
   });
 
-  it("refuses to sleep on something that isn't a bed", () => {
-    const result = startSleep(makeAgent(), makeObject("bench", "bench"), 0);
-    expect(result).toEqual({ isSuccess: false, reason: "I can't sleep in bench" });
+  it("refuses to sleep while already asleep", () => {
+    const asleep = startSleep(makeAgent(), "Mara's bed", 0);
+    if (!asleep.isSuccess) throw new Error(asleep.reason);
+    expect(startSleep(asleep.agent, "Mara's bed", 1)).toEqual({
+      isSuccess: false,
+      reason: "I'm already asleep",
+    });
   });
 });

@@ -34,7 +34,7 @@ describe("characterSheet", () => {
     ).toBe("walking to bakery");
     expect(
       describeActivity(
-        { kind: "interact", target: "oven", interaction: "bake bread", endsAtTick: 30 },
+        { kind: "interact", target: "oven", verb: "bake bread", endsAtTick: 30 },
         timeSettings,
       ),
     ).toBe("bake bread at oven until 06:30");
@@ -47,7 +47,30 @@ describe("characterSheet", () => {
     expect(formatClockTime(65, timeSettings)).toBe("07:05");
   });
 
-  it("lists coins first and skips items the agent has none of", () => {
-    expect(formatCarrying(12, { bread: 2, wheat: 0 })).toEqual(["12 coins", "2 bread"]);
+  it("counts what the agent carries by definition, coins included", () => {
+    const sprite = { tileset: "village", tile: 0 };
+    const definitions = [
+      { id: "coin", name: "coin", plural: "coins", form: "carriable" as const, sprite },
+      { id: "bread", name: "bread", form: "carriable" as const, sprite },
+    ].map((definition) => ({
+      ...definition,
+      isVisibleWhenCarried: false,
+      properties: [],
+      components: {},
+    }));
+    const carried = (id: string, definitionId: string, agentId: string) => ({
+      id,
+      definitionId,
+      label: null,
+      location: { kind: "inventory" as const, agentId },
+      state: { conditions: [] },
+    });
+    const entities = [
+      carried("entity-1", "coin", "ada"),
+      carried("entity-2", "coin", "ada"),
+      carried("entity-3", "bread", "ada"),
+      carried("entity-4", "bread", "bob"),
+    ];
+    expect(formatCarrying("ada", entities, definitions)).toEqual(["2 coins", "1 bread"]);
   });
 });

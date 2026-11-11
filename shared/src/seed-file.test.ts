@@ -12,7 +12,10 @@ const rules: SeedRules = {
   statRange: { min: 0, max: 1 },
   sleepRecoveryRange: { min: 0.12, max: 0.18 },
   spawnPlaces: ["bakery", "rose cottage"],
-  itemNames: ["bread", "wheat"],
+  carriableItems: [
+    { id: "bread", name: "bread" },
+    { id: "coin", name: "coin" },
+  ],
 };
 
 function buildSeedAgent(overrides: Partial<SeedAgent> = {}): SeedAgent {
@@ -33,8 +36,7 @@ function buildSeedAgent(overrides: Partial<SeedAgent> = {}): SeedAgent {
     sleepRecoveryPerHour: 0.15,
     strength: 0.5,
     agility: 0.5,
-    coins: 30,
-    inventory: { bread: 2 },
+    inventory: { bread: 2, coin: 30 },
     mood: "",
     goals: [],
     peopleNotes: {},
@@ -89,27 +91,30 @@ describe("findSeedFileProblems", () => {
     expect(listFields([buildSeedAgent({ spawnPlace: "the moon" })])).toEqual(["spawnPlace"]);
   });
 
-  it("rejects fractional or negative coins and inventory amounts", () => {
-    expect(listFields([buildSeedAgent({ coins: 2.5, inventory: { bread: -1 } })])).toEqual([
-      "coins",
+  it("rejects fractional or negative inventory amounts, coins included", () => {
+    expect(listFields([buildSeedAgent({ inventory: { bread: -1, coin: 2.5 } })])).toEqual([
       "inventory.bread",
+      "inventory.coin",
     ]);
   });
 
-  it("only warns about unusual sleep recovery, unknown items and notes about strangers", () => {
+  it("rejects inventory items that aren't carriable definitions", () => {
+    expect(listFields([buildSeedAgent({ inventory: { lute: 1 } })])).toEqual(["inventory.lute"]);
+  });
+
+  it("only warns about unusual sleep recovery and notes about strangers", () => {
     const problems = findSeedFileProblems(
       {
         agents: [
           buildSeedAgent({
             sleepRecoveryPerHour: 0.5,
-            inventory: { lute: 1 },
             peopleNotes: { Gregor: "Who is he?" },
           }),
         ],
       },
       rules,
     );
-    expect(problems.map((problem) => problem.severity)).toEqual(["warning", "warning", "warning"]);
+    expect(problems.map((problem) => problem.severity)).toEqual(["warning", "warning"]);
     expect(hasSeedErrors(problems)).toBe(false);
   });
 

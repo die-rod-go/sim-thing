@@ -62,7 +62,11 @@ describe("sound", () => {
     const first = computeSoundCosts(asciiWorld.world, source, normalLoudness);
     expect(computeSoundCosts(asciiWorld.world, source, normalLoudness)).toBe(first);
 
-    const openedWorld = { ...asciiWorld.world, closedDoorTiles: new Set<number>() };
+    const openedWorld = {
+      ...asciiWorld.world,
+      sightBlockingTiles: new Set<number>(),
+      muffledTiles: new Set<number>(),
+    };
     expect(computeSoundCosts(openedWorld, source, normalLoudness)).not.toBe(first);
 
     clearSoundCostCache(asciiWorld.world.grid);

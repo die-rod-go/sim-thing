@@ -20,6 +20,11 @@ export const TILE_NAMES = [
   "card_table",
   "bench",
   "notice_board",
+  "bread",
+  "wheat",
+  "wood",
+  "ale",
+  "coin",
 ] as const;
 
 export type TileName = (typeof TILE_NAMES)[number];
@@ -72,6 +77,12 @@ const colors = {
   feltGreen: [40, 120, 72, 255],
   card: [244, 244, 236, 255],
   paper: [236, 228, 200, 255],
+  crust: [196, 136, 64, 255],
+  crumb: [236, 200, 140, 255],
+  mug: [184, 150, 96, 255],
+  froth: [246, 240, 220, 255],
+  gold: [232, 192, 64, 255],
+  goldDark: [176, 132, 32, 255],
 } satisfies Record<string, Rgba>;
 
 function fillRect(
@@ -177,6 +188,33 @@ const tilePainters: Record<TileName, (painter: Painter) => void> = {
     fillRect(painter, 1, 6, 14, 4, colors.wood);
     fillRect(painter, 2, 10, 2, 4, colors.woodDark);
     fillRect(painter, 12, 10, 2, 4, colors.woodDark);
+  },
+  bread: (painter) => {
+    fillRect(painter, 3, 6, 10, 6, colors.crust);
+    fillRect(painter, 4, 5, 8, 1, colors.crust);
+    fillRect(painter, 5, 7, 6, 2, colors.crumb);
+  },
+  wheat: (painter) => {
+    for (let column = 4; column <= 11; column += 2)
+      fillRect(painter, column, 4, 1, 10, colors.fieldDark);
+    fillRect(painter, 3, 3, 10, 3, colors.field);
+    fillRect(painter, 4, 9, 8, 1, colors.trunk);
+  },
+  wood: (painter) => {
+    fillRect(painter, 2, 5, 12, 3, colors.wood);
+    fillRect(painter, 2, 9, 12, 3, colors.woodDark);
+    fillRect(painter, 12, 5, 2, 3, colors.crumb);
+    fillRect(painter, 12, 9, 2, 3, colors.crumb);
+  },
+  ale: (painter) => {
+    fillRect(painter, 4, 5, 7, 9, colors.mug);
+    fillRect(painter, 4, 3, 7, 2, colors.froth);
+    fillRect(painter, 11, 7, 2, 4, colors.mug);
+  },
+  coin: (painter) => {
+    fillRect(painter, 5, 4, 6, 8, colors.gold);
+    fillRect(painter, 4, 5, 8, 6, colors.gold);
+    fillRect(painter, 7, 6, 2, 4, colors.goldDark);
   },
   notice_board: (painter) => {
     fillRect(painter, 7, 11, 2, 5, colors.woodDark);

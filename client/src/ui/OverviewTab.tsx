@@ -35,12 +35,15 @@ function StatusSection({ agent }: { agent: Agent }) {
 }
 
 export function OverviewTab({ agent }: { agent: Agent }) {
+  const { state } = usePanelContext();
+  const carrying = formatCarrying(agent.id, state.entities, state.itemDefinitions);
   return (
     <div className="overview">
       <StatusSection agent={agent} />
       <PanelSection title="Carrying">
         <div className="token-list">
-          {formatCarrying(agent.coins, agent.inventory).map((entry) => (
+          {carrying.length === 0 && <EmptyNote>Nothing.</EmptyNote>}
+          {carrying.map((entry) => (
             <span key={entry} className="token">
               {entry}
             </span>

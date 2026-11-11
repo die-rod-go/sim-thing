@@ -1,27 +1,33 @@
 import type { Agent, Position } from "@village/shared";
 import { config } from "../config";
 import { computeChebyshevDistance } from "../economy/give";
-import { setDoorOpen } from "../economy/object-state";
+import {
+  describeEntityName,
+  findEntityIfPresent,
+  getDefinition,
+  listTileEntitiesAt,
+  replaceEntity,
+  resolveEntityPosition,
+} from "../items/entity-store";
 import { describePlace, fileFirstVisit } from "../memory/filing";
 import { canSee } from "../perception/sight";
 import { findPlaceAt } from "../world/map-loader";
-import { findPathToAny, findPathToObject, findPathToPlace } from "../world/pathfinding";
+import { findPathToAny, findPathToPlace, findPathToTile } from "../world/pathfinding";
 import { WALK_ACTION } from "./action-phrases";
-import { getAgentRuntime, type PendingInteract, type WalkDestination } from "./agent-runtime";
+import { getAgentRuntime, type PendingVerb, type WalkDestination } from "./agent-runtime";
 import { broadcastEvent } from "./event-broadcast";
 import { createEvent } from "./event-factory";
 import { failAction } from "./failure";
-import { describeDoorOpened, startInteractionNow } from "./interaction-runner";
 import type { TickContext } from "./tick-context";
+import { startVerbNow } from "./verb-runner";
 import {
   buildPerceptionWorld,
+  buildWalkingGrid,
   findAgent,
-  findObjectById,
   markAgentChanged,
-  markObjectChanged,
+  markEntityChanged,
   rememberBriefly,
   replaceAgent,
-  replaceObject,
 } from "./world-access";
 import type { WorldState } from "./world-state";
 
@@ -34,29 +40,38 @@ function computePath(
   from: Position,
   destination: WalkDestination,
 ): Position[] | null {
-  if (destination.kind === "place") return findPathToPlace(state.map, from, destination.placeName);
-  if (destination.kind === "object") {
-    const object = findObjectById(state, destination.objectId);
-    return object ? findPathToObject(state.map, from, object) : null;
+  const grid = buildWalkingGrid(state);
+  if (destination.kind === "place") {
+    return findPathToPlace(state.map, grid, from, destination.placeName);
+  }
+  if (destination.kind === "entity") {
+    const entity = findEntityIfPresent(state, destination.entityId);
+    const position = entity ? resolveEntityPosition(state, entity) : null;
+    return position ? findPathToTile(grid, from, position.pos) : null;
   }
   const other = findAgent(state, destination.agentId);
   const goals = SURROUNDING_OFFSETS.map((offset) => ({
     x: other.pos.x + offset.x,
     y: other.pos.y + offset.y,
   }));
-  return findPathToAny(state.map.grid, from, goals);
+  return findPathToAny(grid, from, goals);
+}
+
+function describeEntityDestination(state: WorldState, entityId: string): string | null {
+  const entity = findEntityIfPresent(state, entityId);
+  return entity ? describeEntityName(state, entity) : null;
 }
 
 function describeDestination(state: WorldState, destination: WalkDestination): string {
   if (destination.kind === "place") return describePlace(destination.placeName);
   if (destination.kind === "agent") return findAgent(state, destination.agentId).name;
-  return `the ${findObjectById(state, destination.objectId)?.name ?? "spot"}`;
+  return `the ${describeEntityDestination(state, destination.entityId) ?? "spot"}`;
 }
 
 function destinationName(state: WorldState, destination: WalkDestination): string {
   if (destination.kind === "place") return destination.placeName;
   if (destination.kind === "agent") return findAgent(state, destination.agentId).name;
-  return findObjectById(state, destination.objectId)?.name ?? "";
+  return describeEntityDestination(state, destination.entityId) ?? "";
 }
 
 /**
@@ -67,7 +82,7 @@ export function startWalk(
   context: TickContext,
   agentId: string,
   destination: WalkDestination,
-  pendingInteract: PendingInteract | null,
+  pendingVerb: PendingVerb | null,
 ): boolean {
   const { state, result } = context;
   const agent = findAgent(state, agentId);
@@ -83,7 +98,7 @@ export function startWalk(
     currentAction: { kind: WALK_ACTION, target: name, endsAtTick: null },
   };
   replaceAgent(state, walking);
-  getAgentRuntime(state, agentId).walk = { destination, remainingSteps: path, pendingInteract };
+  getAgentRuntime(state, agentId).walk = { destination, remainingSteps: path, pendingVerb };
   markAgentChanged(result, agentId);
   const towards = destination.kind === "agent" ? `towards ${name}` : `to ${where}`;
   broadcastEvent(
@@ -99,27 +114,26 @@ export function startWalk(
   return true;
 }
 
+/** Walking into a closed door (anything `openable`) opens it in passing. */
 function openDoorOnTile(context: TickContext, agent: Agent, tile: Position): void {
   const { state, result } = context;
-  const door = state.objects.find(
-    (object) =>
-      object.kind === "door" &&
-      object.state.isOpen === false &&
-      object.pos.x === tile.x &&
-      object.pos.y === tile.y,
+  const door = state.entities.find(
+    (entity) =>
+      entity.state.isOpen === false &&
+      entity.location.kind === "tile" &&
+      entity.location.pos.x === tile.x &&
+      entity.location.pos.y === tile.y,
   );
   if (!door) return;
-  const opened = setDoorOpen(door, true);
-  if (!opened.isSuccess) return;
-  replaceObject(state, opened.object);
-  markObjectChanged(result, door.id);
-  result.interactionStarts.push({ agentId: agent.id, objectId: door.id, interaction: "open" });
+  replaceEntity(state, { ...door, state: { ...door.state, isOpen: true } });
+  markEntityChanged(result, door.id);
+  const doorName = describeEntityName(state, door);
   const event = createEvent(state, agent, {
     kind: "action_finished",
-    description: describeDoorOpened(door),
+    description: config.doors.openedInPassingPhrase.split("{item}").join(doorName),
     targetId: door.id,
-    targetName: door.name,
-    loudness: config.interactions.open?.loudness ?? null,
+    targetName: doorName,
+    loudness: config.doors.openedInPassingLoudness,
   });
   broadcastEvent(state, event, result);
 }
@@ -130,9 +144,9 @@ function noteFirstVisit(context: TickContext, agentId: string, place: string): v
   const isMapPlace = state.map.places.some((area) => area.name === place);
   if (!isMapPlace || runtime.visitedPlaces.includes(place)) return;
   runtime.visitedPlaces.push(place);
-  const objectNames = state.objects
-    .filter((object) => object.place === place && object.kind !== "door")
-    .map((object) => object.name);
+  const objectNames = listTileEntitiesAt(state, place)
+    .filter((entity) => !Object.hasOwn(getDefinition(state, entity).components, "openable"))
+    .map((entity) => describeEntityName(state, entity));
   const memory = fileFirstVisit(agentId, place, objectNames, state.tick, state.memoryIds);
   state.memoryStore.add(memory);
   rememberBriefly(state, agentId, memory.text);
@@ -161,9 +175,9 @@ function arrive(context: TickContext, agentId: string): void {
   replaceAgent(state, agent);
   markAgentChanged(result, agentId);
   const { destination } = walk;
-  if (destination.kind === "object" && walk.pendingInteract) {
-    const object = findObjectById(state, destination.objectId);
-    if (object) startInteractionNow(context, agentId, object, walk.pendingInteract);
+  if (destination.kind === "entity" && walk.pendingVerb) {
+    const used = { kind: "entity", entityId: destination.entityId } as const;
+    startVerbNow(context, agentId, used, walk.pendingVerb);
     return;
   }
   const name = destinationName(state, destination);

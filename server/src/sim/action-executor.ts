@@ -1,19 +1,27 @@
-import type { Agent, AgentThought, DecisionReply } from "@village/shared";
+import { findDefinition, type Agent, type AgentThought, type DecisionReply } from "@village/shared";
 import { config } from "../config";
 import { normalizeDisplayName, resolveName, type NamedCandidate } from "../decision/resolve-name";
 import { computeChebyshevDistance, executeGive } from "../economy/give";
-import { describeQuantity } from "../economy/inventory";
+import {
+  describeEntityName,
+  findEntityIfPresent,
+  listHeldOfDefinition,
+  listTileEntitiesAt,
+  resolveEntityPosition,
+} from "../items/entity-store";
+import { findVerbByName, listVerbsForEntity } from "../items/verb-offers";
 import { filePersonNote } from "../memory/filing";
 import { pushWorkingMemory } from "../memory/working-memory";
 import { isDead } from "../status/health";
-import { WAIT_ACTION } from "./action-phrases";
+import { WAIT_ACTION, describeAttempt } from "./action-phrases";
+import { stopCurrentAction } from "./action-stopping";
 import { getAgentRuntime } from "./agent-runtime";
-import type { DecidedReply, DecisionPlan, PlannedAction } from "./decision-runner";
+import type { DecidedReply, DecisionPlan, PlannedAction, PlannedUse } from "./decision-runner";
 import { broadcastEvent } from "./event-broadcast";
 import { createEvent, createSpeechEvent } from "./event-factory";
 import { failAction } from "./failure";
-import { startInteractionNow, stopCurrentAction } from "./interaction-runner";
 import type { TickContext } from "./tick-context";
+import { startVerbNow } from "./verb-runner";
 import { startWalk } from "./walking";
 import type { WorldState } from "./world-state";
 import {
@@ -21,6 +29,7 @@ import {
   findAgent,
   listKnownNames,
   markAgentChanged,
+  markEntityChanged,
   rememberBriefly,
   replaceAgent,
 } from "./world-access";
@@ -112,37 +121,68 @@ function executeWalk(context: TickContext, agentId: string, targetName: string):
     }
     return;
   }
-  const object = state.objects.find(
-    (candidate) =>
-      candidate.place === agent.place && normalizeDisplayName(candidate.name) === wanted,
+  const entity = listTileEntitiesAt(state, agent.place).find(
+    (candidate) => normalizeDisplayName(describeEntityName(state, candidate)) === wanted,
   );
-  if (object) {
-    startWalk(context, agentId, { kind: "object", objectId: object.id }, null);
+  if (entity) {
+    startWalk(context, agentId, { kind: "entity", entityId: entity.id }, null);
     return;
   }
   failAction(state, result, agentId, `walk to ${targetName}`, "I don't know how to get there");
 }
 
+/** The oldest held item of the planned definition that still offers the verb, if any. */
+function findHeldToUse(
+  state: WorldState,
+  agentId: string,
+  use: Extract<PlannedUse, { kind: "held" }>,
+  verbName: string,
+): string | null {
+  const usable = listHeldOfDefinition(state, agentId, use.definitionId).find(
+    (entity) => findVerbByName(listVerbsForEntity(state, agentId, entity), verbName) !== undefined,
+  );
+  return usable?.id ?? null;
+}
+
+/**
+ * Applies interact: everything is checked again, since the reply was asked for a few ticks ago. A
+ * held item is used at once; a placed thing at once if in reach, after a walk otherwise.
+ */
 function executeInteract(
   context: TickContext,
   agentId: string,
   action: Extract<PlannedAction, { kind: "interact" }>,
 ): void {
-  const { state } = context;
+  const { state, result } = context;
+  const request = { verb: action.verb, text: action.text, minutes: action.minutes };
+  const { use } = action;
+  if (use.kind === "user") {
+    startVerbNow(context, agentId, use, request);
+    return;
+  }
+  if (use.kind === "held") {
+    const entityId = findHeldToUse(state, agentId, use, action.verb);
+    if (entityId === null) {
+      const attempt = describeAttempt(state.items, action.verb, use.name);
+      failAction(state, result, agentId, attempt, `I no longer had any ${use.name}`);
+      return;
+    }
+    startVerbNow(context, agentId, { kind: "entity", entityId }, request);
+    return;
+  }
+  const entity = findEntityIfPresent(state, use.entityId);
+  const position = entity ? resolveEntityPosition(state, entity) : null;
   const agent = findAgent(state, agentId);
-  const request = { interaction: action.interaction, text: action.text, minutes: action.minutes };
-  const object = state.objects.find(
-    (candidate) => candidate.place === agent.place && candidate.name === action.target,
-  );
-  if (!object) {
-    startInteractionNow(context, agentId, action.target, request);
+  if (!entity || !position || entity.location.kind === "inventory") {
+    // Held by someone else now, or gone: the verb runner names the reason.
+    startVerbNow(context, agentId, { kind: "entity", entityId: use.entityId }, request);
     return;
   }
-  if (computeChebyshevDistance(agent.pos, object.pos) <= 1) {
-    startInteractionNow(context, agentId, object, request);
+  if (computeChebyshevDistance(agent.pos, position.pos) <= config.verbs.useReachTiles) {
+    startVerbNow(context, agentId, { kind: "entity", entityId: entity.id }, request);
     return;
   }
-  startWalk(context, agentId, { kind: "object", objectId: object.id }, request);
+  startWalk(context, agentId, { kind: "entity", entityId: entity.id }, request);
 }
 
 function executeGiveAction(
@@ -152,7 +192,7 @@ function executeGiveAction(
 ): void {
   const { state, result } = context;
   const giver = findAgent(state, agentId);
-  const what = describeQuantity(action.amount, action.item.trim().toLowerCase());
+  const what = `${action.amount} ${action.item.trim().toLowerCase()}`;
   const recipientId = resolveName(action.target, listOthersAsSeen(state, agentId));
   if (!recipientId) {
     failAction(
@@ -176,22 +216,27 @@ function executeGiveAction(
     );
     return;
   }
-  const given = executeGive({ giver, recipient, item: action.item, amount: action.amount });
+  const given = executeGive(state, {
+    giver,
+    recipient,
+    itemName: action.item,
+    amount: action.amount,
+  });
   if (!given.isSuccess) {
     failAction(state, result, agentId, `hand ${recipient.name} ${what}`, given.reason);
     return;
   }
-  replaceAgent(state, given.giver);
-  replaceAgent(state, given.recipient);
+  for (const entityId of given.movedEntityIds) markEntityChanged(result, entityId);
   markAgentChanged(result, agentId);
   markAgentChanged(result, recipientId);
-  const event = createEvent(state, given.giver, {
+  const event = createEvent(state, giver, {
     kind: "gave",
-    description: `gave ${recipient.name} ${describeQuantity(given.amount, given.item)}`,
+    description: `gave ${recipient.name} ${given.description}`,
     targetId: recipientId,
     targetName: recipient.name,
-    item: given.item,
+    item: findDefinition(state.items, given.definitionId).name,
     amount: given.amount,
+    itemText: given.description,
   });
   broadcastEvent(state, event, result);
 }

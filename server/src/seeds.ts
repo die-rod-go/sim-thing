@@ -4,6 +4,8 @@ import {
   NEED_NAMES,
   seedFileSchema,
   type Agent,
+  type Entity,
+  type ItemCatalog,
   type Memory,
   type Needs,
   type SeedAgent,
@@ -12,22 +14,23 @@ import {
   type SeedRules,
 } from "@village/shared";
 import { config } from "./config";
+import { createEntity, type EntityWorld } from "./items/entity-store";
 import { findPlaceAt } from "./world/map-loader";
 import type { WorldMap } from "./world/types";
 
 export interface SeededWorld {
   agents: Agent[];
   memories: Memory[];
+  /** The map's placed objects, then every seed inventory, numbered from 1 in that order. */
+  entities: Entity[];
+  nextEntityId: number;
 }
 
-/** Every item name a recipe or held-item interaction knows about, sorted. */
-export function listKnownItemNames(): string[] {
-  const itemNames = new Set(Object.keys(config.heldItems));
-  for (const recipe of Object.values(config.interactions)) {
-    for (const itemName of Object.keys(recipe.inputs)) itemNames.add(itemName);
-    for (const itemName of Object.keys(recipe.outputs)) itemNames.add(itemName);
-  }
-  return [...itemNames].sort();
+/** What a seed inventory may hold: the carriable definitions, in `items.json` order. */
+export function listCarriableItems(items: ItemCatalog): { id: string; name: string }[] {
+  return items.file.definitions
+    .filter((definition) => definition.form === "carriable")
+    .map((definition) => ({ id: definition.id, name: definition.name }));
 }
 
 /** A blank character for the editor: no name or persona yet, with the usual starting state. */
@@ -49,7 +52,6 @@ export function buildNewAgentTemplate(rules: SeedRules): SeedAgent {
     sleepRecoveryPerHour: config.seeds.newAgent.sleepRecoveryPerHour,
     strength: config.seeds.newAgent.strength,
     agility: config.seeds.newAgent.agility,
-    coins: config.economy.startingCoins,
     inventory: { ...config.seeds.newAgent.inventory },
     mood: "",
     goals: [],
@@ -57,13 +59,13 @@ export function buildNewAgentTemplate(rules: SeedRules): SeedAgent {
   };
 }
 
-export function buildSeedRules(map: WorldMap): SeedRules {
+export function buildSeedRules(map: WorldMap, items: ItemCatalog): SeedRules {
   return {
     traitRange: { min: config.traits.min, max: config.traits.max },
     statRange: { min: config.stats.min, max: config.stats.max },
     sleepRecoveryRange: { ...config.seeds.sleepRecoveryRange },
     spawnPlaces: Object.keys(map.spawnPoints).sort(),
-    itemNames: listKnownItemNames(),
+    carriableItems: listCarriableItems(items),
   };
 }
 
@@ -99,8 +101,6 @@ function buildAgent(seed: SeedAgent, map: WorldMap): Agent {
       agility: seed.agility,
     },
     profession: seed.profession,
-    coins: seed.coins,
-    inventory: { ...seed.inventory },
     needs: buildStartingNeeds(),
     health: config.health.startValue,
     starvingSinceTick: null,
@@ -132,18 +132,44 @@ function buildPeopleMemories(seed: SeedAgent): Memory[] {
     }));
 }
 
-/** Builds the starting agents and their seeded people memories; throws on any seed error. */
-export function buildSeededWorld(seedFile: SeedFile, map: WorldMap): SeededWorld {
-  const errors = findSeedFileProblems(seedFile, buildSeedRules(map)).filter(
+function seedEntities(seedFile: SeedFile, map: WorldMap, world: EntityWorld): void {
+  for (const placement of map.placements) {
+    const location = { kind: "tile", place: placement.place, pos: { ...placement.pos } } as const;
+    createEntity(world, placement.definitionId, location, placement.label);
+  }
+  for (const seed of seedFile.agents) {
+    for (const [definitionId, count] of Object.entries(seed.inventory)) {
+      for (let made = 0; made < count; made += 1) {
+        createEntity(world, definitionId, { kind: "inventory", agentId: seed.id });
+      }
+    }
+  }
+}
+
+/**
+ * Builds the starting agents, their seeded people memories, and the entities: the map's objects
+ * and everyone's starting inventory. Throws on any seed error.
+ */
+export function buildSeededWorld(
+  seedFile: SeedFile,
+  map: WorldMap,
+  items: ItemCatalog,
+): SeededWorld {
+  const errors = findSeedFileProblems(seedFile, buildSeedRules(map, items)).filter(
     (problem) => problem.severity === "error",
   );
   if (errors.length > 0) {
     const descriptions = errors.map((problem) => describeProblem(seedFile, problem));
     throw new Error(`Invalid seed file:\n${descriptions.join("\n")}`);
   }
+  const agents = seedFile.agents.map((seed) => buildAgent(seed, map));
+  const world: EntityWorld = { agents, entities: [], nextEntityId: 1, items };
+  seedEntities(seedFile, map, world);
   return {
-    agents: seedFile.agents.map((seed) => buildAgent(seed, map)),
+    agents,
     memories: seedFile.agents.flatMap(buildPeopleMemories),
+    entities: world.entities,
+    nextEntityId: world.nextEntityId,
   };
 }
 

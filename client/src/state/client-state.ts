@@ -2,12 +2,13 @@ import type {
   Agent,
   AgentDetailMessage,
   ClockState,
+  Entity,
+  ItemDefinition,
   Moment,
   SimStats,
   SimTimeSettings,
   Volume,
   WorldEvent,
-  WorldObject,
 } from "@village/shared";
 
 export interface SpeechBubble {
@@ -26,7 +27,9 @@ export interface ClientState {
   baseTicksPerSecond: number;
   speedOptions: number[];
   agents: Agent[];
-  objects: WorldObject[];
+  /** Every item and object: placed, on the ground, carried or inside something. */
+  entities: Entity[];
+  itemDefinitions: ItemDefinition[];
   /** Oldest first, capped. */
   events: WorldEvent[];
   /** Highlights for every agent, oldest first, capped. */
@@ -50,7 +53,8 @@ export const initialClientState: ClientState = {
   baseTicksPerSecond: 1,
   speedOptions: [],
   agents: [],
-  objects: [],
+  entities: [],
+  itemDefinitions: [],
   events: [],
   moments: [],
   speechBubbles: [],

@@ -1,5 +1,4 @@
-import type { Agent, ObjectKind, WorldObject } from "@village/shared";
-import { config } from "../config";
+import type { Agent } from "@village/shared";
 
 export function makeAgent(overrides: Partial<Agent> = {}): Agent {
   return {
@@ -20,8 +19,6 @@ export function makeAgent(overrides: Partial<Agent> = {}): Agent {
     },
     body: { sleepRecoveryPerHour: 0.15, strength: 0.5, agility: 0.5 },
     profession: "baker",
-    coins: config.economy.startingCoins,
-    inventory: {},
     needs: { hunger: 0.8, energy: 0.8, social: 0.8, fun: 0.8 },
     health: 1,
     starvingSinceTick: null,
@@ -46,21 +43,5 @@ export function withExtraversion(agent: Agent, extraversion: number): Agent {
       ...agent.personality,
       traits: { ...agent.personality.traits, extraversion },
     },
-  };
-}
-
-export function makeObject(
-  kind: ObjectKind,
-  name: string,
-  state: WorldObject["state"] = {},
-): WorldObject {
-  return {
-    id: `${kind}-1`,
-    name,
-    kind,
-    place: "village",
-    pos: { x: 5, y: 6 },
-    interactions: config.objects[kind].interactions,
-    state,
   };
 }

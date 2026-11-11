@@ -8,9 +8,15 @@ CREATE TABLE IF NOT EXISTS agents (
   data TEXT NOT NULL
 );
 
-CREATE TABLE IF NOT EXISTS objects (
+-- Placed objects became entities; saves from before them are refused and need `make reset`.
+DROP TABLE IF EXISTS objects;
+
+CREATE TABLE IF NOT EXISTS entities (
   id TEXT PRIMARY KEY,
-  data TEXT NOT NULL
+  definition_id TEXT NOT NULL,
+  label TEXT,
+  location TEXT NOT NULL,
+  state TEXT NOT NULL
 );
 
 CREATE TABLE IF NOT EXISTS memories (

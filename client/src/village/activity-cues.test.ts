@@ -3,8 +3,8 @@ import type { ConversationThread } from "../format/conversations";
 import { listConversationLinks, pickActivityCue, type ActivityGlyphs } from "./activity-cues";
 
 const GLYPHS: ActivityGlyphs = {
-  sleepInteraction: "sleep",
-  interactionGlyphs: { "bake bread": "B" },
+  sleepVerb: "sleep",
+  verbGlyphs: { "bake bread": "B" },
   actionGlyphs: { wait: "W", interact: "I" },
 };
 
@@ -22,14 +22,14 @@ function makeThread(speakerIds: string[], endTick: number): ConversationThread {
 
 describe("pickActivityCue", () => {
   it("shows sleep for a sleeping agent", () => {
-    const sleeping = { kind: "interact", target: "bed", interaction: "sleep", endsAtTick: 400 };
+    const sleeping = { kind: "interact", target: "bed", verb: "sleep", endsAtTick: 400 };
     expect(pickActivityCue(sleeping, GLYPHS)).toEqual({ kind: "sleep" });
   });
 
-  it("prefers the interaction glyph over the action kind glyph", () => {
-    const baking = { kind: "interact", target: "oven", interaction: "bake bread", endsAtTick: 50 };
+  it("prefers the verb glyph over the action kind glyph", () => {
+    const baking = { kind: "interact", target: "oven", verb: "bake bread", endsAtTick: 50 };
     expect(pickActivityCue(baking, GLYPHS)).toEqual({ kind: "glyph", glyph: "B" });
-    const reading = { kind: "interact", target: "board", interaction: "read", endsAtTick: 50 };
+    const reading = { kind: "interact", target: "board", verb: "read", endsAtTick: 50 };
     expect(pickActivityCue(reading, GLYPHS)).toEqual({ kind: "glyph", glyph: "I" });
   });
 

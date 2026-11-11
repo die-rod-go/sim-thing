@@ -4,7 +4,7 @@ import { clampHealth, findCrossedHealthThresholds, isDead } from "../status/heal
 import { getAgentRuntime, requestDecision } from "./agent-runtime";
 import { broadcastEvent } from "./event-broadcast";
 import { createEvent } from "./event-factory";
-import { abandonCurrentAction, wakeAgent } from "./interaction-runner";
+import { abandonCurrentAction, wakeAgent } from "./action-stopping";
 import { buildDeathMoment, recordMoments } from "./moments";
 import type { TickContext } from "./tick-context";
 import { findAgent, markAgentChanged, rememberBriefly, replaceAgent } from "./world-access";

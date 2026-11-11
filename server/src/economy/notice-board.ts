@@ -1,33 +1,40 @@
-import type { Agent, Note, WorldObject } from "@village/shared";
+import type { Agent, Entity, Note } from "@village/shared";
 import { config } from "../config";
 import { failWith, type MechanicResult } from "./types";
 
 /** The newest notes on the board, newest first. */
-export function readNoticeBoard(object: WorldObject): Note[] {
-  const notes = object.state.notes ?? [];
+export function readNoticeBoard(board: Entity): Note[] {
+  const notes = board.state.notes ?? [];
   return notes.slice(-config.noticeBoard.notesShownOnRead).reverse();
 }
 
-/** Adds a note (truncated to the length cap), keeping only the newest `maxNotesKept`. */
+/** Why a note can't be posted, or null. */
+export function findPostBlocker(boardName: string, text: string): string | null {
+  return text.trim().length === 0
+    ? `I need to write something to post a note on the ${boardName}`
+    : null;
+}
+
+/**
+ * Adds a note (truncated to the length cap), keeping only the newest `maxNotes` from the board's
+ * `notes` component.
+ */
 export function postNote(
-  object: WorldObject,
+  board: Entity,
+  boardName: string,
   agent: Agent,
   text: string,
   tick: number,
-): MechanicResult<{ object: WorldObject; note: Note }> {
-  if (object.kind !== "notice_board") {
-    return failWith(`I can't post a note on ${object.name}`);
-  }
-  const trimmed = text.trim();
-  if (trimmed.length === 0) {
-    return failWith(`I need to write something to post a note on ${object.name}`);
-  }
+  maxNotes: number,
+): MechanicResult<{ board: Entity; note: Note }> {
+  const blocker = findPostBlocker(boardName, text);
+  if (blocker !== null) return failWith(blocker);
   const note: Note = {
     authorId: agent.id,
     authorName: agent.name,
-    text: trimmed.slice(0, config.noticeBoard.maxNoteChars),
+    text: text.trim().slice(0, config.noticeBoard.maxNoteChars),
     tick,
   };
-  const notes = [...(object.state.notes ?? []), note].slice(-config.noticeBoard.maxNotesKept);
-  return { isSuccess: true, object: { ...object, state: { ...object.state, notes } }, note };
+  const notes = [...(board.state.notes ?? []), note].slice(-maxNotes);
+  return { isSuccess: true, board: { ...board, state: { ...board.state, notes } }, note };
 }

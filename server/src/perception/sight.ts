@@ -5,7 +5,7 @@ import type { PerceptionWorld } from "./types";
 export function isSightBlockingTile(world: PerceptionWorld, position: Position): boolean {
   if (!isInsideGrid(world.grid, position)) return true;
   const index = tileIndex(world.grid, position);
-  return world.grid.isWall[index] === true || world.closedDoorTiles.has(index);
+  return world.grid.isWall[index] === true || world.sightBlockingTiles.has(index);
 }
 
 export function computeTileDistance(from: Position, to: Position): number {

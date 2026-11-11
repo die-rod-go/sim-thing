@@ -1,5 +1,5 @@
 import { z } from "zod";
-import type { Agent, Bucket, Memory, WorldObject } from "@village/shared";
+import type { Agent, Bucket, Entity, EntityLocation, EntityState, Memory } from "@village/shared";
 import { simRuntimeSchema, type SimRuntime } from "../sim/agent-runtime";
 import type { Database } from "./database";
 
@@ -11,7 +11,8 @@ export interface SavedWorld {
   speed: number;
   dailyTokenBudget: number;
   agents: Agent[];
-  objects: WorldObject[];
+  entities: Entity[];
+  nextEntityId: number;
   memories: Memory[];
   /** Null for saves made before the runtime was persisted; the sim then starts it fresh. */
   runtime: SimRuntime | null;
@@ -19,8 +20,12 @@ export interface SavedWorld {
 
 const RUNTIME_KEY = "runtime";
 
+const OLD_SAVE_MESSAGE =
+  "The saved sim was made by an older version and can't be loaded. Run `make reset` to start fresh.";
+
 const metaSchema = z.object({
   tick: z.coerce.number().int().nonnegative(),
+  nextEntityId: z.coerce.number().int().positive(),
   rngState: z.coerce.number().int().nonnegative(),
   nextEventId: z.coerce.number().int().positive(),
   speed: z.coerce.number().positive(),
@@ -41,12 +46,27 @@ const currentAgentFieldsSchema = z.object({
 /** Agent rows were written by saveWorld from typed values, so a current-format row is trusted. */
 function parseSavedAgent(data: string): Agent {
   const parsed: unknown = JSON.parse(data);
-  if (!currentAgentFieldsSchema.safeParse(parsed).success) {
-    throw new Error(
-      "The saved sim was made by an older version and can't be loaded. Run `make reset` to start fresh.",
-    );
-  }
+  if (!currentAgentFieldsSchema.safeParse(parsed).success) throw new Error(OLD_SAVE_MESSAGE);
   return parsed as Agent;
+}
+
+interface EntityRow {
+  id: string;
+  definition_id: string;
+  label: string | null;
+  location: string;
+  state: string;
+}
+
+/** Entity rows were written by saveWorld from typed values, so their JSON is trusted. */
+function toEntity(row: EntityRow): Entity {
+  return {
+    id: row.id,
+    definitionId: row.definition_id,
+    label: row.label,
+    location: JSON.parse(row.location) as EntityLocation,
+    state: JSON.parse(row.state) as EntityState,
+  };
 }
 
 interface MemoryRow {
@@ -64,6 +84,7 @@ interface MemoryRow {
 export function saveWorld(database: Database, world: SavedWorld): void {
   const meta: SavedMeta = {
     tick: world.tick,
+    nextEntityId: world.nextEntityId,
     rngState: world.rngState,
     nextEventId: world.nextEventId,
     speed: world.speed,
@@ -71,19 +92,29 @@ export function saveWorld(database: Database, world: SavedWorld): void {
   };
   const insertMeta = database.prepare("INSERT INTO meta (key, value) VALUES (?, ?)");
   const insertAgent = database.prepare("INSERT INTO agents (id, data) VALUES (?, ?)");
-  const insertObject = database.prepare("INSERT INTO objects (id, data) VALUES (?, ?)");
+  const insertEntity = database.prepare(
+    "INSERT INTO entities (id, definition_id, label, location, state) VALUES (?, ?, ?, ?, ?)",
+  );
   const insertMemory = database.prepare(
     `INSERT INTO memories (id, agent_id, bucket, tick, text, tags, strength, last_recalled_tick)
      VALUES (?, ?, ?, ?, ?, ?, ?, ?)`,
   );
   database.transaction(() => {
-    for (const table of ["meta", "agents", "objects", "memories"]) {
+    for (const table of ["meta", "agents", "entities", "memories"]) {
       database.exec(`DELETE FROM ${table}`);
     }
     for (const [key, value] of Object.entries(meta)) insertMeta.run(key, String(value));
     if (world.runtime !== null) insertMeta.run(RUNTIME_KEY, JSON.stringify(world.runtime));
     for (const agent of world.agents) insertAgent.run(agent.id, JSON.stringify(agent));
-    for (const object of world.objects) insertObject.run(object.id, JSON.stringify(object));
+    for (const entity of world.entities) {
+      insertEntity.run(
+        entity.id,
+        entity.definitionId,
+        entity.label,
+        JSON.stringify(entity.location),
+        JSON.stringify(entity.state),
+      );
+    }
     for (const memory of world.memories) {
       insertMemory.run(
         memory.id,
@@ -119,7 +150,11 @@ export function loadWorld(database: Database): SavedWorld | null {
     value: string;
   }[];
   if (metaRows.length === 0) return null;
-  const meta = metaSchema.parse(Object.fromEntries(metaRows.map((row) => [row.key, row.value])));
+  const parsedMeta = metaSchema.safeParse(
+    Object.fromEntries(metaRows.map((row) => [row.key, row.value])),
+  );
+  if (!parsedMeta.success) throw new Error(OLD_SAVE_MESSAGE, { cause: parsedMeta.error });
+  const meta = parsedMeta.data;
   const runtimeRow = metaRows.find((row) => row.key === RUNTIME_KEY);
   const runtime = runtimeRow ? simRuntimeSchema.parse(JSON.parse(runtimeRow.value)) : null;
 
@@ -136,11 +171,9 @@ export function loadWorld(database: Database): SavedWorld | null {
     .prepare("SELECT data FROM agents ORDER BY rowid")
     .all()
     .map((row) => parseSavedAgent((row as { data: string }).data));
-  // Object rows were written by saveWorld from typed values, so they are trusted as that type.
-  const objects = database
-    .prepare("SELECT data FROM objects ORDER BY rowid")
-    .all()
-    .map((row) => JSON.parse((row as { data: string }).data) as WorldObject);
+  const entities = (
+    database.prepare("SELECT * FROM entities ORDER BY rowid").all() as EntityRow[]
+  ).map(toEntity);
   const memories = (
     database.prepare("SELECT * FROM memories ORDER BY rowid").all() as MemoryRow[]
   ).map(toMemory);
@@ -149,7 +182,7 @@ export function loadWorld(database: Database): SavedWorld | null {
     ...meta,
     nextEventId: Math.max(meta.nextEventId, (maxEventId ?? 0) + 1),
     agents,
-    objects,
+    entities,
     memories,
     runtime: runtime && {
       ...runtime,

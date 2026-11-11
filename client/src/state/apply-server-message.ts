@@ -1,4 +1,4 @@
-import type { Agent, ServerMessage, WorldObject } from "@village/shared";
+import type { Agent, Entity, ServerMessage } from "@village/shared";
 import { clientConfig } from "../client-config";
 import type { ClientState, SpeechBubble } from "./client-state";
 
@@ -42,7 +42,8 @@ export function applyServerMessage(state: ClientState, message: ServerMessage): 
         baseTicksPerSecond: message.baseTicksPerSecond,
         speedOptions: message.speedOptions,
         agents: message.agents,
-        objects: message.objects,
+        entities: message.entities,
+        itemDefinitions: message.itemDefinitions,
         events: keepNewest(message.recentEvents, clientConfig.state.maxFeedEvents),
         moments: keepNewest(message.recentMoments, clientConfig.state.maxMoments),
         speechBubbles: [],
@@ -87,13 +88,12 @@ export function applyServerMessage(state: ClientState, message: ServerMessage): 
     case "interacted":
       return state;
     case "state_changed":
-      return {
-        ...state,
-        agents: message.agents ? mergeById(state.agents, message.agents) : state.agents,
-        objects: message.objects
-          ? mergeById<WorldObject>(state.objects, message.objects)
-          : state.objects,
-      };
+      return { ...state, agents: mergeById(state.agents, message.agents) };
+    case "entities_changed": {
+      const removed = new Set(message.removedEntityIds);
+      const kept = state.entities.filter((entity) => !removed.has(entity.id));
+      return { ...state, entities: mergeById<Entity>(kept, message.entities) };
+    }
     case "event_logged":
       return {
         ...state,

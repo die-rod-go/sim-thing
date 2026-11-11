@@ -21,13 +21,13 @@ export function clearSoundCostCache(grid: TileGrid): void {
 }
 
 function computeEnteringCost(world: PerceptionWorld, index: number): number {
-  return world.closedDoorTiles.has(index)
+  return world.muffledTiles.has(index)
     ? config.perception.closedDoorSoundCost
     : config.perception.openTileSoundCost;
 }
 
 function buildCacheKey(world: PerceptionWorld, sourceIndex: number, maxCost: number): string {
-  const doorSignature = [...world.closedDoorTiles].sort((first, second) => first - second);
+  const doorSignature = [...world.muffledTiles].sort((first, second) => first - second);
   return `${sourceIndex}|${maxCost}|${doorSignature.join(",")}`;
 }
 

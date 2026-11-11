@@ -1,9 +1,12 @@
 import {
+  describeCount,
   formatSimTime,
   toSimTime,
   type AgentCondition,
   type AgentDeath,
   type CurrentAction,
+  type Entity,
+  type ItemDefinition,
   type NeedName,
   type SimTimeSettings,
   type TraitName,
@@ -101,7 +104,7 @@ export function describeActivity(
     case "wait":
       return `waiting${until}`;
     case "interact": {
-      const doing = action.interaction ?? "using";
+      const doing = action.verb ?? "using";
       return target ? `${doing} at ${target}${until}` : `${doing}${until}`;
     }
     default:
@@ -115,9 +118,20 @@ export function formatClockTime(tick: number, timeSettings: SimTimeSettings): st
   return full.slice(full.indexOf(", ") + 2);
 }
 
-export function formatCarrying(coins: number, inventory: Record<string, number>): string[] {
-  const items = Object.entries(inventory)
-    .filter(([, count]) => count > 0)
-    .map(([item, count]) => `${count} ${item}`);
-  return [`${coins} coins`, ...items];
+/** "30 coins", "2 bread", "a knife": what the agent carries, counted by definition. */
+export function formatCarrying(
+  agentId: string,
+  entities: readonly Entity[],
+  definitions: readonly ItemDefinition[],
+): string[] {
+  const counts = new Map<string, number>();
+  for (const entity of entities) {
+    if (entity.location.kind !== "inventory" || entity.location.agentId !== agentId) continue;
+    counts.set(entity.definitionId, (counts.get(entity.definitionId) ?? 0) + 1);
+  }
+  const definitionsById = new Map(definitions.map((definition) => [definition.id, definition]));
+  return [...counts].map(([definitionId, count]) => {
+    const definition = definitionsById.get(definitionId);
+    return definition ? describeCount(definition, count) : `${count} ${definitionId}`;
+  });
 }

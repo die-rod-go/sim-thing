@@ -151,10 +151,31 @@ describe("applyServerMessage", () => {
     const clara = makeSampleAgent("clara", "Clara", 1, 1);
     const state = applyServerMessage(loadedState(), {
       type: "state_changed",
-      agents: [{ ...bob, coins: 99 }, clara],
+      agents: [{ ...bob, mood: "elated" }, clara],
     });
     expect(state.agents.map((agent) => agent.id)).toEqual(["ada", "bob", "clara"]);
-    expect(state.agents[1]?.coins).toBe(99);
+    expect(state.agents[1]?.mood).toBe("elated");
+  });
+
+  it("merges changed entities and drops removed ones", () => {
+    const bread = (id: string) => ({
+      id,
+      definitionId: "bread",
+      label: null,
+      location: { kind: "inventory" as const, agentId: "ada" },
+      state: { conditions: [] },
+    });
+    const withBread = applyServerMessage(loadedState(), {
+      type: "entities_changed",
+      entities: [bread("entity-1"), bread("entity-2")],
+      removedEntityIds: [],
+    });
+    const eaten = applyServerMessage(withBread, {
+      type: "entities_changed",
+      entities: [],
+      removedEntityIds: ["entity-1"],
+    });
+    expect(eaten.entities.map((entity) => entity.id)).toEqual(["entity-2"]);
   });
 
   it("stores agent detail only for the inspected agent", () => {

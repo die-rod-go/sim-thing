@@ -4,8 +4,10 @@ import type { TileGrid } from "../world/types";
 /** What perception needs to know about the world on one tick. */
 export interface PerceptionWorld {
   grid: TileGrid;
-  /** Tile indexes of doors that are currently closed: they block sight and cost extra for sound. */
-  closedDoorTiles: Set<number>;
+  /** Tile indexes that block sight besides walls: closed doors and objects in the way. */
+  sightBlockingTiles: Set<number>;
+  /** Tile indexes that cost sound extra to pass: closed doors. */
+  muffledTiles: Set<number>;
 }
 
 export interface Perceiver {

@@ -204,17 +204,6 @@ function StartingStateSection({ agent, rules, problems, onChange }: SectionProps
         )}
       </Field>
       <div className="field-grid">
-        <Field label="Coins" problems={selectFieldProblems(problems, "coins")}>
-          {(inputId) => (
-            <NumberInput
-              id={inputId}
-              value={agent.coins}
-              min={0}
-              step={1}
-              onChange={(coins) => onChange({ ...agent, coins })}
-            />
-          )}
-        </Field>
         <Field
           label="Sleep recovery per hour"
           hint={`Energy regained per hour of sleep; usually ${min}–${max}.`}
@@ -231,12 +220,12 @@ function StartingStateSection({ agent, rules, problems, onChange }: SectionProps
           )}
         </Field>
       </div>
-      <h3>Carrying</h3>
+      <h3>Carrying (coins too)</h3>
       <InventoryEditor
         agent={agent}
         problems={problems}
         onChange={onChange}
-        itemNames={rules.itemNames}
+        carriableItems={rules.carriableItems}
       />
     </FormSection>
   );

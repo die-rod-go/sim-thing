@@ -14,7 +14,7 @@ describe("reflection hook", () => {
         if (request.schemaName !== "decision_reply") return fake(request, callIndex);
         decisionCount += 1;
         return decisionCount === 1
-          ? decisionReply({ action: "interact", target: "rose cottage bed", interaction: "sleep" })
+          ? decisionReply({ action: "interact", target: "rose cottage bed", verb: "sleep" })
           : decisionReply({ action: "wait", minutes: 240 });
       },
     });

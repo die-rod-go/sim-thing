@@ -2,14 +2,16 @@ import { describe, expect, it } from "vitest";
 import { config } from "../config";
 import { SimLoop, type AdvanceTick } from "./loop";
 import { ManualScheduler, flushPromises } from "./manual-scheduler";
+import { buildEmptyItems, buildEmptySeededWorld } from "./test-sim";
 import { createEmptyTickResult, createWorldState, type WorldState } from "./world-state";
 
 const INTERVAL_AT_1X_MS = 1000 / config.clock.baseTicksPerSecond;
 
 function buildEmptyState(): WorldState {
   return createWorldState(
-    { grid: { width: 1, height: 1, isWall: [false] }, places: [], objects: [], spawnPoints: {} },
-    { agents: [], memories: [] },
+    { grid: { width: 1, height: 1, isWall: [false] }, places: [], placements: [], spawnPoints: {} },
+    buildEmptySeededWorld(),
+    buildEmptyItems(),
   );
 }
 

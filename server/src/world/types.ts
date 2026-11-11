@@ -1,4 +1,4 @@
-import type { Position, WorldObject } from "@village/shared";
+import type { Position } from "@village/shared";
 
 /** Collision grid, row-major: index = y * width + x. */
 export interface TileGrid {
@@ -17,11 +17,19 @@ export interface PlaceArea {
   height: number;
 }
 
+/** An object the map places: which item definition, and the name it goes by ("bakery door"). */
+export interface MapPlacement {
+  label: string;
+  definitionId: string;
+  place: string;
+  pos: Position;
+}
+
 export interface WorldMap {
   grid: TileGrid;
   places: PlaceArea[];
-  /** Objects as placed on the map, with their starting state. Doors are objects of kind "door". */
-  objects: WorldObject[];
+  /** Placed objects, loaded as tile entities when a world is seeded. Doors are placements too. */
+  placements: MapPlacement[];
   /** Named spawn tiles from the map, used by seeds ("rose cottage", "tavern", ...). */
   spawnPoints: Record<string, Position>;
 }

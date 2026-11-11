@@ -1,6 +1,12 @@
 import { describe, expect, it } from "vitest";
 import type { LlmRequest } from "../llm/types";
-import { createTestSim, decisionReply, promptOf, scriptByAgent } from "./test-sim";
+import {
+  createTestSim,
+  decisionReply,
+  findEntityByLabel,
+  promptOf,
+  scriptByAgent,
+} from "./test-sim";
 
 const SQUARE = { x: 19, y: 15 };
 
@@ -85,18 +91,15 @@ describe("talking and perception", () => {
     const mara = sim.agent("mara");
     sim.state.agents[0] = {
       ...mara,
-      currentAction: {
-        kind: "sleep",
-        target: "rose cottage bed",
-        interaction: "sleep",
-        endsAtTick: null,
-      },
+      currentAction: { kind: "sleep", target: "rose cottage bed", verb: "sleep", endsAtTick: null },
     };
-    sim.state.agentRuntimes.mara!.interaction = {
+    const bed = findEntityByLabel(sim.state, "rose cottage bed");
+    sim.state.agentRuntimes.mara!.verbRun = {
       agentId: "mara",
-      interaction: "sleep",
-      targetName: "rose cottage bed",
-      objectId: "rose-cottage-bed",
+      verb: "sleep",
+      usedEntityId: bed.id,
+      usedDefinitionId: bed.definitionId,
+      usedName: "rose cottage bed",
       startedAtTick: 0,
     };
     await sim.advance(3);
@@ -131,18 +134,14 @@ describe("talking and perception", () => {
       }),
     });
     sim.placeAgent("mara", { x: 6, y: 14 });
-    const door = sim.state.objects.find((object) => object.name === "bakery door")!;
+    const door = findEntityByLabel(sim.state, "bakery door");
     door.state.isOpen = false;
     await sim.advance(20);
-    expect(sim.state.objects.find((object) => object.name === "bakery door")?.state.isOpen).toBe(
-      true,
-    );
+    expect(findEntityByLabel(sim.state, "bakery door").state.isOpen).toBe(true);
     const events = sim.results.flatMap((result) => result.events);
     expect(events).toContainEqual(
       expect.objectContaining({ kind: "action_finished", description: "opened the bakery door" }),
     );
-    expect(sim.results.flatMap((result) => result.interactionStarts)).toContainEqual(
-      expect.objectContaining({ objectId: "bakery-door", interaction: "open" }),
-    );
+    expect(sim.results.flatMap((result) => result.changedEntityIds)).toContain(door.id);
   });
 });

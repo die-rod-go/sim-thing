@@ -45,12 +45,13 @@ function describeDecisionAction(fields: ReplyFields): string | null {
   const action = readText(fields, "action");
   if (action === null || action === "continue") return null;
   const target = readText(fields, "target");
-  const interaction = readText(fields, "interaction");
+  const verb = readText(fields, "verb");
+  const item = readText(fields, "item");
   switch (action) {
     case "walk_to":
       return `walk to ${target ?? "?"}`;
     case "interact":
-      return `${interaction ?? "use"}${target ? ` at ${target}` : ""}`;
+      return [verb ?? "use", item, target ? `at ${target}` : null].filter(Boolean).join(" ");
     case "give": {
       const amount = readNumber(fields, "amount");
       const item = readText(fields, "item") ?? "?";
