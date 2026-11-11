@@ -1,7 +1,7 @@
 # Items, verbs and status: design
 
-Status: **agreed design**. Phases 1 (status) and 2 (entities) of the build order are built; the
-rest is not yet. Decisions taken in review are listed at the end.
+Status: **built** (all six phases of the build order). Where the code differs from this document,
+the code and `AGENTS.md` are the reference. Decisions taken in review are listed at the end.
 
 ## Goal
 
