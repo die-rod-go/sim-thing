@@ -9,6 +9,7 @@ import {
 import { addEntityUser, removeEntityUser } from "../items/entity-users";
 import { resolveNumber } from "../items/verb-numbers";
 import { isDead } from "../status/health";
+import type { Impairment } from "../status/impairment";
 import { describeAttempt, describeItemCounts, describeOngoingVerb } from "./action-phrases";
 import {
   getAgentRuntime,
@@ -42,6 +43,7 @@ import {
   markEntityRemoved,
   replaceAgent,
 } from "./world-access";
+import { addSlowFinish, findVerbSlowdown, noteSlowStart } from "./verb-slowdown";
 import type { WorldState } from "./world-state";
 
 export type { UsedThing } from "./agent-runtime";
@@ -71,10 +73,15 @@ function effectsAt(verb: Verb, when: "start" | "finish"): Effect[] {
   return verb.effects.filter((effect) => (effect.when ?? "finish") === when);
 }
 
-function computeEndTick(state: WorldState, verb: Verb, definitionId: string | null): number | null {
+function computeEndTick(
+  state: WorldState,
+  verb: Verb,
+  definitionId: string | null,
+  slowdown: Impairment | null,
+): number | null {
   if (verb.minutes === null) return null;
   const definition = definitionId === null ? null : findDefinition(state.items, definitionId);
-  const minutes = resolveNumber(verb.minutes, definition);
+  const minutes = resolveNumber(verb.minutes, definition) * (1 + (slowdown?.amount ?? 0));
   return state.tick + Math.max(1, Math.ceil(minutes / minutesPerTick));
 }
 
@@ -108,18 +115,19 @@ function beginRun(context: TickContext, run: VerbRun, use: ResolvedUse): void {
   const { state, result } = context;
   const { agentId } = run;
   const agent = findAgent(state, agentId);
+  const slowdown = findVerbSlowdown(agent, use.verb);
   replaceAgent(state, {
     ...agent,
     currentAction: {
       kind: "interact",
       target: use.name,
       verb: use.verb.name,
-      endsAtTick: computeEndTick(state, use.verb, run.usedDefinitionId),
+      endsAtTick: computeEndTick(state, use.verb, run.usedDefinitionId, slowdown),
     },
   });
   const runtime = getAgentRuntime(state, agentId);
   runtime.walk = null;
-  runtime.verbRun = run;
+  runtime.verbRun = slowdown === null ? run : { ...run, slowedBy: slowdown.statusWords };
   markAgentChanged(result, agentId);
   changeUsers(context, run, addEntityUser);
   if (use.entity) result.verbStarts.push({ agentId, entityId: use.entity.id, verb: run.verb });
@@ -210,6 +218,7 @@ export function startVerbNow(
   consumeInputs(context, agentId, use.verb, run.usedEntityId);
   const outcomes = effectsAt(use.verb, "start").map((effect) => applyEffect(effectRun, effect));
   if (!outcomes.some((outcome) => outcome.isStartAnnounced)) announceStart(context, run, use.verb);
+  noteSlowStart(state, agentId);
 }
 
 /** The first reason any of the effects can't run now: a full chest, an empty field. */
@@ -297,7 +306,7 @@ function announceFinish(context: TickContext, run: VerbRun, outcomes: EffectOutc
     state,
     createEvent(state, findAgent(state, run.agentId), {
       kind: "action_finished",
-      ...prefixPhrases(phrases, "finished "),
+      ...addSlowFinish(prefixPhrases(phrases, "finished "), run),
       ...describeRunTarget(run),
     }),
     result,

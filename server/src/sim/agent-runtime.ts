@@ -64,6 +64,8 @@ const verbRunSchema = z.object({
   aim: verbAimSchema.optional(),
   /** How the target reads in phrases ("Tobias", "the bakery door", "themselves"). */
   aimName: z.string().optional(),
+  /** What made the verb take longer than usual ("exhausted"); absent when nothing did. */
+  slowedBy: z.string().optional(),
   /** The entities `on: chosen` refers to, oldest first: what the verb moves. */
   chosenEntityIds: z.array(z.string()).optional(),
 });

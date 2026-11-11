@@ -1,4 +1,5 @@
 import { describe, expect, it } from "vitest";
+import { config } from "../config";
 import type { Entity, EntityLocation } from "@village/shared";
 import { countHeld, createEntity, findEntity, replaceEntity } from "../items/entity-store";
 import { tileIndex } from "../world/types";
@@ -8,7 +9,7 @@ import { wakeAgent } from "./action-stopping";
 import { createNoReflectionHook } from "./reflection-hook";
 import { createTestSim, findEntityByLabel, scriptByAgent, type TestSim } from "./test-sim";
 import type { TickContext } from "./tick-context";
-import { buildPerceptionWorld } from "./world-access";
+import { buildPerceptionWorld, replaceAgent } from "./world-access";
 import { createEmptyTickResult } from "./world-state";
 
 const NEXT_TO_FIELD = { x: 8, y: 23 };
@@ -58,6 +59,47 @@ function handOver(sim: TestSim, agentId: string, definitionId: string): Entity {
 function lastFailure(sim: TestSim, agentId: string): string | null {
   return getAgentRuntime(sim.state, agentId).lastFailure;
 }
+
+function exhaust(sim: TestSim, agentId: string): void {
+  const agent = sim.agent(agentId);
+  replaceAgent(sim.state, { ...agent, needs: { ...agent.needs, energy: 0.05 } });
+}
+
+function minutesUntilDone(sim: TestSim, agentId: string): number {
+  const endsAtTick = sim.agent(agentId).currentAction?.endsAtTick ?? sim.state.tick;
+  return (endsAtTick - sim.state.tick) * config.clock.minutesPerTick;
+}
+
+describe("slowed by pressing needs", () => {
+  it("takes longer when exhausted and tells the agent why as it starts", () => {
+    const rested = buildSim();
+    rested.placeAgent("mara", NEXT_TO_FIELD);
+    startOn(rested, "mara", findEntityByLabel(rested.state, "wheat field"), "harvest wheat");
+    const tired = buildSim();
+    tired.placeAgent("mara", NEXT_TO_FIELD);
+    exhaust(tired, "mara");
+    startOn(tired, "mara", findEntityByLabel(tired.state, "wheat field"), "harvest wheat");
+    expect(minutesUntilDone(tired, "mara")).toBeGreaterThan(minutesUntilDone(rested, "mara"));
+    expect(tired.agent("mara").workingMemory.at(-1)).toContain(
+      "This will take longer than usual because I'm exhausted",
+    );
+    expect(rested.agent("mara").workingMemory.join(" ")).not.toContain("longer than usual");
+  });
+
+  it("tells only the agent itself that it finished slowly", () => {
+    const sim = buildSim();
+    sim.placeAgent("mara", NEXT_TO_FIELD);
+    exhaust(sim, "mara");
+    startOn(sim, "mara", findEntityByLabel(sim.state, "wheat field"), "harvest wheat");
+    const finishEvent = finish(sim, "mara").result.events.at(-1);
+    expect(finishEvent?.description).toBe(
+      "finished harvesting wheat at the wheat field, making 3 wheat",
+    );
+    expect(finishEvent?.actorDescription).toBe(
+      "finished harvesting wheat at the wheat field, making 3 wheat, slowly, because I was exhausted",
+    );
+  });
+});
 
 describe("verb effects", () => {
   it("takes stock when harvesting starts and produces wheat when it finishes", () => {

@@ -54,7 +54,7 @@ function buildTemplateValues(context: DecisionContext, memories: RecalledMemorie
     belongings: describeBelongings(context.belongings, context.itemlessVerbs),
     workingMemory: describeWorkingMemory(context.workingMemory),
     conversation: describeConversation(context.conversation),
-    memories: describeMemories(memories),
+    memories: describeMemories(memories, context.foggedBy),
     actions: listOfferedActions(context.isMidActionInterrupt).join(", "),
     targets: listTargetNames(context.validTargets).join(", "),
     items: context.validItems.map((item) => item.name).join(", ") || "none",

@@ -20,6 +20,7 @@ import {
   listVerbsForEntity,
 } from "../items/verb-offers";
 import { searchMemories } from "../memory/recall";
+import { fillStatusWords, findFailedRecall } from "../status/impairment";
 import { extractTags } from "../memory/tags";
 import { pushWorkingMemory } from "../memory/working-memory";
 import { isDead } from "../status/health";
@@ -97,12 +98,10 @@ async function askForDecision(
   request: DecisionRequest,
   agentOverride?: Agent,
 ): Promise<DecidedReply> {
-  const context = buildDecisionContext(
-    state,
-    request.agentId,
-    request.isMidActionInterrupt,
-    agentOverride,
-  );
+  const context = buildDecisionContext(state, request.agentId, request.isMidActionInterrupt, {
+    passiveRecallRoll: request.recallRolls.passive,
+    ...(agentOverride ? { agentOverride } : {}),
+  });
   const prompt = buildDecisionPrompt(context, dependencies.promptsDirectory);
   const schemas = buildDecisionReplySchema(context.validTargets, context.validItems, {
     isMidActionInterrupt: request.isMidActionInterrupt,
@@ -119,8 +118,16 @@ async function askForDecision(
     : { reply: fallbackWait(findAgent(state, request.agentId)), llmCallId: null };
 }
 
-/** The `recall` action: memories sharing names in the query, plus where named agents were last perceived. */
-function runRecall(state: WorldState, agent: Agent, query: string): string[] {
+/**
+ * The `recall` action: memories sharing names in the query, plus where named agents were last
+ * perceived. A pressing need or wound can make the search fail, leaving every memory untouched.
+ */
+export function runRecall(state: WorldState, agent: Agent, query: string, roll: number): string[] {
+  const fog = findFailedRecall(agent, roll);
+  if (fog !== null) {
+    const failed = fillStatusWords(config.impairment.recallFailedText, fog.statusWords);
+    return [formatWorkingMemoryEntry(state.tick, failed.split("{query}").join(query))];
+  }
   const memories = searchMemories(
     state.memoryStore,
     agent.id,
@@ -392,7 +399,7 @@ export async function runDecision(
   let recallEntries: string[] = [];
   let finalReply = first.reply;
   if (finalReply.action === "recall") {
-    recallEntries = runRecall(state, agent, finalReply.query ?? "");
+    recallEntries = runRecall(state, agent, finalReply.query ?? "", request.recallRolls.explicit);
     const workingMemory = recallEntries.reduce(
       (entries, entry) => pushWorkingMemory(entries, entry),
       agent.workingMemory,

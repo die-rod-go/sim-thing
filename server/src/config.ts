@@ -18,6 +18,10 @@ export interface NeedWord {
   text: string;
   /** What a pressing need feels like; only the low levels have one. */
   urge?: string;
+  /** Extra share of time a verb takes at this level (0.5 = half as long again). */
+  slowdown?: number;
+  /** Chance, per decision, that recall fails at this level. */
+  recallFailureChance?: number;
 }
 
 /** A health level: what the agent feels about itself, and what others see once it shows. */
@@ -28,6 +32,10 @@ export interface HealthWord {
   looks: string;
   /** What a serious wound feels like; a level with one is put first in the prompt, like a need. */
   urge?: string;
+  /** Extra share of time a verb takes at this level, as for needs. */
+  slowdown?: number;
+  /** Chance, per decision, that recall fails at this level, as for needs. */
+  recallFailureChance?: number;
 }
 
 export const config = {
@@ -111,8 +119,20 @@ export const config = {
      */
     words: {
       hunger: [
-        { below: 0.1, text: "starving", urge: "you feel weak and shaky and need food now" },
-        { below: 0.3, text: "very hungry", urge: "your stomach aches and you need to eat soon" },
+        {
+          below: 0.1,
+          text: "starving",
+          urge: "you feel weak and shaky and need food now",
+          slowdown: 0.5,
+          recallFailureChance: 0.3,
+        },
+        {
+          below: 0.3,
+          text: "very hungry",
+          urge: "your stomach aches and you need to eat soon",
+          slowdown: 0.2,
+          recallFailureChance: 0.1,
+        },
         { below: 0.5, text: "quite hungry" },
         { below: 0.7, text: "a little peckish" },
         { below: Infinity, text: "well fed" },
@@ -122,15 +142,34 @@ export const config = {
           below: 0.1,
           text: "exhausted",
           urge: "you can barely keep your eyes open and need to sleep now",
+          slowdown: 0.6,
+          recallFailureChance: 0.35,
         },
-        { below: 0.3, text: "very tired", urge: "your body is heavy and you need sleep soon" },
+        {
+          below: 0.3,
+          text: "very tired",
+          urge: "your body is heavy and you need sleep soon",
+          slowdown: 0.3,
+          recallFailureChance: 0.15,
+        },
         { below: 0.5, text: "tired" },
         { below: 0.7, text: "a bit tired" },
         { below: Infinity, text: "rested" },
       ],
       social: [
-        { below: 0.1, text: "desperately lonely", urge: "you ache for real company" },
-        { below: 0.3, text: "lonely", urge: "you want someone to really talk to" },
+        {
+          below: 0.1,
+          text: "desperately lonely",
+          urge: "you ache for real company",
+          slowdown: 0.1,
+          recallFailureChance: 0.1,
+        },
+        {
+          below: 0.3,
+          text: "lonely",
+          urge: "you want someone to really talk to",
+          recallFailureChance: 0.05,
+        },
         { below: 0.5, text: "a bit lonely" },
         { below: 0.7, text: "content with company" },
         { below: Infinity, text: "socially fulfilled" },
@@ -140,6 +179,8 @@ export const config = {
           below: 0.1,
           text: "miserably bored",
           urge: "you badly need something enjoyable to do",
+          slowdown: 0.1,
+          recallFailureChance: 0.05,
         },
         { below: 0.3, text: "bored", urge: "you want something enjoyable to do" },
         { below: 0.5, text: "a bit bored" },
@@ -147,6 +188,18 @@ export const config = {
         { below: Infinity, text: "having a good time" },
       ],
     } satisfies Record<NeedName, NeedWord[]>,
+  },
+
+  /**
+   * How pressing needs and wounds get in the way, using the `slowdown` and `recallFailureChance` of
+   * each level above. `{status}` becomes the words for what is getting in the way.
+   */
+  impairment: {
+    slowStartText: "This will take longer than usual because I'm {status}",
+    slowOngoingText: "slow going because you are {status}",
+    slowFinishText: "slowly, because I was {status}",
+    recallFailedText: `I tried to recall "{query}" but couldn't think straight because I'm {status}`,
+    foggyMindText: "Your thoughts are foggy because you are {status}; little comes to mind.",
   },
 
   health: {
@@ -173,12 +226,16 @@ export const config = {
         text: "near death",
         looks: "looks near death",
         urge: "you can barely stand and feel your life slipping away",
+        slowdown: 0.8,
+        recallFailureChance: 0.3,
       },
       {
         below: 0.35,
         text: "badly wounded",
         looks: "looks badly wounded",
         urge: "your wounds throb and you feel faint",
+        slowdown: 0.4,
+        recallFailureChance: 0.1,
       },
       { below: 0.6, text: "hurt", looks: "looks hurt" },
       { below: 0.9, text: "bruised", looks: "looks bruised" },
