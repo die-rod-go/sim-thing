@@ -97,8 +97,6 @@ verb applies to held things with one. How hard it hits comes from that component
 - `glyph` is required: placeables and items on the ground are drawn from it (see Client). `index`
   is a CP437 code in the glyph sheet (`maps/acorn-tileset-8x8.png`), `color` tints it, and an
   optional `background` fills the tile behind it.
-- `glyphWhenClosed` is optional: something with the `openable` component is drawn with it while
-  closed (a door is `'` open and `+` closed).
 - `onBroken` runs when durability reaches 0. Without it the entity is destroyed.
 - Every carriable definition must have a `weight` component (validation rejects one without), so
   anything you can hold can be thrown. Coins weigh a few grams.

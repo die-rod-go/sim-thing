@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 import type { Entity, ItemDefinition } from "@village/shared";
-import { listPlacedGlyphs, pickEntityGlyph } from "./entity-glyphs";
+import { listPlacedGlyphs } from "./entity-glyphs";
 
 const oven: ItemDefinition = {
   id: "oven",
@@ -38,34 +38,5 @@ describe("listPlacedGlyphs", () => {
       "entity-2",
       "entity-1",
     ]);
-  });
-});
-
-describe("pickEntityGlyph", () => {
-  const openGlyph = { index: 39, color: "#e0b060" };
-  const closedGlyph = { index: 43, color: "#f0c878", background: "#6b4426" };
-  const door: ItemDefinition = {
-    ...oven,
-    id: "door",
-    name: "door",
-    glyph: openGlyph,
-    glyphWhenClosed: closedGlyph,
-  };
-  const doorEntity = (isOpen: boolean | undefined): Entity => ({
-    ...entityAt("entity-1", { kind: "tile", place: "bakery", pos: { x: 6, y: 11 } }),
-    definitionId: "door",
-    state: { conditions: [], isOpen },
-  });
-
-  it("draws a closed door with its closed glyph", () => {
-    expect(pickEntityGlyph(doorEntity(false), door)).toEqual(closedGlyph);
-  });
-
-  it("draws an open door with its usual glyph", () => {
-    expect(pickEntityGlyph(doorEntity(true), door)).toEqual(openGlyph);
-  });
-
-  it("falls back to the usual glyph when no closed glyph is given", () => {
-    expect(pickEntityGlyph(doorEntity(false), oven)).toEqual(oven.glyph);
   });
 });

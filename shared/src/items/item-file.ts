@@ -265,8 +265,6 @@ export const itemDefinitionSchema = z.strictObject({
   plural: z.string().trim().min(1).optional(),
   form: z.enum(ITEM_FORMS),
   glyph: glyphSchema,
-  /** Drawn instead of `glyph` while an openable thing is closed. */
-  glyphWhenClosed: glyphSchema.optional(),
   isVisibleWhenCarried: z.boolean().default(false),
   properties: z.array(identifierSchema).default([]),
   /** Component name to its field values. */

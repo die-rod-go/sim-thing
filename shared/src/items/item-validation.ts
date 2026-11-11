@@ -88,12 +88,6 @@ function checkDefinitions(context: EffectCheckContext) {
       }
     }
     checkComponentValues(definition, path, file, problems);
-    if (definition.glyphWhenClosed && !Object.hasOwn(definition.components, "openable")) {
-      problems.warning(
-        `${path}.glyphWhenClosed`,
-        "Only something with the openable component is ever closed, so this glyph is never drawn.",
-      );
-    }
     if (
       definition.form === "carriable" &&
       !Object.hasOwn(definition.components, CARRIABLE_WEIGHT_COMPONENT)

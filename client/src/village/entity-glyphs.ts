@@ -1,13 +1,5 @@
 import type { Entity, Glyph, ItemDefinition } from "@village/shared";
 
-/** A definition's glyph, or its closed glyph while the entity is closed. */
-export function pickEntityGlyph(entity: Entity, definition: ItemDefinition): Glyph {
-  if (entity.state.isOpen === false && definition.glyphWhenClosed) {
-    return definition.glyphWhenClosed;
-  }
-  return definition.glyph;
-}
-
 /** One glyph to draw at a map tile, for an entity standing there. */
 export interface PlacedGlyph {
   entityId: string;
@@ -32,7 +24,7 @@ export function listPlacedGlyphs(
     const { pos } = entity.location;
     const placedGlyph = {
       entityId: entity.id,
-      glyph: pickEntityGlyph(entity, definition),
+      glyph: definition.glyph,
       tileX: pos.x,
       tileY: pos.y,
     };
