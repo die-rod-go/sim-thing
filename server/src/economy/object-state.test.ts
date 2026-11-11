@@ -2,7 +2,7 @@ import { describe, expect, it } from "vitest";
 import type { WorldObject } from "@village/shared";
 import { config } from "../config";
 import { postNote, readNoticeBoard } from "./notice-board";
-import { regrowStocks, setDoorOpen } from "./object-state";
+import { describeObjectCondition, regrowStocks, setDoorOpen } from "./object-state";
 import { makeAgent, makeObject } from "./test-fixtures";
 import { MINUTES_PER_DAY } from "./types";
 
@@ -72,5 +72,30 @@ describe("notice board", () => {
     const board = makeObject("notice_board", "notice board");
     const result = postNote(board, makeAgent(), "x".repeat(500), 0);
     expect(result.isSuccess && result.note.text.length).toBe(config.noticeBoard.maxNoteChars);
+  });
+});
+
+describe("object condition", () => {
+  it("shows a field with less than one harvest grown back as empty", () => {
+    const field = makeObject("wheat_field", "wheat field", { stock: 2.5 });
+    expect(describeObjectCondition(field)).toBe("empty");
+  });
+
+  it("counts how many more harvests a field holds", () => {
+    const field = makeObject("wheat_field", "wheat field", { stock: 7 });
+    expect(describeObjectCondition(field)).toBe("enough left for 2 more");
+  });
+
+  it("shows whether a door is open or closed", () => {
+    expect(describeObjectCondition(makeObject("door", "tavern door", { isOpen: true }))).toBe(
+      "open",
+    );
+    expect(describeObjectCondition(makeObject("door", "tavern door", { isOpen: false }))).toBe(
+      "closed",
+    );
+  });
+
+  it("shows nothing for an object without visible state", () => {
+    expect(describeObjectCondition(makeObject("oven", "oven"))).toBeNull();
   });
 });

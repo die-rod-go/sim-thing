@@ -34,7 +34,8 @@ function parseNamedUses(text: string | null): Map<string, string[]> {
   if (text === null) return uses;
   for (const match of text.matchAll(/(?:^|, )(?:\d+ )?([^,()]+?) \(([^)]*)\)/g)) {
     const name = match[1]?.trim();
-    if (name) uses.set(name, (match[2] ?? "").split(", ").filter(Boolean));
+    const interactionList = (match[2] ?? "").split("; ")[0] ?? "";
+    if (name) uses.set(name, interactionList.split(", ").filter(Boolean));
   }
   return uses;
 }

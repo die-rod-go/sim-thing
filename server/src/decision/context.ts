@@ -14,6 +14,8 @@ export interface DecisionTargets {
 export interface NearbyObject {
   name: string;
   interactions: string[];
+  /** What can be seen of its state, e.g. "empty" or "closed"; null when nothing shows. */
+  condition: string | null;
 }
 
 /** One awareness record, already joined with the other agent's display name. */

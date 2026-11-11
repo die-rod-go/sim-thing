@@ -1,5 +1,6 @@
 import { BUCKETS, formatSimTime, type Agent, type Bucket } from "@village/shared";
 import { config } from "../config";
+import { describeObjectCondition } from "../economy/object-state";
 import type {
   AwarenessEntry,
   DecisionContext,
@@ -46,6 +47,7 @@ export function listNearbyObjects(state: WorldState, agent: Agent): NearbyObject
     .map((object) => ({
       name: object.name,
       interactions: config.objects[object.kind].interactions,
+      condition: describeObjectCondition(object),
     }));
 }
 

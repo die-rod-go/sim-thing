@@ -68,3 +68,26 @@ export function setDoorOpen(
   }
   return { isSuccess: true, object: { ...object, state: { ...object.state, isOpen } } };
 }
+
+/**
+ * What an agent standing by the object can see of its state, e.g. "empty" or "enough left for
+ * 2 more" for a stocked object and "open" or "closed" for a door. Null when there is nothing to see.
+ */
+export function describeObjectCondition(object: WorldObject): string | null {
+  if (object.kind === "door") {
+    return (object.state.isOpen ?? false) ? "open" : "closed";
+  }
+  const unitsPerUse = findStockUsedPerUse(object);
+  if (unitsPerUse === undefined) {
+    return null;
+  }
+  const usesLeft = Math.floor(countWholeStock(object) / unitsPerUse);
+  return usesLeft === 0 ? "empty" : `enough left for ${usesLeft} more`;
+}
+
+function findStockUsedPerUse(object: WorldObject): number | undefined {
+  const stockUses = config.objects[object.kind].interactions
+    .map((interaction) => config.interactions[interaction]?.stockUsed ?? 0)
+    .filter((stockUsed) => stockUsed > 0);
+  return stockUses.length === 0 ? undefined : Math.min(...stockUses);
+}

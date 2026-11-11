@@ -23,15 +23,15 @@ export function describeGoals(goals: Goal[]): string {
   );
 }
 
+/** "wheat field (harvest wheat; empty), bench (sit)": uses first, then what can be seen of it. */
 export function describeNearbyObjects(objects: NearbyObject[]): string {
   if (objects.length === 0) return NOTHING;
-  return objects
-    .map((object) =>
-      object.interactions.length > 0
-        ? `${object.name} (${object.interactions.join(", ")})`
-        : object.name,
-    )
-    .join(", ");
+  return objects.map(describeNearbyObject).join(", ");
+}
+
+function describeNearbyObject(object: NearbyObject): string {
+  const details = [object.interactions.join(", "), object.condition ?? ""].filter(Boolean);
+  return details.length > 0 ? `${object.name} (${details.join("; ")})` : object.name;
 }
 
 export function describeBelongings(coins: number, inventory: Record<string, number>): string {

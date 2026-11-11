@@ -29,7 +29,7 @@ function buildContext(overrides: Partial<DecisionContext> = {}): DecisionContext
     intention: "going to buy wheat from Tom, offering 2 coins",
     simTime: "Day 1, 06:30",
     place: "bakery",
-    nearbyObjects: [{ name: "oven", interactions: ["bake bread"] }],
+    nearbyObjects: [{ name: "oven", interactions: ["bake bread"], condition: null }],
     aroundYou: { entries: [], normalHearerIds: [], whisperHearerIds: [] },
     coins: 30,
     inventory: { bread: 2, wheat: 0 },
@@ -71,6 +71,18 @@ describe("buildDecisionPrompt", () => {
   it("includes the intention as 'You were:'", () => {
     const prompt = buildDecisionPrompt(buildContext());
     expect(prompt).toContain("You were: going to buy wheat from Tom, offering 2 coins");
+  });
+
+  it("shows what can be seen of each nearby object after its uses", () => {
+    const prompt = buildDecisionPrompt(
+      buildContext({
+        nearbyObjects: [
+          { name: "wheat field", interactions: ["harvest wheat"], condition: "empty" },
+          { name: "bench", interactions: ["sit"], condition: null },
+        ],
+      }),
+    );
+    expect(prompt).toContain("Here: wheat field (harvest wheat; empty), bench (sit)");
   });
 
   it("offers continue only when interrupted mid-action", () => {
