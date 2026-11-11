@@ -174,8 +174,8 @@
   top: calc(var(--figure-size) / -2);
   left: calc(var(--figure-size) / 2);
   display: none;
-  padding: 1px 3px;
-  font-size: 11px;
+  padding: 3px 5px;
+  font-size: 15px;
   line-height: 1;
   background: rgb(20 22 28 / 80%);
   border: 1px solid var(--border);
