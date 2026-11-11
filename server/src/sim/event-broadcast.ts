@@ -3,7 +3,6 @@ import { addConversationSocial } from "../economy/needs";
 import { isTakingPart, recordSpeech } from "../memory/conversation";
 import { fileEvent, type FilingContext } from "../memory/filing";
 import { awarenessFromPerceptions, mergeAwareness } from "../perception/awareness";
-import { isOwnNameMentioned } from "../perception/interrupts";
 import { perceiveEvent } from "../perception/perceive-event";
 import type { EventPerception } from "../perception/types";
 import { getAgentRuntime, requestDecision } from "./agent-runtime";
@@ -74,18 +73,10 @@ function flagDecisions(state: WorldState, event: WorldEvent, perceptions: EventP
   for (const perception of perceptions) {
     const perceiver = findAgent(state, perception.agentId);
     const runtime = getAgentRuntime(state, perceiver.id);
-    const isClearSpeech = event.speech !== undefined && perception.hearing === "clear";
-    if (isClearSpeech && isOwnNameMentioned(event.speech?.words ?? "", perceiver.name)) {
-      requestDecision(runtime, `heard ${event.actorName} say my name`, true);
-    } else if (event.kind === "gave" && event.targetId === perceiver.id) {
+    if (event.kind === "gave" && event.targetId === perceiver.id) {
       requestDecision(runtime, `${event.actorName} handed me something`, true);
     } else if (toPerceiver(perceiver).isAsleep) {
       requestDecision(runtime, "a loud sound reached me in my sleep", true);
-    } else if (
-      isClearSpeech &&
-      isTakingPart(state.conversationLog, perceiver.id, event.actorId, event.tick)
-    ) {
-      requestDecision(runtime, `${event.actorName} spoke in our conversation`, true);
     } else {
       requestDecision(runtime, "something new caught my attention", false);
     }
