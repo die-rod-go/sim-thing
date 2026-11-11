@@ -1408,16 +1408,22 @@ should not change them without asking.
 6. **Start and end events of a component are `announce` steps** in `becomes` rules rather than
    phrases on the component, so components stay data only. It costs two short rules per
    condition-like component.
-7. **`item` is always an entity.** People can only be targets, as today. Allowing bodies as items
-   would need verbs listed beside people in the prompt.
-8. **Notes are things.** A full board refuses new notes rather than dropping the oldest, and notes
+7. **Notes are things.** A full board refuses new notes rather than dropping the oldest, and notes
    can be taken down, carried and handed over.
-9. **The reply changes.** Placed things move from `target` to `item`, and `from` is added.
-10. **First match wins** for same-named verbs.
-11. **Things are grouped when their prompt lines are identical**, not when they have no state.
-12. **`give` stays its own action.** It could now be a verb, but it has its own events and gives
+8. **The reply changes.** Placed things move from `target` to `item`, and `from` is added.
+9. **First match wins** for same-named verbs.
+10. **`give` stays its own action.** It could now be a verb, but it has its own events and gives
     the recipient a decision.
-13. **Small behavior changes:** stock shows as a count ("6 left"); moving things is announced with
-    the verb's own phrases rather than five event kinds; a breaking thing is always its own event;
-    dead bodies can be thrown at but not attacked or shot (their health is 0); first-visit memories
-    list doors with the other objects.
+11. **Small behavior changes:** stock shows as a count ("6 left"); moving things is announced with
+    the verb's own phrases rather than five event kinds; dead bodies can be thrown at but not
+    attacked or shot (their health is 0); first-visit memories list doors with the other objects.
+
+## Confirmed choices
+
+Agreed with the project owner on 2026-11-11. These are settled.
+
+1. **`item` is always an entity.** People can only be targets, as today.
+2. **Things are grouped when their prompt lines are identical**, not when they have no state.
+3. **A breaking thing is always its own event** ("the jar broke"), whoever caused it.
+4. **A fragile thing hit by `impact` has its health set to 0**, so one set of breaking rules covers
+   falls, wear and attacks.
