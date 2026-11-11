@@ -23,8 +23,9 @@ export function loadTestMap() {
   return loadWorldMap(resolve(repositoryRoot, config.server.mapPath));
 }
 
+/** A fixed cast, so tests do not change when someone edits the project seed file. */
 export function loadTestSeeds() {
-  return loadSeedFile(resolve(repositoryRoot, config.server.seedsPath));
+  return loadSeedFile(resolve(import.meta.dirname, "test-seeds.json"));
 }
 
 /** Who a prompt is for: every decision and interact prompt opens with "You are <name>,". */
