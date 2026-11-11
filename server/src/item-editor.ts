@@ -43,8 +43,6 @@ export function createItemEditor(options: {
   seedFilePath: string;
   map: WorldMap;
 }): ItemEditor {
-  const { currencyDefinitionId } = config.economy;
-
   // Re-read on every request: the character editor may have changed the seed inventories since.
   const readReferences = (): ReferenceReading => {
     try {
@@ -74,7 +72,7 @@ export function createItemEditor(options: {
     const reading = readReferences();
     const references = reading.kind === "read" ? reading.references : reading.mapReferences;
     const problems = [
-      ...findItemFileProblems(parsed.data, { references, currencyDefinitionId }),
+      ...findItemFileProblems(parsed.data, { references }),
       ...findUnbuiltFeatures(parsed.data),
     ];
     return reading.kind === "read" ? problems : [...problems, buildFileProblem(reading.message)];
@@ -84,7 +82,7 @@ export function createItemEditor(options: {
     describeItemFile() {
       const reading = readReferences();
       const references = reading.kind === "read" ? reading.references : reading.mapReferences;
-      const base = { type: "item_file" as const, references, currencyDefinitionId };
+      const base = { type: "item_file" as const, references };
       try {
         const json: unknown = JSON.parse(readFileSync(options.itemFilePath, "utf8"));
         return { ...base, itemFile: itemFileSchema.parse(json), loadError: null };

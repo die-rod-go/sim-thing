@@ -1,6 +1,7 @@
 import { buildItemCatalog, parseItemFile, type Position } from "@village/shared";
 import { describe, expect, it } from "vitest";
 import { createEntity, findEntityIfPresent } from "../items/entity-store";
+import { readComponents, type ThingRef } from "../items/things";
 import { computeConditionEndTick } from "../status/conditions";
 import {
   NEXT_TO_SQUARE,
@@ -12,15 +13,16 @@ import {
   fixRolls,
   handOver,
   place,
+  readFieldOf,
+  readHealth,
+  setAgentHealth,
 } from "./combat-test-kit";
 import { advanceConditions, endCondition, startCondition } from "./conditions";
-import type { EffectSubjectRef } from "./effects/effect-run";
 import { applyEffect } from "./effects/effect-registry";
 import type { TestSim } from "./test-sim";
 import type { TickResult } from "./world-state";
-import { replaceAgent } from "./world-access";
 
-const TOBIAS: EffectSubjectRef = { kind: "agent", agentId: "tobias" };
+const TOBIAS: ThingRef = { kind: "agent", agentId: "tobias" };
 const NEVER_ROLLS = 0.99;
 /** Away from the square's bench, board and the agents. */
 const OPEN_GROUND = { x: 23, y: 19 };
@@ -37,20 +39,37 @@ function runTicks(sim: TestSim, count: number): TickResult[] {
   return results;
 }
 
-function start(sim: TestSim, subject: EffectSubjectRef, name: string, sourceAgentId = "mara") {
+function start(sim: TestSim, subject: ThingRef, name: string, sourceAgentId = "mara") {
   const context = contextOf(sim);
   startCondition(context, subject, name, { sourceAgentId });
   return context.result;
 }
 
+/** The components the agent has that are conditions, as each tick runs them. */
 function conditionNames(sim: TestSim, agentId: string): string[] {
-  return sim.agent(agentId).conditions.map((condition) => condition.name);
+  const components = readComponents(sim.state, { kind: "agent", agentId }) ?? {};
+  return Object.keys(components).filter((name) => sim.state.items.conditionsByName.has(name));
 }
 
-function addConditions(sim: TestSim, conditions: unknown[]): void {
+function endTickOf(sim: TestSim, agentId: string, name: string): number | null | undefined {
+  return sim.agent(agentId).bodyChanges[name]?.endsAtTick;
+}
+
+function addConditions(
+  sim: TestSim,
+  conditions: { name: string; words: string }[],
+  rules: unknown[],
+) {
   const file = sim.state.items.file;
+  const declarations = Object.fromEntries(
+    conditions.map(({ name, words }) => [name, { description: words, words, isVisible: true }]),
+  );
   sim.state.items = buildItemCatalog(
-    parseItemFile({ ...file, conditions: [...file.conditions, ...conditions] }),
+    parseItemFile({
+      ...file,
+      components: { ...file.components, ...declarations },
+      conditions: [...file.conditions, ...rules],
+    }),
   );
 }
 
@@ -64,14 +83,17 @@ function setUp(): TestSim {
 /** "drenched" leaves its carrier wet when it ends. */
 function setUpWithDrenched(): TestSim {
   const sim = setUp();
-  addConditions(sim, [
-    {
-      name: "drenched",
-      words: "drenched",
-      defaultMinutes: 2,
-      onEnd: [{ type: "add_condition", condition: "wet" }],
-    },
-  ]);
+  addConditions(
+    sim,
+    [{ name: "drenched", words: "drenched" }],
+    [
+      {
+        name: "drenched",
+        defaultMinutes: 2,
+        onEnd: [{ type: "add_condition", condition: "wet" }],
+      },
+    ],
+  );
   return sim;
 }
 
@@ -85,7 +107,7 @@ describe("conditions", () => {
     const sim = setUp();
     start(sim, TOBIAS, "bleeding");
     runTicks(sim, 25);
-    expect(sim.agent("tobias").health).toBeCloseTo(1 - 20 * 0.01, 9);
+    expect(readHealth(sim, "tobias")).toBeCloseTo(1 - 20 * 0.01, 9);
     expect(conditionNames(sim, "tobias")).toEqual([]);
   });
 
@@ -98,22 +120,22 @@ describe("conditions", () => {
   it("extends a condition added again to the later end instead of stacking it", () => {
     const sim = setUp();
     start(sim, TOBIAS, "bleeding");
-    const firstEnd = sim.agent("tobias").conditions[0]?.endsAtTick;
+    const firstEnd = endTickOf(sim, "tobias", "bleeding");
     runTicks(sim, 10);
     const restarted = start(sim, TOBIAS, "bleeding");
-    expect(sim.agent("tobias").conditions).toHaveLength(1);
-    expect(sim.agent("tobias").conditions[0]?.endsAtTick).toBe((firstEnd ?? 0) + 10);
+    expect(conditionNames(sim, "tobias")).toEqual(["bleeding"]);
+    expect(endTickOf(sim, "tobias", "bleeding")).toBe((firstEnd ?? 0) + 10);
     expect(restarted.events).toEqual([]);
     runTicks(sim, 1);
-    expect(sim.agent("tobias").health).toBeCloseTo(1 - 11 * 0.01, 9);
+    expect(readHealth(sim, "tobias")).toBeCloseTo(1 - 11 * 0.01, 9);
   });
 
   it("never shortens a condition that is added again for less time", () => {
     const sim = setUp();
     start(sim, TOBIAS, "bleeding");
-    const firstEnd = sim.agent("tobias").conditions[0]?.endsAtTick;
+    const firstEnd = endTickOf(sim, "tobias", "bleeding");
     startCondition(contextOf(sim), TOBIAS, "bleeding", { minutes: 2, sourceAgentId: null });
-    expect(sim.agent("tobias").conditions[0]?.endsAtTick).toBe(firstEnd);
+    expect(endTickOf(sim, "tobias", "bleeding")).toBe(firstEnd);
   });
 
   it("lasts until something removes it when it has no length", () => {
@@ -138,7 +160,7 @@ describe("conditions", () => {
   it("files a fire as caught and stopped, not every minute it burns", () => {
     const sim = setUp();
     const bench = placeThing(sim, "bench", OPEN_GROUND);
-    const benchRef: EffectSubjectRef = { kind: "entity", entityId: bench.id };
+    const benchRef: ThingRef = { kind: "entity", entityId: bench.id };
     const started = start(sim, benchRef, "burning");
     expect(started.events.map((event) => [event.kind, event.actorName])).toEqual([
       ["caught_fire", "the bench"],
@@ -161,10 +183,10 @@ describe("conditions", () => {
     expect(conditionNames(sim, "tobias")).toEqual(["wet"]);
   });
 
-  it("drops a thing's conditions without onEnd when it is transformed", () => {
+  it("drops everything a thing was given when it is transformed, onEnd effects included", () => {
     const sim = setUpWithDrenched();
     const jar = placeThing(sim, "jar", OPEN_GROUND);
-    const jarRef: EffectSubjectRef = { kind: "entity", entityId: jar.id };
+    const jarRef: ThingRef = { kind: "entity", entityId: jar.id };
     start(sim, jarRef, "drenched");
     const context = contextOf(sim);
     const reactionRun = {
@@ -177,7 +199,7 @@ describe("conditions", () => {
       reactionDepth: 0,
     };
     applyEffect(reactionRun, { type: "transform", into: "shards" });
-    expect(findEntityIfPresent(sim.state, jar.id)?.state.conditions).toEqual([]);
+    expect(findEntityIfPresent(sim.state, jar.id)?.changes).toEqual({});
   });
 
   it("burns out on its own: the burn damage sends no fire back to the burning thing", () => {
@@ -187,13 +209,15 @@ describe("conditions", () => {
     start(sim, { kind: "entity", entityId: bench.id }, "burning");
     runTicks(sim, 35);
     const burned = findEntityIfPresent(sim.state, bench.id);
-    expect(burned?.state.conditions).toEqual([]);
-    expect(burned?.state.durability).toBeLessThan(1);
+    expect(burned?.changes.burning).toBeUndefined();
+    expect(readFieldOf(sim, { kind: "entity", entityId: bench.id }, "health.current")).toBeLessThan(
+      3,
+    );
   });
 
   it("names a death from a condition after whoever caused it", () => {
     const sim = setUp();
-    replaceAgent(sim.state, { ...sim.agent("tobias"), health: 0.05 });
+    setAgentHealth(sim, "tobias", 0.05);
     start(sim, TOBIAS, "bleeding", "mara");
     runTicks(sim, 10);
     expect(sim.agent("tobias").death?.cause).toBe("bled to death after being hurt by Mara");
@@ -201,7 +225,7 @@ describe("conditions", () => {
 
   it("names a death from a condition no one caused by the condition alone", () => {
     const sim = setUp();
-    replaceAgent(sim.state, { ...sim.agent("tobias"), health: 0.002 });
+    setAgentHealth(sim, "tobias", 0.002);
     startCondition(contextOf(sim), TOBIAS, "poisoned", { sourceAgentId: null });
     runTicks(sim, 2);
     expect(sim.agent("tobias").death?.cause).toBe("died of poison");
@@ -219,15 +243,14 @@ describe("bleeding and bandages", () => {
   it("starts bleeding from a cut that the chance lets through, caused by the attacker", () => {
     const sim = setUp();
     stab(sim, 0);
-    expect(sim.agent("tobias").conditions).toEqual([
-      expect.objectContaining({ name: "bleeding", sourceAgentId: "mara" }),
-    ]);
+    expect(conditionNames(sim, "tobias")).toEqual(["bleeding"]);
+    expect(sim.agent("tobias").bodyChanges.bleeding?.sourceAgentId).toBe("mara");
   });
 
   it("leaves a cut without bleeding when the chance fails", () => {
     const sim = setUp();
     stab(sim, 0.5);
-    expect(sim.agent("tobias").health).toBeLessThan(1);
+    expect(readHealth(sim, "tobias")).toBeLessThan(1);
     expect(conditionNames(sim, "tobias")).toEqual([]);
   });
 

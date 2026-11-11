@@ -1,12 +1,11 @@
-import { findDefinition, type Agent, type Effect, type Verb } from "@village/shared";
+import type { Agent, Effect, ResolvedComponents, Verb } from "@village/shared";
 import { config } from "../config";
 import {
   findEntityIfPresent,
+  isHeldByOther,
   listHeldOfDefinition,
   removeEntity,
-  replaceEntity,
 } from "../items/entity-store";
-import { addEntityUser, removeEntityUser } from "../items/entity-users";
 import { resolveNumber } from "../items/verb-numbers";
 import { isDead } from "../status/health";
 import { describeAttempt, describeItemCounts, describeOngoingVerb } from "./action-phrases";
@@ -35,13 +34,8 @@ import {
   prefixPhrases,
   rollForHit,
 } from "./verb-hits";
-import {
-  findAgent,
-  markAgentChanged,
-  markEntityChanged,
-  markEntityRemoved,
-  replaceAgent,
-} from "./world-access";
+import { readRunComponents } from "./used-components";
+import { findAgent, markAgentChanged, markEntityRemoved, replaceAgent } from "./world-access";
 import type { WorldState } from "./world-state";
 
 export type { UsedThing } from "./agent-runtime";
@@ -71,19 +65,14 @@ function effectsAt(verb: Verb, when: "start" | "finish"): Effect[] {
   return verb.effects.filter((effect) => (effect.when ?? "finish") === when);
 }
 
-function computeEndTick(state: WorldState, verb: Verb, definitionId: string | null): number | null {
+function computeEndTick(
+  state: WorldState,
+  verb: Verb,
+  used: ResolvedComponents | null,
+): number | null {
   if (verb.minutes === null) return null;
-  const definition = definitionId === null ? null : findDefinition(state.items, definitionId);
-  const minutes = resolveNumber(verb.minutes, definition);
+  const minutes = resolveNumber(verb.minutes, used);
   return state.tick + Math.max(1, Math.ceil(minutes / minutesPerTick));
-}
-
-function changeUsers(context: TickContext, run: VerbRun, change: typeof addEntityUser) {
-  if (run.usedEntityId === null) return;
-  const entity = findEntityIfPresent(context.state, run.usedEntityId);
-  if (!entity || entity.location.kind !== "tile") return;
-  replaceEntity(context.state, change(entity, run.agentId));
-  markEntityChanged(context.result, entity.id);
 }
 
 function buildRun(
@@ -114,14 +103,13 @@ function beginRun(context: TickContext, run: VerbRun, use: ResolvedUse): void {
       kind: "interact",
       target: use.name,
       verb: use.verb.name,
-      endsAtTick: computeEndTick(state, use.verb, run.usedDefinitionId),
+      endsAtTick: computeEndTick(state, use.verb, readRunComponents(state, run)),
     },
   });
   const runtime = getAgentRuntime(state, agentId);
   runtime.walk = null;
   runtime.verbRun = run;
   markAgentChanged(result, agentId);
-  changeUsers(context, run, addEntityUser);
   if (use.entity) result.verbStarts.push({ agentId, entityId: use.entity.id, verb: run.verb });
 }
 
@@ -148,7 +136,7 @@ function findAimedBlocker(state: WorldState, verb: Verb, run: VerbRun): string |
   if (!run.aim) return `I didn't say what to ${verb.name}`;
   const problem = findAimProblem(state, run.agentId, run.aim);
   if (problem !== null) return problem;
-  const reach = computeVerbReach(state, verb, run.usedDefinitionId);
+  const reach = computeVerbReach(verb, readRunComponents(state, run));
   return isAimInReach(state, run.agentId, run.aim, reach)
     ? null
     : `${run.aimName} was out of reach`;
@@ -230,9 +218,8 @@ function sumMade(outcomes: EffectOutcome[]): Record<string, number> {
   return made;
 }
 
-function endRun(context: TickContext, agentId: string, run: VerbRun | null): Agent {
+function endRun(context: TickContext, agentId: string): Agent {
   const { state, result } = context;
-  if (run) changeUsers(context, run, removeEntityUser);
   getAgentRuntime(state, agentId).verbRun = null;
   const stopped = { ...findAgent(state, agentId), currentAction: null };
   replaceAgent(state, stopped);
@@ -243,7 +230,7 @@ function endRun(context: TickContext, agentId: string, run: VerbRun | null): Age
 /** Someone else took what the verb was used with while it ran (both reached for the knife). */
 function isTakenByOther(state: WorldState, run: VerbRun): boolean {
   const used = run.usedEntityId === null ? undefined : findEntityIfPresent(state, run.usedEntityId);
-  return used?.location.kind === "inventory" && used.location.agentId !== run.agentId;
+  return used !== undefined && isHeldByOther(used, run.agentId);
 }
 
 /** A `start` effect used up or changed the thing itself (eating the bread), so it may be gone. */
@@ -275,7 +262,7 @@ function isEffectRunning(verb: Verb, effect: Effect, isHit: boolean): boolean {
 
 function failRun(context: TickContext, run: VerbRun, reason: string): void {
   const { state, result } = context;
-  endRun(context, run.agentId, run);
+  endRun(context, run.agentId);
   const attempt = describeAttempt(state.items, run.verb, {
     item: run.usedName,
     target: run.aimName,
@@ -314,7 +301,7 @@ export function finishRunningVerb(context: TickContext, agentId: string): void {
   const run = getAgentRuntime(state, agentId).verbRun;
   const verb = run ? findRunVerb(state, run) : undefined;
   if (!run || !verb) {
-    endRun(context, agentId, run);
+    endRun(context, agentId);
     return;
   }
   const finishing = hasChosenEffects(verb)
@@ -334,7 +321,7 @@ export function finishRunningVerb(context: TickContext, agentId: string): void {
     failRun(context, run, blocker);
     return;
   }
-  const reach = computeVerbReach(state, verb, run.usedDefinitionId);
+  const reach = computeVerbReach(verb, readRunComponents(state, run));
   const isInReach = !run.aim || isAimInReach(state, agentId, run.aim, reach);
   if (!isInReach && verb.hitRoll === undefined) {
     failRun(context, run, `${run.aimName} was out of reach`);
@@ -356,7 +343,7 @@ export function finishRunningVerb(context: TickContext, agentId: string): void {
     .filter((effect) => isEffectRunning(verb, effect, isHit))
     .map((effect) => applyEffect(effectRun, effect));
   if (isDead(findAgent(state, agentId))) return;
-  endRun(context, agentId, run);
+  endRun(context, agentId);
   const isAnnounced = outcomes.some((outcome) => outcome.isFinishAnnounced);
   if (verb.hitRoll === undefined && !isAnnounced) announceFinish(context, run, outcomes);
 }
@@ -366,5 +353,5 @@ export function finishRunningVerb(context: TickContext, agentId: string): void {
  * `finish` effects never run: the work was spent.
  */
 export function cancelRunningVerb(context: TickContext, agentId: string): void {
-  endRun(context, agentId, getAgentRuntime(context.state, agentId).verbRun);
+  endRun(context, agentId);
 }

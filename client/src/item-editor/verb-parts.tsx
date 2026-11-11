@@ -64,23 +64,23 @@ export function ToolsEditor({
   onChange: (tools: Verb["tools"]) => void;
 }) {
   const definitions = tools?.definitions ?? [];
-  const properties = tools?.properties ?? [];
-  const update = (next: { definitions: string[]; properties: string[] }) =>
-    onChange(next.definitions.length + next.properties.length > 0 ? next : undefined);
+  const components = tools?.components ?? [];
+  const update = (next: { definitions: string[]; components: string[] }) =>
+    onChange(next.definitions.length + next.components.length > 0 ? next : undefined);
   return (
     <>
       <InlineField label="items">
         <Chips
           values={definitions}
           options={file.definitions.map((definition) => definition.id)}
-          onChange={(changed) => update({ definitions: changed, properties })}
+          onChange={(changed) => update({ definitions: changed, components })}
         />
       </InlineField>
-      <InlineField label="with properties">
+      <InlineField label="with components">
         <Chips
-          values={properties}
-          options={Object.keys(file.properties)}
-          onChange={(changed) => update({ definitions, properties: changed })}
+          values={components}
+          options={Object.keys(file.components)}
+          onChange={(changed) => update({ definitions, components: changed })}
         />
       </InlineField>
     </>

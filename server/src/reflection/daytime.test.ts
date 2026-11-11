@@ -21,6 +21,7 @@ function setUpDaytime(reply: string, store = new MemoryStore()) {
   const { client, callStructured } = makeFakeCaller([reply]);
   const input: DaytimePassInput = {
     agent: makeAgent({ mood: "busy", intention: "Wait for the miller" }),
+    health: 1,
     store,
     idGenerator: new MemoryIdGenerator(),
     callStructured,

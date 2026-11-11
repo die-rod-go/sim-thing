@@ -1,5 +1,11 @@
 import { describe, expect, it } from "vitest";
-import { countHeld, createEntity, listHeldEntities, type EntityWorld } from "../items/entity-store";
+import {
+  countHeld,
+  createEntity,
+  listHeldEntities,
+  locateInside,
+  type EntityWorld,
+} from "../items/entity-store";
 import { loadTestItems } from "../sim/test-sim";
 import { executeGive } from "./give";
 import { makeAgent } from "./test-fixtures";
@@ -12,7 +18,7 @@ function buildWorld(): EntityWorld {
   const world: EntityWorld = { agents: [mara, bob], entities: [], nextEntityId: 1, items };
   const handOut = (agentId: string, definitionId: string, count: number) => {
     for (let made = 0; made < count; made += 1) {
-      createEntity(world, definitionId, { kind: "inventory", agentId });
+      createEntity(world, definitionId, locateInside(agentId));
     }
   };
   handOut("mara", "coin", 30);

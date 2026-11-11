@@ -1,7 +1,19 @@
-import type { Agent, Entity, Position, Verb } from "@village/shared";
+import {
+  resolveEntityComponents,
+  type Agent,
+  type Entity,
+  type Position,
+  type ResolvedComponents,
+  type Verb,
+} from "@village/shared";
 import { computeChebyshevDistance } from "../economy/give";
-import { listContents, readContainerCapacity } from "../items/containers";
-import { listHeldEntities, resolveEntityPosition } from "../items/entity-store";
+import { readContainerCapacity } from "../items/capacity";
+import {
+  isHeldBy,
+  listContents,
+  listHeldEntities,
+  resolveEntityPosition,
+} from "../items/entity-store";
 import { listVerbsForBody, listVerbsForEntity } from "../items/verb-offers";
 import { isDead } from "../status/health";
 import { getAgentRuntime } from "./agent-runtime";
@@ -11,14 +23,8 @@ import { findAgent } from "./world-access";
 import type { WorldState } from "./world-state";
 
 /** The longest reach among verbs that take from or put into the thing (`take`, `put`). */
-function findChoosingReach(
-  state: WorldState,
-  verbs: readonly Verb[],
-  definitionId: string | null,
-): number | null {
-  const reaches = verbs
-    .filter(hasChosenEffects)
-    .map((verb) => computeVerbReach(state, verb, definitionId));
+function findChoosingReach(verbs: readonly Verb[], used: ResolvedComponents | null): number | null {
+  const reaches = verbs.filter(hasChosenEffects).map((verb) => computeVerbReach(verb, used));
   return reaches.length > 0 ? Math.max(...reaches) : null;
 }
 
@@ -36,14 +42,11 @@ export function listReachableContents(
   entity: Entity,
 ): Entity[] | null {
   if (readContainerCapacity(state, entity) === null) return null;
-  const { location } = entity;
-  const isCarried = location.kind === "inventory" && location.agentId === agentId;
-  if (!isCarried) {
+  if (!isHeldBy(entity, agentId)) {
     const position = resolveEntityPosition(state, entity);
     const reach = findChoosingReach(
-      state,
       listVerbsForEntity(state, agentId, entity),
-      entity.definitionId,
+      resolveEntityComponents(state.items, entity),
     );
     if (!position || !isWithin(findAgent(state, agentId).pos, position.pos, reach)) return null;
   }
@@ -58,11 +61,12 @@ export function listVisibleBodies(state: WorldState, agentId: string): Agent[] {
 
 /** What each body within reach of a verb that takes from it carries, by the body's agent id. */
 export function listReachableBodies(state: WorldState, agentId: string): Map<string, Entity[]> {
-  const reach = findChoosingReach(state, listVerbsForBody(state), null);
   const viewer = findAgent(state, agentId);
   return new Map(
     listVisibleBodies(state, agentId)
-      .filter((body) => isWithin(viewer.pos, body.pos, reach))
+      .filter((body) =>
+        isWithin(viewer.pos, body.pos, findChoosingReach(listVerbsForBody(state, body), null)),
+      )
       .map((body) => [body.id, listHeldEntities(state, body.id)]),
   );
 }

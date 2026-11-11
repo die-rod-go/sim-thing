@@ -174,7 +174,7 @@ function findBodyCandidate(state: WorldState, agent: Agent, name: string): UseCa
   if (bodyId === null) return null;
   return {
     use: { kind: "body", agentId: bodyId, name: describeAgentAsSeen(findAgent(state, bodyId)) },
-    verbs: listVerbsForBody(state),
+    verbs: listVerbsForBody(state, findAgent(state, bodyId)),
   };
 }
 
@@ -318,7 +318,7 @@ async function planInteract(
       return aimInteract(verb, reply, action);
     }
   }
-  const itemless = findVerbByName(listItemlessVerbs(state), verbName);
+  const itemless = findVerbByName(listItemlessVerbs(state, agent), verbName);
   if (itemless) {
     const action = {
       kind: "interact",

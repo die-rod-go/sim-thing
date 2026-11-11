@@ -1,12 +1,12 @@
 import { config } from "../../config";
+import { createThingEvent } from "../../items/things";
 import { resolveNumber, resolveText } from "../../items/verb-numbers";
 import { endCondition, startCondition } from "../conditions";
 import { broadcastEvent } from "../event-broadcast";
-import { findEffectSubject, findUsedDefinition, type EffectHandler } from "./effect-run";
+import { findEffectSubject, findUsedComponents, type EffectHandler } from "./effect-run";
 import { sendStimulus } from "./stimulus";
-import { createSubjectEvent } from "./subjects";
 
-/** Starts a condition on the subject, caused by whoever is behind the run. */
+/** Adds a component (a condition when it has an entry) to the subject, caused by whoever is behind the run. */
 export const addConditionEffect: EffectHandler<"add_condition"> = {
   apply(effectRun, effect) {
     const subject = findEffectSubject(effectRun, effect);
@@ -14,7 +14,7 @@ export const addConditionEffect: EffectHandler<"add_condition"> = {
     const minutes =
       effect.minutes === undefined
         ? undefined
-        : resolveNumber(effect.minutes, findUsedDefinition(effectRun));
+        : resolveNumber(effect.minutes, findUsedComponents(effectRun));
     startCondition(effectRun.context, subject, effect.condition, {
       minutes,
       sourceAgentId: effectRun.sourceAgentId,
@@ -23,7 +23,7 @@ export const addConditionEffect: EffectHandler<"add_condition"> = {
   },
 };
 
-/** Ends a condition the subject has, running its `onEnd` effects. */
+/** Removes a component the subject has, running its `onEnd` effects if it is a condition. */
 export const removeConditionEffect: EffectHandler<"remove_condition"> = {
   apply(effectRun, effect) {
     const subject = findEffectSubject(effectRun, effect);
@@ -37,7 +37,7 @@ export const emitEffect: EffectHandler<"emit"> = {
   apply(effectRun, effect) {
     const subject = findEffectSubject(effectRun, effect);
     if (subject === null) return {};
-    sendStimulus(effectRun, subject, resolveText(effect.stimulus, findUsedDefinition(effectRun)));
+    sendStimulus(effectRun, subject, resolveText(effect.stimulus, findUsedComponents(effectRun)));
     return {};
   },
 };
@@ -48,10 +48,10 @@ export const makeSoundEffect: EffectHandler<"make_sound"> = {
     const subject = findEffectSubject(effectRun, effect);
     if (subject === null) return {};
     const { state, result } = effectRun.context;
-    const event = createSubjectEvent(state, subject, {
+    const event = createThingEvent(state, subject, {
       kind: "sound",
       description: config.effects.soundDescription,
-      loudness: resolveNumber(effect.loudness, findUsedDefinition(effectRun)),
+      loudness: resolveNumber(effect.loudness, findUsedComponents(effectRun)),
     });
     if (event !== null) broadcastEvent(state, event, result);
     return {};

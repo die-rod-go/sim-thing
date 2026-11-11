@@ -1,20 +1,20 @@
 import { config } from "../../config";
 import type { EffectOfType } from "@village/shared";
-import { buildInitialEntityState, replaceEntity } from "../../items/entity-store";
+import { replaceDefinition, writeField } from "../../items/thing-writes";
+import { readNumberField, type ThingRef } from "../../items/things";
 import { resolveNumber, resolveRange, resolveText } from "../../items/verb-numbers";
 import { pickWithinRange, scaleByStrength } from "../../status/combat";
-import { clampHealth, isDead } from "../../status/health";
+import { isDead } from "../../status/health";
 import { describeVerbPhrase } from "../action-phrases";
-import { applyDamage } from "../damage";
 import { broadcastEvent } from "../event-broadcast";
 import { createEvent } from "../event-factory";
-import { findAgent, markAgentChanged, markEntityChanged, replaceAgent } from "../world-access";
-import { announceUnverbedBreaking, lowerDurability } from "./breaking";
+import { findAgent } from "../world-access";
+import { announceUnverbedBreaking, changeEntityHealth } from "./breaking";
 import {
   findEffectAgentId,
   findEffectEntity,
   findEffectSubject,
-  findUsedDefinition,
+  findUsedComponents,
   type EffectHandler,
   type EffectRun,
 } from "./effect-run";
@@ -22,7 +22,7 @@ import { sendStimulus } from "./stimulus";
 
 function rollDamageAmount(effectRun: EffectRun, effect: EffectOfType<"damage">): number {
   const { state } = effectRun.context;
-  const range = resolveRange(effect.amount, findUsedDefinition(effectRun));
+  const range = resolveRange(effect.amount, findUsedComponents(effectRun));
   const amount = pickWithinRange(range, state.random.next());
   const { run } = effectRun;
   if (!effect.scaledByStrength || run === null) return amount;
@@ -59,16 +59,18 @@ function hurtAgent(effectRun: EffectRun, agentId: string, amount: number): void 
     const description = config.combat.hurtDescription;
     broadcastEvent(state, createEvent(state, hurt, { kind: "hurt", description }), result);
   }
-  applyDamage(context, agentId, {
-    amount,
+  const healthPath = state.items.world.agentHealth;
+  const health = readNumberField(state, { kind: "agent", agentId }, healthPath);
+  if (health === null) return;
+  writeField(context, { kind: "agent", agentId }, healthPath, health - amount, {
     killed: describeKilling(effectRun),
     sourceAgentId: effectRun.sourceAgentId,
   });
 }
 
 /**
- * Lowers an agent's health, or an entity's durability divided by its toughness, then sends the
- * stimulus, if any, even to things that can't be damaged.
+ * Lowers the health field of whatever it hits: an agent's, with a death if it runs out, or an
+ * entity's, which breaks at 0. Then sends the stimulus, if any, even to things without health.
  */
 export const damageEffect: EffectHandler<"damage"> = {
   apply(effectRun, effect) {
@@ -76,59 +78,59 @@ export const damageEffect: EffectHandler<"damage"> = {
     if (subject === null) return {};
     const amount = rollDamageAmount(effectRun, effect);
     if (subject.kind === "agent") hurtAgent(effectRun, subject.agentId, amount);
-    else lowerDurability(effectRun, subject.entityId, amount);
+    else changeEntityHealth(effectRun, subject.entityId, -amount);
     if (effect.stimulus !== undefined) {
-      const stimulus = resolveText(effect.stimulus, findUsedDefinition(effectRun));
+      const stimulus = resolveText(effect.stimulus, findUsedComponents(effectRun));
       sendStimulus(effectRun, subject, stimulus);
     }
     return {};
   },
 };
 
-/** Raises a living agent's health; things aren't healed. */
+function raiseHealth(effectRun: EffectRun, subject: ThingRef, amount: number): void {
+  const { context } = effectRun;
+  const { state } = context;
+  if (subject.kind === "entity") {
+    changeEntityHealth(effectRun, subject.entityId, amount);
+    return;
+  }
+  const healthPath = state.items.world.agentHealth;
+  const health = readNumberField(state, subject, healthPath);
+  if (health !== null) writeField(context, subject, healthPath, health + amount);
+}
+
+/** Raises the health field of a living agent or a thing; the dead aren't healed. */
 export const healEffect: EffectHandler<"heal"> = {
   apply(effectRun, effect) {
-    const agentId = findEffectAgentId(effectRun, effect);
-    if (agentId === null) return {};
-    const { state, result } = effectRun.context;
-    const amount = resolveNumber(effect.amount, findUsedDefinition(effectRun));
-    const agent = findAgent(state, agentId);
-    replaceAgent(state, { ...agent, health: clampHealth(agent.health + amount) });
-    markAgentChanged(result, agentId);
+    const subject = findEffectSubject(effectRun, effect);
+    if (subject === null) return {};
+    if (subject.kind === "agent" && findEffectAgentId(effectRun, effect) === null) return {};
+    raiseHealth(effectRun, subject, resolveNumber(effect.amount, findUsedComponents(effectRun)));
     return {};
   },
 };
 
-/** Lowers durability divided by toughness, with no stimulus: a blade dulling with use. */
+/** Lowers an entity's health field with no stimulus: a blade dulling with use. */
 export const wearEffect: EffectHandler<"wear"> = {
   apply(effectRun, effect) {
     const entity = findEffectEntity(effectRun, effect);
     if (!entity) return {};
-    const amount = resolveNumber(effect.amount, findUsedDefinition(effectRun));
-    lowerDurability(effectRun, entity.id, amount);
+    const amount = resolveNumber(effect.amount, findUsedComponents(effectRun));
+    changeEntityHealth(effectRun, entity.id, -amount);
     return {};
   },
 };
 
 /**
- * Turns the entity into another definition where it is, with that definition's fresh state. Its
- * conditions go with the old form, and a map label no longer fits it.
+ * Turns the entity into another definition where it is, untouched: its changes go with the old
+ * form, and a map label no longer fits it.
  */
 export const transformEffect: EffectHandler<"transform"> = {
   apply(effectRun, effect) {
     const entity = findEffectEntity(effectRun, effect);
     if (!entity) return {};
-    const { state, result } = effectRun.context;
-    const definition = state.items.definitionsById.get(effect.into);
-    if (!definition) throw new Error(`Unknown item "${effect.into}" to transform into`);
     announceUnverbedBreaking(effectRun, entity.id);
-    replaceEntity(state, {
-      ...entity,
-      definitionId: definition.id,
-      label: null,
-      state: buildInitialEntityState(definition),
-    });
-    markEntityChanged(result, entity.id);
+    replaceDefinition(effectRun.context, entity.id, effect.into);
     return {};
   },
 };

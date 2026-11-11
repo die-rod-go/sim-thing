@@ -83,10 +83,11 @@ describe("generated village map", () => {
     }
   });
 
-  it("names a placeable item definition and a matching place for every object", () => {
+  it("names an item definition other than the agents' body and a matching place for every object", () => {
     for (const placement of worldMap.placements) {
       const definition = items.definitionsById.get(placement.definitionId);
-      expect(definition?.form, placement.label).toBe("placeable");
+      expect(definition, placement.label).toBeDefined();
+      expect(placement.definitionId, placement.label).not.toBe(items.world.agentBody);
       expect(findPlaceAt(worldMap, placement.pos), placement.label).toBe(placement.place);
     }
     const labels = worldMap.placements.map((placement) => placement.label);

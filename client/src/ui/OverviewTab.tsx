@@ -1,5 +1,11 @@
-import { NEED_NAMES, type Agent } from "@village/shared";
-import { describeCondition, describeDeath, formatCarrying } from "../format/character-sheet";
+import {
+  NEED_NAMES,
+  listComponentWords,
+  readAgentHealth,
+  resolveBodyComponents,
+  type Agent,
+} from "@village/shared";
+import { describeDeath, formatCarrying } from "../format/character-sheet";
 import { usePanelContext } from "./panel-context";
 import { EmptyNote, HealthRow, NeedRow, PanelSection } from "./widgets";
 
@@ -13,19 +19,25 @@ function StatusSection({ agent }: { agent: Agent }) {
       </PanelSection>
     );
   }
+  const { catalog } = state;
+  const conditionWords = listComponentWords(
+    catalog.declarations,
+    resolveBodyComponents(catalog, agent),
+    false,
+  );
   return (
     <PanelSection title="Status">
       <div className="need-grid">
-        <HealthRow value={agent.health} />
+        <HealthRow value={readAgentHealth(catalog, agent)} />
         {NEED_NAMES.map((needName) => (
           <NeedRow key={needName} needName={needName} value={agent.needs[needName]} />
         ))}
       </div>
-      {agent.conditions.length > 0 && (
+      {conditionWords.length > 0 && (
         <div className="token-list condition-list">
-          {agent.conditions.map((condition) => (
-            <span key={condition.name} className="token condition-chip">
-              {describeCondition(condition, state.clock.tick, state.timeSettings)}
+          {conditionWords.map((words) => (
+            <span key={words} className="token condition-chip">
+              {words}
             </span>
           ))}
         </div>

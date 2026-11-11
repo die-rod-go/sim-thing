@@ -1,4 +1,4 @@
-import { ITEM_FORMS, RULE_LOCATIONS, type AppliesToRule, type ItemFile } from "@village/shared";
+import { RULE_LOCATIONS, type AppliesToRule, type ItemFile } from "@village/shared";
 import { clientConfig } from "../client-config";
 import { removeAt, replaceAt } from "./list-edits";
 import {
@@ -39,20 +39,6 @@ function RuleTermValue({
         choices={Object.keys(file.components)}
         onChange={(component) => onChange({ component })}
       />
-    );
-  }
-  if ("property" in rule) {
-    return (
-      <Choice
-        value={rule.property}
-        choices={Object.keys(file.properties)}
-        onChange={(property) => onChange({ property })}
-      />
-    );
-  }
-  if ("form" in rule) {
-    return (
-      <Choice value={rule.form} choices={ITEM_FORMS} onChange={(form) => onChange({ form })} />
     );
   }
   if ("location" in rule) {

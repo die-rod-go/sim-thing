@@ -150,7 +150,6 @@ export const config = {
   },
 
   health: {
-    startValue: 1,
     /** Hours of hunger at 0 before starvation starts to do damage. */
     starvationGraceHours: 12,
     starvationDrainPerHour: 0.1,
@@ -286,8 +285,6 @@ export const config = {
   },
 
   economy: {
-    /** The money item. Nothing makes or destroys it, so the supply is closed. */
-    currencyDefinitionId: "coin",
     giveReachTiles: 1,
   },
 
@@ -353,12 +350,6 @@ export const config = {
     },
     /** Why nothing can be taken from a living agent: only they can hand it over. */
     livingHolderReason: "{name} is alive, and only they can hand over what they carry",
-  },
-
-  doors: {
-    /** Walking into a closed door opens it in passing. */
-    openedInPassingLoudness: 3,
-    openedInPassingPhrase: "opened the {item}",
   },
 
   noticeBoard: { notesShownOnRead: 5, maxNoteChars: 200 },

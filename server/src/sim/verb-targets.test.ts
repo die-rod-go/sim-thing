@@ -17,6 +17,8 @@ import {
   lastFailure,
   memoryTexts,
   place,
+  readHealth,
+  setAgentHealth,
 } from "./combat-test-kit";
 import { buildDecisionContext } from "./context-builder";
 import { createTestSim, decisionReply, scriptByAgent } from "./test-sim";
@@ -37,11 +39,11 @@ function walkTicks(sim: ReturnType<typeof buildCombatSim>, agentId: string, tick
 describe("aiming a verb", () => {
   it("heals with a bandage aimed at yourself and uses it up", () => {
     const sim = buildCombatSim(["mara"]);
-    replaceAgent(sim.state, { ...sim.agent("mara"), health: 0.5 });
+    setAgentHealth(sim, "mara", 0.5);
     const bandage = handOver(sim, "mara", "bandage");
     aimWith(sim, "mara", bandage, "use", "yourself");
     finish(sim, "mara");
-    expect(sim.agent("mara").health).toBeCloseTo(0.65, 9);
+    expect(readHealth(sim, "mara")).toBeCloseTo(0.65, 9);
     expect(countHeld(sim.state, "mara", "bandage")).toBe(0);
     expect(memoryTexts(sim, "mara")).toContain("I finished bandaging myself with a bandage");
   });
@@ -71,7 +73,7 @@ describe("aiming a verb", () => {
     sim.placeAgent("tobias", FAR_OUT_OF_SIGHT);
     finish(sim, "mara");
     expect(lastFailure(sim, "mara")).toBe("I tried to punch Tobias but Tobias was already gone");
-    expect(sim.agent("tobias").health).toBe(1);
+    expect(readHealth(sim, "tobias")).toBe(1);
   });
 
   it("misses a target who stepped out of reach during the swing", () => {
@@ -82,7 +84,7 @@ describe("aiming a verb", () => {
     sim.placeAgent("tobias", FOUR_TILES_AWAY);
     const finished = finish(sim, "mara");
     expect(finished.result.events.at(-1)?.kind).toBe("missed");
-    expect(sim.agent("tobias").health).toBe(1);
+    expect(readHealth(sim, "tobias")).toBe(1);
   });
 
   it("walks to a target out of reach, then strikes", () => {
@@ -116,7 +118,7 @@ describe("verb fields and effect modifiers", () => {
       {
         name: "whittle",
         appliesTo: { allOf: [{ definition: "wood" }, { location: "held" }] },
-        tools: { properties: ["sharp"] },
+        tools: { components: ["sharp"] },
         effects: [{ type: "change_need", on: "user", need: "fun", amount: 0.1 }],
       },
     ]);

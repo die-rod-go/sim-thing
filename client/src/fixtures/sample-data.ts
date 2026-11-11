@@ -7,6 +7,11 @@ import type {
   WorldEvent,
 } from "@village/shared";
 
+const SAMPLE_WORLD: SnapshotMessage["world"] = {
+  agentBody: "person",
+  agentHealth: "health.current",
+};
+
 /** Plausible sim data for tests and the dev-only mock server. */
 export function makeSampleAgent(id: string, name: string, x: number, y: number): Agent {
   return {
@@ -28,9 +33,8 @@ export function makeSampleAgent(id: string, name: string, x: number, y: number):
     body: { sleepRecoveryPerHour: 0.15, strength: 0.5, agility: 0.5 },
     profession: "baker",
     needs: { hunger: 0.7, energy: 0.5, social: 0.3, fun: 0.9 },
-    health: 1,
     starvingSinceTick: null,
-    conditions: [],
+    bodyChanges: {},
     death: null,
     mood: "content",
     goals: [
@@ -66,7 +70,8 @@ export function makeSampleSnapshot(agents: Agent[]): SnapshotMessage {
     agents,
     entities: [],
     itemDefinitions: [],
-    conditionDefinitions: [],
+    componentDeclarations: {},
+    world: SAMPLE_WORLD,
     recentEvents: [],
     recentMoments: [],
   };

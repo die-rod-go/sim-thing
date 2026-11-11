@@ -1,11 +1,10 @@
 import { useCallback } from "react";
-import { formatSimTime, type Note, type Position, type SimTimeSettings } from "@village/shared";
-import type { InspectedThing, TileInspection } from "./tile-inspection";
+import type { Position } from "@village/shared";
+import type { InspectedNote, InspectedThing, TileInspection } from "./tile-inspection";
 
 interface TileCardProps {
   inspection: TileInspection | null;
   isPinned: boolean;
-  timeSettings: SimTimeSettings;
   onClose: () => void;
   cardRef: (element: HTMLElement | null) => void;
 }
@@ -33,26 +32,16 @@ function stopPropagation(event: Event): void {
   event.stopPropagation();
 }
 
-function NoteEntry({ note, timeSettings }: { note: Note; timeSettings: SimTimeSettings }) {
+function NoteEntry({ note }: { note: InspectedNote }) {
   return (
     <li className="tile-card-note">
-      <span className="tile-card-note-byline">
-        {note.authorName} · {formatSimTime(note.tick, timeSettings)}
-      </span>
+      <span className="tile-card-note-byline">{note.author}</span>
       <span className="tile-card-note-text">{note.text}</span>
     </li>
   );
 }
 
-function NotesSection({
-  notes,
-  isPinned,
-  timeSettings,
-}: {
-  notes: readonly Note[];
-  isPinned: boolean;
-  timeSettings: SimTimeSettings;
-}) {
+function NotesSection({ notes, isPinned }: { notes: readonly InspectedNote[]; isPinned: boolean }) {
   const [latestNote] = notes;
   if (!latestNote) return null;
   const noteCount = `${notes.length} ${notes.length === 1 ? "note" : "notes"}`;
@@ -61,7 +50,7 @@ function NotesSection({
       <div className="tile-card-notes is-preview">
         <span className="tile-card-muted">{noteCount}, latest:</span>
         <ul>
-          <NoteEntry note={latestNote} timeSettings={timeSettings} />
+          <NoteEntry note={latestNote} />
         </ul>
       </div>
     );
@@ -71,26 +60,14 @@ function NotesSection({
       <span className="tile-card-muted">{noteCount}, newest first</span>
       <ul>
         {notes.map((note, noteIndex) => (
-          <NoteEntry
-            key={`${note.tick}:${note.authorId}:${noteIndex}`}
-            note={note}
-            timeSettings={timeSettings}
-          />
+          <NoteEntry key={`${note.author}:${noteIndex}`} note={note} />
         ))}
       </ul>
     </div>
   );
 }
 
-function ThingEntry({
-  thing,
-  isPinned,
-  timeSettings,
-}: {
-  thing: InspectedThing;
-  isPinned: boolean;
-  timeSettings: SimTimeSettings;
-}) {
+function ThingEntry({ thing, isPinned }: { thing: InspectedThing; isPinned: boolean }) {
   return (
     <li className="tile-card-thing">
       <strong>{thing.name}</strong>
@@ -100,7 +77,7 @@ function ThingEntry({
       {thing.contents.length > 0 && (
         <div className="tile-card-muted">holds {thing.contents.join(", ")}</div>
       )}
-      <NotesSection notes={thing.notes} isPinned={isPinned} timeSettings={timeSettings} />
+      <NotesSection notes={thing.notes} isPinned={isPinned} />
     </li>
   );
 }
@@ -109,7 +86,7 @@ function ThingEntry({
  * What is on the map tile under the pointer, or the pinned one. The frame loop places it beside
  * the tile. A pinned card takes the pointer, so its notes scroll without zooming or panning.
  */
-export function TileCard({ inspection, isPinned, timeSettings, onClose, cardRef }: TileCardProps) {
+export function TileCard({ inspection, isPinned, onClose, cardRef }: TileCardProps) {
   const attachCard = useCallback(
     (element: HTMLElement | null) => {
       cardRef(element);
@@ -147,12 +124,7 @@ export function TileCard({ inspection, isPinned, timeSettings, onClose, cardRef 
       {inspection.things.length > 0 && (
         <ul className="tile-card-things">
           {inspection.things.map((thing) => (
-            <ThingEntry
-              key={thing.key}
-              thing={thing}
-              isPinned={isPinned}
-              timeSettings={timeSettings}
-            />
+            <ThingEntry key={thing.key} thing={thing} isPinned={isPinned} />
           ))}
         </ul>
       )}

@@ -20,11 +20,11 @@ export function InventoryEditor({
   agent,
   problems,
   onChange,
-  carriableItems,
-}: AgentEditorProps & { carriableItems: readonly { id: string; name: string }[] }) {
-  const namesById = new Map(carriableItems.map((item) => [item.id, item.name]));
+  inventoryItems,
+}: AgentEditorProps & { inventoryItems: readonly { id: string; name: string }[] }) {
+  const namesById = new Map(inventoryItems.map((item) => [item.id, item.name]));
   const heldItems = Object.entries(agent.inventory);
-  const addableItems = carriableItems.filter((item) => !(item.id in agent.inventory));
+  const addableItems = inventoryItems.filter((item) => !(item.id in agent.inventory));
   const setAmount = (itemId: string, amount: number | null) => {
     const inventory = { ...agent.inventory };
     if (amount === null) delete inventory[itemId];

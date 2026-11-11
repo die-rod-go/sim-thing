@@ -59,6 +59,11 @@ export function VerbEditor({
             checked={verb.takesText}
             onChange={(takesText) => update({ takesText })}
           />
+          <Checkbox
+            label="done in passing"
+            checked={verb.isDoneInPassing}
+            onChange={(isDoneInPassing) => update({ isDoneInPassing })}
+          />
         </div>
         <h4>Applies to</h4>
         <RuleBuilder

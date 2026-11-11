@@ -32,7 +32,7 @@ const attack = {
 
 describe("item file validation", () => {
   it("finds nothing wrong with a sound file", () => {
-    expect(messagesFor(buildTestItemFile(), { currencyDefinitionId: "coin" })).toEqual([]);
+    expect(messagesFor(buildTestItemFile())).toEqual([]);
   });
 
   it("accepts an attack verb reading its weapon", () => {
@@ -137,7 +137,7 @@ describe("item file validation", () => {
     expect(messages.some((message) => message.includes("needs a `killed` phrase"))).toBe(true);
   });
 
-  it("rejects unknown conditions and items in effects", () => {
+  it("rejects unknown components and items in effects", () => {
     const messages = messagesFor(
       withVerbs({
         name: "curse",
@@ -148,11 +148,11 @@ describe("item file validation", () => {
         ],
       }),
     );
-    expect(messages).toContain('error: verbs.2 (curse).effects.0: Unknown condition "cursed".');
+    expect(messages).toContain('error: verbs.2 (curse).effects.0: Unknown component "cursed".');
     expect(messages).toContain('error: verbs.2 (curse).effects.1: Unknown item "gold".');
   });
 
-  it("rejects a carriable without weight", () => {
+  it("rejects a field value of the wrong type or outside its literal bounds", () => {
     const base = buildTestItemFile();
     const file = buildTestItemFile({
       definitions: [
@@ -160,60 +160,132 @@ describe("item file validation", () => {
         {
           id: "feather",
           name: "feather",
-          form: "carriable",
           glyph: { index: 9, color: "#ffffff" },
+          components: { holdable: { kilograms: -1 }, food: { hunger: "a lot" } },
         },
       ],
     });
-    expect(messagesFor(file).some((message) => message.includes("needs a weight"))).toBe(true);
-  });
-
-  it("rejects an engine component declared with the wrong fields", () => {
-    const base = buildTestItemFile();
-    const file = buildTestItemFile({
-      components: { ...base.components, durability: { fields: { hardness: { type: "number" } } } },
-      definitions: base.definitions.filter((definition) => definition.id !== "oven"),
-      verbs: base.verbs.filter((verb) => verb.name !== "bake bread"),
-    });
-    expect(
-      messagesFor(file).some((message) => message.includes("The engine reads durability")),
-    ).toBe(true);
-  });
-
-  it("warns about reactions on properties nothing has", () => {
-    const file = buildTestItemFile({
-      properties: { sharp: {}, flesh: {}, metal: {}, wooden: {} },
-      reactions: [{ stimulus: "fire", property: "wooden", effects: [] }],
-    });
-    expect(messagesFor(file)).toContain(
-      'warning: reactions.0 (fire): Nothing has the property "wooden".',
+    const messages = messagesFor(file);
+    expect(messages).toContain(
+      "error: definitions.6 (feather).components.holdable.kilograms: Is outside the field's `min` and `max`.",
+    );
+    expect(messages).toContain(
+      "error: definitions.6 (feather).components.food.hunger: Must be a number.",
     );
   });
 
-  it("warns when something could make or destroy coins", () => {
+  it("rejects a missing field unless its declaration has a default", () => {
+    const base = buildTestItemFile();
+    const withGap = (kilograms: unknown) =>
+      buildTestItemFile({
+        components: { ...base.components, holdable: { fields: { kilograms } } },
+        definitions: [
+          ...base.definitions,
+          {
+            id: "feather",
+            name: "feather",
+            glyph: { index: 9, color: "#ffffff" },
+            components: { holdable: {} },
+          },
+        ],
+      });
+    expect(messagesFor(withGap({ type: "number" }))).toContain(
+      'error: definitions.6 (feather).components.holdable: Missing field "kilograms".',
+    );
+    expect(messagesFor(withGap({ type: "number", default: 0.1 }))).toEqual([]);
+  });
+
+  it("rejects an item field naming no definition", () => {
+    const base = buildTestItemFile();
+    const file = buildTestItemFile({
+      components: { ...base.components, breaks_into: { fields: { item: { type: "item" } } } },
+      definitions: base.definitions.map((definition) =>
+        definition.id === "knife"
+          ? {
+              ...definition,
+              components: { ...definition.components, breaks_into: { item: "dust" } },
+            }
+          : definition,
+      ),
+    });
+    expect(messagesFor(file)).toContain(
+      'error: definitions.0 (knife).components.breaks_into.item: Unknown item "dust".',
+    );
+  });
+
+  it("rejects a min or max naming something that isn't a number field of the component", () => {
+    const base = buildTestItemFile();
+    const file = buildTestItemFile({
+      components: {
+        ...base.components,
+        capacity: { fields: { max: { type: "number", min: "least" } } },
+      },
+    });
+    expect(messagesFor(file)).toContain(
+      'error: components.capacity.max: `min` names "least", which isn\'t a number field here.',
+    );
+  });
+
+  it("rejects world settings naming no body, no health field or unknown components", () => {
+    const base = buildTestItemFile();
+    const withWorld = (world: Record<string, unknown>) =>
+      messagesFor(buildTestItemFile({ world: { ...base.world, ...world } }));
+    expect(withWorld({ agentBody: "ghost" })).toContain(
+      'error: world.agentBody: "ghost" has no definition.',
+    );
+    expect(withWorld({ agentHealth: "weapon.hitChance" })).toContain(
+      'error: world.agentHealth: "weapon.hitChance" must be a number field of a component person has.',
+    );
+    expect(withWorld({ sightBlockedBy: { has: "fog" } })).toContain(
+      'error: world.sightBlockedBy: Unknown component "fog".',
+    );
+    expect(withWorld({ sightBlockedBy: { where: "held" } })).toContain(
+      "error: world.sightBlockedBy: `where` only works in a verb: there is no user here.",
+    );
+  });
+
+  it("rejects a condition that names no component", () => {
+    const file = buildTestItemFile({ conditions: [{ name: "cursed", defaultMinutes: null }] });
+    expect(messagesFor(file)).toContain(
+      'error: conditions.0 (cursed): Unknown component "cursed".',
+    );
+  });
+
+  it("warns about reactions on components nothing has", () => {
+    const base = buildTestItemFile();
+    const file = buildTestItemFile({
+      components: { ...base.components, wooden: {} },
+      reactions: [{ stimulus: "fire", if: { has: "wooden" }, effects: [] }],
+    });
+    expect(messagesFor(file)).toContain(
+      'warning: reactions.0 (fire): Nothing has the component "wooden".',
+    );
+  });
+
+  it("warns when something could make or destroy what the closed supply matches", () => {
     const messages = messagesFor(
       withVerbs({
         name: "mint",
         appliesTo: { definition: "oven" },
         effects: [{ type: "produce", on: "user", item: "coin", count: 1, into: "user" }],
       }),
-      { currencyDefinitionId: "coin" },
     );
     expect(messages).toContain(
       "warning: verbs.2 (mint).effects.0: Makes coin, so the supply isn't closed.",
     );
   });
 
-  it("rejects map and seed references to unknown or wrong-form definitions", () => {
+  it("rejects map and seed references to unknown definitions and to the agents' body", () => {
     const messages = messagesFor(buildTestItemFile(), {
       references: [
-        { definitionId: "anvil", requiredForm: "placeable", usedBy: "map object smithy anvil" },
-        { definitionId: "knife", requiredForm: "placeable", usedBy: "map object kitchen knife" },
+        { definitionId: "anvil", usedBy: "map object smithy anvil" },
+        { definitionId: "person", usedBy: "seed agent mara" },
+        { definitionId: "knife", usedBy: "map object kitchen knife" },
       ],
     });
     expect(messages).toEqual([
       'error: definitions: map object smithy anvil uses "anvil", which has no definition.',
-      "error: definitions (knife): map object kitchen knife needs a placeable item, but knife is carriable.",
+      "error: definitions (person): seed agent mara uses \"person\", the agents' body, which can't be placed or carried.",
     ]);
   });
 });

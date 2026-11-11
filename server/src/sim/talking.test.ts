@@ -1,5 +1,7 @@
 import { describe, expect, it } from "vitest";
+import { addComponent } from "../items/thing-writes";
 import type { LlmRequest } from "../llm/types";
+import { contextOf, entityThing } from "./combat-test-kit";
 import {
   createTestSim,
   decisionReply,
@@ -135,9 +137,14 @@ describe("talking and perception", () => {
     });
     sim.placeAgent("mara", { x: 6, y: 14 });
     const door = findEntityByLabel(sim.state, "bakery door");
-    door.state.isOpen = false;
+    addComponent(contextOf(sim), entityThing(door), "closed", {
+      minutes: null,
+      sourceAgentId: null,
+    });
     await sim.advance(20);
-    expect(findEntityByLabel(sim.state, "bakery door").state.isOpen).toBe(true);
+    expect(Object.hasOwn(findEntityByLabel(sim.state, "bakery door").changes, "closed")).toBe(
+      false,
+    );
     const events = sim.results.flatMap((result) => result.events);
     expect(events).toContainEqual(
       expect.objectContaining({ kind: "action_finished", description: "opened the bakery door" }),

@@ -1,5 +1,4 @@
 import {
-  CARRIABLE_WEIGHT_COMPONENT,
   itemDefinitionSchema,
   type ComponentDeclaration,
   type FieldType,
@@ -22,9 +21,9 @@ export function buildDefaultComponentValues(
   declaration: ComponentDeclaration,
 ): Record<string, FieldValue> {
   return Object.fromEntries(
-    Object.entries(declaration.fields).map(([field, { type }]) => [
+    Object.entries(declaration.fields).map(([field, { type, default: fieldDefault }]) => [
       field,
-      buildDefaultFieldValue(type),
+      fieldDefault ?? buildDefaultFieldValue(type),
     ]),
   );
 }
@@ -65,19 +64,17 @@ export function setComponentField(
   };
 }
 
-/** A carriable with a unique id and, when it is declared, the weight every carriable needs. */
+/** A bare definition with a unique id. */
 export function buildNewDefinition(file: ItemFile): ItemDefinition {
   const id = createUniqueName(
     clientConfig.itemEditor.newDefinitionId,
     file.definitions.map((definition) => definition.id),
   );
-  const definition = itemDefinitionSchema.parse({
+  return itemDefinitionSchema.parse({
     id,
     name: id.replaceAll("_", " "),
-    form: "carriable",
     glyph: clientConfig.itemEditor.newDefinitionGlyph,
   });
-  return addComponentToDefinition(file, definition, CARRIABLE_WEIGHT_COMPONENT);
 }
 
 export function addDefinition(file: ItemFile): ItemFile {

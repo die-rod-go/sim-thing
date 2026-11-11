@@ -13,6 +13,7 @@ import {
   memoryTexts,
   NEXT_TO_SQUARE,
   place,
+  readHealth,
   SQUARE,
 } from "./combat-test-kit";
 import { buildWalkingGrid } from "./world-access";
@@ -33,7 +34,7 @@ describe("dropping and picking up", () => {
     place(sim, { mara: SQUARE, tobias: NEXT_TO_SQUARE });
     const breadBefore = countHeld(sim.state, "mara", "bread");
     const [bread] = sim.state.entities.filter(
-      (entity) => entity.definitionId === "bread" && entity.location.kind === "inventory",
+      (entity) => entity.definitionId === "bread" && entity.location.kind === "inside",
     );
     if (!bread) throw new Error("the seeds give Mara bread");
     aimWith(sim, "mara", bread, "drop");
@@ -51,8 +52,8 @@ describe("dropping and picking up", () => {
     aimWith(sim, "mara", knife, "pick up");
     finish(sim, "mara");
     expect(findEntity(sim.state, knife.id).location).toEqual({
-      kind: "inventory",
-      agentId: "mara",
+      kind: "inside",
+      holderId: "mara",
     });
     expect(memoryTexts(sim, "mara")).toContain("I picked up a knife");
   });
@@ -66,8 +67,8 @@ describe("dropping and picking up", () => {
     finish(sim, "mara");
     finish(sim, "tobias");
     expect(findEntity(sim.state, knife.id).location).toEqual({
-      kind: "inventory",
-      agentId: "mara",
+      kind: "inside",
+      holderId: "mara",
     });
     expect(lastFailure(sim, "tobias")).toContain("someone got to it first");
   });
@@ -82,7 +83,7 @@ describe("throwing", () => {
     aimWith(sim, "mara", knife, "throw", "Tobias");
     finish(sim, "mara");
     expect(tileOf(sim, knife.id)).toEqual({ x: 22, y: 15 });
-    expect(sim.agent("tobias").health).toBeLessThan(1);
+    expect(readHealth(sim, "tobias")).toBeLessThan(1);
   });
 
   it("lands a missed throw on a free tile next to the target", () => {
@@ -97,7 +98,7 @@ describe("throwing", () => {
     if (!landed) throw new Error("the knife should be on the ground");
     expect(computeChebyshevDistance(landed, target)).toBe(1);
     expect(isWalkable(buildWalkingGrid(sim.state), landed)).toBe(true);
-    expect(sim.agent("tobias").health).toBe(1);
+    expect(readHealth(sim, "tobias")).toBe(1);
     expect(listTileEntitiesAt(sim.state, "town square").map((entity) => entity.id)).toContain(
       knife.id,
     );

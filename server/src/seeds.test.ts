@@ -83,7 +83,7 @@ describe("seeds", () => {
     );
     expect(placed.every((entity) => entity.location.kind === "tile")).toBe(true);
     const maraItems = world.entities.filter(
-      (entity) => entity.location.kind === "inventory" && entity.location.agentId === "mara",
+      (entity) => entity.location.kind === "inside" && entity.location.holderId === "mara",
     );
     const counts: Record<string, number> = {};
     for (const entity of maraItems)
@@ -92,16 +92,23 @@ describe("seeds", () => {
     expect(world.nextEntityId).toBe(world.entities.length + 1);
   });
 
-  it("starts placed objects in their definition's state: stock full, doors open", () => {
-    const byLabel = new Map(world.entities.map((entity) => [entity.label, entity]));
-    expect(byLabel.get("wheat field")?.state.stock).toBe(12);
-    expect(byLabel.get("bakery door")?.state.isOpen).toBe(true);
-    expect(byLabel.get("notice board")?.state.notes).toEqual([]);
+  it("starts every entity and agent with no changes from its definition", () => {
+    expect(world.entities.every((entity) => Object.keys(entity.changes).length === 0)).toBe(true);
+    expect(world.agents.every((agent) => Object.keys(agent.bodyChanges).length === 0)).toBe(true);
   });
 
-  it("rejects a seed inventory naming something that isn't a carriable item", () => {
-    const broken = parseSeedFile({ agents: [makeSeedAgent({ inventory: { oven: 1 } })] });
-    expect(() => buildSeededWorld(broken, map, items)).toThrow(/inventory.oven/);
+  it("lets an inventory hold any definition but the agents' body", () => {
+    const heavy = parseSeedFile({ agents: [makeSeedAgent({ inventory: { oven: 1 } })] });
+    expect(() => buildSeededWorld(heavy, map, items)).not.toThrow();
+    const body = parseSeedFile({
+      agents: [makeSeedAgent({ inventory: { [items.world.agentBody]: 1 } })],
+    });
+    expect(() => buildSeededWorld(body, map, items)).toThrow(/inventory/);
+  });
+
+  it("rejects a seed agent whose id starts with the entity prefix", () => {
+    const broken = parseSeedFile({ agents: [makeSeedAgent({ id: "entity-7" })] });
+    expect(() => buildSeededWorld(broken, map, items)).toThrow(/entity-/);
   });
 
   it("files one people memory per seed note, tagged with the person", () => {

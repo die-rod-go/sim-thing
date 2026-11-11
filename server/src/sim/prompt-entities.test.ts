@@ -1,5 +1,6 @@
 import { describe, expect, it } from "vitest";
-import { createEntity, listHeldEntities, replaceEntity } from "../items/entity-store";
+import { createEntity, listHeldEntities, locateInside } from "../items/entity-store";
+import { entityThing, setField } from "./combat-test-kit";
 import { buildBelongings, groupEntitiesForPrompt, listValidItems } from "./prompt-entities";
 import { createTestSim, findEntityByLabel, scriptByAgent } from "./test-sim";
 
@@ -10,7 +11,7 @@ function buildSim() {
   }
   const handOver = (definitionId: string, count: number) => {
     for (let made = 0; made < count; made += 1) {
-      createEntity(sim.state, definitionId, { kind: "inventory", agentId: "mara" });
+      createEntity(sim.state, definitionId, locateInside("mara"));
     }
   };
   handOver("coin", 30);
@@ -33,14 +34,14 @@ describe("entities in prompts", () => {
     const sim = buildSim();
     const door = findEntityByLabel(sim.state, "bakery door");
     const field = findEntityByLabel(sim.state, "wheat field");
-    replaceEntity(sim.state, { ...field, state: { ...field.state, stock: 0 } });
+    setField(sim, entityThing(field), "stock.amount", 0);
     expect(
       groupEntitiesForPrompt(sim.state, "mara", [
         door,
         findEntityByLabel(sim.state, "wheat field"),
       ]),
     ).toEqual([
-      { text: "bakery door", verbs: ["open", "close"], condition: "open" },
+      { text: "bakery door", verbs: ["close"], condition: null },
       { text: "wheat field", verbs: ["harvest wheat"], condition: "empty" },
     ]);
   });

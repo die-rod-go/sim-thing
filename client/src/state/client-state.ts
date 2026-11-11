@@ -1,13 +1,14 @@
+import { buildThingCatalog } from "@village/shared";
 import type {
   Agent,
   AgentDetailMessage,
   ClockState,
-  ConditionDefinition,
   Entity,
   ItemDefinition,
   Moment,
   SimStats,
   SimTimeSettings,
+  ThingCatalog,
   Volume,
   WorldEvent,
 } from "@village/shared";
@@ -31,7 +32,8 @@ export interface ClientState {
   /** Every item and object: placed, on the ground, carried or inside something. */
   entities: Entity[];
   itemDefinitions: ItemDefinition[];
-  conditionDefinitions: ConditionDefinition[];
+  /** Component declarations, world settings and definitions: what resolving components needs. */
+  catalog: ThingCatalog;
   /** Oldest first, capped. */
   events: WorldEvent[];
   /** Highlights for every agent, oldest first, capped. */
@@ -57,7 +59,7 @@ export const initialClientState: ClientState = {
   agents: [],
   entities: [],
   itemDefinitions: [],
-  conditionDefinitions: [],
+  catalog: buildThingCatalog({}, { agentBody: "", agentHealth: "" }, []),
   events: [],
   moments: [],
   speechBubbles: [],

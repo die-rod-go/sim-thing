@@ -1,7 +1,8 @@
 import type { Entity, EntityLocation } from "@village/shared";
-import { listContents } from "../../items/containers";
 import {
   createEntity,
+  listContents,
+  locateInside,
   moveEntity,
   removeEntity,
   resolveEntityPosition,
@@ -12,7 +13,7 @@ import { findAgent, markEntityChanged, markEntityRemoved } from "../world-access
 import { announceUnverbedBreaking } from "./breaking";
 import {
   findEffectEntity,
-  findUsedDefinition,
+  findUsedComponents,
   requireVerbRun,
   type EffectHandler,
 } from "./effect-run";
@@ -23,7 +24,7 @@ function locateAtFeet(state: WorldState, agentId: string): EntityLocation {
 }
 
 function locateWith(state: WorldState, agentId: string, into: "user" | "ground"): EntityLocation {
-  return into === "user" ? { kind: "inventory", agentId } : locateAtFeet(state, agentId);
+  return into === "user" ? locateInside(agentId) : locateAtFeet(state, agentId);
 }
 
 /** Makes new entities, in the user's hands or at their feet (baking makes 4 bread). */
@@ -32,7 +33,7 @@ export const produceEffect: EffectHandler<"produce"> = {
     const { state, result } = effectRun.context;
     const count = Math.max(
       0,
-      Math.round(resolveNumber(effect.count, findUsedDefinition(effectRun))),
+      Math.round(resolveNumber(effect.count, findUsedComponents(effectRun))),
     );
     for (let made = 0; made < count; made += 1) {
       const location = locateWith(state, requireVerbRun(effectRun, effect).agentId, effect.into);

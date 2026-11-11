@@ -1,154 +1,19 @@
 import { z } from "zod";
 import { glyphSchema } from "../glyph";
-import { NEED_NAMES, type NeedName } from "../types";
+import {
+  componentDeclarationSchema,
+  componentPathSchema,
+  componentValuesSchema,
+  identifierSchema,
+} from "./component-schema";
+import { effectSchema, numberValueSchema } from "./effect-schema";
+import { matcherSchema } from "./matcher-schema";
 
 /*
- * The shape of `seeds/items.json`: item definitions, component declarations, properties, the
- * `person` properties, verbs, conditions and reactions. Cross-references (unknown names, rules a
- * verb's numbers depend on, overlapping verbs) are checked by `findItemFileProblems`.
+ * The shape of `seeds/items.json`: the world settings, component declarations, item definitions,
+ * verbs, conditions and reactions. Cross-references (unknown names, rules a verb's numbers depend
+ * on, overlapping verbs) are checked by `findItemFileProblems`.
  */
-
-/** Definition ids, component, property and condition names: snake_case. */
-export const ITEM_IDENTIFIER_PATTERN = /^[a-z][a-z0-9]*(?:_[a-z0-9]+)*$/;
-/** Component field names: camelCase. */
-export const FIELD_NAME_PATTERN = /^[a-z][A-Za-z0-9]*$/;
-/** `item.<component>.<field>`: a field of a component on the thing a verb is used with. */
-export const COMPONENT_PATH_PATTERN =
-  /^item\.([a-z][a-z0-9]*(?:_[a-z0-9]+)*)\.([a-z][A-Za-z0-9]*)$/;
-
-const identifierSchema = z
-  .string()
-  .regex(ITEM_IDENTIFIER_PATTERN, "Use snake_case: lowercase letters, digits and underscores.");
-
-export const ITEM_FORMS = ["placeable", "carriable"] as const;
-export type ItemForm = (typeof ITEM_FORMS)[number];
-
-export const FIELD_TYPES = ["number", "range", "boolean", "text"] as const;
-export type FieldType = (typeof FIELD_TYPES)[number];
-
-const fieldDeclarationSchema = z.strictObject({
-  type: z.enum(FIELD_TYPES),
-  description: z.string().default(""),
-});
-
-const componentDeclarationSchema = z.strictObject({
-  description: z.string().default(""),
-  fields: z.record(z.string().regex(FIELD_NAME_PATTERN), fieldDeclarationSchema).default({}),
-});
-
-const rangeSchema = z.strictObject({ min: z.number(), max: z.number() });
-export type NumberRange = z.infer<typeof rangeSchema>;
-
-const fieldValueSchema = z.union([z.number(), rangeSchema, z.boolean(), z.string()]);
-export type FieldValue = z.infer<typeof fieldValueSchema>;
-
-const propertyDeclarationSchema = z.strictObject({
-  description: z.string().default(""),
-  /** Shown in prompts before the item's name ("a fragile jar"). */
-  isVisible: z.boolean().default(false),
-  /** The prompt word; the property name when omitted. */
-  word: z.string().optional(),
-});
-
-const componentPathSchema = z
-  .string()
-  .regex(COMPONENT_PATH_PATTERN, 'A component read looks like "item.weapon.damage".');
-
-const fromComponentSchema = z.strictObject({ from: componentPathSchema });
-
-/** A literal, a field read as it is, or a literal multiplied by a number field. */
-export const numberValueSchema = z.union([
-  z.number(),
-  fromComponentSchema,
-  z.strictObject({ value: z.number(), times: componentPathSchema }),
-]);
-export const rangeValueSchema = z.union([
-  fromComponentSchema,
-  z.strictObject({ min: z.number(), max: z.number(), times: componentPathSchema.optional() }),
-]);
-export const textValueSchema = z.union([z.string().min(1), fromComponentSchema]);
-
-export type NumberValue = z.infer<typeof numberValueSchema>;
-export type RangeValue = z.infer<typeof rangeValueSchema>;
-export type TextValue = z.infer<typeof textValueSchema>;
-
-export const EFFECT_SUBJECTS = ["target", "user", "item", "chosen", "self", "nearby"] as const;
-export type EffectSubject = (typeof EFFECT_SUBJECTS)[number];
-
-export const EFFECT_TIMINGS = ["start", "finish"] as const;
-export type EffectTiming = (typeof EFFECT_TIMINGS)[number];
-
-const effectModifiers = {
-  /** Required in verbs; `self` when omitted in conditions, reactions and `onBroken`. */
-  on: z.enum(EFFECT_SUBJECTS).optional(),
-  chance: z.number().min(0).max(1).optional(),
-  when: z.enum(EFFECT_TIMINGS).optional(),
-  requiresHit: z.boolean().optional(),
-  /** Tiles around the target (or `self`) that `on: nearby` reaches. */
-  radius: z.number().int().nonnegative().optional(),
-};
-
-const needNameSchema = z.enum(NEED_NAMES as readonly [NeedName, ...NeedName[]]);
-
-export const effectSchema = z.discriminatedUnion("type", [
-  z.strictObject({
-    type: z.literal("damage"),
-    ...effectModifiers,
-    amount: rangeValueSchema,
-    stimulus: textValueSchema.optional(),
-    scaledByStrength: z.boolean().default(false),
-  }),
-  z.strictObject({ type: z.literal("heal"), ...effectModifiers, amount: numberValueSchema }),
-  z.strictObject({
-    type: z.literal("change_need"),
-    ...effectModifiers,
-    need: needNameSchema,
-    amount: numberValueSchema,
-    /** Added once for every other agent using the same thing (the card table). */
-    perOtherUser: numberValueSchema.optional(),
-  }),
-  z.strictObject({ type: z.literal("emit"), ...effectModifiers, stimulus: textValueSchema }),
-  z.strictObject({
-    type: z.literal("add_condition"),
-    ...effectModifiers,
-    condition: identifierSchema,
-    minutes: numberValueSchema.optional(),
-  }),
-  z.strictObject({
-    type: z.literal("remove_condition"),
-    ...effectModifiers,
-    condition: identifierSchema,
-  }),
-  z.strictObject({
-    type: z.literal("produce"),
-    ...effectModifiers,
-    item: identifierSchema,
-    count: numberValueSchema,
-    into: z.enum(["user", "ground"]),
-  }),
-  z.strictObject({ type: z.literal("wear"), ...effectModifiers, amount: numberValueSchema }),
-  z.strictObject({ type: z.literal("transform"), ...effectModifiers, into: identifierSchema }),
-  z.strictObject({ type: z.literal("destroy"), ...effectModifiers }),
-  z.strictObject({ type: z.literal("take_stock"), ...effectModifiers, amount: numberValueSchema }),
-  z.strictObject({ type: z.literal("set_open"), ...effectModifiers, isOpen: z.boolean() }),
-  z.strictObject({
-    type: z.literal("move"),
-    ...effectModifiers,
-    to: z.enum(["ground", "user", "item", "target_tile"]),
-  }),
-  z.strictObject({
-    type: z.literal("make_sound"),
-    ...effectModifiers,
-    loudness: numberValueSchema,
-  }),
-  z.strictObject({ type: z.literal("sleep"), ...effectModifiers }),
-  z.strictObject({ type: z.literal("read_notes"), ...effectModifiers }),
-  z.strictObject({ type: z.literal("post_note"), ...effectModifiers }),
-]);
-
-export type Effect = z.infer<typeof effectSchema>;
-export type EffectType = Effect["type"];
-export type EffectOfType<Type extends EffectType> = Extract<Effect, { type: Type }>;
 
 export const RULE_LOCATIONS = ["held", "ground", "placed"] as const;
 export type RuleLocation = (typeof RULE_LOCATIONS)[number];
@@ -157,8 +22,6 @@ export type RuleLocation = (typeof RULE_LOCATIONS)[number];
 export type AppliesToRule =
   | { definition: string }
   | { component: string }
-  | { form: ItemForm }
-  | { property: string }
   | { location: RuleLocation }
   | { isDeadAgent: true }
   | { isUser: true }
@@ -170,8 +33,6 @@ export const appliesToRuleSchema: z.ZodType<AppliesToRule> = z.lazy(() =>
   z.union([
     z.strictObject({ definition: identifierSchema }),
     z.strictObject({ component: identifierSchema }),
-    z.strictObject({ form: z.enum(ITEM_FORMS) }),
-    z.strictObject({ property: identifierSchema }),
     z.strictObject({ location: z.enum(RULE_LOCATIONS) }),
     z.strictObject({ isDeadAgent: z.literal(true) }),
     z.strictObject({ isUser: z.literal(true) }),
@@ -215,13 +76,15 @@ export const verbSchema = z.strictObject({
   /** Sound reach in tiles while it runs; null if silent. */
   loudness: numberValueSchema.nullable().default(null),
   takesText: z.boolean().default(false),
+  /** A walker blocked by an entity this verb applies to does it on the way through (a door). */
+  isDoneInPassing: z.boolean().default(false),
   /** Items used up from the user's inventory when it starts, by definition id. */
   inputs: z.record(identifierSchema, z.number().int().positive()).default({}),
-  /** Held items needed but not used up: every listed definition, and something with each property. */
+  /** Held items needed but not used up: every listed definition, and something with each component. */
   tools: z
     .strictObject({
       definitions: z.array(identifierSchema).default([]),
-      properties: z.array(identifierSchema).default([]),
+      components: z.array(identifierSchema).default([]),
     })
     .optional(),
   hitRoll: z.strictObject({ baseHitChance: numberValueSchema }).optional(),
@@ -230,11 +93,14 @@ export const verbSchema = z.strictObject({
 });
 export type Verb = z.infer<typeof verbSchema>;
 
+/**
+ * What a component does while a thing has it, and how its start and end read. The state itself is
+ * the component: an `add_condition` effect adds it for `defaultMinutes`. Any other component can be
+ * added and removed the same way; it then lasts until removed and nothing announces it.
+ */
 export const conditionSchema = z.strictObject({
+  /** The component's name. */
   name: identifierSchema,
-  /** How it reads in prompts ("on fire"). */
-  words: z.string().min(1),
-  isVisible: z.boolean().default(false),
   /** Null: lasts until something removes it. */
   defaultMinutes: z.number().positive().nullable(),
   everyMinute: z.array(effectSchema).default([]),
@@ -243,19 +109,13 @@ export const conditionSchema = z.strictObject({
 });
 export type ConditionDefinition = z.infer<typeof conditionSchema>;
 
-export const reactionSchema = z
-  .strictObject({
-    stimulus: z.string().min(1),
-    property: identifierSchema.optional(),
-    condition: identifierSchema.optional(),
-    /** Skipped when the receiver has this property or condition. */
-    unless: identifierSchema.optional(),
-    effects: z.array(effectSchema),
-    phrases: killedPhraseSchema.default({}),
-  })
-  .refine((reaction) => reaction.property !== undefined || reaction.condition !== undefined, {
-    message: "A reaction needs a property, a condition, or both.",
-  });
+export const reactionSchema = z.strictObject({
+  stimulus: z.string().min(1),
+  /** Which receivers of the stimulus react. */
+  if: matcherSchema,
+  effects: z.array(effectSchema),
+  phrases: killedPhraseSchema.default({}),
+});
 export type Reaction = z.infer<typeof reactionSchema>;
 
 export const itemDefinitionSchema = z.strictObject({
@@ -263,22 +123,50 @@ export const itemDefinitionSchema = z.strictObject({
   name: z.string().trim().min(1),
   /** Omitted for things counted without a plural ("3 bread"). */
   plural: z.string().trim().min(1).optional(),
-  form: z.enum(ITEM_FORMS),
   glyph: glyphSchema,
-  isVisibleWhenCarried: z.boolean().default(false),
-  properties: z.array(identifierSchema).default([]),
   /** Component name to its field values. */
-  components: z.record(identifierSchema, z.record(z.string(), fieldValueSchema)).default({}),
-  /** Runs when durability reaches 0; without it the entity is destroyed. */
+  components: z.record(identifierSchema, componentValuesSchema).default({}),
+  /** Runs when the health field reaches 0; without it the entity is destroyed. */
   onBroken: z.array(effectSchema).optional(),
 });
 export type ItemDefinition = z.infer<typeof itemDefinitionSchema>;
 
+/** Matchers and names the engine's physics reads. An omitted matcher matches nothing. */
+export const worldSettingsSchema = z.strictObject({
+  /** A tile with a matching entity on it blocks sight. */
+  sightBlockedBy: matcherSchema.optional(),
+  /** A tile with a matching entity on it can't be walked through. */
+  movementBlockedBy: matcherSchema.optional(),
+  /** Sound passing a tile with a matching entity is muffled. */
+  soundMuffledBy: matcherSchema.optional(),
+  /** Nobody but its own agent sees what is inside a matching thing. */
+  contentsHiddenBy: matcherSchema.optional(),
+  /** Others see a matching entity directly inside an agent ("Tobias, carrying a knife"). */
+  shownWhenCarried: matcherSchema.optional(),
+  /** A matching entity on a tile reads as lying on the floor or the ground. */
+  lyingWhenOnTile: matcherSchema.optional(),
+  /** Validation warns when a verb or reaction could make or destroy a matching thing. */
+  closedSupply: matcherSchema.optional(),
+  /** The definition of every agent's body. */
+  agentBody: identifierSchema,
+  /** The number field that is an agent's health. */
+  agentHealth: componentPathSchema,
+});
+export type WorldSettings = z.infer<typeof worldSettingsSchema>;
+
+export const WORLD_MATCHER_SETTINGS = [
+  "sightBlockedBy",
+  "movementBlockedBy",
+  "soundMuffledBy",
+  "contentsHiddenBy",
+  "shownWhenCarried",
+  "lyingWhenOnTile",
+  "closedSupply",
+] as const satisfies readonly (keyof WorldSettings)[];
+
 export const itemFileSchema = z.strictObject({
+  world: worldSettingsSchema,
   components: z.record(identifierSchema, componentDeclarationSchema),
-  properties: z.record(identifierSchema, propertyDeclarationSchema).default({}),
-  /** What agents are made of, for reactions and verb rules. Not an item definition. */
-  person: z.strictObject({ properties: z.array(identifierSchema).default([]) }),
   definitions: z.array(itemDefinitionSchema),
   verbs: z.array(verbSchema),
   conditions: z.array(conditionSchema).default([]),
@@ -286,32 +174,6 @@ export const itemFileSchema = z.strictObject({
 });
 
 export type ItemFile = z.infer<typeof itemFileSchema>;
-export type ComponentDeclaration = z.infer<typeof componentDeclarationSchema>;
-export type PropertyDeclaration = z.infer<typeof propertyDeclarationSchema>;
-
-/**
- * Components the engine reads. Their fields are fixed: `items.json` must declare them exactly so,
- * and the item editor shows them locked.
- */
-export const ENGINE_COMPONENT_FIELDS = {
-  durability: { toughness: "number" },
-  stock: { capacity: "number", regrowPerDay: "number" },
-  openable: {
-    startsOpen: "boolean",
-    blocksSightWhenClosed: "boolean",
-    muffleWhenClosed: "boolean",
-  },
-  blocking: { blocksMovement: "boolean", blocksSight: "boolean" },
-  container: { capacity: "number" },
-  notes: { maxNotes: "number" },
-  bed: {},
-} as const satisfies Record<string, Record<string, FieldType>>;
-
-export type EngineComponentName = keyof typeof ENGINE_COMPONENT_FIELDS;
-
-export function isEngineComponent(name: string): name is EngineComponentName {
-  return Object.hasOwn(ENGINE_COMPONENT_FIELDS, name);
-}
 
 export function parseItemFile(json: unknown): ItemFile {
   return itemFileSchema.parse(json);

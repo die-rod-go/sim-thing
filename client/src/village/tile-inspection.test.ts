@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import type { Entity, EntityState, ItemDefinition } from "@village/shared";
+import { buildThingCatalog, type Entity, type ItemDefinition } from "@village/shared";
 import { makeSampleAgent } from "../fixtures/sample-data";
 import { findPlaceAt, inspectTile, type TileInspectionSources } from "./tile-inspection";
 import type { TiledMap } from "./tiled-map";
@@ -9,7 +9,6 @@ const BOARD_TILE = { x: 1, y: 0 };
 
 function makeDefinition(
   id: string,
-  form: ItemDefinition["form"],
   components: ItemDefinition["components"] = {},
   plural?: string,
 ): ItemDefinition {
@@ -17,33 +16,75 @@ function makeDefinition(
     id,
     name: id.replaceAll("_", " "),
     ...(plural === undefined ? {} : { plural }),
-    form,
     glyph: { index: 1, color: "#ffffff" },
-    isVisibleWhenCarried: false,
-    properties: [],
     components,
   };
 }
 
-const definitions = [
-  makeDefinition("notice_board", "placeable"),
-  makeDefinition("wheat_field", "placeable", { stock: { capacity: 12 } }),
-  makeDefinition("chest", "placeable"),
-  makeDefinition("bread", "carriable"),
-  makeDefinition("knife", "carriable", {}, "knives"),
-];
+const LOOSE = { holdable: {} };
+
+const catalog = buildThingCatalog(
+  {
+    holdable: { description: "Can be carried.", isVisible: false, fields: {} },
+    closed: { description: "Shut.", fields: {}, words: "closed", isVisible: true },
+    burning: { description: "On fire.", fields: {}, words: "on fire", isVisible: true },
+    health: {
+      description: "How much it can take.",
+      isVisible: false,
+      fields: {
+        max: { type: "number", description: "Most.", min: 0 },
+        current: { type: "number", description: "Now.", min: 0, max: "max" },
+      },
+    },
+    stock: {
+      description: "Runs out.",
+      isVisible: false,
+      fields: {
+        capacity: { type: "number", description: "Most.", min: 0 },
+        amount: {
+          type: "number",
+          description: "Left.",
+          min: 0,
+          max: "capacity",
+          words: [{ text: "{value} left" }],
+        },
+      },
+    },
+    writing: {
+      description: "Written.",
+      isVisible: false,
+      fields: {
+        text: { type: "text", description: "Words.", default: "" },
+        author: { type: "text", description: "Who.", default: "" },
+      },
+    },
+  },
+  { agentBody: "person", agentHealth: "health.current", lyingWhenOnTile: { has: "holdable" } },
+  [
+    makeDefinition("notice_board"),
+    makeDefinition("wheat_field", { stock: { capacity: 12, amount: 12 } }),
+    makeDefinition("chest"),
+    makeDefinition("note", { ...LOOSE, writing: {} }),
+    makeDefinition("bread", LOOSE),
+    makeDefinition("knife", { ...LOOSE, health: { max: 1, current: 1 } }, "knives"),
+  ],
+);
 
 function makeEntity(
   id: string,
   definitionId: string,
   location: Entity["location"],
-  state: Partial<EntityState> = {},
+  changes: Entity["changes"] = {},
 ): Entity {
-  return { id, definitionId, label: null, location, state: { conditions: [], ...state } };
+  return { id, definitionId, label: null, location, changes };
 }
 
 function onTile(x: number, y: number): Entity["location"] {
   return { kind: "tile", place: "square", pos: { x, y } };
+}
+
+function instance(fields: Record<string, number | string> = {}) {
+  return { fields, endsAtTick: null, sourceAgentId: null };
 }
 
 const map: TiledMap = {
@@ -68,9 +109,7 @@ function makeSources(entities: Entity[]): TileInspectionSources {
     map,
     agents: [makeSampleAgent("ada", "Ada", 1, 0), makeSampleAgent("tom", "Tom", 0, 0)],
     entities,
-    definitions,
-    currentTick: 100,
-    timeSettings: { minutesPerTick: 1, startHour: 6 },
+    catalog,
   };
 }
 
@@ -92,37 +131,36 @@ describe("inspectTile", () => {
   });
 
   it("lists a notice board's notes newest first", () => {
-    const notes = [
-      { authorId: "ada", authorName: "Ada", text: "Bread for sale", tick: 10 },
-      { authorId: "tom", authorName: "Tom", text: "Lost my knife", tick: 40 },
+    const board = makeEntity("entity-1", "notice_board", onTile(1, 0));
+    const inBoard = { kind: "inside", holderId: "entity-1" } as const;
+    const entities = [
+      board,
+      makeEntity("entity-2", "note", inBoard, {
+        writing: instance({ author: "Ada", text: "Bread for sale" }),
+      }),
+      makeEntity("entity-3", "note", inBoard, {
+        writing: instance({ author: "Tom", text: "Lost my knife" }),
+      }),
     ];
-    const board = makeEntity("entity-1", "notice_board", onTile(1, 0), { notes });
-    const [thing] = inspectTile(BOARD_TILE, makeSources([board])).things;
+    const [thing] = inspectTile(BOARD_TILE, makeSources(entities)).things;
     expect(thing?.name).toBe("notice board");
     expect(thing?.notes.map((note) => note.text)).toEqual(["Lost my knife", "Bread for sale"]);
+    expect(thing?.contents).toEqual([]);
   });
 
-  it("describes durability, stock against capacity, doors, users and conditions", () => {
+  it("describes stock and visible components in words", () => {
     const field = makeEntity("entity-1", "wheat_field", onTile(1, 0), {
-      durability: 0.8,
-      stock: 7,
-      isOpen: false,
-      userIds: ["tom"],
-      conditions: [{ name: "burning", endsAtTick: 112, sourceAgentId: null }],
+      stock: instance({ amount: 7 }),
+      closed: instance(),
+      burning: instance(),
     });
     const [thing] = inspectTile(BOARD_TILE, makeSources([field])).things;
-    expect(thing?.details).toEqual([
-      "durability 80%",
-      "stock 7 of 12",
-      "closed",
-      "used by Tom",
-      "burning 12m",
-    ]);
+    expect(thing?.details).toEqual(["closed", "on fire", "7 left"]);
   });
 
   it("counts what a container holds", () => {
     const chest = makeEntity("entity-1", "chest", onTile(1, 0));
-    const insideChest = { kind: "inside", containerId: "entity-1" } as const;
+    const insideChest = { kind: "inside", holderId: "entity-1" } as const;
     const entities = [
       chest,
       makeEntity("entity-2", "knife", insideChest),
@@ -132,17 +170,17 @@ describe("inspectTile", () => {
     expect(thing?.contents).toEqual(["2 knives"]);
   });
 
-  it("counts a pile of loose items together but keeps a lone item's state", () => {
+  it("counts a pile of loose items together but keeps a lone item's health", () => {
     const entities = [
       makeEntity("entity-1", "bread", onTile(1, 0)),
       makeEntity("entity-2", "bread", onTile(1, 0)),
-      makeEntity("entity-3", "knife", onTile(1, 0), { durability: 0.5 }),
+      makeEntity("entity-3", "knife", onTile(1, 0), { health: instance({ current: 0.5 }) }),
       makeEntity("entity-4", "knife", onTile(0, 0)),
     ];
     const things = inspectTile(BOARD_TILE, makeSources(entities)).things;
     expect(things.map((thing) => [thing.name, thing.details])).toEqual([
       ["2 bread", []],
-      ["a knife", ["durability 50%"]],
+      ["a knife", ["health 50%"]],
     ]);
   });
 });

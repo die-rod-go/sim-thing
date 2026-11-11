@@ -7,6 +7,7 @@ import {
   fixRolls,
   handOver,
   place,
+  readHealth,
   SQUARE,
 } from "./combat-test-kit";
 
@@ -36,6 +37,6 @@ describe("where a thrown item lands", () => {
     const landed = findEntity(sim.state, jar.id);
     expect(landed.definitionId).toBe("shards");
     expect(landed.location).toMatchObject({ kind: "tile", pos: TARGET });
-    expect(sim.agent("tobias").health).toBeLessThan(1);
+    expect(readHealth(sim, "tobias")).toBeLessThan(1);
   });
 });

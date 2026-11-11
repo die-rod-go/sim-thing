@@ -67,7 +67,8 @@ export function buildSnapshot(context: SimServerContext): SnapshotMessage {
     agents: state.agents,
     entities: state.entities,
     itemDefinitions: state.items.file.definitions,
-    conditionDefinitions: state.items.file.conditions,
+    componentDeclarations: state.items.declarations,
+    world: state.items.world,
     recentEvents: listRecentEvents(context.database, config.server.recentEventsInSnapshot),
     recentMoments: listRecentMoments(context.database, config.server.recentMomentsInSnapshot),
   };

@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useRef } from "react";
-import type { Entity, ItemDefinition } from "@village/shared";
+import type { Entity, ThingCatalog } from "@village/shared";
 import { listPlacedGlyphs } from "./entity-glyphs";
 import type { GlyphPainter } from "./glyph-painter";
 import type { TiledMap } from "./tiled-map";
@@ -8,19 +8,16 @@ interface EntityGlyphsProps {
   map: TiledMap;
   glyphPainter: GlyphPainter;
   entities: readonly Entity[];
-  definitions: readonly ItemDefinition[];
+  catalog: ThingCatalog;
 }
 
 /**
  * Placed objects and ground items, drawn from each entity's glyph over the static map, so a door
  * or a dropped loaf shows where it is now. Redrawn whenever entities change.
  */
-export function EntityGlyphs({ map, glyphPainter, entities, definitions }: EntityGlyphsProps) {
+export function EntityGlyphs({ map, glyphPainter, entities, catalog }: EntityGlyphsProps) {
   const canvasRef = useRef<HTMLCanvasElement>(null);
-  const placedGlyphs = useMemo(
-    () => listPlacedGlyphs(entities, definitions),
-    [entities, definitions],
-  );
+  const placedGlyphs = useMemo(() => listPlacedGlyphs(entities, catalog), [entities, catalog]);
 
   useEffect(() => {
     const context = canvasRef.current?.getContext("2d");

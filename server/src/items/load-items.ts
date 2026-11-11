@@ -12,7 +12,6 @@ import {
   type ItemReference,
   type SeedFile,
 } from "@village/shared";
-import { config } from "../config";
 import { createLogger } from "../logger";
 import { isEffectBuilt } from "../sim/effects/effect-registry";
 import type { WorldMap } from "../world/types";
@@ -24,13 +23,11 @@ export function listItemReferences(map: WorldMap, seedFile: SeedFile): ItemRefer
   return [
     ...map.placements.map((placement) => ({
       definitionId: placement.definitionId,
-      requiredForm: "placeable" as const,
       usedBy: `map object "${placement.label}"`,
     })),
     ...seedFile.agents.flatMap((agent) =>
       Object.keys(agent.inventory).map((definitionId) => ({
         definitionId,
-        requiredForm: "carriable" as const,
         usedBy: `seed agent ${agent.id}'s inventory`,
       })),
     ),
@@ -80,10 +77,7 @@ export function buildCheckedItemCatalog(
   const parsed = itemFileSchema.safeParse(json);
   if (!parsed.success) throw new Error(`items.json is malformed: ${parsed.error.message}`);
   const problems = [
-    ...findItemFileProblems(parsed.data, {
-      references,
-      currencyDefinitionId: config.economy.currencyDefinitionId,
-    }),
+    ...findItemFileProblems(parsed.data, { references }),
     ...findUnbuiltFeatures(parsed.data),
   ];
   if (hasItemErrors(problems)) {

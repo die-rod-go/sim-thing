@@ -1,15 +1,26 @@
 import { itemFileSchema, type ItemFile } from "./item-file";
 
-/* A small item file for tests: a knife, bread, a coin, an oven and a chest. */
+/* A small item file for tests: a knife, bread, a coin, an oven, a chest and the agents' body. */
 
 export function buildTestItemFile(
   overrides: Partial<Record<keyof ItemFile, unknown>> = {},
 ): ItemFile {
   return itemFileSchema.parse({
+    world: {
+      lyingWhenOnTile: { has: "holdable" },
+      closedSupply: { definition: "coin" },
+      agentBody: "person",
+      agentHealth: "health.current",
+    },
     components: {
-      durability: { fields: { toughness: { type: "number" } } },
-      container: { fields: { capacity: { type: "number" } } },
-      weight: { fields: { kilograms: { type: "number" } } },
+      health: {
+        fields: {
+          max: { type: "number", min: 0 },
+          current: { type: "number", min: 0, max: "max" },
+        },
+      },
+      capacity: { fields: { max: { type: "number", min: 0 } } },
+      holdable: { fields: { kilograms: { type: "number", min: 0 } } },
       food: { fields: { hunger: { type: "number" } } },
       weapon: {
         fields: {
@@ -18,51 +29,53 @@ export function buildTestItemFile(
           stimulus: { type: "text" },
         },
       },
+      sharp: {},
+      flesh: {},
+      metal: {},
     },
-    properties: { sharp: {}, flesh: {}, metal: {} },
-    person: { properties: ["flesh"] },
     definitions: [
       {
         id: "knife",
         name: "knife",
         plural: "knives",
-        form: "carriable",
         glyph: { index: 1, color: "#ffffff" },
-        properties: ["sharp", "metal"],
         components: {
-          weight: { kilograms: 0.3 },
+          holdable: { kilograms: 0.3 },
+          sharp: {},
+          metal: {},
           weapon: { damage: { min: 0.2, max: 0.4 }, hitChance: 0.7, stimulus: "cut" },
         },
       },
       {
         id: "bread",
         name: "bread",
-        form: "carriable",
         glyph: { index: 2, color: "#ffffff" },
-        components: { weight: { kilograms: 0.4 }, food: { hunger: 0.5 } },
+        components: { holdable: { kilograms: 0.4 }, food: { hunger: 0.5 } },
       },
       {
         id: "coin",
         name: "coin",
         plural: "coins",
-        form: "carriable",
         glyph: { index: 3, color: "#ffffff" },
-        properties: ["metal"],
-        components: { weight: { kilograms: 0.005 } },
+        components: { holdable: { kilograms: 0.005 }, metal: {} },
       },
       {
         id: "oven",
         name: "oven",
-        form: "placeable",
         glyph: { index: 4, color: "#ffffff" },
-        components: { durability: { toughness: 6 } },
+        components: { health: { max: 6, current: 6 } },
       },
       {
         id: "chest",
         name: "chest",
-        form: "placeable",
         glyph: { index: 5, color: "#ffffff" },
-        components: { container: { capacity: 10 } },
+        components: { capacity: { max: 10 } },
+      },
+      {
+        id: "person",
+        name: "person",
+        glyph: { index: 6, color: "#ffffff" },
+        components: { flesh: {}, health: { max: 1, current: 1 } },
       },
     ],
     verbs: [

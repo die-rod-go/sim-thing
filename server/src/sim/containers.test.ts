@@ -1,8 +1,13 @@
 import { buildItemCatalog, parseItemFile, type Entity } from "@village/shared";
 import { describe, expect, it } from "vitest";
 import { config } from "../config";
-import { listContents } from "../items/containers";
-import { countHeld, createEntity, findEntity, listHeldOfDefinition } from "../items/entity-store";
+import {
+  countHeld,
+  createEntity,
+  findEntity,
+  listContents,
+  listHeldOfDefinition,
+} from "../items/entity-store";
 import { getAgentRuntime, type PendingVerb, type UsedThing } from "./agent-runtime";
 import {
   aim,
@@ -40,7 +45,7 @@ function useChest(sim: TestSim): UsedThing {
 
 function fillChest(sim: TestSim, definitionId: string, count: number): void {
   for (let made = 0; made < count; made += 1) {
-    createEntity(sim.state, definitionId, { kind: "inside", containerId: chestOf(sim).id });
+    createEntity(sim.state, definitionId, { kind: "inside", holderId: chestOf(sim).id });
   }
 }
 
@@ -55,9 +60,8 @@ function addBasket(sim: TestSim): void {
     id: "basket",
     name: "basket",
     plural: "baskets",
-    form: "carriable",
     glyph: { index: 24, color: "#ffffff" },
-    components: { container: { capacity: 5 }, weight: { kilograms: 0.5 } },
+    components: { capacity: { max: 5 }, holdable: { kilograms: 0.5 } },
   };
   sim.state.items = buildItemCatalog(
     parseItemFile({ ...file, definitions: [...file.definitions, basket] }),
@@ -108,12 +112,12 @@ describe("putting into and taking from containers", () => {
     const basketRequest = { verb: "put", chosen: { name: "basket", amount: 1 } };
     act(sim, "mara", { kind: "entity", entityId: outer.id }, basketRequest);
     expect(lastFailure(sim, "mara")).toContain("can't go inside itself");
-    const inner = createEntity(sim.state, "basket", { kind: "inside", containerId: outer.id });
+    const inner = createEntity(sim.state, "basket", { kind: "inside", holderId: outer.id });
     act(sim, "mara", { kind: "entity", entityId: inner.id }, basketRequest);
     expect(lastFailure(sim, "mara")).toContain("can't go inside itself");
     expect(findEntity(sim.state, outer.id).location).toEqual({
-      kind: "inventory",
-      agentId: "mara",
+      kind: "inside",
+      holderId: "mara",
     });
   });
 
@@ -154,7 +158,7 @@ describe("taking from bodies", () => {
     expect(countHeld(sim.state, "mara", "coin")).toBe(maraCoinsBefore + 5);
     expect(countHeld(sim.state, "tobias", "coin")).toBe(coinsOnBody.length - 5);
     const moved = coinsOnBody.slice(0, 5).map((coin) => findEntity(sim.state, coin.id).location);
-    expect(moved).toEqual(Array(5).fill({ kind: "inventory", agentId: "mara" }));
+    expect(moved).toEqual(Array(5).fill({ kind: "inside", holderId: "mara" }));
     expect(memoryTexts(sim, "mara")).toContain("I took 5 coins from Tobias's body");
   });
 

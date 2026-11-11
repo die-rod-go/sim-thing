@@ -1,14 +1,8 @@
 import { useCallback, useLayoutEffect, useMemo, useRef, useState } from "react";
-import type {
-  Agent,
-  ConditionDefinition,
-  Entity,
-  ItemDefinition,
-  SimTimeSettings,
-} from "@village/shared";
+import type { Agent, Entity, SimTimeSettings, ThingCatalog } from "@village/shared";
 import { clientConfig } from "../client-config";
 import { buildAgentColors } from "../format/agent-colors";
-import { listVisibleConditions } from "../format/conditions";
+import { listVisibleBodyComponents } from "../format/conditions";
 import type { SpeechBubble } from "../state/client-state";
 import { pickActivityCue, type ConversationLink } from "./activity-cues";
 import { retargetMotion, type AgentMotion } from "./agent-motion";
@@ -43,8 +37,7 @@ interface VillageWorldProps {
   glyphPainter: GlyphPainter;
   agents: Agent[];
   entities: readonly Entity[];
-  itemDefinitions: readonly ItemDefinition[];
-  conditionDefinitions: readonly ConditionDefinition[];
+  catalog: ThingCatalog;
   speechBubbles: SpeechBubble[];
   thoughtsByAgent: ReadonlyMap<string, VisibleThought>;
   timeSettings: SimTimeSettings;
@@ -159,9 +152,7 @@ export function VillageWorld(props: VillageWorldProps) {
     map,
     agents,
     entities: props.entities,
-    definitions: props.itemDefinitions,
-    currentTick: props.currentTick,
-    timeSettings: props.timeSettings,
+    catalog: props.catalog,
   });
   const { shownTile } = tileInspector;
   const setTileCardElement = useCallback(
@@ -227,12 +218,12 @@ export function VillageWorld(props: VillageWorldProps) {
           map={map}
           glyphPainter={props.glyphPainter}
           entities={props.entities}
-          definitions={props.itemDefinitions}
+          catalog={props.catalog}
         />
         <div className="village-tint" style={{ background: props.daylightTint }} />
         <EntityConditionOverlays
           entities={props.entities}
-          definitions={props.conditionDefinitions}
+          catalog={props.catalog}
           tileSize={map.tileWidth}
         />
         <TileHighlight
@@ -264,7 +255,7 @@ export function VillageWorld(props: VillageWorldProps) {
             isSpeaking={bubblesBySpeaker.has(agent.id)}
             isMuted={props.mutedSpeakers.has(agent.id)}
             isDead={agent.death !== null}
-            visibleConditions={listVisibleConditions(agent.conditions, props.conditionDefinitions)}
+            visibleConditions={listVisibleBodyComponents(props.catalog, agent)}
             activityCue={pickActivityCue(agent.currentAction, activity)}
             markerRef={world.markers.register(agent.id)}
             onSelect={props.onSelectAgent}
@@ -289,7 +280,7 @@ export function VillageWorld(props: VillageWorldProps) {
         ))}
         <HoverCard
           agent={hoveredAgent}
-          conditionDefinitions={props.conditionDefinitions}
+          catalog={props.catalog}
           color={hoveredAgent ? (agentColors.get(hoveredAgent.id) ?? "white") : "white"}
           timeSettings={props.timeSettings}
           cardRef={setHoverCardElement}
@@ -297,7 +288,6 @@ export function VillageWorld(props: VillageWorldProps) {
         <TileCard
           inspection={tileInspector.inspection}
           isPinned={tileInspector.isPinned}
-          timeSettings={props.timeSettings}
           onClose={tileInspector.unpin}
           cardRef={setTileCardElement}
         />

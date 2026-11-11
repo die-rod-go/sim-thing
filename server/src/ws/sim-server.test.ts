@@ -38,9 +38,8 @@ const agent = {
   body: { sleepRecoveryPerHour: 0.15, strength: 0.5, agility: 0.5 },
   profession: "baker",
   needs: { hunger: 0.8, energy: 0.8, social: 0.8, fun: 0.8 },
-  health: 1,
+  bodyChanges: {},
   starvingSinceTick: null,
-  conditions: [],
   death: null,
   mood: "",
   goals: [],
@@ -267,7 +266,7 @@ describe("sim WebSocket server", () => {
     expect(message.loadError).toBeNull();
     expect(message.seedFile?.agents[0]?.name).toBe("Mara");
     expect(message.rules.spawnPlaces).toEqual(["bakery"]);
-    expect(message.rules.carriableItems).toContainEqual({ id: "bread", name: "bread" });
+    expect(message.rules.inventoryItems).toContainEqual({ id: "bread", name: "bread" });
     expect(message.newAgentTemplate.inventory).toMatchObject({ coin: 30 });
   });
 

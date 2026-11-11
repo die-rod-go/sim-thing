@@ -164,8 +164,7 @@ export function VillageView({
             glyphPainter={mapStatus.glyphPainter}
             agents={state.agents}
             entities={state.entities}
-            itemDefinitions={state.itemDefinitions}
-            conditionDefinitions={state.conditionDefinitions}
+            catalog={state.catalog}
             speechBubbles={state.speechBubbles}
             thoughtsByAgent={thoughtsByAgent}
             timeSettings={state.timeSettings}

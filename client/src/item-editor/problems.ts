@@ -8,7 +8,6 @@ import {
 
 export interface ValidationContext {
   references: readonly ItemReference[];
-  currencyDefinitionId: string;
 }
 
 /** The sections of the file whose entries the editor lists one by one. */
@@ -47,7 +46,6 @@ export function findDraftProblems(draft: ItemFile, context: ValidationContext): 
     ...shapeProblems,
     ...findItemFileProblems(parsed.success ? parsed.data : draft, {
       references: context.references,
-      currencyDefinitionId: context.currencyDefinitionId,
     }),
   ];
 }

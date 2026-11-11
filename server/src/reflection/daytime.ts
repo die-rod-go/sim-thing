@@ -20,6 +20,8 @@ const DAYTIME_TEMPLATE = "daytime";
 export interface DaytimePassInput {
   agent: Agent;
   /** Words for the agent's conditions ("bleeding"), shown with its status. */
+  /** The agent's health, which the status line puts in words. */
+  health: number;
   conditionWords?: readonly string[];
   store: MemoryStore;
   idGenerator: MemoryIdGenerator;
@@ -58,7 +60,7 @@ export function buildDaytimePrompt(
     selfImage: agent.personality.selfImage,
     mood: agent.mood,
     body: describeStats(agent.body),
-    status: describeStatus(agent, input.conditionWords),
+    status: describeStatus({ health: input.health, needs: agent.needs }, input.conditionWords),
     goals: describeGoals(agent.goals),
     dailyPlan: agent.dailyPlan || "none",
     intention: agent.intention || "nothing in particular",

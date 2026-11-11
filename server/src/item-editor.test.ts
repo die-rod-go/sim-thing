@@ -67,7 +67,6 @@ describe("item editor", () => {
       "coin",
       "bread",
     ]);
-    expect(message.currencyDefinitionId).toBe(config.economy.currencyDefinitionId);
   });
 
   it("saves a valid item file", () => {

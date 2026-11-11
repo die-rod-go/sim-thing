@@ -1,5 +1,6 @@
 import { listEffectReads } from "./effect-reads";
-import type { Effect, ItemFile } from "./item-file";
+import type { Effect } from "./effect-schema";
+import type { ItemFile } from "./item-file";
 import type { ProblemList } from "./item-problems";
 
 /** What kind of rule list an effect sits in; verbs allow more `on` values than the others. */
@@ -35,12 +36,12 @@ function checkSubject(
 }
 
 function checkNames(effect: Effect, path: string, context: EffectCheckContext) {
-  const { problems, definitionIds, conditionNames } = context;
+  const { problems, definitionIds, file } = context;
   if (
     (effect.type === "add_condition" || effect.type === "remove_condition") &&
-    !conditionNames.has(effect.condition)
+    !Object.hasOwn(file.components, effect.condition)
   ) {
-    problems.error(path, `Unknown condition "${effect.condition}".`);
+    problems.error(path, `Unknown component "${effect.condition}".`);
   }
   if (effect.type === "produce" && !definitionIds.has(effect.item)) {
     problems.error(path, `Unknown item "${effect.item}".`);

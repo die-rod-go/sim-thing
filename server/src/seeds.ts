@@ -14,7 +14,7 @@ import {
   type SeedRules,
 } from "@village/shared";
 import { config } from "./config";
-import { createEntity, type EntityWorld } from "./items/entity-store";
+import { createEntity, locateInside, type EntityWorld } from "./items/entity-store";
 import { findPlaceAt } from "./world/map-loader";
 import type { WorldMap } from "./world/types";
 
@@ -26,10 +26,10 @@ export interface SeededWorld {
   nextEntityId: number;
 }
 
-/** What a seed inventory may hold: the carriable definitions, in `items.json` order. */
-export function listCarriableItems(items: ItemCatalog): { id: string; name: string }[] {
+/** What a seed inventory may hold: every definition but the agents' body, in `items.json` order. */
+export function listInventoryItems(items: ItemCatalog): { id: string; name: string }[] {
   return items.file.definitions
-    .filter((definition) => definition.form === "carriable")
+    .filter((definition) => definition.id !== items.world.agentBody)
     .map((definition) => ({ id: definition.id, name: definition.name }));
 }
 
@@ -65,7 +65,7 @@ export function buildSeedRules(map: WorldMap, items: ItemCatalog): SeedRules {
     statRange: { min: config.stats.min, max: config.stats.max },
     sleepRecoveryRange: { ...config.seeds.sleepRecoveryRange },
     spawnPlaces: Object.keys(map.spawnPoints).sort(),
-    carriableItems: listCarriableItems(items),
+    inventoryItems: listInventoryItems(items),
   };
 }
 
@@ -102,9 +102,8 @@ function buildAgent(seed: SeedAgent, map: WorldMap): Agent {
     },
     profession: seed.profession,
     needs: buildStartingNeeds(),
-    health: config.health.startValue,
+    bodyChanges: {},
     starvingSinceTick: null,
-    conditions: [],
     death: null,
     mood: seed.mood,
     goals: seed.goals.map((goal) => ({ ...goal })),
@@ -140,7 +139,7 @@ function seedEntities(seedFile: SeedFile, map: WorldMap, world: EntityWorld): vo
   for (const seed of seedFile.agents) {
     for (const [definitionId, count] of Object.entries(seed.inventory)) {
       for (let made = 0; made < count; made += 1) {
-        createEntity(world, definitionId, { kind: "inventory", agentId: seed.id });
+        createEntity(world, definitionId, locateInside(seed.id));
       }
     }
   }

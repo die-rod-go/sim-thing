@@ -33,7 +33,7 @@ function FieldValueInput({
   if (type === "boolean") {
     return <Checkbox label="" checked={value === true} onChange={onChange} />;
   }
-  if (type === "text") {
+  if (type === "text" || type === "item") {
     return <TextInput value={typeof value === "string" ? value : ""} onChange={onChange} />;
   }
   const range = typeof value === "object" ? value : { min: 0, max: 0 };

@@ -225,7 +225,7 @@ function StartingStateSection({ agent, rules, problems, onChange }: SectionProps
         agent={agent}
         problems={problems}
         onChange={onChange}
-        carriableItems={rules.carriableItems}
+        inventoryItems={rules.inventoryItems}
       />
     </FormSection>
   );

@@ -10,11 +10,11 @@ const itemsJson: unknown = JSON.parse(
 );
 
 function mapObject(definitionId: string): ItemReference {
-  return { definitionId, requiredForm: "placeable", usedBy: `map object "${definitionId}"` };
+  return { definitionId, usedBy: `map object "${definitionId}"` };
 }
 
 function seedItem(definitionId: string): ItemReference {
-  return { definitionId, requiredForm: "carriable", usedBy: "seed agent mara's inventory" };
+  return { definitionId, usedBy: "seed agent mara's inventory" };
 }
 
 describe("loading items.json", () => {
@@ -29,17 +29,23 @@ describe("loading items.json", () => {
     );
   });
 
-  it("refuses a map object naming something carriable", () => {
-    expect(() => buildCheckedItemCatalog(itemsJson, [mapObject("bread")])).toThrow(
-      /needs a placeable item, but bread is carriable/,
+  it("refuses a map object or seed inventory naming the agents' body", () => {
+    expect(() => buildCheckedItemCatalog(itemsJson, [mapObject("person")])).toThrow(
+      /the agents' body/,
+    );
+    expect(() => buildCheckedItemCatalog(itemsJson, [seedItem("person")])).toThrow(
+      /the agents' body/,
     );
   });
 
-  it("refuses a seed inventory naming an unknown or placeable definition", () => {
+  it("accepts a map object naming something holdable and an inventory naming something fixed", () => {
+    expect(() =>
+      buildCheckedItemCatalog(itemsJson, [mapObject("bread"), seedItem("oven")]),
+    ).not.toThrow();
+  });
+
+  it("refuses a seed inventory naming an unknown definition", () => {
     expect(() => buildCheckedItemCatalog(itemsJson, [seedItem("lute")])).toThrow(/"lute"/);
-    expect(() => buildCheckedItemCatalog(itemsJson, [seedItem("oven")])).toThrow(
-      /needs a carriable item, but oven is placeable/,
-    );
   });
 
   it("refuses a malformed file", () => {

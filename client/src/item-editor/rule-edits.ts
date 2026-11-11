@@ -3,8 +3,6 @@ import type { AppliesToRule, ItemFile } from "@village/shared";
 export const RULE_KINDS = [
   "definition",
   "component",
-  "form",
-  "property",
   "location",
   "isUser",
   "isDeadAgent",
@@ -17,8 +15,6 @@ export type RuleKind = (typeof RULE_KINDS)[number];
 export const RULE_KIND_LABELS: Record<RuleKind, string> = {
   definition: "is the item",
   component: "has component",
-  form: "has form",
-  property: "has property",
   location: "is",
   isUser: "is the user",
   isDeadAgent: "is a dead agent",
@@ -46,10 +42,6 @@ export function buildRuleOfKind(kind: RuleKind, file: ItemFile): AppliesToRule {
       return { definition: file.definitions[0]?.id ?? "" };
     case "component":
       return { component: Object.keys(file.components)[0] ?? "" };
-    case "form":
-      return { form: "carriable" };
-    case "property":
-      return { property: Object.keys(file.properties)[0] ?? "" };
     case "location":
       return { location: "held" };
     case "isUser":

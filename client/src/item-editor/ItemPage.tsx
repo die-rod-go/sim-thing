@@ -1,4 +1,4 @@
-import { ITEM_FORMS, type ItemDefinition, type ItemFile, type ItemProblem } from "@village/shared";
+import { type ItemDefinition, type ItemFile, type ItemProblem } from "@village/shared";
 import { CommittedTextInput, TextInput } from "../characters/fields";
 import { ComponentValues } from "./ComponentValues";
 import { updateDefinition } from "./definition-edits";
@@ -8,7 +8,7 @@ import { ItemVerbs } from "./ItemVerbs";
 import { selectEntryProblems } from "./problems";
 import { GlyphPicker } from "./GlyphPicker";
 import { NO_READABLE_PATHS, OptionalValue } from "./value-inputs";
-import { Checkbox, Chips, Choice, InlineField, ItemProblemList } from "./widgets";
+import { InlineField, ItemProblemList } from "./widgets";
 
 /** One item definition: what it is, its components, the verbs it offers and how prompts show it. */
 export function ItemPage({
@@ -47,32 +47,9 @@ export function ItemPage({
               onChange={(plural) => update({ plural: plural === "" ? undefined : plural })}
             />
           </InlineField>
-          <InlineField label="form">
-            <Choice
-              value={definition.form}
-              choices={ITEM_FORMS}
-              onChange={(form) => update({ form })}
-            />
-          </InlineField>
         </div>
         <div className="effect-fields">
           <GlyphPicker glyph={definition.glyph} onChange={(glyph) => update({ glyph })} />
-        </div>
-        <div className="effect-fields">
-          <Checkbox
-            label="visible when carried"
-            checked={definition.isVisibleWhenCarried}
-            onChange={(isVisibleWhenCarried) => update({ isVisibleWhenCarried })}
-          />
-        </div>
-        <div className="effect-fields">
-          <InlineField label="properties">
-            <Chips
-              values={definition.properties}
-              options={Object.keys(file.properties)}
-              onChange={(properties) => update({ properties })}
-            />
-          </InlineField>
         </div>
       </section>
       <section className="form-section">
@@ -97,7 +74,7 @@ export function ItemPage({
             paths={NO_READABLE_PATHS}
           />
         </OptionalValue>
-        <p className="field-hint">Off: it is destroyed when its durability runs out.</p>
+        <p className="field-hint">Off: it is destroyed when its health runs out.</p>
       </section>
       <section className="form-section">
         <h3>Verbs that apply to it</h3>

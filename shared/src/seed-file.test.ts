@@ -12,7 +12,7 @@ const rules: SeedRules = {
   statRange: { min: 0, max: 1 },
   sleepRecoveryRange: { min: 0.12, max: 0.18 },
   spawnPlaces: ["bakery", "rose cottage"],
-  carriableItems: [
+  inventoryItems: [
     { id: "bread", name: "bread" },
     { id: "coin", name: "coin" },
   ],
@@ -98,7 +98,11 @@ describe("findSeedFileProblems", () => {
     ]);
   });
 
-  it("rejects inventory items that aren't carriable definitions", () => {
+  it("rejects an id that could be taken for an entity's", () => {
+    expect(listFields([buildSeedAgent({ id: "entity-7" })])).toEqual(["id"]);
+  });
+
+  it("rejects inventory items an inventory can't hold", () => {
     expect(listFields([buildSeedAgent({ inventory: { lute: 1 } })])).toEqual(["inventory.lute"]);
   });
 

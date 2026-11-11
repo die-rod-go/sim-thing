@@ -1,4 +1,10 @@
-import type { Agent } from "@village/shared";
+import {
+  findDefinition,
+  parseComponentPath,
+  writeFieldChange,
+  type Agent,
+  type ThingCatalog,
+} from "@village/shared";
 import { config } from "../config";
 import type { HealthWord } from "../config";
 
@@ -13,8 +19,16 @@ export function describeBodyName(name: string): string {
   return config.death.bodyName.split("{name}").join(name);
 }
 
-export function clampHealth(health: number): number {
-  return Math.min(1, Math.max(0, health));
+/**
+ * The agent with its health field set (clamped to the field's bounds). A pure write: waking,
+ * thresholds and death are `writeField`'s and `applyDamage`'s business.
+ */
+export function withAgentHealth(items: ThingCatalog, agent: Agent, health: number): Agent {
+  const path = parseComponentPath(items.world.agentHealth);
+  if (path === null) throw new Error(`Bad agent health path "${items.world.agentHealth}"`);
+  const body = findDefinition(items, items.world.agentBody);
+  const bodyChanges = writeFieldChange(items.declarations, body, agent.bodyChanges, path, health);
+  return bodyChanges === agent.bodyChanges ? agent : { ...agent, bodyChanges };
 }
 
 /** Starts the starvation clock when hunger reaches 0 and stops it as soon as hunger rises. */
@@ -42,14 +56,16 @@ export interface RegenerationOptions {
   minutesPerTick: number;
 }
 
-/** Slow natural healing, faster asleep, and only while the agent isn't too hungry. */
-export function regenerateHealth(agent: Agent, options: RegenerationOptions): Agent {
-  if (agent.needs.hunger <= config.health.regenHungerThreshold || agent.health >= 1) return agent;
+/**
+ * Health gained this tick by slow natural healing, faster asleep, and only while the agent isn't
+ * too hungry. The health field's own `max` caps it when it is written.
+ */
+export function computeRegeneration(agent: Agent, options: RegenerationOptions): number {
+  if (agent.needs.hunger <= config.health.regenHungerThreshold) return 0;
   const perHour = options.isAsleep
     ? config.health.regenPerHourAsleep
     : config.health.regenPerHourAwake;
-  const gained = (perHour * options.minutesPerTick) / MINUTES_PER_HOUR;
-  return { ...agent, health: clampHealth(agent.health + gained) };
+  return (perHour * options.minutesPerTick) / MINUTES_PER_HOUR;
 }
 
 /** The decision thresholds health dropped below, going from `before` to `after`. */

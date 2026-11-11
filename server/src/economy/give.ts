@@ -1,6 +1,11 @@
 import { describeCount, findDefinitionByName, type Agent, type Position } from "@village/shared";
 import { config } from "../config";
-import { listHeldOfDefinition, moveEntity, type EntityWorld } from "../items/entity-store";
+import {
+  listHeldOfDefinition,
+  locateInside,
+  moveEntity,
+  type EntityWorld,
+} from "../items/entity-store";
 import { failWith, type MechanicResult } from "./types";
 
 export interface GiveRequest {
@@ -59,7 +64,7 @@ export function executeGive(world: EntityWorld, request: GiveRequest): MechanicR
   const chosen = chooseEntitiesToGive(world, request);
   if (!chosen.isSuccess) return chosen;
   for (const entityId of chosen.entityIds) {
-    moveEntity(world, entityId, { kind: "inventory", agentId: request.recipient.id });
+    moveEntity(world, entityId, locateInside(request.recipient.id));
   }
   const definition = world.items.definitionsById.get(chosen.definitionId);
   return {

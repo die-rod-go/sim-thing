@@ -1,14 +1,20 @@
 import { describe, expect, it } from "vitest";
 import { effectSchema, type ItemFile } from "@village/shared";
 import { buildTestItemFile } from "../../../shared/src/items/test-item-file";
+import { addCondition, addReaction } from "./condition-edits";
 import { renameComponentField, setComponentFieldType } from "./declaration-edits";
-import { addDefinition, buildNewDefinition, duplicateDefinition } from "./definition-edits";
+import {
+  addComponentToDefinition,
+  addDefinition,
+  buildNewDefinition,
+  duplicateDefinition,
+} from "./definition-edits";
 import { buildEffect, EFFECT_FIELD_SPECS, setEffectField } from "./effect-fields";
 import { describeItemPreview } from "./item-preview";
 import { createUniqueName, moveWithin } from "./list-edits";
 import { findDraftProblems, selectEntryProblems } from "./problems";
 import { changeRuleKind } from "./rule-edits";
-import { listPropertyUses } from "./usage";
+import { listComponentUses } from "./usage";
 import { switchNumberValueMode, switchRangeValueMode } from "./value-modes";
 import {
   buildVerbForDefinition,
@@ -19,7 +25,7 @@ import {
   listVerbIndexesForDefinition,
 } from "./verb-edits";
 
-const noReferences = { references: [], currencyDefinitionId: "coin" };
+const noReferences = { references: [] };
 
 function findDefinition(file: ItemFile, id: string) {
   const definition = file.definitions.find((candidate) => candidate.id === id);
@@ -28,7 +34,7 @@ function findDefinition(file: ItemFile, id: string) {
 }
 
 describe("item editor edits", () => {
-  it("creates a held verb for a carriable and a plain one for a placeable", () => {
+  it("creates a held verb for something holdable and a plain one for a placed item", () => {
     const file = buildTestItemFile();
     expect(buildVerbForDefinition(file, findDefinition(file, "knife")).appliesTo).toEqual({
       allOf: [{ definition: "knife" }, { location: "held" }],
@@ -45,13 +51,13 @@ describe("item editor edits", () => {
     const eat = file.verbs[0];
     if (!eat) throw new Error("no eat verb");
     expect(countOtherDefinitionsMatched(file, eat, "bread")).toBe(0);
-    expect(listRuleMatches(file, { component: "weight" })).toContain("knife (held)");
+    expect(listRuleMatches(file, { component: "holdable" })).toContain("knife (held)");
   });
 
   it("offers only fields of components the rule guarantees", () => {
     const file = buildTestItemFile();
     const rule = { anyOf: [{ definition: "knife" }, { definition: "bread" }] };
-    expect(listReadablePaths(file, rule, "number")).toEqual(["item.weight.kilograms"]);
+    expect(listReadablePaths(file, rule, "number")).toEqual(["item.holdable.kilograms"]);
     expect(listReadablePaths(file, { component: "weapon" }, "range")).toEqual([
       "item.weapon.damage",
     ]);
@@ -69,19 +75,19 @@ describe("item editor edits", () => {
     ).toEqual({ from: "item.weapon.damage" });
   });
 
-  it("gives a new item a unique id and the weight every carriable needs", () => {
+  it("gives a new item a unique id and no components", () => {
     const file = addDefinition(addDefinition(buildTestItemFile()));
     const ids = file.definitions.map((definition) => definition.id);
     expect(ids.slice(-2)).toEqual(["new_item", "new_item_2"]);
-    expect(buildNewDefinition(file).components).toEqual({ weight: { kilograms: 0 } });
+    expect(buildNewDefinition(file).components).toEqual({});
     expect(duplicateDefinition(file, 0).definitions[1]?.id).toBe("knife_2");
   });
 
   it("carries a renamed or retyped component field over to the items that have it", () => {
-    const renamed = renameComponentField(buildTestItemFile(), "weight", "kilograms", "grams");
-    expect(findDefinition(renamed, "knife").components.weight).toEqual({ grams: 0.3 });
-    const retyped = setComponentFieldType(renamed, "weight", "grams", "boolean");
-    expect(findDefinition(retyped, "knife").components.weight).toEqual({ grams: false });
+    const renamed = renameComponentField(buildTestItemFile(), "holdable", "kilograms", "grams");
+    expect(findDefinition(renamed, "knife").components.holdable).toEqual({ grams: 0.3 });
+    const retyped = setComponentFieldType(renamed, "holdable", "grams", "boolean");
+    expect(findDefinition(retyped, "knife").components.holdable).toEqual({ grams: false });
   });
 
   it("builds effects that pass the schema and drops a field set to undefined", () => {
@@ -103,7 +109,7 @@ describe("item editor edits", () => {
 
   it("lists every stimulus the file uses", () => {
     const file = buildTestItemFile({
-      reactions: [{ stimulus: "fire", property: "metal", effects: [] }],
+      reactions: [{ stimulus: "fire", if: { has: "metal" }, effects: [] }],
     });
     expect(listStimuli(file)).toEqual(["fire"]);
   });
@@ -114,8 +120,35 @@ describe("item editor edits", () => {
     expect(describeItemPreview(file, findDefinition(file, "oven"))).toBe("1 oven (bake bread)");
   });
 
-  it("finds where a property is used", () => {
-    expect(listPropertyUses(buildTestItemFile(), "metal")).toEqual(["item knife", "item coin"]);
+  it("finds where a component is used, including in a reaction's matcher", () => {
+    const file = buildTestItemFile({
+      reactions: [{ stimulus: "fire", if: { allOf: [{ has: "metal" }] }, effects: [] }],
+    });
+    expect(listComponentUses(file, "metal")).toEqual([
+      "item knife",
+      "item coin",
+      "reaction to fire",
+    ]);
+  });
+
+  it("starts a field at its declared default when an item gains the component", () => {
+    const file = buildTestItemFile({
+      components: {
+        health: { fields: { current: { type: "number", default: 0.5 }, max: { type: "number" } } },
+      },
+      definitions: [],
+    });
+    const added = addComponentToDefinition(file, buildNewDefinition(file), "health");
+    expect(added.components.health).toEqual({ current: 0.5, max: 0 });
+  });
+
+  it("adds a condition for a component without one and a reaction matching a component", () => {
+    const file = buildTestItemFile();
+    expect(addCondition(file).conditions.map((condition) => condition.name)).toEqual(["health"]);
+    expect(addReaction(file, ["fire"]).reactions[0]).toMatchObject({
+      stimulus: "fire",
+      if: { has: "health" },
+    });
   });
 
   it("reports shape errors under the entry they belong to", () => {
@@ -133,7 +166,7 @@ describe("item editor edits", () => {
     };
     const problems = findDraftProblems(withoutOven, {
       ...noReferences,
-      references: [{ definitionId: "oven", requiredForm: "placeable", usedBy: "map object oven" }],
+      references: [{ definitionId: "oven", usedBy: "map object oven" }],
     });
     expect(problems.some((problem) => problem.message.includes("map object oven"))).toBe(true);
   });

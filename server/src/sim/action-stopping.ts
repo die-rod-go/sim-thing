@@ -1,23 +1,18 @@
 import { endSleep, isAsleep } from "../economy/sleep";
-import { findEntityIfPresent, replaceEntity } from "../items/entity-store";
-import { removeEntityUser } from "../items/entity-users";
+import { findEntityIfPresent } from "../items/entity-store";
 import { getAgentRuntime } from "./agent-runtime";
 import { broadcastEvent } from "./event-broadcast";
 import { createEvent } from "./event-factory";
 import type { TickContext } from "./tick-context";
 import { cancelRunningVerb } from "./verb-runner";
-import { findAgent, markAgentChanged, markEntityChanged, replaceAgent } from "./world-access";
+import { findAgent, markAgentChanged, replaceAgent } from "./world-access";
 
-/** Ends a sleep: the bed is freed and the agent has no action. Returns the bed's name, if any. */
+/** Ends a sleep: the agent has no action and no longer uses the bed. Returns the bed's name, if any. */
 function leaveBed(context: TickContext, agentId: string): string | null {
   const { state, result } = context;
   const runtime = getAgentRuntime(state, agentId);
   const run = runtime.verbRun;
   const bed = run?.usedEntityId ? findEntityIfPresent(state, run.usedEntityId) : undefined;
-  if (bed) {
-    replaceEntity(state, removeEntityUser(bed, agentId));
-    markEntityChanged(result, bed.id);
-  }
   runtime.verbRun = null;
   replaceAgent(state, endSleep(findAgent(state, agentId)));
   markAgentChanged(result, agentId);
@@ -58,7 +53,7 @@ export function stopCurrentAction(context: TickContext, agentId: string): void {
 
 /**
  * Ends whatever the agent was doing without a word, for an agent who just died: a sleeper's bed
- * and a verb's object (the card table) are freed, nothing is broadcast.
+ * and a verb's object (the card table) are left, nothing is broadcast.
  */
 export function abandonCurrentAction(context: TickContext, agentId: string): void {
   const agent = findAgent(context.state, agentId);

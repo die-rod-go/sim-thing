@@ -6,18 +6,14 @@ import {
   type Reaction,
 } from "@village/shared";
 import { clientConfig } from "../client-config";
-import { createUniqueName, removeAt, replaceAt } from "./list-edits";
+import { removeAt, replaceAt } from "./list-edits";
 
+/** A condition for the first component that has none yet; unchanged when every one has one. */
 export function addCondition(file: ItemFile): ItemFile {
-  const name = createUniqueName(
-    clientConfig.itemEditor.newConditionName,
-    file.conditions.map((condition) => condition.name),
-  );
-  const condition = conditionSchema.parse({
-    name,
-    words: name.replaceAll("_", " "),
-    defaultMinutes: null,
-  });
+  const taken = new Set(file.conditions.map((condition) => condition.name));
+  const name = Object.keys(file.components).find((component) => !taken.has(component));
+  if (name === undefined) return file;
+  const condition = conditionSchema.parse({ name, defaultMinutes: null });
   return { ...file, conditions: [...file.conditions, condition] };
 }
 
@@ -33,14 +29,13 @@ export function removeCondition(file: ItemFile, index: number): ItemFile {
   return { ...file, conditions: removeAt(file.conditions, index) };
 }
 
-/** A reaction to the first known stimulus by the first declared property, with no effects yet. */
+/** A reaction to the first known stimulus by anything with the first component, no effects yet. */
 export function addReaction(file: ItemFile, stimuli: readonly string[]): ItemFile {
-  const property = Object.keys(file.properties)[0];
-  const condition = file.conditions[0]?.name;
-  if (property === undefined && condition === undefined) return file;
+  const component = Object.keys(file.components)[0];
+  if (component === undefined) return file;
   const reaction = reactionSchema.parse({
     stimulus: stimuli[0] ?? clientConfig.itemEditor.newStimulusName,
-    ...(property !== undefined ? { property } : { condition }),
+    if: { has: component },
     effects: [],
   });
   return { ...file, reactions: [...file.reactions, reaction] };

@@ -1,16 +1,20 @@
-import type {
-  EffectOfType,
-  Entity,
-  EntityLocation,
-  Position,
-  WorldEventKind,
+import {
+  isEntityId,
+  type EffectOfType,
+  type Entity,
+  type EntityLocation,
+  type Position,
+  type WorldEventKind,
 } from "@village/shared";
 import { config } from "../../config";
-import { isNestedIn, listContents, readContainerCapacity } from "../../items/containers";
+import { readContainerCapacity } from "../../items/capacity";
 import {
   describeEntityName,
   findEntityIfPresent,
   getDefinition,
+  isNestedIn,
+  listContents,
+  locateInside,
   moveEntity,
   resolveEntityPosition,
 } from "../../items/entity-store";
@@ -80,12 +84,12 @@ function findDestination(effectRun: EffectRun, effect: MoveEffect): EntityLocati
   const user = findAgent(state, run.agentId);
   switch (effect.to) {
     case "user":
-      return { kind: "inventory", agentId: run.agentId };
+      return locateInside(run.agentId);
     case "ground":
       return locateOnTile(state, user.pos);
     case "item":
-      if (run.usedBodyId !== undefined) return { kind: "inventory", agentId: run.usedBodyId };
-      return run.usedEntityId === null ? null : { kind: "inside", containerId: run.usedEntityId };
+      if (run.usedBodyId !== undefined) return locateInside(run.usedBodyId);
+      return run.usedEntityId === null ? null : locateInside(run.usedEntityId);
     case "target_tile": {
       const tile = findLandingTile(state, effectRun);
       return locateOnTile(state, tile ?? user.pos);
@@ -94,28 +98,29 @@ function findDestination(effectRun: EffectRun, effect: MoveEffect): EntityLocati
 }
 
 function describeHolder(state: WorldState, location: EntityLocation): string {
-  if (location.kind === "inventory") return describeAgentAsSeen(findAgent(state, location.agentId));
   if (location.kind !== "inside") return "";
-  const container = findEntityIfPresent(state, location.containerId);
+  if (!isEntityId(location.holderId))
+    return describeAgentAsSeen(findAgent(state, location.holderId));
+  const container = findEntityIfPresent(state, location.holderId);
   return container ? `the ${describeEntityName(state, container)}` : "it";
 }
 
 /** Why the things can't go into the container: it is one of them, inside one of them, or full. */
 function findContainerProblem(
   state: WorldState,
-  containerId: string,
+  holderId: string,
   moved: readonly Entity[],
 ): string | null {
-  const container = findEntityIfPresent(state, containerId);
+  const container = findEntityIfPresent(state, holderId);
   if (!container) return null;
   const name = describeEntityName(state, container);
   const isSelfNesting = moved.some(
-    (entity) => entity.id === containerId || isNestedIn(state, container, entity.id),
+    (entity) => entity.id === holderId || isNestedIn(state, container, entity.id),
   );
   if (isSelfNesting) return `the ${name} can't go inside itself`;
   const capacity = readContainerCapacity(state, container);
   if (capacity === null) return `the ${name} can't hold anything`;
-  const room = capacity - listContents(state, containerId).length;
+  const room = capacity - listContents(state, holderId).length;
   if (room <= 0) return `the ${name} was full`;
   return moved.length > room ? `the ${name} only had room for ${room} more` : null;
 }
@@ -168,12 +173,7 @@ function announceMove(
     holder,
     target: run.aimName ?? "",
   });
-  const holderId =
-    holderLocation?.kind === "inside"
-      ? holderLocation.containerId
-      : holderLocation?.kind === "inventory"
-        ? holderLocation.agentId
-        : null;
+  const holderId = holderLocation?.kind === "inside" ? holderLocation.holderId : null;
   const event = createEvent(state, findAgent(state, run.agentId), {
     kind,
     description,
@@ -195,9 +195,9 @@ export const moveEffect: EffectHandler<"move"> = {
   findBlocker(effectRun, effect) {
     if (effect.to !== "item") return null;
     const destination = findDestination(effectRun, effect);
-    if (destination?.kind !== "inside") return null;
+    if (destination?.kind !== "inside" || !isEntityId(destination.holderId)) return null;
     const moved = listMovedEntities(effectRun, effect);
-    return findContainerProblem(effectRun.context.state, destination.containerId, moved);
+    return findContainerProblem(effectRun.context.state, destination.holderId, moved);
   },
   apply(effectRun, effect) {
     const { state, result } = effectRun.context;

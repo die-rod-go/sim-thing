@@ -6,14 +6,7 @@ import type {
   ItemReference,
 } from "@village/shared";
 
-export const EDITOR_TABS = [
-  "items",
-  "verbs",
-  "components",
-  "conditions",
-  "reactions",
-  "properties",
-] as const;
+export const EDITOR_TABS = ["items", "verbs", "components", "conditions", "reactions"] as const;
 export type EditorTab = (typeof EDITOR_TABS)[number];
 
 export type SaveStatus = "idle" | "saving" | "saved" | "rejected";
@@ -22,7 +15,6 @@ export interface EditorState {
   isLoaded: boolean;
   loadError: string | null;
   references: ItemReference[];
-  currencyDefinitionId: string | null;
   /** The item file as last read from or written to disk. */
   savedFile: ItemFile | null;
   draft: ItemFile | null;
@@ -53,7 +45,6 @@ export const initialEditorState: EditorState = {
   isLoaded: false,
   loadError: null,
   references: [],
-  currencyDefinitionId: null,
   savedFile: null,
   draft: null,
   pendingFile: null,
@@ -66,7 +57,6 @@ export const initialEditorState: EditorState = {
     components: 0,
     conditions: 0,
     reactions: 0,
-    properties: 0,
   },
 };
 
@@ -76,8 +66,7 @@ export function countTabEntries(file: ItemFile | null, tab: EditorTab): number {
   if (tab === "verbs") return file.verbs.length;
   if (tab === "conditions") return file.conditions.length;
   if (tab === "reactions") return file.reactions.length;
-  if (tab === "components") return Object.keys(file.components).length;
-  return Object.keys(file.properties).length;
+  return Object.keys(file.components).length;
 }
 
 function clampSelections(
@@ -102,7 +91,6 @@ export function reduceEditorState(state: EditorState, action: EditorAction): Edi
         isLoaded: true,
         loadError: message.loadError,
         references: message.references,
-        currencyDefinitionId: message.currencyDefinitionId,
         savedFile: message.itemFile,
         draft: message.itemFile === null ? null : structuredClone(message.itemFile),
         pendingFile: null,

@@ -1,4 +1,4 @@
-import type { Verb } from "@village/shared";
+import { resolveEntityComponents, type ResolvedComponents, type Verb } from "@village/shared";
 import { computeChebyshevDistance } from "../economy/give";
 import {
   describeEntityName,
@@ -26,7 +26,7 @@ interface UsedVerb {
   verb: Verb;
   usedName: string;
   usedEntityId: string | null;
-  usedDefinitionId: string | null;
+  usedComponents: ResolvedComponents | null;
 }
 
 /** The verb as what is used offers it; null when it doesn't, which the verb runner reports. */
@@ -37,14 +37,14 @@ function findUsedVerb(
   verbName: string,
 ): UsedVerb | null {
   if (used.kind === "user") {
-    const verb = findVerbByName(listItemlessVerbs(state), verbName);
-    return verb ? { verb, usedName: "", usedEntityId: null, usedDefinitionId: null } : null;
+    const verb = findVerbByName(listItemlessVerbs(state, findAgent(state, agentId)), verbName);
+    return verb ? { verb, usedName: "", usedEntityId: null, usedComponents: null } : null;
   }
   if (used.kind === "body") {
     const body = findAgent(state, used.agentId);
-    const verb = isDead(body) ? findVerbByName(listVerbsForBody(state), verbName) : undefined;
+    const verb = isDead(body) ? findVerbByName(listVerbsForBody(state, body), verbName) : undefined;
     return verb
-      ? { verb, usedName: describeAgentAsSeen(body), usedEntityId: null, usedDefinitionId: null }
+      ? { verb, usedName: describeAgentAsSeen(body), usedEntityId: null, usedComponents: null }
       : null;
   }
   const entity = findEntityIfPresent(state, used.entityId);
@@ -55,7 +55,7 @@ function findUsedVerb(
     verb,
     usedName: describeEntityName(state, entity),
     usedEntityId: entity.id,
-    usedDefinitionId: entity.definitionId,
+    usedComponents: resolveEntityComponents(state.items, entity),
   };
 }
 
@@ -75,7 +75,7 @@ function startOrWalkToBody(
 ): void {
   const { state } = context;
   const used: UsedThing = { kind: "body", agentId: bodyId };
-  const reach = computeVerbReach(state, found.verb, null);
+  const reach = computeVerbReach(found.verb, null);
   const distance = computeChebyshevDistance(
     findAgent(state, agentId).pos,
     findAgent(state, bodyId).pos,
@@ -102,7 +102,7 @@ function startOrWalkToUsed(
     found.usedEntityId === null
       ? { kind: "user" }
       : { kind: "entity", entityId: found.usedEntityId };
-  const reach = computeVerbReach(state, found.verb, found.usedDefinitionId);
+  const reach = computeVerbReach(found.verb, found.usedComponents);
   const agent = findAgent(state, agentId);
   const isInReach =
     !entity ||
@@ -159,7 +159,7 @@ export function startOrApproachVerb(
     return;
   }
   const aimedRequest: PendingVerb = { ...request, used, aim };
-  const reach = computeVerbReach(state, verb, found.usedDefinitionId);
+  const reach = computeVerbReach(verb, found.usedComponents);
   if (isAimInReach(state, agentId, aim, reach)) {
     startVerbNow(context, agentId, used, aimedRequest);
     return;

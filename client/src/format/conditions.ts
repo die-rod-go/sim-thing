@@ -1,25 +1,37 @@
-import type { ActiveCondition, ConditionDefinition, Entity } from "@village/shared";
+import {
+  resolveBodyComponents,
+  resolveEntityComponents,
+  type Agent,
+  type Entity,
+  type ResolvedComponents,
+  type ThingCatalog,
+} from "@village/shared";
 
-/** A condition others can see, for an overlay or the hover card. */
-export interface VisibleCondition {
+/** A component others can see on a thing, for an overlay or the hover card. */
+export interface VisibleComponent {
   name: string;
   /** How it reads ("on fire"). */
   words: string;
 }
 
-/** The conditions that show on an agent or a thing, in the order they started. */
-export function listVisibleConditions(
-  conditions: readonly ActiveCondition[],
-  definitions: readonly ConditionDefinition[],
-): VisibleCondition[] {
-  return conditions.flatMap((condition) => {
-    const definition = definitions.find((candidate) => candidate.name === condition.name);
-    if (!definition?.isVisible) return [];
-    return [{ name: condition.name, words: definition.words }];
-  });
+/** The components with words that others can see, in declaration order. */
+export function listVisibleComponents(
+  catalog: ThingCatalog,
+  components: ResolvedComponents,
+): VisibleComponent[] {
+  return Object.entries(catalog.declarations).flatMap(([name, declaration]) =>
+    Object.hasOwn(components, name) && declaration.isVisible && declaration.words !== undefined
+      ? [{ name, words: declaration.words }]
+      : [],
+  );
 }
 
-/** One overlay to draw over a map tile: a visible condition on a thing standing there. */
+/** What others see on an agent: the visible components of its body. */
+export function listVisibleBodyComponents(catalog: ThingCatalog, agent: Agent): VisibleComponent[] {
+  return listVisibleComponents(catalog, resolveBodyComponents(catalog, agent));
+}
+
+/** One overlay to draw over a map tile: a visible component on a thing standing there. */
 export interface TileConditionOverlay {
   key: string;
   conditionName: string;
@@ -27,19 +39,21 @@ export interface TileConditionOverlay {
   tileY: number;
 }
 
-/** Overlays for every entity on a tile with a visible condition (the door on fire). */
+/** Overlays for every entity on a tile with a visible component (the door on fire). */
 export function listTileConditionOverlays(
   entities: readonly Entity[],
-  definitions: readonly ConditionDefinition[],
+  catalog: ThingCatalog,
 ): TileConditionOverlay[] {
   return entities.flatMap((entity) => {
     if (entity.location.kind !== "tile") return [];
     const { pos } = entity.location;
-    return listVisibleConditions(entity.state.conditions, definitions).map((condition) => ({
-      key: `${entity.id}:${condition.name}`,
-      conditionName: condition.name,
-      tileX: pos.x,
-      tileY: pos.y,
-    }));
+    return listVisibleComponents(catalog, resolveEntityComponents(catalog, entity)).map(
+      (component) => ({
+        key: `${entity.id}:${component.name}`,
+        conditionName: component.name,
+        tileX: pos.x,
+        tileY: pos.y,
+      }),
+    );
   });
 }

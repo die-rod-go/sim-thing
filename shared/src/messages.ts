@@ -12,7 +12,8 @@ import type {
   WorldEvent,
 } from "./types";
 import type { Entity } from "./items/entity";
-import type { ConditionDefinition, ItemDefinition, ItemFile } from "./items/item-file";
+import type { ComponentDeclarations } from "./items/component-schema";
+import type { ItemDefinition, ItemFile, WorldSettings } from "./items/item-file";
 import type { ItemProblem, ItemReference } from "./items/item-problems";
 import {
   seedFileSchema,
@@ -58,8 +59,10 @@ export interface SnapshotMessage {
   entities: Entity[];
   /** Every item definition, so the client can draw entities from their glyphs and name them. */
   itemDefinitions: ItemDefinition[];
-  /** Every condition definition, so the client can name conditions and draw the visible ones. */
-  conditionDefinitions: ConditionDefinition[];
+  /** Every component declaration, so the client can resolve what each thing has and how it reads. */
+  componentDeclarations: ComponentDeclarations;
+  /** The world settings: the agents' body, their health field and what the physics reads. */
+  world: WorldSettings;
   recentEvents: WorldEvent[];
   /** The latest moments, oldest first. */
   recentMoments: Moment[];
@@ -169,7 +172,6 @@ export interface ItemFileMessage {
   loadError: string | null;
   /** Definitions the map and the seed inventories use, so deleting one shows as an error. */
   references: ItemReference[];
-  currencyDefinitionId: string;
 }
 
 /** Sent in reply to save_item_file. Nothing is written when `problems` has an error. */

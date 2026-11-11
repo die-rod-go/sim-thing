@@ -1,4 +1,5 @@
 import { z } from "zod";
+import { ENTITY_ID_PREFIX } from "./items/entity";
 import { STAT_NAMES, TRAIT_NAMES, type TraitName } from "./types";
 
 const traitValueSchema = z.number();
@@ -46,8 +47,8 @@ export interface SeedRules {
   statRange: { min: number; max: number };
   sleepRecoveryRange: { min: number; max: number };
   spawnPlaces: string[];
-  /** What an inventory may hold: the carriable definitions in `items.json`. */
-  carriableItems: { id: string; name: string }[];
+  /** What an inventory may hold: every definition in `items.json` but the agents' body. */
+  inventoryItems: { id: string; name: string }[];
 }
 
 export type SeedProblemSeverity = "error" | "warning";
@@ -83,6 +84,9 @@ function findIdentityProblems(agent: SeedAgent, agentIndex: number): SeedProblem
   if (agent.name.trim() === "") addError("name", "Needs a name.");
   if (!SEED_AGENT_ID_PATTERN.test(agent.id)) {
     addError("id", 'Id must be lowercase letters, digits and single dashes, like "old-tom".');
+  }
+  if (agent.id.startsWith(ENTITY_ID_PREFIX)) {
+    addError("id", `Id can't start with "${ENTITY_ID_PREFIX}": those ids are for items.`);
   }
   return problems;
 }
@@ -130,13 +134,13 @@ function findStartingStateProblems(
     const { min, max } = rules.sleepRecoveryRange;
     add("warning", "sleepRecoveryPerHour", `Sleep recovery is usually between ${min} and ${max}.`);
   }
-  const carriableIds = new Set(rules.carriableItems.map((item) => item.id));
+  const inventoryItemIds = new Set(rules.inventoryItems.map((item) => item.id));
   for (const [itemId, amount] of Object.entries(agent.inventory)) {
     if (!Number.isInteger(amount) || amount < 0) {
       add("error", `inventory.${itemId}`, `${itemId} amount must be a whole number, 0 or more.`);
     }
-    if (!carriableIds.has(itemId)) {
-      add("error", `inventory.${itemId}`, `"${itemId}" is not a carriable item in items.json.`);
+    if (!inventoryItemIds.has(itemId)) {
+      add("error", `inventory.${itemId}`, `"${itemId}" is not an item an inventory can hold.`);
     }
   }
   agent.goals.forEach((goal, goalIndex) => {

@@ -61,7 +61,6 @@ export const EFFECT_FIELD_SPECS: Record<EffectType, readonly EffectFieldSpec[]> 
   transform: [{ key: "into", kind: "definition" }],
   destroy: [],
   take_stock: [{ key: "amount", kind: "number" }],
-  set_open: [{ key: "isOpen", kind: "boolean" }],
   move: [{ key: "to", kind: "choice", choices: ["ground", "user", "item", "target_tile"] }],
   make_sound: [{ key: "loudness", kind: "number" }],
   sleep: [],

@@ -1,4 +1,4 @@
-import { BUCKETS, formatSimTime, type Agent, type Bucket } from "@village/shared";
+import { BUCKETS, formatSimTime, readAgentHealth, type Agent, type Bucket } from "@village/shared";
 import { config } from "../config";
 import type {
   AwarenessEntry,
@@ -9,7 +9,7 @@ import type {
 import { currentConversation } from "../memory/conversation";
 import { buildCue, recallForDecision } from "../memory/recall";
 import { findObviousListeners } from "../perception/listeners";
-import { listConditionWords } from "../status/conditions";
+import { listBodyWords } from "../status/conditions";
 import { describeHealthAsSeen, isDead } from "../status/health";
 import { describeDoing } from "./action-phrases";
 import { getAgentRuntime } from "./agent-runtime";
@@ -55,9 +55,12 @@ function buildAwarenessEntries(state: WorldState, agent: Agent): AwarenessEntry[
         minutesAgo: minutesSince(entry.tick, state.tick),
         isInSight,
         isDead: isInSight && isDead(other),
-        healthAsSeen: isInSight && !isDead(other) ? describeHealthAsSeen(other.health) : null,
+        healthAsSeen:
+          isInSight && !isDead(other)
+            ? describeHealthAsSeen(readAgentHealth(state.items, other))
+            : null,
         visibleCarried: isInSight && !isDead(other) ? listVisibleCarried(state, other) : [],
-        visibleConditions: isInSight ? listConditionWords(state.items, other.conditions, true) : [],
+        visibleConditions: isInSight ? listBodyWords(state.items, other, true) : [],
       },
     ];
   });
@@ -135,8 +138,8 @@ export function buildDecisionContext(
     personality: agent.personality,
     mood: agent.mood,
     needs: agent.needs,
-    health: agent.health,
-    conditionWords: listConditionWords(state.items, agent.conditions, false),
+    health: readAgentHealth(state.items, agent),
+    conditionWords: listBodyWords(state.items, agent, false),
     body: agent.body,
     goals: agent.goals,
     dailyPlan: agent.dailyPlan,
@@ -150,7 +153,7 @@ export function buildDecisionContext(
       whisperHearerIds: listeners.wouldHearWhisper,
     },
     belongings: buildBelongings(state, agent),
-    itemlessVerbs: listItemlessVerbNames(state),
+    itemlessVerbs: listItemlessVerbNames(state, agent),
     workingMemory: agent.workingMemory,
     conversation: conversation.map((line) => ({
       speakerName: line.speakerName,

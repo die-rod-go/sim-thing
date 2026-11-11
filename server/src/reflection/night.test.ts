@@ -23,6 +23,7 @@ function setUpNight(reply: string, store = new MemoryStore()) {
   const { client, callStructured } = makeFakeCaller([reply]);
   const input: NightPassInput = {
     agent: makeAgent({ mood: "busy" }),
+    health: 1,
     store,
     idGenerator: new MemoryIdGenerator(),
     callStructured,

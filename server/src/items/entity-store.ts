@@ -2,14 +2,15 @@ import {
   compareEntityAge,
   findDefinition,
   formatEntityId,
-  readComponentField,
+  isDirectlyInside,
+  isEntityId,
   type Agent,
   type Entity,
   type EntityLocation,
-  type EntityState,
   type ItemCatalog,
   type ItemDefinition,
   type Position,
+  type ThingId,
 } from "@village/shared";
 
 /** The part of the world state the entity store reads and writes. */
@@ -52,32 +53,20 @@ export function getDefinition(world: EntityWorld, entity: Entity): ItemDefinitio
   return findDefinition(world.items, entity.definitionId);
 }
 
-/** A new entity's state from its definition's engine components. */
-export function buildInitialEntityState(definition: ItemDefinition): EntityState {
-  const state: EntityState = { conditions: [] };
-  if (Object.hasOwn(definition.components, "durability")) state.durability = 1;
-  const capacity = readComponentField(definition, "stock", "capacity");
-  if (typeof capacity === "number") state.stock = capacity;
-  const startsOpen = readComponentField(definition, "openable", "startsOpen");
-  if (typeof startsOpen === "boolean") state.isOpen = startsOpen;
-  if (Object.hasOwn(definition.components, "notes")) state.notes = [];
-  return state;
-}
-
-/** Makes a new entity, taking its id from the world's counter. */
+/** Makes a new entity, untouched, taking its id from the world's counter. */
 export function createEntity(
   world: EntityWorld,
   definitionId: string,
   location: EntityLocation,
   label: string | null = null,
 ): Entity {
-  const definition = findDefinition(world.items, definitionId);
+  findDefinition(world.items, definitionId);
   const entity: Entity = {
     id: formatEntityId(world.nextEntityId),
     definitionId,
     label,
     location,
-    state: buildInitialEntityState(definition),
+    changes: {},
   };
   world.nextEntityId += 1;
   world.entities.push(entity);
@@ -90,11 +79,33 @@ export function moveEntity(world: EntityWorld, entityId: string, location: Entit
   return moved;
 }
 
+/** Inside the agent's body: where carried things go. */
+export function locateInside(holderId: ThingId): EntityLocation {
+  return { kind: "inside", holderId };
+}
+
+/** What is directly inside the thing (a chest's contents, an agent's belongings), oldest first. */
+export function listContents(world: EntityWorld, holderId: ThingId): Entity[] {
+  return world.entities
+    .filter((entity) => isDirectlyInside(entity, holderId))
+    .sort(compareEntityAge);
+}
+
 /** Everything the agent carries, oldest first. */
 export function listHeldEntities(world: EntityWorld, agentId: string): Entity[] {
-  return world.entities
-    .filter((entity) => entity.location.kind === "inventory" && entity.location.agentId === agentId)
-    .sort(compareEntityAge);
+  return listContents(world, agentId);
+}
+
+export function isHeldBy(entity: Entity, agentId: string): boolean {
+  return isDirectlyInside(entity, agentId);
+}
+
+/** Whether another agent than this one carries the entity. */
+export function isHeldByOther(entity: Entity, agentId: string): boolean {
+  const { location } = entity;
+  return (
+    location.kind === "inside" && !isEntityId(location.holderId) && location.holderId !== agentId
+  );
 }
 
 export function listHeldOfDefinition(
@@ -117,18 +128,39 @@ export function listTileEntitiesAt(world: EntityWorld, place: string): Entity[] 
 }
 
 /**
- * Where the entity is in the world: its own tile, its holder's tile, or its container's. Null for
- * one whose holder or container no longer exists.
+ * Where the entity is in the world: its own tile, or where its outermost holder is. Null for one
+ * whose holder no longer exists.
  */
 export function resolveEntityPosition(world: EntityWorld, entity: Entity): EntityPosition | null {
-  const { location } = entity;
-  if (location.kind === "tile") return { place: location.place, pos: location.pos };
-  if (location.kind === "inventory") {
-    const holder = world.agents.find((agent) => agent.id === location.agentId);
-    return holder ? { place: holder.place, pos: holder.pos } : null;
+  const visited = new Set<string>();
+  let current = entity;
+  while (current.location.kind === "inside") {
+    const { holderId } = current.location;
+    if (visited.has(holderId)) return null;
+    visited.add(holderId);
+    if (!isEntityId(holderId)) {
+      const holder = world.agents.find((agent) => agent.id === holderId);
+      return holder ? { place: holder.place, pos: holder.pos } : null;
+    }
+    const container = findEntityIfPresent(world, holderId);
+    if (!container) return null;
+    current = container;
   }
-  const container = findEntityIfPresent(world, location.containerId);
-  return container ? resolveEntityPosition(world, container) : null;
+  return { place: current.location.place, pos: current.location.pos };
+}
+
+/** Whether the entity is inside the holder, directly or inside something within it. */
+export function isNestedIn(world: EntityWorld, entity: Entity, holderId: ThingId): boolean {
+  let location = entity.location;
+  const visited = new Set<string>();
+  while (location.kind === "inside" && !visited.has(location.holderId)) {
+    if (location.holderId === holderId) return true;
+    visited.add(location.holderId);
+    const holder = findEntityIfPresent(world, location.holderId);
+    if (!holder) return false;
+    location = holder.location;
+  }
+  return false;
 }
 
 /** "bakery door" for a labelled map object, otherwise the definition's name ("bread"). */

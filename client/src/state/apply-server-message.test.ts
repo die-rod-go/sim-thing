@@ -162,8 +162,8 @@ describe("applyServerMessage", () => {
       id,
       definitionId: "bread",
       label: null,
-      location: { kind: "inventory" as const, agentId: "ada" },
-      state: { conditions: [] },
+      location: { kind: "inside" as const, holderId: "ada" },
+      changes: {},
     });
     const withBread = applyServerMessage(loadedState(), {
       type: "entities_changed",
@@ -202,5 +202,22 @@ describe("applyServerMessage", () => {
     expect(reset.inspectedAgentId).toBeNull();
     const kept = applyServerMessage(inspecting, makeSampleSnapshot([ada, bob]));
     expect(kept.inspectedAgentId).toBe("bob");
+  });
+});
+
+describe("applyServerMessage catalog", () => {
+  it("builds the thing catalog from the snapshot's declarations, world and definitions", () => {
+    const state = applyServerMessage(initialClientState, {
+      ...makeSampleSnapshot([ada]),
+      componentDeclarations: {
+        burning: { description: "On fire.", isVisible: false, fields: {}, words: "on fire" },
+      },
+      itemDefinitions: [
+        { id: "door", name: "door", glyph: { index: 1, color: "#fff" }, components: {} },
+      ],
+    });
+    expect(state.catalog.world.agentBody).toBe("person");
+    expect(Object.keys(state.catalog.declarations)).toEqual(["burning"]);
+    expect([...state.catalog.definitionsById.keys()]).toEqual(["door"]);
   });
 });

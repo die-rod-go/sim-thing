@@ -1,8 +1,13 @@
-import { readComponentField, type Entity, type Memory, type Note } from "@village/shared";
+import type { Entity, Memory } from "@village/shared";
 import { config } from "../../config";
-import { findPostBlocker, postNote, readNoticeBoard } from "../../economy/notice-board";
+import {
+  findPostBlocker,
+  postNote,
+  readNoticeBoard,
+  type NoteView,
+} from "../../economy/notice-board";
 import { findSleepBlocker, startSleep } from "../../economy/sleep";
-import { getDefinition, replaceEntity, resolveEntityPosition } from "../../items/entity-store";
+import { getDefinition, resolveEntityPosition } from "../../items/entity-store";
 import { truncateMemoryText } from "../../memory/filing";
 import { extractTags, uniqueTags } from "../../memory/tags";
 import { broadcastEvent } from "../event-broadcast";
@@ -12,7 +17,6 @@ import {
   findAgent,
   listKnownNames,
   markAgentChanged,
-  markEntityChanged,
   rememberBriefly,
   replaceAgent,
 } from "../world-access";
@@ -60,7 +64,12 @@ export const sleepEffect: EffectHandler<"sleep"> = {
   },
 };
 
-function buildNoteMemory(state: WorldState, readerId: string, board: Entity, note: Note): Memory {
+function buildNoteMemory(
+  state: WorldState,
+  readerId: string,
+  board: Entity,
+  note: NoteView,
+): Memory {
   const boardName = board.label ?? getDefinition(state, board).name;
   const place = resolveEntityPosition(state, board)?.place ?? "";
   return {
@@ -88,7 +97,7 @@ export const readNotesEffect: EffectHandler<"read_notes"> = {
     const { state } = effectRun.context;
     const readerId = requireVerbRun(effectRun, effect).agentId;
     const board = requireEntity(effectRun, findEffectEntity(effectRun, effect));
-    const notes = readNoticeBoard(board);
+    const notes = readNoticeBoard(state, board);
     if (notes.length === 0) {
       rememberBriefly(
         state,
@@ -110,34 +119,26 @@ export const readNotesEffect: EffectHandler<"read_notes"> = {
   },
 };
 
-function readMaxNotes(state: WorldState, board: Entity): number {
-  const maxNotes = readComponentField(getDefinition(state, board), "notes", "maxNotes");
-  if (typeof maxNotes !== "number") throw new Error(`${board.definitionId} has no notes.maxNotes`);
-  return maxNotes;
-}
-
 /** Pins the decision's text to the board as a note. */
 export const postNoteEffect: EffectHandler<"post_note"> = {
   findBlocker(effectRun, effect) {
     const board = findEffectEntity(effectRun, effect);
-    return board ? findPostBlocker(describeEffectEntity(effectRun, board), effectRun.text) : null;
+    return board
+      ? findPostBlocker(
+          effectRun.context.state,
+          board,
+          describeEffectEntity(effectRun, board),
+          effectRun.text,
+        )
+      : null;
   },
   apply(effectRun, effect) {
     const { state, result } = effectRun.context;
     const board = requireEntity(effectRun, findEffectEntity(effectRun, effect));
     const boardName = describeEffectEntity(effectRun, board);
     const author = findAgent(state, requireVerbRun(effectRun, effect).agentId);
-    const posted = postNote(
-      board,
-      boardName,
-      author,
-      effectRun.text,
-      state.tick,
-      readMaxNotes(state, board),
-    );
+    const posted = postNote(effectRun.context, board, boardName, author, effectRun.text);
     if (!posted.isSuccess) throw new Error(`note posted despite its check: ${posted.reason}`);
-    replaceEntity(state, posted.board);
-    markEntityChanged(result, board.id);
     const event = createEvent(state, author, {
       kind: "posted_note",
       description: `posted a note on the ${boardName}: "${posted.note.text}"`,

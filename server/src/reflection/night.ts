@@ -33,6 +33,8 @@ const NIGHT_TEMPLATE = "night";
 export interface NightPassInput {
   agent: Agent;
   /** Words for the agent's conditions ("bleeding"), shown with its status. */
+  /** The agent's health, which the status line puts in words. */
+  health: number;
   conditionWords?: readonly string[];
   store: MemoryStore;
   idGenerator: MemoryIdGenerator;
@@ -73,7 +75,7 @@ export function buildNightPrompt(input: NightPassInput, dayMemories: readonly Me
     selfImage: agent.personality.selfImage,
     mood: agent.mood,
     body: describeStats(agent.body),
-    status: describeStatus(agent, input.conditionWords),
+    status: describeStatus({ health: input.health, needs: agent.needs }, input.conditionWords),
     goals: describeGoals(agent.goals),
     dailyPlan: agent.dailyPlan || "none",
     dayMemories: describeTimedMemories(dayMemories, "Nothing stands out."),

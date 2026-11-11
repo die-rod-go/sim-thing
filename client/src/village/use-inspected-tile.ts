@@ -119,12 +119,10 @@ export function useInspectedTile(sources: TileInspectionSources): InspectedTile 
     [map, pointAt, leaveMap, togglePin],
   );
   const shownTile = pinnedTile ?? hoveredTile;
-  const { agents, entities, definitions, currentTick, timeSettings } = sources;
+  const { agents, entities, catalog } = sources;
   const inspection = useMemo(
-    () =>
-      shownTile &&
-      inspectTile(shownTile, { map, agents, entities, definitions, currentTick, timeSettings }),
-    [shownTile, map, agents, entities, definitions, currentTick, timeSettings],
+    () => shownTile && inspectTile(shownTile, { map, agents, entities, catalog }),
+    [shownTile, map, agents, entities, catalog],
   );
   return { shownTile, isPinned, inspection, unpin, mapPointerHandlers };
 }

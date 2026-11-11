@@ -1,8 +1,9 @@
-import { readComponentField, toSimTime, type Agent, type Entity } from "@village/shared";
+import { toSimTime, type Agent, type Entity } from "@village/shared";
 import { config } from "../config";
 import type { NamedCandidate } from "../decision/resolve-name";
 import { isAsleep } from "../economy/sleep";
-import { getDefinition } from "../items/entity-store";
+import { isPassableInPassing } from "../items/verb-offers";
+import { blocksMovement, blocksSight, mufflesSound } from "../items/world-physics";
 import { pushWorkingMemory } from "../memory/working-memory";
 import { canSee } from "../perception/sight";
 import { describeBodyName, isDead } from "../status/health";
@@ -31,17 +32,14 @@ export function markEntityChanged(result: TickResult, entityId: string): void {
   if (!result.changedEntityIds.includes(entityId)) result.changedEntityIds.push(entityId);
 }
 
+/** Takes the entity off the changed list, for a change viewers don't need to hear about. */
+export function unmarkEntityChanged(result: TickResult, entityId: string): void {
+  result.changedEntityIds = result.changedEntityIds.filter((changedId) => changedId !== entityId);
+}
+
 export function markEntityRemoved(result: TickResult, entityId: string): void {
   result.changedEntityIds = result.changedEntityIds.filter((changedId) => changedId !== entityId);
   if (!result.removedEntityIds.includes(entityId)) result.removedEntityIds.push(entityId);
-}
-
-function readFlag(state: WorldState, entity: Entity, component: string, field: string): boolean {
-  return readComponentField(getDefinition(state, entity), component, field) === true;
-}
-
-function isClosed(entity: Entity): boolean {
-  return entity.state.isOpen === false;
 }
 
 function collectTiles(state: WorldState, isIncluded: (entity: Entity) => boolean): Set<number> {
@@ -53,27 +51,23 @@ function collectTiles(state: WorldState, isIncluded: (entity: Entity) => boolean
   return tiles;
 }
 
-/** Walls plus what the placed entities add: closed doors and objects in the way. */
+/** Walls plus what the world settings let placed entities add: closed doors and the like. */
 export function buildPerceptionWorld(state: WorldState): PerceptionWorld {
   return {
     grid: state.map.grid,
-    sightBlockingTiles: collectTiles(
-      state,
-      (entity) =>
-        readFlag(state, entity, "blocking", "blocksSight") ||
-        (isClosed(entity) && readFlag(state, entity, "openable", "blocksSightWhenClosed")),
-    ),
-    muffledTiles: collectTiles(
-      state,
-      (entity) => isClosed(entity) && readFlag(state, entity, "openable", "muffleWhenClosed"),
-    ),
+    sightBlockingTiles: collectTiles(state, (entity) => blocksSight(state, entity)),
+    muffledTiles: collectTiles(state, (entity) => mufflesSound(state, entity)),
   };
 }
 
-/** The map's grid with tiles under movement-blocking objects walled off, for pathfinding. */
+/**
+ * The map's grid with tiles under movement-blocking entities walled off, for pathfinding. One a
+ * walker can deal with in passing (a closed door it opens) stays walkable.
+ */
 export function buildWalkingGrid(state: WorldState): TileGrid {
-  const blocked = collectTiles(state, (entity) =>
-    readFlag(state, entity, "blocking", "blocksMovement"),
+  const blocked = collectTiles(
+    state,
+    (entity) => blocksMovement(state, entity) && !isPassableInPassing(state, entity),
   );
   return withBlockedTiles(state.map.grid, blocked);
 }

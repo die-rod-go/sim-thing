@@ -1,5 +1,12 @@
 import { z } from "zod";
-import type { Agent, Bucket, Entity, EntityLocation, EntityState, Memory } from "@village/shared";
+import type {
+  Agent,
+  Bucket,
+  ComponentChanges,
+  Entity,
+  EntityLocation,
+  Memory,
+} from "@village/shared";
 import { simRuntimeSchema, type SimRuntime } from "../sim/agent-runtime";
 import type { Database } from "./database";
 
@@ -34,11 +41,10 @@ const metaSchema = z.object({
 
 type SavedMeta = z.infer<typeof metaSchema>;
 
-/** Fields every saved agent must have; saves from before health and stats lack them. */
+/** Fields every saved agent must have; saves from before components lack `bodyChanges`. */
 const currentAgentFieldsSchema = z.object({
-  health: z.number(),
+  bodyChanges: z.record(z.string(), z.unknown()),
   starvingSinceTick: z.number().nullable(),
-  conditions: z.array(z.unknown()),
   death: z.object({ tick: z.number(), cause: z.string() }).nullable(),
   body: z.object({ strength: z.number(), agility: z.number() }),
 });
@@ -55,7 +61,7 @@ interface EntityRow {
   definition_id: string;
   label: string | null;
   location: string;
-  state: string;
+  changes: string;
 }
 
 /** Entity rows were written by saveWorld from typed values, so their JSON is trusted. */
@@ -65,7 +71,7 @@ function toEntity(row: EntityRow): Entity {
     definitionId: row.definition_id,
     label: row.label,
     location: JSON.parse(row.location) as EntityLocation,
-    state: JSON.parse(row.state) as EntityState,
+    changes: JSON.parse(row.changes) as ComponentChanges,
   };
 }
 
@@ -93,7 +99,7 @@ export function saveWorld(database: Database, world: SavedWorld): void {
   const insertMeta = database.prepare("INSERT INTO meta (key, value) VALUES (?, ?)");
   const insertAgent = database.prepare("INSERT INTO agents (id, data) VALUES (?, ?)");
   const insertEntity = database.prepare(
-    "INSERT INTO entities (id, definition_id, label, location, state) VALUES (?, ?, ?, ?, ?)",
+    "INSERT INTO entities (id, definition_id, label, location, changes) VALUES (?, ?, ?, ?, ?)",
   );
   const insertMemory = database.prepare(
     `INSERT INTO memories (id, agent_id, bucket, tick, text, tags, strength, last_recalled_tick)
@@ -112,7 +118,7 @@ export function saveWorld(database: Database, world: SavedWorld): void {
         entity.definitionId,
         entity.label,
         JSON.stringify(entity.location),
-        JSON.stringify(entity.state),
+        JSON.stringify(entity.changes),
       );
     }
     for (const memory of world.memories) {

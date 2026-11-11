@@ -1,7 +1,8 @@
 import { buildItemCatalog, parseItemFile, type Position } from "@village/shared";
 import { describe, expect, it } from "vitest";
 import { config } from "../config";
-import { createEntity, findEntityIfPresent } from "../items/entity-store";
+import { createEntity, findEntityIfPresent, locateInside } from "../items/entity-store";
+import { readComponents, readThingChanges, type ThingRef } from "../items/things";
 import {
   NEXT_TO_SQUARE,
   SQUARE,
@@ -9,9 +10,10 @@ import {
   contextOf,
   fixRolls,
   place,
+  setAgentHealth,
 } from "./combat-test-kit";
 import { advanceConditions, startCondition } from "./conditions";
-import type { EffectRun, EffectSubjectRef } from "./effects/effect-run";
+import type { EffectRun } from "./effects/effect-run";
 import { sendStimulus } from "./effects/stimulus";
 import type { TestSim } from "./test-sim";
 import type { TickContext } from "./tick-context";
@@ -30,22 +32,19 @@ function setUp(roll = ALWAYS): TestSim {
   return sim;
 }
 
-function placeThing(sim: TestSim, definitionId: string, pos: Position): EffectSubjectRef {
+function placeThing(sim: TestSim, definitionId: string, pos: Position): ThingRef {
   const place = sim.agent("mara").place;
   const entity = createEntity(sim.state, definitionId, { kind: "tile", place, pos });
   return { kind: "entity", entityId: entity.id };
 }
 
-function conditionsOf(sim: TestSim, subject: EffectSubjectRef): string[] {
-  const conditions =
-    subject.kind === "agent"
-      ? sim.agent(subject.agentId).conditions
-      : (findEntityIfPresent(sim.state, subject.entityId)?.state.conditions ?? []);
-  return conditions.map((condition) => condition.name);
+function conditionsOf(sim: TestSim, subject: ThingRef): string[] {
+  const components = readComponents(sim.state, subject) ?? {};
+  return Object.keys(components).filter((name) => sim.state.items.conditionsByName.has(name));
 }
 
 /** Sends a stimulus as one of Mara's verbs would. */
-function stimulate(sim: TestSim, receiver: EffectSubjectRef, stimulus: string): TickContext {
+function stimulate(sim: TestSim, receiver: ThingRef, stimulus: string): TickContext {
   const context = contextOf(sim);
   const effectRun: EffectRun = {
     context,
@@ -66,7 +65,7 @@ function addReactions(sim: TestSim, reactions: unknown[]): void {
   );
 }
 
-function definitionOf(sim: TestSim, subject: EffectSubjectRef): string | undefined {
+function definitionOf(sim: TestSim, subject: ThingRef): string | undefined {
   if (subject.kind !== "entity") return undefined;
   return findEntityIfPresent(sim.state, subject.entityId)?.definitionId;
 }
@@ -121,12 +120,12 @@ describe("reactions", () => {
     addReactions(sim, [
       {
         stimulus: "poke",
-        property: "flesh",
+        if: { has: "flesh" },
         effects: [{ type: "add_condition", condition: "poisoned" }],
       },
       {
         stimulus: "poke",
-        property: "flesh",
+        if: { has: "flesh" },
         effects: [{ type: "remove_condition", condition: "poisoned" }],
       },
     ]);
@@ -152,15 +151,13 @@ describe("reactions", () => {
     const bench = placeThing(sim, "bench", NEXT_TO_OPEN_GROUND);
     startCondition(contextOf(sim), jar, "burning", { sourceAgentId: null });
     stimulate(sim, jar, "impact");
-    const benchEntity =
-      bench.kind === "entity" ? findEntityIfPresent(sim.state, bench.entityId) : undefined;
-    expect(benchEntity?.state.conditions[0]?.sourceAgentId).toBe("mara");
+    expect(readThingChanges(sim.state, bench)?.burning?.sourceAgentId).toBe("mara");
   });
 
   it("stops a chain at the depth cap and reports it", () => {
     const sim = setUp();
     addReactions(sim, [
-      { stimulus: "echo", property: "flesh", effects: [{ type: "emit", stimulus: "echo" }] },
+      { stimulus: "echo", if: { has: "flesh" }, effects: [{ type: "emit", stimulus: "echo" }] },
     ]);
     const context = stimulate(sim, { kind: "agent", agentId: "tobias" }, "echo");
     expect(context.result.reactionCapHits).toHaveLength(1);
@@ -169,12 +166,13 @@ describe("reactions", () => {
     );
   });
 
-  it("burns bodies too, since the dead keep the person properties", () => {
+  it("burns bodies too, since the dead keep the person components", () => {
     const sim = setUp();
-    const tobias: EffectSubjectRef = { kind: "agent", agentId: "tobias" };
+    const tobias: ThingRef = { kind: "agent", agentId: "tobias" };
+    setAgentHealth(sim, "tobias", 0);
     sim.state.agents = sim.state.agents.map((agent) =>
       agent.id === "tobias"
-        ? { ...agent, health: 0, death: { tick: 0, cause: "x", sourceAgentId: null } }
+        ? { ...agent, death: { tick: 0, cause: "x", sourceAgentId: null } }
         : agent,
     );
     const context = stimulate(sim, tobias, "fire");
@@ -198,14 +196,14 @@ describe("nearby", () => {
 
   it("finds a held thing where its holder is, so a burning thing in hand sets its holder alight", () => {
     const sim = setUp();
-    const held = createEntity(sim.state, "bread", { kind: "inventory", agentId: "tobias" });
+    const held = createEntity(sim.state, "bread", locateInside("tobias"));
     startCondition(contextOf(sim), { kind: "entity", entityId: held.id }, "burning", {
       sourceAgentId: "mara",
     });
     sim.state.tick += 1;
     advanceConditions(contextOf(sim));
     expect(conditionsOf(sim, { kind: "agent", agentId: "tobias" })).toEqual(["burning"]);
-    expect(sim.agent("tobias").conditions[0]?.sourceAgentId).toBe("mara");
+    expect(sim.agent("tobias").bodyChanges.burning?.sourceAgentId).toBe("mara");
   });
 
   it("leaves things alone when the spread's chance fails", () => {

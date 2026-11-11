@@ -1,4 +1,4 @@
-import { NEED_NAMES, type Agent } from "@village/shared";
+import { NEED_NAMES, readAgentHealth, type Agent } from "@village/shared";
 import { clientConfig } from "../client-config";
 import { describeActivity, describeHealth, describeNeed } from "../format/character-sheet";
 import { usePanelContext } from "./panel-context";
@@ -31,7 +31,7 @@ function RosterCard({ agent, isSelected }: { agent: Agent; isSelected: boolean }
   const isDead = agent.death !== null;
   const hasAlert =
     !isDead &&
-    (describeHealth(agent.health).isAlert ||
+    (describeHealth(readAgentHealth(state.catalog, agent)).isAlert ||
       NEED_NAMES.some((needName) => describeNeed(needName, agent.needs[needName]).isAlert));
   const classNames = [
     "roster-card",

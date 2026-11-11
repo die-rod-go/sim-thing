@@ -1,15 +1,9 @@
-import type {
-  ComponentDeclaration,
-  FieldType,
-  ItemDefinition,
-  ItemFile,
-  PropertyDeclaration,
-} from "@village/shared";
+import type { ComponentDeclaration, FieldType, ItemDefinition, ItemFile } from "@village/shared";
 import { clientConfig } from "../client-config";
 import { buildDefaultFieldValue } from "./definition-edits";
 import { createUniqueName, renameKey, withoutKey } from "./list-edits";
 
-/* Component and property declarations. Renames carry over to the items that use them. */
+/* Component declarations. Renames carry over to the items that use them. */
 
 function mapDefinitionsWithComponent(
   file: ItemFile,
@@ -28,7 +22,10 @@ export function addComponentDeclaration(file: ItemFile): ItemFile {
     clientConfig.itemEditor.newComponentName,
     Object.keys(file.components),
   );
-  return { ...file, components: { ...file.components, [name]: { description: "", fields: {} } } };
+  return {
+    ...file,
+    components: { ...file.components, [name]: { description: "", fields: {}, isVisible: false } },
+  };
 }
 
 export function updateComponentDeclaration(
@@ -136,47 +133,4 @@ export function removeComponentField(file: ItemFile, component: string, field: s
       withoutKey(values, field),
     ),
   };
-}
-
-export function addPropertyDeclaration(file: ItemFile): ItemFile {
-  const name = createUniqueName(
-    clientConfig.itemEditor.newPropertyName,
-    Object.keys(file.properties),
-  );
-  const declaration: PropertyDeclaration = { description: "", isVisible: false };
-  return { ...file, properties: { ...file.properties, [name]: declaration } };
-}
-
-export function updatePropertyDeclaration(
-  file: ItemFile,
-  name: string,
-  declaration: PropertyDeclaration,
-): ItemFile {
-  return { ...file, properties: { ...file.properties, [name]: declaration } };
-}
-
-function renameInList(list: readonly string[], oldName: string, newName: string): string[] {
-  return list.map((name) => (name === oldName ? newName : name));
-}
-
-/** Renames a property in its declaration, on items and on people. Rules are left to validation. */
-export function renamePropertyDeclaration(
-  file: ItemFile,
-  oldName: string,
-  newName: string,
-): ItemFile {
-  if (oldName === newName || Object.hasOwn(file.properties, newName)) return file;
-  return {
-    ...file,
-    properties: renameKey(file.properties, oldName, newName),
-    person: { properties: renameInList(file.person.properties, oldName, newName) },
-    definitions: file.definitions.map((definition) => ({
-      ...definition,
-      properties: renameInList(definition.properties, oldName, newName),
-    })),
-  };
-}
-
-export function removePropertyDeclaration(file: ItemFile, name: string): ItemFile {
-  return { ...file, properties: withoutKey(file.properties, name) };
 }

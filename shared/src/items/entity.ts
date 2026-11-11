@@ -1,29 +1,15 @@
-import type { Note, Position } from "../types";
+import type { Position } from "../types";
+import type { ComponentChanges } from "./components";
 
-/** Where an entity is. Carried and contained entities are wherever their holder or container is. */
+/**
+ * `entity-12` or an agent's id. The two never collide: seed validation rejects an agent id that
+ * starts with `entity-`.
+ */
+export type ThingId = string;
+
+/** Where an entity is: on a tile, or inside another thing (an entity, or an agent's body). */
 export type EntityLocation =
-  | { kind: "inventory"; agentId: string }
-  | { kind: "tile"; place: string; pos: Position }
-  | { kind: "inside"; containerId: string };
-
-/** A timed state on an agent or entity (burning, bleeding). */
-export interface ActiveCondition {
-  name: string;
-  /** Null: lasts until something removes it. */
-  endsAtTick: number | null;
-  /** Who caused it, for death causes. */
-  sourceAgentId: string | null;
-}
-
-export interface EntityState {
-  durability?: number;
-  stock?: number;
-  isOpen?: boolean;
-  notes?: Note[];
-  /** Agents using it right now, e.g. players at the card table. */
-  userIds?: string[];
-  conditions: ActiveCondition[];
-}
+  { kind: "tile"; place: string; pos: Position } | { kind: "inside"; holderId: ThingId };
 
 /** One instance of an item definition in the world. */
 export interface Entity {
@@ -36,13 +22,19 @@ export interface Entity {
    */
   label: string | null;
   location: EntityLocation;
-  state: EntityState;
+  /** Where its components differ from its definition's. Empty for an untouched entity. */
+  changes: ComponentChanges;
 }
 
-const ENTITY_ID_PREFIX = "entity-";
+export const ENTITY_ID_PREFIX = "entity-";
 
 export function formatEntityId(counter: number): string {
   return `${ENTITY_ID_PREFIX}${counter}`;
+}
+
+/** Whether a thing id names an entity rather than an agent's body. */
+export function isEntityId(thingId: ThingId): boolean {
+  return thingId.startsWith(ENTITY_ID_PREFIX);
 }
 
 function readEntityNumber(entityId: string): number {
@@ -52,4 +44,15 @@ function readEntityNumber(entityId: string): number {
 /** Oldest first: entities made earlier have lower counter values. */
 export function compareEntityAge(first: Entity, second: Entity): number {
   return readEntityNumber(first.id) - readEntityNumber(second.id);
+}
+
+/** Whether the entity is directly inside the thing: what a chest, or an agent, holds. */
+export function isDirectlyInside(entity: Entity, holderId: ThingId): boolean {
+  return entity.location.kind === "inside" && entity.location.holderId === holderId;
+}
+
+/** The agent carrying the entity directly, or null when it is on a tile or inside an entity. */
+export function findCarrierId(entity: Entity): string | null {
+  const { location } = entity;
+  return location.kind === "inside" && !isEntityId(location.holderId) ? location.holderId : null;
 }

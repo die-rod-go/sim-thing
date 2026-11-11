@@ -50,20 +50,15 @@ describe("characterSheet", () => {
   it("counts what the agent carries by definition, coins included", () => {
     const glyph = { index: 0, color: "#ffffff" };
     const definitions = [
-      { id: "coin", name: "coin", plural: "coins", form: "carriable" as const, glyph },
-      { id: "bread", name: "bread", form: "carriable" as const, glyph },
-    ].map((definition) => ({
-      ...definition,
-      isVisibleWhenCarried: false,
-      properties: [],
-      components: {},
-    }));
+      { id: "coin", name: "coin", plural: "coins", glyph },
+      { id: "bread", name: "bread", glyph },
+    ].map((definition) => ({ ...definition, components: {} }));
     const carried = (id: string, definitionId: string, agentId: string) => ({
       id,
       definitionId,
       label: null,
-      location: { kind: "inventory" as const, agentId },
-      state: { conditions: [] },
+      location: { kind: "inside" as const, holderId: agentId },
+      changes: {},
     });
     const entities = [
       carried("entity-1", "coin", "ada"),

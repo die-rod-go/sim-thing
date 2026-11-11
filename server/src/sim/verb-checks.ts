@@ -1,5 +1,5 @@
-import { describeCount, findDefinition, type Verb } from "@village/shared";
-import { countHeld, getDefinition, listHeldEntities } from "../items/entity-store";
+import { describeCount, findDefinition, resolveEntityComponents, type Verb } from "@village/shared";
+import { countHeld, listHeldEntities } from "../items/entity-store";
 import type { WorldState } from "./world-state";
 
 /** Why the agent lacks the verb's inputs, or null when it holds them all. */
@@ -20,7 +20,7 @@ export function describeShortfall(state: WorldState, agentId: string, verb: Verb
 
 /**
  * Why the agent lacks the verb's tools, or null: it must hold every listed definition and, for
- * each listed property, something that has it. The thing being used doesn't count as its own tool.
+ * each listed component, something that has it. The thing being used doesn't count as its own tool.
  */
 export function describeMissingTools(
   state: WorldState,
@@ -31,13 +31,16 @@ export function describeMissingTools(
   if (verb.tools === undefined) return null;
   const tools = listHeldEntities(state, agentId)
     .filter((entity) => entity.id !== usedEntityId)
-    .map((entity) => getDefinition(state, entity));
+    .map((entity) => ({
+      definitionId: entity.definitionId,
+      components: resolveEntityComponents(state.items, entity),
+    }));
   const missingDefinitions = verb.tools.definitions
-    .filter((definitionId) => !tools.some((tool) => tool.id === definitionId))
+    .filter((definitionId) => !tools.some((tool) => tool.definitionId === definitionId))
     .map((definitionId) => `a ${findDefinition(state.items, definitionId).name}`);
-  const missingProperties = verb.tools.properties
-    .filter((property) => !tools.some((tool) => tool.properties.includes(property)))
-    .map((property) => `something ${state.items.file.properties[property]?.word ?? property}`);
-  const missing = [...missingDefinitions, ...missingProperties];
+  const missingComponents = verb.tools.components
+    .filter((component) => !tools.some((tool) => Object.hasOwn(tool.components, component)))
+    .map((component) => `something ${component.split("_").join(" ")}`);
+  const missing = [...missingDefinitions, ...missingComponents];
   return missing.length === 0 ? null : `I need ${missing.join(" and ")} to do that`;
 }

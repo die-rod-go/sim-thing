@@ -1,8 +1,8 @@
 import { useMemo } from "react";
-import { hasItemErrors, isEngineComponent, type ItemFile, type ItemProblem } from "@village/shared";
+import { hasItemErrors, type ItemFile, type ItemProblem } from "@village/shared";
 import type { ConnectionStatus } from "../net/sim-connection";
 import { ConditionPanel, ReactionPanel } from "./ConditionPanels";
-import { ComponentPanel, PropertyPanel } from "./DeclarationPanels";
+import { ComponentPanel } from "./DeclarationPanels";
 import { duplicateDefinition } from "./definition-edits";
 import { countTabEntries, EDITOR_TABS, type EditorState, type EditorTab } from "./editor-state";
 import { ItemPage } from "./ItemPage";
@@ -70,18 +70,7 @@ function TabPanel({
         <ComponentPanel file={file} name={name} problems={problems} onEdit={onEdit} />
       );
     }
-    case "properties": {
-      const name = Object.keys(file.properties)[index];
-      return name === undefined ? null : <PropertyPanel file={file} name={name} onEdit={onEdit} />;
-    }
   }
-}
-
-/** Removing an engine component would make the server refuse the file, so it can't be removed. */
-function canRemoveEntry(file: ItemFile, tab: EditorTab, index: number): boolean {
-  if (tab !== "components") return true;
-  const name = Object.keys(file.components)[index];
-  return name !== undefined && !isEngineComponent(name);
 }
 
 export function ItemEditor() {
@@ -90,14 +79,8 @@ export function ItemEditor() {
   const { draft, tab } = state;
   const selectedIndex = state.selectedIndexes[tab];
   const problems = useMemo(
-    () =>
-      draft && state.currencyDefinitionId !== null
-        ? findDraftProblems(draft, {
-            references: state.references,
-            currencyDefinitionId: state.currencyDefinitionId,
-          })
-        : [],
-    [draft, state.references, state.currencyDefinitionId],
+    () => (draft ? findDraftProblems(draft, { references: state.references }) : []),
+    [draft, state.references],
   );
   const stimuli = useMemo(() => (draft ? listStimuli(draft) : []), [draft]);
   const isLive = editor.connectionStatus === "open";
@@ -207,11 +190,7 @@ export function ItemEditor() {
                       Duplicate
                     </button>
                   )}
-                  <button
-                    className="danger"
-                    disabled={!canRemoveEntry(draft, tab, selectedIndex)}
-                    onClick={confirmRemove}
-                  >
+                  <button className="danger" onClick={confirmRemove}>
                     Remove
                   </button>
                 </div>

@@ -3,14 +3,15 @@ import type {
   EffectOfType,
   EffectType,
   Entity,
-  ItemDefinition,
+  ResolvedComponents,
   Verb,
 } from "@village/shared";
-import { findDefinition } from "@village/shared";
 import { describeEntityName, findEntityIfPresent } from "../../items/entity-store";
+import type { ThingRef } from "../../items/things";
 import type { VerbRun } from "../agent-runtime";
 import { isDead } from "../../status/health";
 import type { TickContext } from "../tick-context";
+import { readRunComponents } from "../used-components";
 import { findAgent } from "../world-access";
 
 /**
@@ -30,7 +31,7 @@ export interface EffectRun {
    * What `on: self` refers to: whatever carries the condition or reaction, or the entity breaking
    * while its `onBroken` effects run.
    */
-  self?: EffectSubjectRef;
+  self?: ThingRef;
   /** The agent behind it: the verb's user, or whoever caused the condition or the chain. */
   sourceAgentId: string | null;
   /** How a death from a condition's or reaction's damage reads; verbs use their own phrase. */
@@ -62,17 +63,10 @@ export interface EffectHandler<Type extends EffectType> {
 
 export type EffectRegistry = { [Type in EffectType]?: EffectHandler<Type> };
 
-/** The definition of the thing used, still known after a `start` effect used it up. */
-export function findUsedDefinition(effectRun: EffectRun): ItemDefinition | null {
-  const usedDefinitionId = effectRun.run?.usedDefinitionId ?? null;
-  return usedDefinitionId === null
-    ? null
-    : findDefinition(effectRun.context.state.items, usedDefinitionId);
+/** The components of the thing used, still readable after a `start` effect used it up. */
+export function findUsedComponents(effectRun: EffectRun): ResolvedComponents | null {
+  return effectRun.run === null ? null : readRunComponents(effectRun.context.state, effectRun.run);
 }
-
-/** Who or what one effect works on. */
-export type EffectSubjectRef =
-  { kind: "agent"; agentId: string } | { kind: "entity"; entityId: string };
 
 /** Names what runs the effects, for errors. */
 export function describeEffectOwner(effectRun: EffectRun): string {
@@ -94,7 +88,7 @@ export function requireVerbRun(effectRun: EffectRun, effect: Effect): VerbRun {
  * the verb's target, the first thing `chosen`, or `self`. Null when there is none, such as `item`
  * in a bare-handed verb. `nearby` is expanded into one run per subject before an effect gets here.
  */
-export function findEffectSubject(effectRun: EffectRun, effect: Effect): EffectSubjectRef | null {
+export function findEffectSubject(effectRun: EffectRun, effect: Effect): ThingRef | null {
   const { run, self } = effectRun;
   switch (effect.on ?? "self") {
     case "user":

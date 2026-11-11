@@ -1,6 +1,6 @@
-import { formatSimTime, type PersonalityChange } from "@village/shared";
+import { formatSimTime, readAgentHealth, type PersonalityChange } from "@village/shared";
 import { config } from "../config";
-import { listConditionWords } from "../status/conditions";
+import { listBodyWords } from "../status/conditions";
 import type { StructuredCaller } from "../llm/call-structured";
 import { createLogger } from "../logger";
 import { runDaytimePass } from "../reflection/daytime";
@@ -57,6 +57,14 @@ function setSchedule(state: WorldState, agentId: string, schedule: ReflectionSch
   state.reflectionSchedules[agentId] = schedule;
 }
 
+function describeOwnConditions(state: WorldState, agentId: string): string[] {
+  return listBodyWords(state.items, findAgent(state, agentId), false);
+}
+
+function readOwnHealth(state: WorldState, agentId: string): number {
+  return readAgentHealth(state.items, findAgent(state, agentId));
+}
+
 /**
  * Connects the reflection passes to the tick. Sleep callbacks only note what is due; `afterTick`
  * runs the due passes (morning after a long sleep; night on falling asleep or at the forced hour;
@@ -64,10 +72,6 @@ function setSchedule(state: WorldState, agentId: string, schedule: ReflectionSch
  * the clock waits for them.
  * Pending passes live only within one tick, so nothing extra needs saving.
  */
-function describeOwnConditions(state: WorldState, agentId: string): string[] {
-  return listConditionWords(state.items, findAgent(state, agentId).conditions, false);
-}
-
 export function createReflectionHook(dependencies: ReflectionPassDependencies): ReflectionHook {
   const morningDue = new Set<string>();
   const nightDueOnSleep = new Set<string>();
@@ -75,6 +79,7 @@ export function createReflectionHook(dependencies: ReflectionPassDependencies): 
   async function runMorning(state: WorldState, agentId: string, result: TickResult) {
     const agent = await runMorningPass({
       agent: findAgent(state, agentId),
+      health: readOwnHealth(state, agentId),
       conditionWords: describeOwnConditions(state, agentId),
       recentReflections: selectLatestNightReflections(state.memoryStore, agentId),
       callStructured: dependencies.callStructured,
@@ -92,6 +97,7 @@ export function createReflectionHook(dependencies: ReflectionPassDependencies): 
   async function runWeekly(state: WorldState, agentId: string, result: TickResult) {
     const weekly = await runWeeklyPass({
       agent: findAgent(state, agentId),
+      health: readOwnHealth(state, agentId),
       conditionWords: describeOwnConditions(state, agentId),
       store: state.memoryStore,
       callStructured: dependencies.callStructured,
@@ -114,6 +120,7 @@ export function createReflectionHook(dependencies: ReflectionPassDependencies): 
   async function runNight(state: WorldState, agentId: string, result: TickResult) {
     const night = await runNightPass({
       agent: findAgent(state, agentId),
+      health: readOwnHealth(state, agentId),
       conditionWords: describeOwnConditions(state, agentId),
       store: state.memoryStore,
       idGenerator: state.memoryIds,
@@ -141,6 +148,7 @@ export function createReflectionHook(dependencies: ReflectionPassDependencies): 
   async function runDaytime(state: WorldState, agentId: string, result: TickResult) {
     const daytime = await runDaytimePass({
       agent: findAgent(state, agentId),
+      health: readOwnHealth(state, agentId),
       conditionWords: describeOwnConditions(state, agentId),
       store: state.memoryStore,
       idGenerator: state.memoryIds,

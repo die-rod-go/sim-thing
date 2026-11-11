@@ -1,11 +1,11 @@
-import type { EffectRun, EffectSubjectRef } from "./effect-run";
-import { isSameSubject, listSubjectsWithin, locateSubject } from "./subjects";
+import { isSameThing, listThingsWithin, locateThing, type ThingRef } from "../../items/things";
+import type { EffectRun } from "./effect-run";
 
 /**
  * What `nearby` is measured from: `self` in a condition or reaction; in a verb, the target, else
  * the thing used, else the user.
  */
-function findNearbyCenter(effectRun: EffectRun): EffectSubjectRef | null {
+function findNearbyCenter(effectRun: EffectRun): ThingRef | null {
   if (effectRun.self !== undefined) return effectRun.self;
   const { run } = effectRun;
   if (run === null) return null;
@@ -18,13 +18,13 @@ function findNearbyCenter(effectRun: EffectRun): EffectSubjectRef | null {
  * Every agent and entity within `radius` tiles, not counting `self`. Carried and contained things
  * are where their holder or container is, so a torch in a hand is next to its holder.
  */
-export function listNearbySubjects(effectRun: EffectRun, radius: number): EffectSubjectRef[] {
+export function listNearbyThings(effectRun: EffectRun, radius: number): ThingRef[] {
   const { state } = effectRun.context;
   const center = findNearbyCenter(effectRun);
-  const position = center === null ? null : locateSubject(state, center);
+  const position = center === null ? null : locateThing(state, center);
   if (center === null || position === null) return [];
   const { self } = effectRun;
-  return listSubjectsWithin(state, position, radius).filter(
-    (subject) => self === undefined || !isSameSubject(subject, self),
+  return listThingsWithin(state, position, radius).filter(
+    (thing) => self === undefined || !isSameThing(thing, self),
   );
 }

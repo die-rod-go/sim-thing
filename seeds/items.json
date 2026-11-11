@@ -1,42 +1,75 @@
 {
+  "world": {
+    "sightBlockedBy": { "allOf": [{ "has": "door" }, { "has": "closed" }] },
+    "movementBlockedBy": {
+      "anyOf": [{ "has": "solid" }, { "allOf": [{ "has": "door" }, { "has": "closed" }] }]
+    },
+    "soundMuffledBy": { "allOf": [{ "has": "door" }, { "has": "closed" }] },
+    "contentsHiddenBy": { "has": "alive" },
+    "shownWhenCarried": { "has": "conspicuous" },
+    "lyingWhenOnTile": { "has": "holdable" },
+    "closedSupply": { "definition": "coin" },
+    "agentBody": "person",
+    "agentHealth": "health.current"
+  },
   "components": {
-    "durability": {
-      "description": "How much it takes to break. Damage and wear are divided by toughness; 1 is as tough as a person.",
-      "fields": { "toughness": { "type": "number" } }
+    "holdable": {
+      "description": "Can be picked up and carried.",
+      "fields": { "kilograms": { "type": "number", "description": "How heavy it is.", "min": 0 } }
+    },
+    "conspicuous": { "description": "Others see it when someone carries it." },
+    "flesh": { "description": "Living or once-living bodies." },
+    "flammable": { "description": "Catches fire." },
+    "metal": { "description": "Made of metal." },
+    "sharp": { "description": "Has an edge or a point." },
+    "alive": { "description": "A living person." },
+    "door": { "description": "Opens and closes. Closed, it is in the way." },
+    "solid": { "description": "In the way: nobody walks through it." },
+    "bed": { "description": "Something to sleep in." },
+    "notice_board": { "description": "A board people pin notes to." },
+    "fragile": {
+      "description": "Shatters when something hits it or it hits something.",
+      "words": "fragile",
+      "isVisible": true
+    },
+    "closed": { "description": "Shut.", "words": "closed", "isVisible": true },
+    "burning": { "description": "On fire.", "words": "on fire", "isVisible": true },
+    "bleeding": { "description": "Losing blood.", "words": "bleeding", "isVisible": true },
+    "wet": {
+      "description": "Soaked, so it doesn't catch fire.",
+      "words": "wet",
+      "isVisible": true
+    },
+    "poisoned": { "description": "Poison at work.", "words": "poisoned" },
+    "health": {
+      "description": "How much it can take. A person has 1.",
+      "fields": {
+        "max": { "type": "number", "min": 0 },
+        "current": { "type": "number", "min": 0, "max": "max" }
+      }
+    },
+    "capacity": {
+      "description": "Holds other items, like a chest or basket.",
+      "fields": { "max": { "type": "number", "description": "The most it holds.", "min": 0 } }
     },
     "stock": {
-      "description": "Something that runs out and grows back, like a wheat field.",
+      "description": "Something that runs out, like a wheat field.",
       "fields": {
-        "capacity": { "type": "number", "description": "The most it holds." },
-        "regrowPerDay": { "type": "number", "description": "How much grows back in a sim-day." }
+        "capacity": { "type": "number", "description": "The most it holds.", "min": 0 },
+        "amount": {
+          "type": "number",
+          "description": "How much is left.",
+          "min": 0,
+          "max": "capacity",
+          "words": [{ "below": 1, "text": "empty" }, { "text": "{value} left" }]
+        }
       }
     },
-    "openable": {
-      "description": "A door.",
+    "regrows": {
+      "description": "Its stock grows back.",
       "fields": {
-        "startsOpen": { "type": "boolean" },
-        "blocksSightWhenClosed": { "type": "boolean" },
-        "muffleWhenClosed": { "type": "boolean" }
+        "perHour": { "type": "number", "description": "How much grows back in a sim-hour." }
       }
-    },
-    "blocking": {
-      "description": "Something in the way.",
-      "fields": { "blocksMovement": { "type": "boolean" }, "blocksSight": { "type": "boolean" } }
-    },
-    "container": {
-      "description": "Holds other items, like a chest or basket.",
-      "fields": { "capacity": { "type": "number" } }
-    },
-    "notes": {
-      "description": "A board people pin notes to.",
-      "fields": {
-        "maxNotes": { "type": "number", "description": "The oldest notes go once there are more." }
-      }
-    },
-    "bed": { "description": "Something to sleep in.", "fields": {} },
-    "weight": {
-      "description": "How heavy it is. Every carriable has one.",
-      "fields": { "kilograms": { "type": "number" } }
     },
     "food": {
       "description": "Something to eat.",
@@ -54,170 +87,145 @@
         "stimulus": { "type": "text", "description": "What a hit sends to what it hits." }
       }
     },
+    "firearm": {
+      "description": "Something that shoots.",
+      "fields": {
+        "damage": { "type": "range", "description": "Health one shot takes." },
+        "hitChance": { "type": "number", "description": "Chance to hit someone as nimble." }
+      }
+    },
+    "range": {
+      "description": "How far it reaches.",
+      "fields": { "tiles": { "type": "number", "min": 0 } }
+    },
+    "ammo": { "description": "Something a firearm shoots." },
     "healing": {
       "description": "Something that heals wounds.",
       "fields": { "health": { "type": "number", "description": "Health it gives back." } }
+    },
+    "writing": {
+      "description": "Something written, like a note.",
+      "fields": {
+        "text": { "type": "text", "default": "" },
+        "author": { "type": "text", "description": "Who wrote it.", "default": "" }
+      }
     }
   },
-  "properties": {
-    "flesh": { "description": "Living or once-living bodies.", "isVisible": false },
-    "flammable": { "description": "Catches fire.", "isVisible": false },
-    "metal": { "description": "Made of metal.", "isVisible": false },
-    "sharp": { "description": "Has an edge or a point.", "isVisible": false },
-    "fragile": {
-      "description": "Shatters when something hits it or it hits something.",
-      "isVisible": true
-    }
-  },
-  "person": { "properties": ["flesh", "flammable"] },
   "definitions": [
     {
       "id": "coin",
       "name": "coin",
       "plural": "coins",
-      "form": "carriable",
       "glyph": { "index": 36, "color": "#e8c040" },
-      "isVisibleWhenCarried": false,
-      "properties": ["metal"],
-      "components": { "weight": { "kilograms": 0.005 } }
+      "components": { "holdable": { "kilograms": 0.005 }, "metal": {} }
     },
     {
       "id": "bread",
       "name": "bread",
-      "form": "carriable",
       "glyph": { "index": 127, "color": "#d89a50" },
-      "isVisibleWhenCarried": false,
-      "properties": ["flammable"],
-      "components": { "weight": { "kilograms": 0.4 }, "food": { "hunger": 0.5 } }
+      "components": { "holdable": { "kilograms": 0.4 }, "flammable": {}, "food": { "hunger": 0.5 } }
     },
     {
       "id": "ale",
       "name": "ale",
-      "form": "carriable",
       "glyph": { "index": 33, "color": "#e0b050" },
-      "isVisibleWhenCarried": false,
-      "properties": [],
-      "components": { "weight": { "kilograms": 0.5 }, "drink": { "fun": 0.3, "energy": -0.05 } }
+      "components": { "holdable": { "kilograms": 0.5 }, "drink": { "fun": 0.3, "energy": -0.05 } }
     },
     {
       "id": "wheat",
       "name": "wheat",
-      "form": "carriable",
       "glyph": { "index": 231, "color": "#e8c650" },
-      "isVisibleWhenCarried": false,
-      "properties": ["flammable"],
-      "components": { "weight": { "kilograms": 1 } }
+      "components": { "holdable": { "kilograms": 1 }, "flammable": {} }
     },
     {
       "id": "wood",
       "name": "wood",
-      "form": "carriable",
       "glyph": { "index": 61, "color": "#a8703c" },
-      "isVisibleWhenCarried": true,
-      "properties": ["flammable"],
-      "components": { "weight": { "kilograms": 2 } }
+      "components": { "holdable": { "kilograms": 2 }, "flammable": {}, "conspicuous": {} }
     },
     {
       "id": "bed",
       "name": "bed",
       "plural": "beds",
-      "form": "placeable",
       "glyph": { "index": 233, "color": "#c84a4e" },
-      "properties": ["flammable"],
-      "components": { "bed": {}, "durability": { "toughness": 3 } }
+      "components": { "bed": {}, "flammable": {}, "health": { "max": 3, "current": 3 } }
     },
     {
       "id": "notice_board",
       "name": "notice board",
       "plural": "notice boards",
-      "form": "placeable",
       "glyph": { "index": 240, "color": "#ece4c8" },
-      "properties": ["flammable"],
-      "components": { "notes": { "maxNotes": 30 }, "durability": { "toughness": 3 } }
+      "components": {
+        "notice_board": {},
+        "flammable": {},
+        "capacity": { "max": 30 },
+        "health": { "max": 3, "current": 3 }
+      }
     },
     {
       "id": "bench",
       "name": "bench",
       "plural": "benches",
-      "form": "placeable",
       "glyph": { "index": 210, "color": "#b07a44" },
-      "properties": ["flammable"],
-      "components": { "durability": { "toughness": 3 } }
+      "components": { "flammable": {}, "health": { "max": 3, "current": 3 } }
     },
     {
       "id": "wheat_field",
       "name": "wheat field",
       "plural": "wheat fields",
-      "form": "placeable",
       "glyph": { "index": 34, "color": "#f0d060", "background": "#7a5e22" },
-      "properties": [],
-      "components": { "stock": { "capacity": 12, "regrowPerDay": 12 } }
+      "components": { "stock": { "capacity": 12, "amount": 12 }, "regrows": { "perHour": 0.5 } }
     },
     {
       "id": "trees",
       "name": "trees",
-      "form": "placeable",
       "glyph": { "index": 5, "color": "#3fa04a", "background": "#24461f" },
-      "properties": ["flammable"],
-      "components": { "stock": { "capacity": 10, "regrowPerDay": 10 } }
+      "components": {
+        "flammable": {},
+        "stock": { "capacity": 10, "amount": 10 },
+        "regrows": { "perHour": 0.42 }
+      }
     },
     {
       "id": "oven",
       "name": "oven",
       "plural": "ovens",
-      "form": "placeable",
       "glyph": { "index": 239, "color": "#f0a028" },
-      "properties": [],
-      "components": {
-        "durability": { "toughness": 6 },
-        "blocking": { "blocksMovement": true, "blocksSight": false }
-      }
+      "components": { "solid": {}, "health": { "max": 6, "current": 6 } }
     },
     {
       "id": "brew_kettle",
       "name": "brew kettle",
       "plural": "brew kettles",
-      "form": "placeable",
       "glyph": { "index": 229, "color": "#9a9aa8" },
-      "properties": ["metal"],
-      "components": {
-        "durability": { "toughness": 5 },
-        "blocking": { "blocksMovement": true, "blocksSight": false }
-      }
+      "components": { "solid": {}, "metal": {}, "health": { "max": 5, "current": 5 } }
     },
     {
       "id": "card_table",
       "name": "card table",
       "plural": "card tables",
-      "form": "placeable",
       "glyph": { "index": 4, "color": "#f4f4ec" },
-      "properties": ["flammable"],
-      "components": { "durability": { "toughness": 3 } }
+      "components": { "flammable": {}, "health": { "max": 3, "current": 3 } }
     },
     {
       "id": "door",
       "name": "door",
       "plural": "doors",
-      "form": "placeable",
       "glyph": { "index": 43, "color": "#e0b060" },
-      "properties": ["flammable"],
-      "components": {
-        "openable": { "startsOpen": true, "blocksSightWhenClosed": true, "muffleWhenClosed": true },
-        "durability": { "toughness": 5 }
-      }
+      "components": { "door": {}, "flammable": {}, "health": { "max": 5, "current": 5 } }
     },
     {
       "id": "knife",
       "name": "knife",
       "plural": "knives",
-      "form": "carriable",
       "glyph": { "index": 47, "color": "#d0d4dc" },
-      "isVisibleWhenCarried": true,
-      "properties": ["sharp", "metal"],
       "components": {
-        "durability": { "toughness": 4 },
-        "weapon": { "damage": { "min": 0.2, "max": 0.4 }, "hitChance": 0.7, "stimulus": "cut" },
-        "weight": { "kilograms": 0.3 }
+        "holdable": { "kilograms": 0.3 },
+        "conspicuous": {},
+        "sharp": {},
+        "metal": {},
+        "health": { "max": 4, "current": 4 },
+        "weapon": { "damage": { "min": 0.2, "max": 0.4 }, "hitChance": 0.7, "stimulus": "cut" }
       },
       "onBroken": [{ "type": "transform", "into": "broken_knife" }]
     },
@@ -225,28 +233,30 @@
       "id": "broken_knife",
       "name": "broken knife",
       "plural": "broken knives",
-      "form": "carriable",
       "glyph": { "index": 96, "color": "#a0a4ac" },
-      "properties": ["metal"],
-      "components": { "weight": { "kilograms": 0.2 } }
+      "components": { "holdable": { "kilograms": 0.2 }, "metal": {} }
     },
     {
       "id": "bandage",
       "name": "bandage",
       "plural": "bandages",
-      "form": "carriable",
       "glyph": { "index": 43, "color": "#f0ece0" },
-      "properties": ["flammable"],
-      "components": { "healing": { "health": 0.15 }, "weight": { "kilograms": 0.05 } }
+      "components": {
+        "holdable": { "kilograms": 0.05 },
+        "flammable": {},
+        "healing": { "health": 0.15 }
+      }
     },
     {
       "id": "jar",
       "name": "jar",
       "plural": "jars",
-      "form": "carriable",
       "glyph": { "index": 235, "color": "#c86a44" },
-      "properties": ["fragile"],
-      "components": { "durability": { "toughness": 0.5 }, "weight": { "kilograms": 0.8 } },
+      "components": {
+        "holdable": { "kilograms": 0.8 },
+        "fragile": {},
+        "health": { "max": 0.5, "current": 0.5 }
+      },
       "onBroken": [
         { "type": "make_sound", "on": "self", "loudness": 10 },
         { "type": "transform", "on": "self", "into": "shards" }
@@ -255,18 +265,52 @@
     {
       "id": "shards",
       "name": "shards of pottery",
-      "form": "carriable",
       "glyph": { "index": 44, "color": "#c86a44" },
-      "components": { "weight": { "kilograms": 0.8 } }
+      "components": { "holdable": { "kilograms": 0.8 } }
     },
     {
       "id": "chest",
       "name": "chest",
       "plural": "chests",
-      "form": "placeable",
       "glyph": { "index": 254, "color": "#c08848" },
-      "properties": ["flammable"],
-      "components": { "container": { "capacity": 20 } }
+      "components": { "flammable": {}, "capacity": { "max": 20 } }
+    },
+    {
+      "id": "note",
+      "name": "note",
+      "plural": "notes",
+      "glyph": { "index": 20, "color": "#ece4c8" },
+      "components": { "holdable": { "kilograms": 0.01 }, "flammable": {}, "writing": {} }
+    },
+    {
+      "id": "gun",
+      "name": "gun",
+      "plural": "guns",
+      "glyph": { "index": 170, "color": "#9a9aa8" },
+      "components": {
+        "capacity": { "max": 6 },
+        "firearm": { "damage": { "min": 0.4, "max": 0.7 }, "hitChance": 0.7 },
+        "holdable": { "kilograms": 1 },
+        "range": { "tiles": 8 }
+      }
+    },
+    {
+      "id": "bullet",
+      "name": "bullet",
+      "plural": "bullets",
+      "glyph": { "index": 7, "color": "#d8b060" },
+      "components": { "holdable": { "kilograms": 0.01 }, "ammo": {} }
+    },
+    {
+      "id": "person",
+      "name": "person",
+      "glyph": { "index": 2, "color": "#ffffff" },
+      "components": {
+        "alive": {},
+        "flesh": {},
+        "flammable": {},
+        "health": { "max": 1, "current": 1 }
+      }
     }
   ],
   "verbs": [
@@ -408,7 +452,7 @@
     },
     {
       "name": "read",
-      "appliesTo": { "component": "notes" },
+      "appliesTo": { "component": "notice_board" },
       "minutes": 5,
       "effects": [{ "type": "read_notes", "on": "item", "when": "start" }],
       "phrases": {
@@ -419,7 +463,7 @@
     },
     {
       "name": "post a note",
-      "appliesTo": { "component": "notes" },
+      "appliesTo": { "component": "notice_board" },
       "minutes": 5,
       "takesText": true,
       "effects": [{ "type": "post_note", "on": "item", "when": "start" }],
@@ -431,10 +475,13 @@
     },
     {
       "name": "open",
-      "appliesTo": { "component": "openable" },
+      "appliesTo": { "allOf": [{ "component": "door" }, { "component": "closed" }] },
       "minutes": 1,
       "loudness": 3,
-      "effects": [{ "type": "set_open", "on": "item", "isOpen": true, "when": "start" }],
+      "isDoneInPassing": true,
+      "effects": [
+        { "type": "remove_condition", "on": "item", "condition": "closed", "when": "start" }
+      ],
       "phrases": {
         "ongoing": "opening the {item}",
         "done": "opened the {item}",
@@ -443,10 +490,12 @@
     },
     {
       "name": "close",
-      "appliesTo": { "component": "openable" },
+      "appliesTo": { "allOf": [{ "component": "door" }, { "not": { "component": "closed" } }] },
       "minutes": 1,
       "loudness": 3,
-      "effects": [{ "type": "set_open", "on": "item", "isOpen": false, "when": "start" }],
+      "effects": [
+        { "type": "add_condition", "on": "item", "condition": "closed", "when": "start" }
+      ],
       "phrases": {
         "ongoing": "closing the {item}",
         "done": "closed the {item}",
@@ -531,7 +580,7 @@
     },
     {
       "name": "drop",
-      "appliesTo": { "allOf": [{ "form": "carriable" }, { "location": "held" }] },
+      "appliesTo": { "allOf": [{ "component": "holdable" }, { "location": "held" }] },
       "effects": [{ "type": "move", "on": "chosen", "to": "ground" }],
       "phrases": {
         "ongoing": "dropping {item}",
@@ -541,7 +590,7 @@
     },
     {
       "name": "pick up",
-      "appliesTo": { "allOf": [{ "form": "carriable" }, { "location": "ground" }] },
+      "appliesTo": { "allOf": [{ "component": "holdable" }, { "location": "ground" }] },
       "effects": [{ "type": "move", "on": "item", "to": "user" }],
       "phrases": {
         "ongoing": "picking up the {item}",
@@ -551,9 +600,7 @@
     },
     {
       "name": "throw",
-      "appliesTo": {
-        "allOf": [{ "form": "carriable" }, { "component": "weight" }, { "location": "held" }]
-      },
+      "appliesTo": { "allOf": [{ "component": "holdable" }, { "location": "held" }] },
       "target": "agent_or_entity",
       "reach": 6,
       "minutes": 1,
@@ -563,7 +610,7 @@
         {
           "type": "damage",
           "on": "target",
-          "amount": { "min": 0.02, "max": 0.05, "times": "item.weight.kilograms" },
+          "amount": { "min": 0.02, "max": 0.05, "times": "item.holdable.kilograms" },
           "stimulus": "impact",
           "scaledByStrength": true
         },
@@ -579,7 +626,7 @@
     },
     {
       "name": "put",
-      "appliesTo": { "component": "container" },
+      "appliesTo": { "component": "capacity" },
       "effects": [{ "type": "move", "on": "chosen", "to": "item" }],
       "phrases": {
         "ongoing": "putting something in the {item}",
@@ -589,7 +636,7 @@
     },
     {
       "name": "take",
-      "appliesTo": { "anyOf": [{ "component": "container" }, { "isDeadAgent": true }] },
+      "appliesTo": { "anyOf": [{ "component": "capacity" }, { "isDeadAgent": true }] },
       "effects": [{ "type": "move", "on": "chosen", "to": "user" }],
       "phrases": {
         "ongoing": "taking something from {item}",
@@ -601,8 +648,6 @@
   "conditions": [
     {
       "name": "bleeding",
-      "words": "bleeding",
-      "isVisible": true,
       "defaultMinutes": 20,
       "everyMinute": [{ "type": "damage", "on": "self", "amount": { "min": 0.01, "max": 0.01 } }],
       "phrases": {
@@ -613,8 +658,6 @@
     },
     {
       "name": "burning",
-      "words": "on fire",
-      "isVisible": true,
       "defaultMinutes": 30,
       "everyMinute": [
         { "type": "damage", "on": "self", "amount": { "min": 0.01, "max": 0.01 } },
@@ -628,15 +671,11 @@
     },
     {
       "name": "wet",
-      "words": "wet",
-      "isVisible": true,
       "defaultMinutes": 60,
       "phrases": { "started": "got wet", "ended": "dried off" }
     },
     {
       "name": "poisoned",
-      "words": "poisoned",
-      "isVisible": false,
       "defaultMinutes": null,
       "everyMinute": [{ "type": "damage", "on": "self", "amount": { "min": 0.003, "max": 0.003 } }],
       "phrases": {
@@ -649,24 +688,22 @@
   "reactions": [
     {
       "stimulus": "fire",
-      "property": "flammable",
-      "unless": "wet",
+      "if": { "allOf": [{ "has": "flammable" }, { "not": { "has": "wet" } }] },
       "effects": [{ "type": "add_condition", "on": "self", "condition": "burning" }]
     },
     {
       "stimulus": "fire",
-      "condition": "wet",
+      "if": { "has": "wet" },
       "effects": [{ "type": "remove_condition", "on": "self", "condition": "wet" }]
     },
     {
       "stimulus": "impact",
-      "property": "fragile",
-      "condition": "burning",
+      "if": { "allOf": [{ "has": "fragile" }, { "has": "burning" }] },
       "effects": [{ "type": "emit", "on": "nearby", "radius": 1, "stimulus": "fire" }]
     },
     {
       "stimulus": "impact",
-      "property": "fragile",
+      "if": { "has": "fragile" },
       "effects": [
         { "type": "make_sound", "on": "self", "loudness": 10 },
         { "type": "transform", "on": "self", "into": "shards" }
@@ -674,12 +711,12 @@
     },
     {
       "stimulus": "water",
-      "condition": "burning",
+      "if": { "has": "burning" },
       "effects": [{ "type": "remove_condition", "on": "self", "condition": "burning" }]
     },
     {
       "stimulus": "cut",
-      "property": "flesh",
+      "if": { "has": "flesh" },
       "effects": [{ "type": "add_condition", "on": "self", "condition": "bleeding", "chance": 0.4 }]
     }
   ]

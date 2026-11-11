@@ -1,17 +1,12 @@
-import {
-  NEED_NAMES,
-  type Agent,
-  type ConditionDefinition,
-  type SimTimeSettings,
-} from "@village/shared";
+import { NEED_NAMES, type Agent, type SimTimeSettings, type ThingCatalog } from "@village/shared";
 import { describeActivity, describeDeath, describeNeed } from "../format/character-sheet";
-import { listVisibleConditions } from "../format/conditions";
+import { listVisibleBodyComponents } from "../format/conditions";
 
 const PERCENT = 100;
 
 interface HoverCardProps {
   agent: Agent | null;
-  conditionDefinitions: readonly ConditionDefinition[];
+  catalog: ThingCatalog;
   color: string;
   timeSettings: SimTimeSettings;
   cardRef: (element: HTMLElement | null) => void;
@@ -39,15 +34,9 @@ function NeedBars({ agent }: { agent: Agent }) {
 }
 
 /** A quick look at the agent under the pointer; the frame loop places it beside the figure. */
-export function HoverCard({
-  agent,
-  conditionDefinitions,
-  color,
-  timeSettings,
-  cardRef,
-}: HoverCardProps) {
+export function HoverCard({ agent, catalog, color, timeSettings, cardRef }: HoverCardProps) {
   if (!agent) return null;
-  const visibleConditions = listVisibleConditions(agent.conditions, conditionDefinitions);
+  const visibleComponents = listVisibleBodyComponents(catalog, agent);
   return (
     <div className="agent-hover-card" ref={cardRef} style={{ borderTopColor: color }}>
       <div className="hover-card-title">
@@ -65,9 +54,9 @@ export function HoverCard({
           <NeedBars agent={agent} />
         </>
       )}
-      {visibleConditions.length > 0 && (
+      {visibleComponents.length > 0 && (
         <div className="hover-card-conditions">
-          {visibleConditions.map((condition) => condition.words).join(", ")}
+          {visibleComponents.map((component) => component.words).join(", ")}
         </div>
       )}
       {agent.lastThought && <div className="hover-card-thought">“{agent.lastThought.text}”</div>}

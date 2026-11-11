@@ -1,16 +1,16 @@
 import type { ConditionDefinition, ItemFile, ItemProblem, Reaction } from "@village/shared";
-import { NumberInput, TextInput } from "../characters/fields";
+import { NumberInput } from "../characters/fields";
 import { updateCondition, updateReaction } from "./condition-edits";
 import { EffectList } from "./EffectList";
+import { MatcherInput } from "./MatcherInput";
 import { selectEntryProblems } from "./problems";
 import { listConditionUses } from "./usage";
 import { NO_READABLE_PATHS, OptionalValue } from "./value-inputs";
 import { PhrasesEditor } from "./verb-parts";
-import { Checkbox, Choice, InlineField, ItemProblemList, SuggestingInput } from "./widgets";
+import { Choice, InlineField, ItemProblemList, SuggestingInput } from "./widgets";
 
 const KILLED_PHRASE_KEYS = ["killed"] as const;
 const CONDITION_PHRASE_KEYS = ["started", "ended", "killed"] as const;
-const NOTHING = "";
 
 interface PanelProps {
   file: ItemFile;
@@ -30,17 +30,13 @@ export function ConditionPanel({ file, index, problems, stimuli, onEdit }: Panel
     <div className="character-form">
       <section className="form-section">
         <div className="effect-fields">
-          <InlineField label="name">
-            <TextInput value={condition.name} onChange={(name) => update({ name })} />
+          <InlineField label="component">
+            <Choice
+              value={condition.name}
+              choices={Object.keys(file.components)}
+              onChange={(name) => update({ name })}
+            />
           </InlineField>
-          <InlineField label="words">
-            <TextInput value={condition.words} onChange={(words) => update({ words })} />
-          </InlineField>
-          <Checkbox
-            label="visible to others"
-            checked={condition.isVisible}
-            onChange={(isVisible) => update({ isVisible })}
-          />
           <InlineField label="lasts (minutes)">
             <OptionalValue
               label="default minutes"
@@ -56,8 +52,8 @@ export function ConditionPanel({ file, index, problems, stimuli, onEdit }: Panel
           </InlineField>
         </div>
         <p className="field-hint">
-          Off: lasts until something removes it. Used by:{" "}
-          {listConditionUses(file, condition.name).join(", ") || "nothing yet"}
+          Off: lasts until something removes it. Words and visibility are set on the component. Used
+          by: {listConditionUses(file, condition.name).join(", ") || "nothing yet"}
         </p>
       </section>
       <section className="form-section">
@@ -84,32 +80,11 @@ export function ConditionPanel({ file, index, problems, stimuli, onEdit }: Panel
   );
 }
 
-function OptionalNameChoice({
-  value,
-  choices,
-  onChange,
-}: {
-  value: string | undefined;
-  choices: readonly string[];
-  onChange: (value: string | undefined) => void;
-}) {
-  return (
-    <Choice
-      value={value ?? NOTHING}
-      choices={[NOTHING, ...choices]}
-      labels={{ [NOTHING]: "—" }}
-      onChange={(chosen) => onChange(chosen === NOTHING ? undefined : chosen)}
-    />
-  );
-}
-
 export function ReactionPanel({ file, index, problems, stimuli, onEdit }: PanelProps) {
   const reaction = file.reactions[index];
   if (!reaction) return null;
   const update = (changes: Partial<Reaction>) =>
     onEdit(updateReaction(file, index, { ...reaction, ...changes }));
-  const properties = Object.keys(file.properties);
-  const conditions = file.conditions.map((condition) => condition.name);
   return (
     <div className="character-form">
       <section className="form-section">
@@ -121,29 +96,13 @@ export function ReactionPanel({ file, index, problems, stimuli, onEdit }: PanelP
               onChange={(stimulus) => update({ stimulus })}
             />
           </InlineField>
-          <InlineField label="property">
-            <OptionalNameChoice
-              value={reaction.property}
-              choices={properties}
-              onChange={(property) => update({ property })}
-            />
-          </InlineField>
-          <InlineField label="condition">
-            <OptionalNameChoice
-              value={reaction.condition}
-              choices={conditions}
-              onChange={(condition) => update({ condition })}
-            />
-          </InlineField>
-          <InlineField label="unless">
-            <OptionalNameChoice
-              value={reaction.unless}
-              choices={[...properties, ...conditions]}
-              onChange={(unless) => update({ unless })}
-            />
+          <InlineField label="if">
+            <MatcherInput matcher={reaction.if} onChange={(matched) => update({ if: matched })} />
           </InlineField>
         </div>
-        <p className="field-hint">Runs on anything with the property, the condition, or both.</p>
+        <p className="field-hint">
+          Runs on anything the matcher accepts: has, definition, field, anyOf, allOf, not (JSON).
+        </p>
       </section>
       <section className="form-section">
         <h4>Effects</h4>

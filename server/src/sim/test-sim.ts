@@ -43,7 +43,26 @@ export function loadTestItems(): ItemCatalog {
 /** No items at all, for tests whose world holds none. */
 export function buildEmptyItems(): ItemCatalog {
   return buildItemCatalog(
-    parseItemFile({ components: {}, person: { properties: [] }, definitions: [], verbs: [] }),
+    parseItemFile({
+      world: { agentBody: "person", agentHealth: "health.current" },
+      components: {
+        health: {
+          fields: {
+            max: { type: "number", min: 0 },
+            current: { type: "number", min: 0, max: "max" },
+          },
+        },
+      },
+      definitions: [
+        {
+          id: "person",
+          name: "person",
+          glyph: { index: 2, color: "#ffffff" },
+          components: { health: { max: 1, current: 1 } },
+        },
+      ],
+      verbs: [],
+    }),
   );
 }
 

@@ -4,17 +4,14 @@ import { computeChebyshevDistance } from "../economy/give";
 import {
   describeEntityName,
   findEntityIfPresent,
-  getDefinition,
   listTileEntitiesAt,
-  replaceEntity,
   resolveEntityPosition,
 } from "../items/entity-store";
 import { describePlace, fileFirstVisit } from "../memory/filing";
 import { canSee } from "../perception/sight";
 import { findPlaceAt } from "../world/map-loader";
 import { findPathToAny, findPathToPlace, findPathToTile } from "../world/pathfinding";
-import { WALK_ACTION } from "./action-phrases";
-import { describeAttempt } from "./action-phrases";
+import { WALK_ACTION, describeAttempt } from "./action-phrases";
 import {
   getAgentRuntime,
   type PendingVerb,
@@ -34,12 +31,13 @@ import {
 import { isDead } from "../status/health";
 import { computeVerbReach, describeAimName, findAimProblem, isAimInReach } from "./verb-aim";
 import { startVerbNow } from "./verb-runner";
+import { clearTileInPassing } from "./walk-passing";
+import { readUsedThingComponents } from "./used-components";
 import {
   buildPerceptionWorld,
   buildWalkingGrid,
   findAgent,
   markAgentChanged,
-  markEntityChanged,
   rememberBriefly,
   replaceAgent,
 } from "./world-access";
@@ -134,47 +132,30 @@ export function startWalk(
   return true;
 }
 
-/** Walking into a closed door (anything `openable`) opens it in passing. */
-function openDoorOnTile(context: TickContext, agent: Agent, tile: Position): void {
-  const { state, result } = context;
-  const door = state.entities.find(
-    (entity) =>
-      entity.state.isOpen === false &&
-      entity.location.kind === "tile" &&
-      entity.location.pos.x === tile.x &&
-      entity.location.pos.y === tile.y,
-  );
-  if (!door) return;
-  replaceEntity(state, { ...door, state: { ...door.state, isOpen: true } });
-  markEntityChanged(result, door.id);
-  const doorName = describeEntityName(state, door);
-  const event = createEvent(state, agent, {
-    kind: "action_finished",
-    description: config.doors.openedInPassingPhrase.split("{item}").join(doorName),
-    targetId: door.id,
-    targetName: doorName,
-    loudness: config.doors.openedInPassingLoudness,
-  });
-  broadcastEvent(state, event, result);
-}
-
 function noteFirstVisit(context: TickContext, agentId: string, place: string): void {
   const { state } = context;
   const runtime = getAgentRuntime(state, agentId);
   const isMapPlace = state.map.places.some((area) => area.name === place);
   if (!isMapPlace || runtime.visitedPlaces.includes(place)) return;
   runtime.visitedPlaces.push(place);
-  const objectNames = listTileEntitiesAt(state, place)
-    .filter((entity) => !Object.hasOwn(getDefinition(state, entity).components, "openable"))
-    .map((entity) => describeEntityName(state, entity));
+  const objectNames = listTileEntitiesAt(state, place).map((entity) =>
+    describeEntityName(state, entity),
+  );
   const memory = fileFirstVisit(agentId, place, objectNames, state.tick, state.memoryIds);
   state.memoryStore.add(memory);
   rememberBriefly(state, agentId, memory.text);
 }
 
-function stepOnce(context: TickContext, agentId: string, nextStep: Position): void {
+/** Takes one step; false when something in the way couldn't be dealt with and the walk failed. */
+function stepOnce(context: TickContext, agentId: string, nextStep: Position): boolean {
   const { state, result } = context;
-  openDoorOnTile(context, findAgent(state, agentId), nextStep);
+  const refusal = clearTileInPassing(context, agentId, nextStep);
+  if (refusal !== null) {
+    const walk = getAgentRuntime(state, agentId).walk;
+    const where = walk ? describeDestination(state, walk.destination) : "there";
+    failAction(state, result, agentId, `walk to ${where}`, refusal);
+    return false;
+  }
   const agent = findAgent(state, agentId);
   const place = findPlaceAt(state.map, nextStep);
   replaceAgent(state, { ...agent, pos: { ...nextStep }, place });
@@ -183,6 +164,7 @@ function stepOnce(context: TickContext, agentId: string, nextStep: Position): vo
     markAgentChanged(result, agentId);
     noteFirstVisit(context, agentId, place);
   }
+  return true;
 }
 
 function describePendingAttempt(state: WorldState, agentId: string, pending: PendingVerb): string {
@@ -212,7 +194,7 @@ function pursueAim(context: TickContext, agentId: string): boolean {
     return true;
   }
   const verb = findPendingVerb(state, agentId, pending);
-  const reach = verb ? computeVerbReach(state, verb, findUsedDefinitionId(state, used)) : 0;
+  const reach = verb ? computeVerbReach(verb, readUsedThingComponents(state, used)) : 0;
   if (problem === null && isAimInReach(state, agentId, aim, reach)) {
     walk.pendingVerb = null;
     getAgentRuntime(state, agentId).walk = null;
@@ -233,19 +215,18 @@ function pursueAim(context: TickContext, agentId: string): boolean {
   return false;
 }
 
-function findUsedDefinitionId(state: WorldState, used: UsedThing): string | null {
-  if (used.kind !== "entity") return null;
-  return findEntityIfPresent(state, used.entityId)?.definitionId ?? null;
-}
-
 function findPendingVerb(
   state: WorldState,
   agentId: string,
   pending: PendingVerb,
 ): Verb | undefined {
   const used = pending.used;
-  if (used?.kind === "body") return findVerbByName(listVerbsForBody(state), pending.verb);
-  if (!used || used.kind === "user") return findVerbByName(listItemlessVerbs(state), pending.verb);
+  if (used?.kind === "body") {
+    return findVerbByName(listVerbsForBody(state, findAgent(state, used.agentId)), pending.verb);
+  }
+  if (!used || used.kind === "user") {
+    return findVerbByName(listItemlessVerbs(state, findAgent(state, agentId)), pending.verb);
+  }
   const entity = findEntityIfPresent(state, used.entityId);
   return entity
     ? findVerbByName(listVerbsForEntity(state, agentId, entity), pending.verb)
@@ -308,7 +289,7 @@ export function advanceWalk(context: TickContext, agentId: string): void {
   const walk = getAgentRuntime(context.state, agentId).walk;
   if (!walk) return;
   const nextStep = walk.remainingSteps.shift();
-  if (nextStep) stepOnce(context, agentId, nextStep);
+  if (nextStep && !stepOnce(context, agentId, nextStep)) return;
   if (pursueAim(context, agentId)) return;
   const isPursuing = walk.pendingVerb?.aim !== undefined && walk.pendingVerb.used !== undefined;
   if (walk.remainingSteps.length === 0 && !isPursuing) arrive(context, agentId);

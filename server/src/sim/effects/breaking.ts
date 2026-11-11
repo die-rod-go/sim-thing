@@ -1,48 +1,42 @@
-import { readComponentField, type Effect } from "@village/shared";
+import type { Effect } from "@village/shared";
 import { config } from "../../config";
-import {
-  describeEntityName,
-  findEntityIfPresent,
-  getDefinition,
-  replaceEntity,
-} from "../../items/entity-store";
+import { describeEntityName, findEntityIfPresent, getDefinition } from "../../items/entity-store";
+import { writeField } from "../../items/thing-writes";
+import { createThingEvent, readNumberField, type ThingRef } from "../../items/things";
 import { broadcastEvent } from "../event-broadcast";
 import { createEvent } from "../event-factory";
-import { findAgent, markEntityChanged } from "../world-access";
+import { findAgent } from "../world-access";
 import { applyEffect } from "./effect-registry";
 import type { EffectRun } from "./effect-run";
-import { createSubjectEvent } from "./subjects";
 
 const DESTROY_WHEN_BROKEN: readonly Effect[] = [{ type: "destroy" }];
 
 /**
- * Lowers an entity's durability by `amount` divided by its toughness. Something without a
- * `durability` component can't be damaged. At 0 it breaks.
+ * Changes an entity's health field by `change`, within the field's own bounds. Something without
+ * the field is skipped. When the field reaches 0 the entity breaks.
  */
-export function lowerDurability(effectRun: EffectRun, entityId: string, amount: number): void {
-  const { state, result } = effectRun.context;
-  const entity = findEntityIfPresent(state, entityId);
-  const toughness = entity
-    ? readComponentField(getDefinition(state, entity), "durability", "toughness")
-    : undefined;
-  if (!entity || typeof toughness !== "number" || entity.state.durability === undefined) return;
-  if (amount <= 0 || entity.state.durability <= 0) return;
-  const durability = Math.max(0, entity.state.durability - amount / toughness);
-  replaceEntity(state, { ...entity, state: { ...entity.state, durability } });
-  markEntityChanged(result, entityId);
-  if (durability <= 0) breakEntity(effectRun, entityId);
+export function changeEntityHealth(effectRun: EffectRun, entityId: string, change: number): void {
+  const { context } = effectRun;
+  const { state } = context;
+  const thing: ThingRef = { kind: "entity", entityId };
+  const healthPath = state.items.world.agentHealth;
+  const health = readNumberField(state, thing, healthPath);
+  if (health === null || change === 0 || health <= 0) return;
+  writeField(context, thing, healthPath, health + change);
+  const after = readNumberField(state, thing, healthPath);
+  if (after !== null && after <= 0) breakEntity(effectRun, entityId);
 }
 
 /** The `broke` event: by whoever broke it in a verb, or of the thing itself for a condition or reaction. */
 function announceBreaking(effectRun: EffectRun, entityId: string, name: string): void {
   const { state, result } = effectRun.context;
-  const subject = { kind: "entity" as const, entityId };
   const event =
     effectRun.run === null
-      ? createSubjectEvent(state, subject, {
-          kind: "broke",
-          description: config.effects.thingBrokeDescription,
-        })
+      ? createThingEvent(
+          state,
+          { kind: "entity", entityId },
+          { kind: "broke", description: config.effects.thingBrokeDescription },
+        )
       : createEvent(state, findAgent(state, effectRun.run.agentId), {
           kind: "broke",
           description: config.combat.brokePhrase.split("{target}").join(name),
@@ -78,7 +72,7 @@ export function breakEntity(effectRun: EffectRun, entityId: string): void {
 export function announceUnverbedBreaking(effectRun: EffectRun, entityId: string): void {
   if (effectRun.run !== null || effectRun.isBreakAnnounced === true) return;
   const { state, result } = effectRun.context;
-  const event = createSubjectEvent(
+  const event = createThingEvent(
     state,
     { kind: "entity", entityId },
     { kind: "broke", description: config.effects.thingBrokeDescription },

@@ -1,4 +1,4 @@
-import { findDefinition, type Verb } from "@village/shared";
+import type { Verb } from "@village/shared";
 import { isAsleep } from "../economy/sleep";
 import { resolveNumber } from "../items/verb-numbers";
 import { computeHitChance, type Defender } from "../status/combat";
@@ -7,6 +7,7 @@ import type { VerbAim, VerbRun } from "./agent-runtime";
 import { broadcastEvent } from "./event-broadcast";
 import { createEvent } from "./event-factory";
 import type { TickContext } from "./tick-context";
+import { readRunComponents } from "./used-components";
 import { describeAimName } from "./verb-aim";
 import { findAgent } from "./world-access";
 import type { WorldState } from "./world-state";
@@ -48,15 +49,11 @@ export function prefixPhrases(phrases: AimedPhrases, prefix: string): AimedPhras
   return prefixed;
 }
 
-function findUsedDefinition(state: WorldState, run: VerbRun) {
-  return run.usedDefinitionId === null ? null : findDefinition(state.items, run.usedDefinitionId);
-}
-
 /** How far the verb is heard while it runs, read from what it is used with when it says so. */
 export function computeLoudness(state: WorldState, verb: Verb, run: VerbRun): number | null {
   return verb.loudness === null
     ? null
-    : resolveNumber(verb.loudness, findUsedDefinition(state, run));
+    : resolveNumber(verb.loudness, readRunComponents(state, run));
 }
 
 function aimTargetId(aim: VerbAim): string {
@@ -84,7 +81,7 @@ function describeDefender(state: WorldState, run: VerbRun, aim: VerbAim): Defend
 /** The hit roll, on the seeded generator: agility against agility, sleepers and things always hit. */
 export function rollForHit(state: WorldState, run: VerbRun, verb: Verb): boolean {
   if (!verb.hitRoll || !run.aim) return true;
-  const baseHitChance = resolveNumber(verb.hitRoll.baseHitChance, findUsedDefinition(state, run));
+  const baseHitChance = resolveNumber(verb.hitRoll.baseHitChance, readRunComponents(state, run));
   const attacker = findAgent(state, run.agentId);
   const chance = computeHitChance(
     baseHitChance,

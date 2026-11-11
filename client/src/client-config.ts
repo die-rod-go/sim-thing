@@ -154,7 +154,6 @@ export const clientConfig = {
     newVerbName: "new verb",
     newComponentName: "new_component",
     newFieldName: "newField",
-    newPropertyName: "new_property",
     newConditionName: "new_condition",
     newStimulusName: "new_stimulus",
     /** A new item is drawn as a white bullet until it's given its own glyph. */

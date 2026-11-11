@@ -1,70 +1,54 @@
-import {
-  readComponentField,
-  type Entity,
-  type ItemCatalog,
-  type ItemDefinition,
-  type Verb,
-} from "@village/shared";
-import { MINUTES_PER_DAY } from "../economy/types";
-import { getDefinition, type EntityWorld } from "./entity-store";
-import { resolveNumber } from "./verb-numbers";
-import { listVerbsForSubject } from "./verb-offers";
+import type { Entity } from "@village/shared";
+import { MINUTES_PER_HOUR } from "../economy/types";
+import type { TickContext } from "../sim/tick-context";
+import { markEntityChanged, unmarkEntityChanged } from "../sim/world-access";
+import { writeField } from "./thing-writes";
+import { readNumberField, type ThingRef } from "./things";
+import type { EntityWorld } from "./entity-store";
+
+/*
+ * Transitional: the stock and regrowth rules name these components until later phases make them
+ * data.
+ */
+export const STOCK_AMOUNT_FIELD = "stock.amount";
+export const REGROWS_PER_HOUR_FIELD = "regrows.perHour";
+
+function referTo(entity: Entity): ThingRef {
+  return { kind: "entity", entityId: entity.id };
+}
 
 /** Whole units available to take; fractional regrowth only counts once it makes a whole unit. */
-export function countWholeStock(entity: Entity): number {
-  return Math.floor(entity.state.stock ?? 0);
+export function countWholeStock(world: EntityWorld, entity: Entity): number {
+  return Math.floor(readNumberField(world, referTo(entity), STOCK_AMOUNT_FIELD) ?? 0);
 }
 
-export function takeStock(entity: Entity, amount: number): Entity {
-  if (amount === 0) return entity;
-  return { ...entity, state: { ...entity.state, stock: (entity.state.stock ?? 0) - amount } };
-}
-
-/** One tick of regrowth for every entity with a `stock` component; returns the ones that grew. */
-export function regrowStocks(
-  entities: readonly Entity[],
-  items: ItemCatalog,
-  minutesPerTick: number,
-): Entity[] {
-  const dayFraction = minutesPerTick / MINUTES_PER_DAY;
-  return entities.flatMap((entity) => {
-    const definition = items.definitionsById.get(entity.definitionId);
-    if (!definition) return [];
-    const capacity = readComponentField(definition, "stock", "capacity");
-    const regrowPerDay = readComponentField(definition, "stock", "regrowPerDay");
-    if (typeof capacity !== "number" || typeof regrowPerDay !== "number") return [];
-    const current = entity.state.stock ?? 0;
-    const regrown = Math.min(capacity, current + regrowPerDay * dayFraction);
-    if (regrown === current) return [];
-    return [{ ...entity, state: { ...entity.state, stock: regrown } }];
-  });
-}
-
-/** The least stock any of its verbs takes in one go, or null when none takes stock. */
-function findStockPerUse(verbs: readonly Verb[], definition: ItemDefinition): number | null {
-  const amounts = verbs.flatMap((verb) =>
-    verb.effects.flatMap((effect) =>
-      effect.type === "take_stock" && effect.on === "item"
-        ? [resolveNumber(effect.amount, definition)]
-        : [],
-    ),
-  );
-  const positive = amounts.filter((amount) => amount > 0);
-  return positive.length === 0 ? null : Math.min(...positive);
+/** Takes `amount` out of the stock field. */
+export function takeStock(context: TickContext, entity: Entity, amount: number): void {
+  if (amount === 0) return;
+  const stock = readNumberField(context.state, referTo(entity), STOCK_AMOUNT_FIELD) ?? 0;
+  writeField(context, referTo(entity), STOCK_AMOUNT_FIELD, stock - amount);
 }
 
 /**
- * What an agent standing by a placed entity can see of its state: "open" or "closed" for a door,
- * "empty" or "enough left for 2 more" for something with stock. Null when nothing shows.
+ * One tick of regrowth for every entity with a stock that regrows. Fractions grow every tick;
+ * viewers only need to hear when a whole unit is back.
  */
-export function describeEntityCondition(world: EntityWorld, entity: Entity): string | null {
-  if (entity.state.isOpen !== undefined) return entity.state.isOpen ? "open" : "closed";
-  if (entity.state.stock === undefined) return null;
-  const definition = getDefinition(world, entity);
-  const location = definition.form === "placeable" ? "placed" : "ground";
-  const verbs = listVerbsForSubject(world, { kind: "entity", definition, location });
-  const perUse = findStockPerUse(verbs, definition);
-  if (perUse === null) return null;
-  const usesLeft = Math.floor(countWholeStock(entity) / perUse);
-  return usesLeft === 0 ? "empty" : `enough left for ${usesLeft} more`;
+export function regrowStocks(context: TickContext, minutesPerTick: number): void {
+  const { state, result } = context;
+  for (const entity of [...state.entities]) {
+    const thing = referTo(entity);
+    const stock = readNumberField(state, thing, STOCK_AMOUNT_FIELD);
+    const perHour = readNumberField(state, thing, REGROWS_PER_HOUR_FIELD);
+    if (stock === null || perHour === null) continue;
+    const wasChanged = result.changedEntityIds.includes(entity.id);
+    const wholeBefore = countWholeStock(state, entity);
+    writeField(
+      context,
+      thing,
+      STOCK_AMOUNT_FIELD,
+      stock + (perHour * minutesPerTick) / MINUTES_PER_HOUR,
+    );
+    if (countWholeStock(state, entity) !== wholeBefore) markEntityChanged(result, entity.id);
+    else if (!wasChanged) unmarkEntityChanged(result, entity.id);
+  }
 }

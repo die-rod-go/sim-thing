@@ -16,7 +16,7 @@ CREATE TABLE IF NOT EXISTS entities (
   definition_id TEXT NOT NULL,
   label TEXT,
   location TEXT NOT NULL,
-  state TEXT NOT NULL
+  changes TEXT NOT NULL
 );
 
 CREATE TABLE IF NOT EXISTS memories (

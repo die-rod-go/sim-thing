@@ -1,41 +1,101 @@
-import type { ConditionDefinition, ItemDefinition, ItemFile, Verb } from "./item-file";
+import type { Agent } from "../types";
+import { parseComponentPath, type ComponentDeclarations } from "./component-schema";
+import { resolveComponents, type ComponentChanges, type ResolvedComponents } from "./components";
+import type { Entity } from "./entity";
+import type {
+  ConditionDefinition,
+  ItemDefinition,
+  ItemFile,
+  Verb,
+  WorldSettings,
+} from "./item-file";
+
+/**
+ * What resolving a thing's components needs: the declarations, the world settings and the
+ * definitions. The client builds one from the snapshot; the server's `ItemCatalog` is one.
+ */
+export interface ThingCatalog {
+  declarations: ComponentDeclarations;
+  world: WorldSettings;
+  definitionsById: ReadonlyMap<string, ItemDefinition>;
+  /** Each definition's components with no changes applied: what an untouched thing has. */
+  definitionComponentsById: ReadonlyMap<string, ResolvedComponents>;
+}
 
 /** A parsed `items.json` with lookups by id and name. */
-export interface ItemCatalog {
+export interface ItemCatalog extends ThingCatalog {
   file: ItemFile;
-  definitionsById: ReadonlyMap<string, ItemDefinition>;
   conditionsByName: ReadonlyMap<string, ConditionDefinition>;
   verbs: readonly Verb[];
-  personProperties: readonly string[];
+}
+
+const NO_CHANGES: ComponentChanges = {};
+
+export function buildThingCatalog(
+  declarations: ComponentDeclarations,
+  world: WorldSettings,
+  definitions: readonly ItemDefinition[],
+): ThingCatalog {
+  return {
+    declarations,
+    world,
+    definitionsById: new Map(definitions.map((definition) => [definition.id, definition])),
+    definitionComponentsById: new Map(
+      definitions.map((definition) => [
+        definition.id,
+        resolveComponents(declarations, definition, NO_CHANGES),
+      ]),
+    ),
+  };
 }
 
 export function buildItemCatalog(file: ItemFile): ItemCatalog {
   return {
+    ...buildThingCatalog(file.components, file.world, file.definitions),
     file,
-    definitionsById: new Map(file.definitions.map((definition) => [definition.id, definition])),
     conditionsByName: new Map(file.conditions.map((condition) => [condition.name, condition])),
     verbs: file.verbs,
-    personProperties: file.person.properties,
   };
 }
 
-export function findDefinition(catalog: ItemCatalog, definitionId: string): ItemDefinition {
+export function findDefinition(catalog: ThingCatalog, definitionId: string): ItemDefinition {
   const definition = catalog.definitionsById.get(definitionId);
   if (!definition) throw new Error(`No item definition "${definitionId}" in items.json`);
   return definition;
 }
 
-export function hasComponent(definition: ItemDefinition, component: string): boolean {
-  return Object.hasOwn(definition.components, component);
+/** The components of something of that definition, given how it differs from it. */
+export function resolveThingComponents(
+  catalog: ThingCatalog,
+  definitionId: string,
+  changes: ComponentChanges,
+): ResolvedComponents {
+  const untouched = catalog.definitionComponentsById.get(definitionId);
+  if (untouched !== undefined && Object.keys(changes).length === 0) return untouched;
+  return resolveComponents(catalog.declarations, findDefinition(catalog, definitionId), changes);
 }
 
-/** A component field's value on a definition, or undefined when it doesn't have it. */
-export function readComponentField(
-  definition: ItemDefinition,
-  component: string,
-  field: string,
-): unknown {
-  return definition.components[component]?.[field];
+export function resolveEntityComponents(catalog: ThingCatalog, entity: Entity): ResolvedComponents {
+  return resolveThingComponents(catalog, entity.definitionId, entity.changes);
+}
+
+/** The components of an agent's body: the `agentBody` definition with the agent's changes. */
+export function resolveBodyComponents(
+  catalog: ThingCatalog,
+  agent: Pick<Agent, "bodyChanges">,
+): ResolvedComponents {
+  return resolveThingComponents(catalog, catalog.world.agentBody, agent.bodyChanges);
+}
+
+/** The agent's health: the body field the world setting `agentHealth` names. */
+export function readAgentHealth(catalog: ThingCatalog, agent: Pick<Agent, "bodyChanges">): number {
+  const path = parseComponentPath(catalog.world.agentHealth);
+  const health =
+    path === null ? undefined : resolveBodyComponents(catalog, agent)[path.component]?.[path.field];
+  if (typeof health !== "number") {
+    throw new Error(`The agent body has no number field "${catalog.world.agentHealth}"`);
+  }
+  return health;
 }
 
 function startsWithVowelSound(text: string): boolean {

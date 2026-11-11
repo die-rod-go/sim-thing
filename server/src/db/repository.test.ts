@@ -1,4 +1,7 @@
-import { resolve } from "node:path";
+import { mkdtempSync, rmSync } from "node:fs";
+import { tmpdir } from "node:os";
+import { join, resolve } from "node:path";
+import BetterSqlite3 from "better-sqlite3";
 import { afterEach, beforeEach, describe, expect, it } from "vitest";
 import type { WorldEvent } from "@village/shared";
 import { config } from "../config";
@@ -89,28 +92,29 @@ describe("database repositories", () => {
     expect(loadWorld(database)).toEqual(saved);
   });
 
-  it("keeps health, death and stats through a save", () => {
+  it("keeps body changes, death and stats through a save", () => {
     const state = buildWorld();
     const [first] = state.agents;
     if (!first) throw new Error("no seed agents");
     state.agents[0] = {
       ...first,
-      health: 0,
+      bodyChanges: { health: { fields: { current: 0 }, endsAtTick: null, sourceAgentId: null } },
       death: { tick: 5, cause: "starved", sourceAgentId: null },
     };
     saveWorld(database, toSavedWorld(state, createDefaultSettings()));
     const loaded = loadWorld(database)?.agents[0];
+    expect(loaded?.bodyChanges).toEqual(state.agents[0]?.bodyChanges);
     expect(loaded?.death).toEqual({ tick: 5, cause: "starved", sourceAgentId: null });
     expect(loaded?.body.strength).toBe(first.body.strength);
   });
 
-  it("refuses a save from before health existed and says to reset", () => {
+  it("refuses a save from before components existed and says to reset", () => {
     const state = buildWorld();
     saveWorld(database, toSavedWorld(state, createDefaultSettings()));
     const [first] = state.agents;
     if (!first) throw new Error("no seed agents");
     const outdated: Partial<typeof first> = { ...first };
-    delete outdated.health;
+    delete outdated.bodyChanges;
     database
       .prepare("UPDATE agents SET data = ? WHERE id = ?")
       .run(JSON.stringify(outdated), first.id);
@@ -123,8 +127,31 @@ describe("database repositories", () => {
     expect(() => loadWorld(database)).toThrow(/make reset/);
   });
 
-  it("keeps entities, their places and their state through a save", () => {
+  it("recreates an entities table that still has the old state column", () => {
+    const directory = mkdtempSync(join(tmpdir(), "village-old-save-"));
+    try {
+      const path = join(directory, "sim.db");
+      const old = new BetterSqlite3(path);
+      old.exec("CREATE TABLE entities (id TEXT PRIMARY KEY, state TEXT NOT NULL)");
+      old.close();
+      const reopened = openDatabase(path);
+      const columns = reopened.prepare("PRAGMA table_info(entities)").all() as { name: string }[];
+      reopened.close();
+      expect(columns.map((column) => column.name)).toContain("changes");
+      expect(columns.map((column) => column.name)).not.toContain("state");
+    } finally {
+      rmSync(directory, { recursive: true, force: true });
+    }
+  });
+
+  it("keeps entities, their places and their changes through a save", () => {
     const state = buildWorld();
+    const [first] = state.entities;
+    if (!first) throw new Error("no entities");
+    state.entities[0] = {
+      ...first,
+      changes: { closed: { fields: {}, endsAtTick: 9, sourceAgentId: "mara" } },
+    };
     saveWorld(database, toSavedWorld(state, createDefaultSettings()));
     const loaded = loadWorld(database);
     expect(loaded?.entities).toEqual(state.entities);

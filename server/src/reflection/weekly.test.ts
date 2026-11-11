@@ -44,7 +44,7 @@ function makeWeekStore(): MemoryStore {
 async function runWeekly(reply: string, agent: Agent = makeAgent({ goals: OLD_GOALS })) {
   const { client, callStructured } = makeFakeCaller([reply]);
   const store = makeWeekStore();
-  const result = await runWeeklyPass({ agent, store, callStructured, tick: WEEK_TICK });
+  const result = await runWeeklyPass({ agent, health: 1, store, callStructured, tick: WEEK_TICK });
   return { result, prompt: lastPrompt(client) };
 }
 

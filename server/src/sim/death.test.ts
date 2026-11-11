@@ -1,9 +1,9 @@
 import { describe, expect, it } from "vitest";
 import { config } from "../config";
-import { replaceEntity } from "../items/entity-store";
 import type { FakeReply } from "../llm/fake-llm-client";
 import { getAgentRuntime } from "./agent-runtime";
 import { applyDamage } from "./damage";
+import { readHealth, setAgentHealth } from "./combat-test-kit";
 import { createNoReflectionHook } from "./reflection-hook";
 import {
   createTestSim,
@@ -55,7 +55,7 @@ describe("death", () => {
       sourceAgentId: "ilsa",
     });
     const mara = sim.agent("mara");
-    expect(mara.health).toBe(0);
+    expect(readHealth(sim, "mara")).toBe(0);
     expect(mara.death).toEqual({
       tick: sim.state.tick,
       cause: "stabbed by Ilsa",
@@ -81,10 +81,9 @@ describe("death", () => {
     );
   });
 
-  it("cancels the current action and leaves the object's users", async () => {
+  it("cancels the current action and stops the verb run, so the object has one user less", async () => {
     const sim = createTestSim({ agentIds: ["mara"], responder: scriptByAgent({}) });
     const table = findEntityByLabel(sim.state, "card table");
-    replaceEntity(sim.state, { ...table, state: { ...table.state, userIds: ["mara"] } });
     replaceAgent(sim.state, {
       ...sim.agent("mara"),
       currentAction: { kind: "interact", target: "card table", verb: "play cards", endsAtTick: 30 },
@@ -99,7 +98,7 @@ describe("death", () => {
     };
     applyDamage(contextOf(sim), "mara", { amount: LETHAL, killed: "starved", sourceAgentId: null });
     expect(sim.agent("mara").currentAction).toBeNull();
-    expect(findEntityByLabel(sim.state, "card table").state.userIds ?? []).not.toContain("mara");
+    expect(getAgentRuntime(sim.state, "mara").verbRun).toBeNull();
   });
 
   it("drops a decision still in flight when it arrives", async () => {
@@ -128,7 +127,7 @@ describe("death", () => {
     const needsAtDeath = sim.agent("mara").needs;
     await sim.advance(MINUTES_PER_HOUR);
     expect(sim.agent("mara").needs).toEqual(needsAtDeath);
-    expect(sim.agent("mara").health).toBe(0);
+    expect(readHealth(sim, "mara")).toBe(0);
     expect(sim.client.callCount).toBe(0);
   });
 
@@ -139,8 +138,8 @@ describe("death", () => {
       ...sim.agent("mara"),
       needs: { ...sim.agent("mara").needs, hunger: 0 },
       starvingSinceTick: -graceTicks,
-      health: 0.0001,
     });
+    setAgentHealth(sim, "mara", 0.0001);
     await sim.advance();
     expect(sim.agent("mara").death?.cause).toBe(config.health.starvationKilledPhrase);
   });
@@ -155,8 +154,8 @@ describe("death", () => {
       ...sim.agent("mara"),
       needs: { ...sim.agent("mara").needs, hunger: 0 },
       starvingSinceTick: sim.state.tick - graceTicks,
-      health: threshold + 0.0001,
     });
+    setAgentHealth(sim, "mara", threshold + 0.0001);
     const callsBefore = sim.client.callCount;
     const [result] = await sim.advance();
     expect(result?.decidedAgentIds).toContain("mara");

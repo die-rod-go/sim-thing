@@ -1,10 +1,12 @@
-import { findDefinition, type Entity, type Position, type Verb } from "@village/shared";
+import type { Entity, Position, ResolvedComponents, Verb } from "@village/shared";
 import { config } from "../config";
 import { normalizeDisplayName, resolveName } from "../decision/resolve-name";
 import { computeChebyshevDistance } from "../economy/give";
 import {
   describeEntityName,
   findEntityIfPresent,
+  isHeldBy,
+  isHeldByOther,
   listHeldEntities,
   listTileEntitiesAt,
   resolveEntityPosition,
@@ -108,10 +110,10 @@ function findAimPosition(state: WorldState, aim: VerbAim): Position | null {
   return entity ? (resolveEntityPosition(state, entity)?.pos ?? null) : null;
 }
 
-function isHeldBy(state: WorldState, aim: VerbAim, agentId: string): boolean {
+function isAimHeldBy(state: WorldState, aim: VerbAim, agentId: string): boolean {
   if (aim.kind === "agent") return aim.agentId === agentId;
-  const location = findEntityIfPresent(state, aim.entityId)?.location;
-  return location?.kind === "inventory" && location.agentId === agentId;
+  const entity = findEntityIfPresent(state, aim.entityId);
+  return entity !== undefined && isHeldBy(entity, agentId);
 }
 
 /**
@@ -119,14 +121,14 @@ function isHeldBy(state: WorldState, aim: VerbAim, agentId: string): boolean {
  * the target must still be there, in the user's sight, and not in someone else's hands.
  */
 export function findAimProblem(state: WorldState, agentId: string, aim: VerbAim): string | null {
-  if (isHeldBy(state, aim, agentId)) return null;
+  if (isAimHeldBy(state, aim, agentId)) return null;
   if (aim.kind === "agent" && isDead(findAgent(state, aim.agentId))) {
     return `${findAgent(state, aim.agentId).name} was already dead`;
   }
   const name = describeAimName(state, agentId, aim);
   const entity = aim.kind === "entity" ? findEntityIfPresent(state, aim.entityId) : undefined;
   if (aim.kind === "entity" && !entity) return `${name} was gone`;
-  if (entity?.location.kind === "inventory") return `someone else had ${name}`;
+  if (entity && isHeldByOther(entity, agentId)) return `someone else had ${name}`;
   const position = findAimPosition(state, aim);
   const user = findAgent(state, agentId);
   const isInSight =
@@ -136,14 +138,8 @@ export function findAimProblem(state: WorldState, agentId: string, aim: VerbAim)
 }
 
 /** The verb's reach in tiles, read from what it is used with when the verb says so. */
-export function computeVerbReach(
-  state: WorldState,
-  verb: Verb,
-  usedDefinitionId: string | null,
-): number {
-  const definition =
-    usedDefinitionId === null ? null : findDefinition(state.items, usedDefinitionId);
-  return resolveNumber(verb.reach, definition);
+export function computeVerbReach(verb: Verb, used: ResolvedComponents | null): number {
+  return resolveNumber(verb.reach, used);
 }
 
 /** Held things, and the user itself, are always in reach; anything else within `reach` tiles. */
@@ -153,7 +149,7 @@ export function isAimInReach(
   aim: VerbAim,
   reachTiles: number,
 ): boolean {
-  if (isHeldBy(state, aim, agentId)) return true;
+  if (isAimHeldBy(state, aim, agentId)) return true;
   const position = findAimPosition(state, aim);
   if (position === null) return false;
   return computeChebyshevDistance(findAgent(state, agentId).pos, position) <= reachTiles;

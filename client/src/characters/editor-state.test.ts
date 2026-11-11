@@ -30,7 +30,7 @@ const loadedMessage: SeedFileMessage = {
     statRange: { min: 0, max: 1 },
     sleepRecoveryRange: { min: 0.12, max: 0.18 },
     spawnPlaces: ["rose cottage"],
-    carriableItems: [{ id: "bread", name: "bread" }],
+    inventoryItems: [{ id: "bread", name: "bread" }],
   },
   newAgentTemplate: agent,
 };

@@ -1,12 +1,15 @@
+import { readAgentHealth } from "@village/shared";
 import { describe, expect, it } from "vitest";
 import { config } from "../config";
 import { makeAgent } from "../economy/test-fixtures";
+import { loadTestItems } from "../sim/test-sim";
 import {
   computeStarvationDamage,
   describeHealthAsSeen,
   findCrossedHealthThresholds,
-  regenerateHealth,
+  computeRegeneration,
   trackStarvation,
+  withAgentHealth,
 } from "./health";
 
 const MINUTES_PER_HOUR = 60;
@@ -43,30 +46,46 @@ describe("starvation", () => {
 });
 
 describe("regeneration", () => {
-  const hurt = 0.5;
   const regenNeeds = { ...fed, hunger: config.health.regenHungerThreshold + 0.1 };
 
   it("heals slowly while awake", () => {
-    const agent = makeAgent({ health: hurt, needs: regenNeeds });
-    const healed = regenerateHealth(agent, { isAsleep: false, minutesPerTick: MINUTES_PER_HOUR });
-    expect(healed.health).toBeCloseTo(hurt + config.health.regenPerHourAwake, 12);
+    const agent = makeAgent({ needs: regenNeeds });
+    const gained = computeRegeneration(agent, {
+      isAsleep: false,
+      minutesPerTick: MINUTES_PER_HOUR,
+    });
+    expect(gained).toBeCloseTo(config.health.regenPerHourAwake, 12);
   });
 
   it("heals faster while asleep", () => {
-    const agent = makeAgent({ health: hurt, needs: regenNeeds });
-    const healed = regenerateHealth(agent, { isAsleep: true, minutesPerTick: MINUTES_PER_HOUR });
-    expect(healed.health).toBeCloseTo(hurt + config.health.regenPerHourAsleep, 12);
+    const agent = makeAgent({ needs: regenNeeds });
+    const gained = computeRegeneration(agent, { isAsleep: true, minutesPerTick: MINUTES_PER_HOUR });
+    expect(gained).toBeCloseTo(config.health.regenPerHourAsleep, 12);
   });
 
   it("doesn't heal while hunger is at or below the threshold", () => {
     const hungry = { ...fed, hunger: config.health.regenHungerThreshold };
-    const agent = makeAgent({ health: hurt, needs: hungry });
-    expect(regenerateHealth(agent, { isAsleep: true, minutesPerTick: 60 }).health).toBe(hurt);
+    const agent = makeAgent({ needs: hungry });
+    expect(computeRegeneration(agent, { isAsleep: true, minutesPerTick: 60 })).toBe(0);
   });
+});
+
+describe("writing an agent's health", () => {
+  const items = loadTestItems();
 
   it("never heals past full health", () => {
-    const agent = makeAgent({ health: 0.9999, needs: regenNeeds });
-    expect(regenerateHealth(agent, { isAsleep: true, minutesPerTick: 600 }).health).toBe(1);
+    const agent = withAgentHealth(items, makeAgent(), 0.9999);
+    expect(readAgentHealth(items, withAgentHealth(items, agent, 1.5))).toBe(1);
+  });
+
+  it("never goes below 0", () => {
+    expect(readAgentHealth(items, withAgentHealth(items, makeAgent(), -2))).toBe(0);
+  });
+
+  it("keeps no override while health equals the body's own value", () => {
+    const hurt = withAgentHealth(items, makeAgent(), 0.4);
+    expect(hurt.bodyChanges).not.toEqual({});
+    expect(withAgentHealth(items, hurt, 1).bodyChanges).toEqual({});
   });
 });
 

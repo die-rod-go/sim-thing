@@ -1,6 +1,6 @@
 import {
   describeCount,
-  listPossibleLocations,
+  listDefinitionSubjects,
   matchesRule,
   type ItemDefinition,
   type ItemFile,
@@ -12,13 +12,11 @@ import {
  * format for a single stateless entity.
  */
 export function describeItemPreview(file: ItemFile, definition: ItemDefinition): string {
-  const [location] = listPossibleLocations(definition.form);
+  const [subject] = listDefinitionSubjects(file, definition);
   const verbNames =
-    location === undefined
+    subject === undefined
       ? []
-      : file.verbs
-          .filter((verb) => matchesRule(verb.appliesTo, { kind: "entity", definition, location }))
-          .map((verb) => verb.name);
+      : file.verbs.filter((verb) => matchesRule(verb.appliesTo, subject)).map((verb) => verb.name);
   const uniqueNames = [...new Set(verbNames)];
   const text = describeCount(definition, 1);
   return uniqueNames.length > 0 ? `${text} (${uniqueNames.join(", ")})` : text;

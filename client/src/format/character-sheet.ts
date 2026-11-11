@@ -1,8 +1,8 @@
 import {
   describeCount,
+  isDirectlyInside,
   formatSimTime,
   toSimTime,
-  type ActiveCondition,
   type AgentDeath,
   type CurrentAction,
   type Entity,
@@ -36,17 +36,6 @@ export function describeDeath(death: AgentDeath, timeSettings: SimTimeSettings):
   const time = toSimTime(death.tick, timeSettings);
   const clock = `${String(time.hour).padStart(2, "0")}:${String(time.minute).padStart(2, "0")}`;
   return `Died day ${time.day}, ${clock}: ${death.cause}`;
-}
-
-/** "bleeding 12m", or just "burning" for a condition with no set end. */
-export function describeCondition(
-  condition: ActiveCondition,
-  currentTick: number,
-  timeSettings: SimTimeSettings,
-): string {
-  if (condition.endsAtTick === null) return condition.name;
-  const minutesLeft = Math.max(0, condition.endsAtTick - currentTick) * timeSettings.minutesPerTick;
-  return `${condition.name} ${minutesLeft}m`;
 }
 
 export function describeNeed(needName: NeedName, value: number): NeedLevel {
@@ -126,7 +115,7 @@ export function formatCarrying(
 ): string[] {
   const counts = new Map<string, number>();
   for (const entity of entities) {
-    if (entity.location.kind !== "inventory" || entity.location.agentId !== agentId) continue;
+    if (!isDirectlyInside(entity, agentId)) continue;
     counts.set(entity.definitionId, (counts.get(entity.definitionId) ?? 0) + 1);
   }
   const definitionsById = new Map(definitions.map((definition) => [definition.id, definition]));

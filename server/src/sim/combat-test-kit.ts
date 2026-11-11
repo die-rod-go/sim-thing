@@ -1,5 +1,15 @@
-import { buildItemCatalog, parseItemFile, type Entity, type Position } from "@village/shared";
-import { createEntity } from "../items/entity-store";
+import {
+  buildItemCatalog,
+  parseItemFile,
+  readAgentHealth,
+  type Entity,
+  type FieldValue,
+  type Position,
+} from "@village/shared";
+import { createEntity, locateInside } from "../items/entity-store";
+import { writeField } from "../items/thing-writes";
+import { readField, type ThingRef } from "../items/things";
+import { withAgentHealth } from "../status/health";
 import type { PendingVerb, UsedThing } from "./agent-runtime";
 import { createNoReflectionHook } from "./reflection-hook";
 import { createTestSim, scriptByAgent, type TestSim } from "./test-sim";
@@ -7,6 +17,7 @@ import type { TickContext } from "./tick-context";
 import { startOrApproachVerb } from "./verb-approach";
 import { finishRunningVerb } from "./verb-runner";
 import { getAgentRuntime } from "./agent-runtime";
+import { replaceAgent } from "./world-access";
 import { createEmptyTickResult } from "./world-state";
 
 /** Open ground on the village square, side by side. */
@@ -30,7 +41,7 @@ export function contextOf(sim: TestSim): TickContext {
 }
 
 export function handOver(sim: TestSim, agentId: string, definitionId: string): Entity {
-  return createEntity(sim.state, definitionId, { kind: "inventory", agentId });
+  return createEntity(sim.state, definitionId, locateInside(agentId));
 }
 
 /** Every roll of the seeded generator comes out as this value: 0 always hits, 0.99 misses. */
@@ -84,4 +95,26 @@ export function addVerbs(sim: TestSim, verbs: unknown[]): void {
   const file = sim.state.items.file;
   const parsed = parseItemFile({ ...file, verbs: [...file.verbs, ...verbs] });
   sim.state.items = buildItemCatalog(parsed);
+}
+
+export function entityThing(entity: Entity): ThingRef {
+  return { kind: "entity", entityId: entity.id };
+}
+
+/** Writes a component field the way the sim does, so clamping and overrides apply. */
+export function setField(sim: TestSim, thing: ThingRef, path: string, value: FieldValue): void {
+  writeField(contextOf(sim), thing, path, value);
+}
+
+export function readFieldOf(sim: TestSim, thing: ThingRef, path: string): FieldValue | undefined {
+  return readField(sim.state, thing, path);
+}
+
+/** Sets an agent's health directly, with no waking or death: a fixture, not an event. */
+export function setAgentHealth(sim: TestSim, agentId: string, health: number): void {
+  replaceAgent(sim.state, withAgentHealth(sim.state.items, sim.agent(agentId), health));
+}
+
+export function readHealth(sim: TestSim, agentId: string): number {
+  return readAgentHealth(sim.state.items, sim.agent(agentId));
 }

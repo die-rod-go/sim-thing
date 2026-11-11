@@ -14,8 +14,15 @@ export function openDatabase(databasePath: string): Database {
   if (databasePath !== IN_MEMORY_DATABASE) mkdirSync(dirname(databasePath), { recursive: true });
   const database = new BetterSqlite3(databasePath);
   database.pragma("journal_mode = WAL");
+  dropEntitiesFromBeforeComponents(database);
   database.exec(readFileSync(schemaPath, "utf8"));
   return database;
+}
+
+/** Entities used to store a `state` column; the old rows are unreadable, and the agents row check then asks for `make reset`. */
+function dropEntitiesFromBeforeComponents(database: Database): void {
+  const columns = database.prepare("PRAGMA table_info(entities)").all() as { name: string }[];
+  if (columns.some((column) => column.name === "state")) database.exec("DROP TABLE entities");
 }
 
 /**

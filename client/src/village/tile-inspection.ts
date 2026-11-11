@@ -1,27 +1,41 @@
 import {
   describeCount,
+  listComponentWords,
+  parseComponentPath,
+  resolveEntityComponents,
   type Agent,
   type Entity,
   type ItemDefinition,
-  type Note,
   type Position,
-  type SimTimeSettings,
+  type ResolvedComponents,
+  type ThingCatalog,
 } from "@village/shared";
-import { describeCondition } from "../format/character-sheet";
 import { formatPercent } from "../format/formatters";
+import { isLyingOnTile } from "./entity-glyphs";
 import { listTileTerrains, type TiledMap, type TiledPlace } from "./tiled-map";
+
+const HEALTH_MAX_FIELD = "max";
+const NOTE_COMPONENT = "writing";
+const NOTE_TEXT_FIELD = "text";
+const NOTE_AUTHOR_FIELD = "author";
+
+/** A note pinned to a board: a written entity inside it. */
+export interface InspectedNote {
+  author: string;
+  text: string;
+}
 
 /** One thing on the inspected tile, or several identical loose items counted together. */
 export interface InspectedThing {
   key: string;
   /** "bakery door", "a knife", "3 bread". */
   name: string;
-  /** Its state in short phrases: "durability 80%", "closed", "used by Ada". */
+  /** Its state in short phrases: "health 80%", "closed", "7 left". */
   details: string[];
   /** What a container holds, counted by definition. */
   contents: string[];
-  /** Notes pinned to it, newest first; empty when it holds none. */
-  notes: Note[];
+  /** Written things inside it, newest first; empty when it holds none. */
+  notes: InspectedNote[];
 }
 
 /** Everything the viewer can learn about one map tile. */
@@ -38,9 +52,7 @@ export interface TileInspectionSources {
   map: TiledMap;
   agents: readonly Agent[];
   entities: readonly Entity[];
-  definitions: readonly ItemDefinition[];
-  currentTick: number;
-  timeSettings: SimTimeSettings;
+  catalog: ThingCatalog;
 }
 
 function isSameTile(first: Position, second: Position): boolean {
@@ -66,45 +78,45 @@ export function findPlaceAt(
   return covering[0] ?? null;
 }
 
-function describeStock(entity: Entity, definition: ItemDefinition): string | null {
-  const { stock } = entity.state;
-  if (stock === undefined) return null;
-  const capacity = definition.components.stock?.capacity;
-  return typeof capacity === "number" ? `stock ${stock} of ${capacity}` : `stock ${stock}`;
+function describeHealthField(catalog: ThingCatalog, components: ResolvedComponents): string | null {
+  const path = parseComponentPath(catalog.world.agentHealth);
+  if (path === null) return null;
+  const current = components[path.component]?.[path.field];
+  const max = components[path.component]?.[HEALTH_MAX_FIELD];
+  if (typeof current !== "number") return null;
+  const shown = typeof max === "number" && max > 0 ? formatPercent(current / max) : String(current);
+  return `${path.component} ${shown}`;
 }
 
-function describeEntityState(
-  entity: Entity,
-  definition: ItemDefinition,
-  sources: TileInspectionSources,
-): string[] {
-  const { state } = entity;
-  const agentNames = new Map(sources.agents.map((agent) => [agent.id, agent.name]));
-  const users = (state.userIds ?? []).map((userId) => agentNames.get(userId) ?? userId);
-  const details = [
-    state.durability === undefined ? null : `durability ${formatPercent(state.durability)}`,
-    describeStock(entity, definition),
-    state.isOpen === undefined ? null : state.isOpen ? "open" : "closed",
-    users.length > 0 ? `used by ${users.join(", ")}` : null,
-    ...state.conditions.map((condition) =>
-      describeCondition(condition, sources.currentTick, sources.timeSettings),
-    ),
-  ];
-  return details.filter((detail) => detail !== null);
+function describeEntityState(entity: Entity, catalog: ThingCatalog): string[] {
+  const components = resolveEntityComponents(catalog, entity);
+  return [
+    describeHealthField(catalog, components),
+    ...listComponentWords(catalog.declarations, components, false),
+  ].filter((detail) => detail !== null);
 }
 
-function countContents(
-  containerId: string,
-  entities: readonly Entity[],
-  definitionsById: ReadonlyMap<string, ItemDefinition>,
-): string[] {
+function readNote(entity: Entity, catalog: ThingCatalog): InspectedNote | null {
+  const writing = resolveEntityComponents(catalog, entity)[NOTE_COMPONENT];
+  const text = writing?.[NOTE_TEXT_FIELD];
+  const author = writing?.[NOTE_AUTHOR_FIELD];
+  if (typeof text !== "string") return null;
+  return { author: typeof author === "string" ? author : "", text };
+}
+
+function listHeldBy(holderId: string, entities: readonly Entity[]): Entity[] {
+  return entities.filter(
+    (entity) => entity.location.kind === "inside" && entity.location.holderId === holderId,
+  );
+}
+
+function countContents(contents: readonly Entity[], catalog: ThingCatalog): string[] {
   const counts = new Map<string, number>();
-  for (const entity of entities) {
-    if (entity.location.kind !== "inside" || entity.location.containerId !== containerId) continue;
+  for (const entity of contents) {
     counts.set(entity.definitionId, (counts.get(entity.definitionId) ?? 0) + 1);
   }
   return [...counts].map(([definitionId, count]) => {
-    const definition = definitionsById.get(definitionId);
+    const definition = catalog.definitionsById.get(definitionId);
     return definition ? describeCount(definition, count) : `${count} ${definitionId}`;
   });
 }
@@ -112,16 +124,19 @@ function countContents(
 function inspectEntity(
   entity: Entity,
   definition: ItemDefinition,
-  definitionsById: ReadonlyMap<string, ItemDefinition>,
+  isLying: boolean,
   sources: TileInspectionSources,
 ): InspectedThing {
-  const isPlaced = definition.form === "placeable";
+  const { catalog } = sources;
+  const held = listHeldBy(entity.id, sources.entities);
+  const notes = held.flatMap((content) => readNote(content, catalog) ?? []).reverse();
+  const otherContents = held.filter((content) => readNote(content, catalog) === null);
   return {
     key: entity.id,
-    name: entity.label ?? (isPlaced ? definition.name : describeCount(definition, 1)),
-    details: describeEntityState(entity, definition, sources),
-    contents: countContents(entity.id, sources.entities, definitionsById),
-    notes: [...(entity.state.notes ?? [])].sort((first, second) => second.tick - first.tick),
+    name: entity.label ?? (isLying ? describeCount(definition, 1) : definition.name),
+    details: describeEntityState(entity, catalog),
+    contents: countContents(otherContents, catalog),
+    notes,
   };
 }
 
@@ -130,26 +145,22 @@ function inspectEntity(
  * counted together ("3 bread"), since a pile is read by how much is there.
  */
 function inspectThings(position: Position, sources: TileInspectionSources): InspectedThing[] {
-  const definitionsById = new Map(
-    sources.definitions.map((definition) => [definition.id, definition]),
-  );
+  const { catalog } = sources;
   const onTile = sources.entities.flatMap((entity) => {
-    const definition = definitionsById.get(entity.definitionId);
+    const definition = catalog.definitionsById.get(entity.definitionId);
     if (entity.location.kind !== "tile" || !isSameTile(entity.location.pos, position)) return [];
-    return definition ? [{ entity, definition }] : [];
+    return definition ? [{ entity, definition, isLying: isLyingOnTile(catalog, entity) }] : [];
   });
-  const placed = onTile.filter((entry) => entry.definition.form === "placeable");
+  const placed = onTile.filter((entry) => !entry.isLying);
   const looseByDefinition = new Map<string, typeof onTile>();
-  for (const entry of onTile.filter((candidate) => candidate.definition.form !== "placeable")) {
+  for (const entry of onTile.filter((candidate) => candidate.isLying)) {
     const pile = looseByDefinition.get(entry.definition.id) ?? [];
     looseByDefinition.set(entry.definition.id, [...pile, entry]);
   }
   const loose = [...looseByDefinition.values()].map((pile) => {
     const [first] = pile;
     if (!first) throw new Error("A pile of loose items was grouped with no items in it");
-    if (pile.length === 1) {
-      return inspectEntity(first.entity, first.definition, definitionsById, sources);
-    }
+    if (pile.length === 1) return inspectEntity(first.entity, first.definition, true, sources);
     return {
       key: `pile:${first.definition.id}`,
       name: describeCount(first.definition, pile.length),
@@ -159,9 +170,7 @@ function inspectThings(position: Position, sources: TileInspectionSources): Insp
     };
   });
   return [
-    ...placed.map(({ entity, definition }) =>
-      inspectEntity(entity, definition, definitionsById, sources),
-    ),
+    ...placed.map(({ entity, definition }) => inspectEntity(entity, definition, false, sources)),
     ...loose,
   ];
 }

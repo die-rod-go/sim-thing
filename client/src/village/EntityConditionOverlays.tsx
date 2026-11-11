@@ -1,21 +1,21 @@
-import type { ConditionDefinition, Entity } from "@village/shared";
+import type { Entity, ThingCatalog } from "@village/shared";
 import { listTileConditionOverlays } from "../format/conditions";
 
 interface EntityConditionOverlaysProps {
   entities: readonly Entity[];
-  definitions: readonly ConditionDefinition[];
+  catalog: ThingCatalog;
   tileSize: number;
 }
 
-/** Visible conditions on things standing on tiles (a door on fire), drawn over their tiles. */
+/** Visible components on things standing on tiles (a door on fire), drawn over their tiles. */
 export function EntityConditionOverlays({
   entities,
-  definitions,
+  catalog,
   tileSize,
 }: EntityConditionOverlaysProps) {
   return (
     <>
-      {listTileConditionOverlays(entities, definitions).map((overlay) => (
+      {listTileConditionOverlays(entities, catalog).map((overlay) => (
         <span
           key={overlay.key}
           className={`condition-overlay tile-condition condition-${overlay.conditionName}`}

@@ -1,5 +1,3 @@
-import type { ItemForm } from "./item-file";
-
 export type ItemProblemSeverity = "error" | "warning";
 
 /** One thing wrong with `items.json`. Errors stop the server; warnings are shown in the editor. */
@@ -13,16 +11,12 @@ export interface ItemProblem {
 /** A definition id used outside `items.json`: by a map object or a seed inventory. */
 export interface ItemReference {
   definitionId: string;
-  /** The form the user needs (map objects are placeable, inventories carriable); null for any. */
-  requiredForm: ItemForm | null;
   /** "map object bakery door", "seed agent mara's inventory". */
   usedBy: string;
 }
 
 export interface ItemValidationOptions {
   references?: readonly ItemReference[];
-  /** The money definition. Nothing should make or destroy it, so the supply stays closed. */
-  currencyDefinitionId?: string;
 }
 
 export class ProblemList {

@@ -30,6 +30,7 @@ describe("runMorningPass", () => {
     ];
     const agent = await runMorningPass({
       agent: makeAgent({ needs: { hunger: 0.4, energy: 1, social: 0.5, fun: 0.8 } }),
+      health: 1,
       recentReflections,
       callStructured,
       tick: 1500,
@@ -48,6 +49,7 @@ describe("runMorningPass", () => {
     const { callStructured } = makeFakeCaller(['{"dailyPlan":"Rest.","mood":null}']);
     const agent = await runMorningPass({
       agent: makeAgent({ mood: "calm" }),
+      health: 1,
       recentReflections: [],
       callStructured,
       tick: 0,
@@ -63,6 +65,7 @@ describe("failed reflection calls", () => {
     const morning = makeFakeCaller([API_FAILURE, API_FAILURE]);
     const morningAgent = await runMorningPass({
       agent,
+      health: 1,
       recentReflections: [],
       callStructured: morning.callStructured,
       tick: 0,
@@ -75,6 +78,7 @@ describe("failed reflection calls", () => {
     const night = makeFakeCaller(["not json", "still not json"]);
     const nightResult = await runNightPass({
       agent,
+      health: 1,
       store,
       idGenerator: new MemoryIdGenerator(),
       callStructured: night.callStructured,
@@ -88,6 +92,7 @@ describe("failed reflection calls", () => {
     const weekly = makeFakeCaller([API_FAILURE, API_FAILURE]);
     const weeklyResult = await runWeeklyPass({
       agent,
+      health: 1,
       store,
       callStructured: weekly.callStructured,
       tick: 100,

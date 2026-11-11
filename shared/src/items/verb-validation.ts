@@ -2,8 +2,10 @@ import {
   describeRuleSubject,
   listAllRuleSubjects,
   listGuaranteedComponents,
+  listSubjectsWithAddedComponents,
   matchesRule,
   requiresHeldOrUser,
+  resolveBodyDefaults,
   type RuleSubject,
 } from "./applies-to";
 import { listVerbReads } from "./effect-reads";
@@ -30,9 +32,6 @@ function checkRuleNames(rule: AppliesToRule, path: string, context: EffectCheckC
     if ("component" in term && !Object.hasOwn(file.components, term.component)) {
       problems.error(path, `appliesTo names unknown component "${term.component}".`);
     }
-    if ("property" in term && !Object.hasOwn(file.properties, term.property)) {
-      problems.error(path, `appliesTo names unknown property "${term.property}".`);
-    }
   }
 }
 
@@ -49,7 +48,12 @@ function checkRuleReach(
       "appliesTo matches other living agents; people can only be targets, never used.",
     );
   }
-  if (matched.length === 0) context.problems.warning(path, "appliesTo matches nothing.");
+  const couldMatch =
+    matched.length > 0 ||
+    listSubjectsWithAddedComponents(context.file, subjects).some((subject) =>
+      matchesRule(verb.appliesTo, subject),
+    );
+  if (!couldMatch) context.problems.warning(path, "appliesTo matches nothing.");
 }
 
 function checkComponentReads(
@@ -130,9 +134,9 @@ function checkItemNames(verb: Verb, path: string, context: EffectCheckContext) {
     if (!definitionIds.has(definitionId))
       problems.error(`${path}.tools`, `Unknown item "${definitionId}".`);
   }
-  for (const property of verb.tools?.properties ?? []) {
-    if (!Object.hasOwn(file.properties, property)) {
-      problems.error(`${path}.tools`, `Unknown property "${property}".`);
+  for (const component of verb.tools?.components ?? []) {
+    if (!Object.hasOwn(file.components, component)) {
+      problems.error(`${path}.tools`, `Unknown component "${component}".`);
     }
   }
 }
@@ -164,8 +168,8 @@ export function checkVerbs(
   context: EffectCheckContext,
 ): void {
   const { file } = context;
-  const subjects = listAllRuleSubjects(file.definitions, file.person.properties);
-  const user: RuleSubject = { kind: "user", properties: file.person.properties };
+  const subjects = listAllRuleSubjects(file);
+  const user: RuleSubject = { kind: "user", components: resolveBodyDefaults(file) };
   file.verbs.forEach((verb, index) => {
     const path = describeVerbPath(verb, index);
     checkRuleNames(verb.appliesTo, `${path}.appliesTo`, context);

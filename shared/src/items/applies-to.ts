@@ -1,22 +1,26 @@
-import type { AppliesToRule, ItemDefinition, ItemForm } from "./item-file";
+import { resolveComponents, type ResolvedComponents } from "./components";
+import type { Effect } from "./effect-schema";
+import type { AppliesToRule, ItemDefinition, ItemFile } from "./item-file";
+import { matchesThing } from "./matchers";
 
 /** Where an entity is relative to the agent who would use it. `inside` matches no location term. */
 export type SubjectLocation = "held" | "ground" | "placed" | "inside";
 
+export const SUBJECT_LOCATIONS: readonly SubjectLocation[] = ["held", "ground", "placed", "inside"];
+
 /** Something an `appliesTo` rule is checked against. */
 export type RuleSubject =
-  | { kind: "entity"; definition: ItemDefinition; location: SubjectLocation }
+  | {
+      kind: "entity";
+      definitionId: string;
+      components: ResolvedComponents;
+      location: SubjectLocation;
+    }
   /** The agent doing the verb. */
-  | { kind: "user"; properties: readonly string[] }
-  | { kind: "dead_agent"; properties: readonly string[] }
+  | { kind: "user"; components: ResolvedComponents }
+  | { kind: "dead_agent"; components: ResolvedComponents }
   /** Any other living agent: rules must never match one. */
-  | { kind: "living_agent"; properties: readonly string[] };
-
-function hasProperty(subject: RuleSubject, property: string): boolean {
-  if (subject.kind === "entity") return subject.definition.properties.includes(property);
-  if (subject.kind === "living_agent") return false;
-  return subject.properties.includes(property);
-}
+  | { kind: "living_agent" };
 
 export function matchesRule(rule: AppliesToRule, subject: RuleSubject): boolean {
   if ("anyOf" in rule) return rule.anyOf.some((part) => matchesRule(part, subject));
@@ -24,11 +28,10 @@ export function matchesRule(rule: AppliesToRule, subject: RuleSubject): boolean 
   if ("not" in rule) return !matchesRule(rule.not, subject);
   if ("isUser" in rule) return subject.kind === "user";
   if ("isDeadAgent" in rule) return subject.kind === "dead_agent";
-  if ("property" in rule) return hasProperty(subject, rule.property);
+  if (subject.kind === "living_agent") return false;
+  if ("component" in rule) return Object.hasOwn(subject.components, rule.component);
   if (subject.kind !== "entity") return false;
-  if ("definition" in rule) return subject.definition.id === rule.definition;
-  if ("component" in rule) return Object.hasOwn(subject.definition.components, rule.component);
-  if ("form" in rule) return subject.definition.form === rule.form;
+  if ("definition" in rule) return subject.definitionId === rule.definition;
   return subject.location === rule.location;
 }
 
@@ -68,36 +71,103 @@ export function requiresHeldOrUser(rule: AppliesToRule): boolean {
   return false;
 }
 
-/** The locations an entity of this form can be in. */
-export function listPossibleLocations(form: ItemForm): SubjectLocation[] {
-  return form === "placeable" ? ["placed"] : ["held", "ground", "inside"];
+/** Whether something with these components lies loose on a tile, by the world settings. */
+export function isLyingWhenOnTile(
+  file: ItemFile,
+  definitionId: string,
+  components: ResolvedComponents,
+): boolean {
+  const matcher = file.world.lyingWhenOnTile;
+  return matcher !== undefined && matchesThing(matcher, { definitionId, components });
+}
+
+/**
+ * The locations an untouched entity of the definition is expected in: something that lies loose
+ * can be held, on the ground or inside something; anything else stands where it was placed.
+ */
+export function listPossibleLocations(
+  file: ItemFile,
+  definition: ItemDefinition,
+): SubjectLocation[] {
+  const components = resolveComponents(file.components, definition, {});
+  return isLyingWhenOnTile(file, definition.id, components)
+    ? ["held", "ground", "inside"]
+    : ["placed"];
+}
+
+/** The definition as a rule meets it, in each place it can be. */
+export function listDefinitionSubjects(file: ItemFile, definition: ItemDefinition): RuleSubject[] {
+  const components = resolveComponents(file.components, definition, {});
+  return listPossibleLocations(file, definition).map((location) => ({
+    kind: "entity",
+    definitionId: definition.id,
+    components,
+    location,
+  }));
+}
+
+/** The agent body's components before any change; none when the file names no such definition. */
+export function resolveBodyDefaults(file: ItemFile): ResolvedComponents {
+  const body = file.definitions.find((definition) => definition.id === file.world.agentBody);
+  return body ? resolveComponents(file.components, body, {}) : {};
 }
 
 /**
  * Every kind of thing a rule could meet: each definition in each place it can be, the user, a dead
- * agent and another living agent (both with the `person` properties).
+ * agent and another living agent. The agent body is never an entity.
  */
-export function listAllRuleSubjects(
-  definitions: readonly ItemDefinition[],
-  personProperties: readonly string[],
-): RuleSubject[] {
+export function listAllRuleSubjects(file: ItemFile): RuleSubject[] {
+  const body = resolveBodyDefaults(file);
   return [
-    ...definitions.flatMap((definition) =>
-      listPossibleLocations(definition.form).map((location): RuleSubject => ({
-        kind: "entity",
-        definition,
-        location,
-      })),
-    ),
-    { kind: "user", properties: personProperties },
-    { kind: "dead_agent", properties: personProperties },
-    { kind: "living_agent", properties: personProperties },
+    ...file.definitions
+      .filter((definition) => definition.id !== file.world.agentBody)
+      .flatMap((definition) => listDefinitionSubjects(file, definition)),
+    { kind: "user", components: body },
+    { kind: "dead_agent", components: body },
+    { kind: "living_agent" },
   ];
+}
+
+function listAllEffects(file: ItemFile): Effect[] {
+  return [
+    ...file.verbs.flatMap((verb) => verb.effects),
+    ...file.definitions.flatMap((definition) => definition.onBroken ?? []),
+    ...file.conditions.flatMap((condition) => [...condition.everyMinute, ...condition.onEnd]),
+    ...file.reactions.flatMap((reaction) => reaction.effects),
+  ];
+}
+
+/** Components an effect can add while the sim runs (a door's `closed`, `burning`). */
+export function listAddableComponents(file: ItemFile): string[] {
+  return [
+    ...new Set(
+      listAllEffects(file).flatMap((effect) =>
+        effect.type === "add_condition" ? [effect.condition] : [],
+      ),
+    ),
+  ];
+}
+
+/**
+ * The subjects again, each also with every component effects can add: what a rule could meet
+ * once the sim has run a while (a door that was closed).
+ */
+export function listSubjectsWithAddedComponents(
+  file: ItemFile,
+  subjects: readonly RuleSubject[],
+): RuleSubject[] {
+  const addable = Object.fromEntries(listAddableComponents(file).map((name) => [name, {}]));
+  const added = resolveComponents(file.components, { components: addable }, {});
+  return subjects.map((subject) =>
+    subject.kind === "living_agent"
+      ? subject
+      : { ...subject, components: { ...added, ...subject.components } },
+  );
 }
 
 /** "knife (held)", "the user", "a dead agent": for validation messages and the editor. */
 export function describeRuleSubject(subject: RuleSubject): string {
-  if (subject.kind === "entity") return `${subject.definition.id} (${subject.location})`;
+  if (subject.kind === "entity") return `${subject.definitionId} (${subject.location})`;
   if (subject.kind === "user") return "the user";
   if (subject.kind === "dead_agent") return "a dead agent";
   return "another living agent";

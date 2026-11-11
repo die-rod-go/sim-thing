@@ -1,6 +1,7 @@
 import { describe, expect, it } from "vitest";
 import { startSleep } from "../economy/sleep";
-import { findEntityIfPresent, getDefinition, replaceEntity } from "../items/entity-store";
+import { addComponent } from "../items/thing-writes";
+import { findEntityIfPresent, getDefinition } from "../items/entity-store";
 import { tileIndex } from "../world/types";
 import { getAgentRuntime } from "./agent-runtime";
 import {
@@ -9,11 +10,17 @@ import {
   SQUARE,
   aimWith,
   buildCombatSim,
+  contextOf,
+  entityThing,
   finish,
   fixRolls,
   handOver,
   memoryTexts,
   place,
+  readFieldOf,
+  readHealth,
+  setAgentHealth,
+  setField,
 } from "./combat-test-kit";
 import { findEntityByLabel, type TestSim } from "./test-sim";
 import { buildPerceptionWorld, replaceAgent } from "./world-access";
@@ -46,7 +53,7 @@ describe("attacking someone", () => {
       body: { ...sim.agent("mara").body, strength: 1 },
     });
     const { finished } = stabTobias(sim, ALWAYS_HIT);
-    expect(sim.agent("tobias").health).toBeCloseTo(1 - 0.2 * 1.3, 9);
+    expect(readHealth(sim, "tobias")).toBeCloseTo(1 - 0.2 * 1.3, 9);
     const hit = finished.result.events.find((event) => event.kind === "attacked");
     expect(hit?.description).toBe("hit Tobias with a knife");
   });
@@ -54,8 +61,8 @@ describe("attacking someone", () => {
   it("does no damage on a miss but still wears the weapon", () => {
     const sim = setUp();
     const { knife, finished } = stabTobias(sim, ALWAYS_MISS);
-    expect(sim.agent("tobias").health).toBe(1);
-    expect(findEntityIfPresent(sim.state, knife.id)?.state.durability).toBeCloseTo(1 - 0.02 / 4, 9);
+    expect(readHealth(sim, "tobias")).toBe(1);
+    expect(readFieldOf(sim, entityThing(knife), "health.current")).toBeCloseTo(4 - 0.02, 9);
     const missed = finished.result.events.find((event) => event.kind === "missed");
     expect(missed?.description).toBe("swung a knife at Tobias and missed");
   });
@@ -88,7 +95,7 @@ describe("attacking someone", () => {
 
   it("names the death after the attack's killed phrase and the attacker", () => {
     const sim = setUp();
-    replaceAgent(sim.state, { ...sim.agent("tobias"), health: 0.05 });
+    setAgentHealth(sim, "tobias", 0.05);
     stabTobias(sim, ALWAYS_HIT);
     expect(sim.agent("tobias").death?.cause).toBe("killed by Mara with a knife");
     expect(sim.agent("tobias").death?.sourceAgentId).toBe("mara");
@@ -102,7 +109,7 @@ describe("attacking someone", () => {
     const memoriesBefore = memoryTexts(sim, "tobias");
     stabTobias(sim, ALWAYS_MISS);
     const newMemories = memoryTexts(sim, "tobias").filter((text) => !memoriesBefore.includes(text));
-    expect(sim.agent("tobias").health).toBeLessThan(1);
+    expect(readHealth(sim, "tobias")).toBeLessThan(1);
     expect(sim.agent("tobias").currentAction).toBeNull();
     expect(newMemories.some((text) => text.includes("Mara"))).toBe(false);
     expect(sim.agent("tobias").workingMemory.at(-1)).toMatch(/I woke up in pain/);
@@ -110,9 +117,9 @@ describe("attacking someone", () => {
 
   it("can't be aimed at the dead", () => {
     const sim = setUp();
+    setAgentHealth(sim, "tobias", 0);
     replaceAgent(sim.state, {
       ...sim.agent("tobias"),
-      health: 0,
       death: { tick: 0, cause: "starved", sourceAgentId: null },
     });
     const knife = handOver(sim, "mara", "knife");
@@ -124,15 +131,16 @@ describe("attacking someone", () => {
 });
 
 describe("breaking things", () => {
-  it("breaks a door that loses all its durability, which then no longer blocks sight", () => {
+  it("breaks a door whose health runs out, which then no longer blocks sight", () => {
     const sim = setUp(["mara"]);
     const door = findEntityByLabel(sim.state, "bakery door");
     if (door.location.kind !== "tile") throw new Error("the door isn't placed");
     const doorTile = tileIndex(sim.state.map.grid, door.location.pos);
-    replaceEntity(sim.state, {
-      ...door,
-      state: { ...door.state, isOpen: false, durability: 0.01 },
+    addComponent(contextOf(sim), entityThing(door), "closed", {
+      minutes: null,
+      sourceAgentId: null,
     });
+    setField(sim, entityThing(door), "health.current", 0.01);
     sim.placeAgent("mara", { x: door.location.pos.x, y: door.location.pos.y + 1 });
     expect(buildPerceptionWorld(sim.state).sightBlockingTiles.has(doorTile)).toBe(true);
     const knife = handOver(sim, "mara", "knife");
@@ -149,12 +157,12 @@ describe("breaking things", () => {
   it("turns a knife worn to nothing into a broken knife through onBroken", () => {
     const sim = setUp();
     const knife = handOver(sim, "mara", "knife");
-    replaceEntity(sim.state, { ...knife, state: { ...knife.state, durability: 0.001 } });
+    setField(sim, entityThing(knife), "health.current", 0.001);
     fixRolls(sim, ALWAYS_MISS);
     aimWith(sim, "mara", knife, "attack", "Tobias");
     finish(sim, "mara");
     const broken = findEntityIfPresent(sim.state, knife.id);
     expect(broken && getDefinition(sim.state, broken).id).toBe("broken_knife");
-    expect(broken?.location).toEqual({ kind: "inventory", agentId: "mara" });
+    expect(broken?.location).toEqual({ kind: "inside", holderId: "mara" });
   });
 });

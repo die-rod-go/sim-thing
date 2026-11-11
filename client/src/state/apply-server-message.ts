@@ -1,4 +1,4 @@
-import type { Agent, Entity, ServerMessage } from "@village/shared";
+import { buildThingCatalog, type Agent, type Entity, type ServerMessage } from "@village/shared";
 import { clientConfig } from "../client-config";
 import type { ClientState, SpeechBubble } from "./client-state";
 
@@ -44,7 +44,11 @@ export function applyServerMessage(state: ClientState, message: ServerMessage): 
         agents: message.agents,
         entities: message.entities,
         itemDefinitions: message.itemDefinitions,
-        conditionDefinitions: message.conditionDefinitions,
+        catalog: buildThingCatalog(
+          message.componentDeclarations,
+          message.world,
+          message.itemDefinitions,
+        ),
         events: keepNewest(message.recentEvents, clientConfig.state.maxFeedEvents),
         moments: keepNewest(message.recentMoments, clientConfig.state.maxMoments),
         speechBubbles: [],

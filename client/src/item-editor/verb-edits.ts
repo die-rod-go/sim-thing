@@ -2,6 +2,7 @@ import {
   describeRuleSubject,
   listAllRuleSubjects,
   listGuaranteedComponents,
+  listDefinitionSubjects,
   listPossibleLocations,
   matchesRule,
   verbSchema,
@@ -10,29 +11,24 @@ import {
   type FieldType,
   type ItemDefinition,
   type ItemFile,
-  type RuleSubject,
   type Verb,
 } from "@village/shared";
 import { clientConfig } from "../client-config";
 import { createUniqueName, removeAt, replaceAt } from "./list-edits";
 
-function listDefinitionSubjects(definition: ItemDefinition): RuleSubject[] {
-  return listPossibleLocations(definition.form).map((location) => ({
-    kind: "entity",
-    definition,
-    location,
-  }));
-}
-
 /** Whether the rule matches the definition anywhere it can be (held, on the ground, placed). */
-export function doesRuleMatchDefinition(rule: AppliesToRule, definition: ItemDefinition): boolean {
-  return listDefinitionSubjects(definition).some((subject) => matchesRule(rule, subject));
+export function doesRuleMatchDefinition(
+  file: ItemFile,
+  rule: AppliesToRule,
+  definition: ItemDefinition,
+): boolean {
+  return listDefinitionSubjects(file, definition).some((subject) => matchesRule(rule, subject));
 }
 
 /** Indexes of the verbs whose rule matches the definition, in file order. */
 export function listVerbIndexesForDefinition(file: ItemFile, definition: ItemDefinition): number[] {
   return file.verbs.flatMap((verb, index) =>
-    doesRuleMatchDefinition(verb.appliesTo, definition) ? [index] : [],
+    doesRuleMatchDefinition(file, verb.appliesTo, definition) ? [index] : [],
   );
 }
 
@@ -44,23 +40,22 @@ export function countOtherDefinitionsMatched(
 ): number {
   return file.definitions.filter(
     (definition) =>
-      definition.id !== definitionId && doesRuleMatchDefinition(verb.appliesTo, definition),
+      definition.id !== definitionId && doesRuleMatchDefinition(file, verb.appliesTo, definition),
   ).length;
 }
 
 /** "knife (held)", "the user", ...: everything the rule matches, for the live match list. */
 export function listRuleMatches(file: ItemFile, rule: AppliesToRule): string[] {
-  return listAllRuleSubjects(file.definitions, file.person.properties)
+  return listAllRuleSubjects(file)
     .filter((subject) => matchesRule(rule, subject))
     .map(describeRuleSubject);
 }
 
-/** A verb applying to just this definition, held in the hand when it is carriable. */
+/** A verb applying to just this definition, held in the hand when it can be held. */
 export function buildVerbForDefinition(file: ItemFile, definition: ItemDefinition): Verb {
-  const appliesTo: AppliesToRule =
-    definition.form === "carriable"
-      ? { allOf: [{ definition: definition.id }, { location: "held" }] }
-      : { definition: definition.id };
+  const appliesTo: AppliesToRule = listPossibleLocations(file, definition).includes("held")
+    ? { allOf: [{ definition: definition.id }, { location: "held" }] }
+    : { definition: definition.id };
   return verbSchema.parse({ name: createNewVerbName(file), appliesTo, effects: [] });
 }
 

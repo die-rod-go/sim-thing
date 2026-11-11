@@ -1,12 +1,12 @@
+import type { FieldType } from "./component-schema";
 import {
-  COMPONENT_PATH_PATTERN,
+  ITEM_VALUE_PATH_PATTERN,
   type Effect,
-  type FieldType,
   type NumberValue,
   type RangeValue,
   type TextValue,
-  type Verb,
-} from "./item-file";
+} from "./effect-schema";
+import type { Verb } from "./item-file";
 
 /** One place a verb reads a component field, and the field type that slot needs. */
 export interface ComponentRead {
@@ -18,7 +18,7 @@ export interface ComponentRead {
 }
 
 function parsePath(path: string): { component: string; field: string } | null {
-  const match = COMPONENT_PATH_PATTERN.exec(path);
+  const match = ITEM_VALUE_PATH_PATTERN.exec(path);
   if (!match?.[1] || !match[2]) return null;
   return { component: match[1], field: match[2] };
 }

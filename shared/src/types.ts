@@ -1,4 +1,4 @@
-import type { ActiveCondition } from "./items/entity";
+import type { ComponentChanges } from "./items/components";
 
 export interface Position {
   x: number;
@@ -81,11 +81,13 @@ export interface Agent {
   body: AgentBody;
   profession: string;
   needs: Needs;
-  /** 0–1, 1 = unhurt. At 0 the agent dies. */
-  health: number;
   /** Set when hunger reaches 0, cleared when it rises; starvation damage starts after a grace period. */
   starvingSinceTick: number | null;
-  conditions: ActiveCondition[];
+  /**
+   * Where the agent's body differs from the `agentBody` definition: its health, and components
+   * added while the sim runs (bleeding, burning).
+   */
+  bodyChanges: ComponentChanges;
   /** Null while alive. */
   death: AgentDeath | null;
   mood: string;
@@ -148,13 +150,6 @@ export interface DecisionReply {
   minutes?: number;
   note?: { person: string; text: string };
   mood?: string;
-}
-
-export interface Note {
-  authorId: string;
-  authorName: string;
-  text: string;
-  tick: number;
 }
 
 export interface EventSpeech {

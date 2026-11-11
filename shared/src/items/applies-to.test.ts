@@ -6,19 +6,21 @@ import {
   type RuleSubject,
   type SubjectLocation,
 } from "./applies-to";
-import { buildItemCatalog, findDefinition } from "./catalog";
+import { buildItemCatalog, resolveThingComponents } from "./catalog";
 import type { AppliesToRule } from "./item-file";
 import { buildTestItemFile } from "./test-item-file";
 
 const catalog = buildItemCatalog(buildTestItemFile());
 
 function entity(definitionId: string, location: SubjectLocation = "held"): RuleSubject {
-  return { kind: "entity", definition: findDefinition(catalog, definitionId), location };
+  const components = resolveThingComponents(catalog, definitionId, {});
+  return { kind: "entity", definitionId, components, location };
 }
 
-const user: RuleSubject = { kind: "user", properties: ["flesh"] };
-const deadAgent: RuleSubject = { kind: "dead_agent", properties: ["flesh"] };
-const livingAgent: RuleSubject = { kind: "living_agent", properties: ["flesh"] };
+const body = resolveThingComponents(catalog, "person", {});
+const user: RuleSubject = { kind: "user", components: body };
+const deadAgent: RuleSubject = { kind: "dead_agent", components: body };
+const livingAgent: RuleSubject = { kind: "living_agent" };
 
 describe("appliesTo terms", () => {
   it("matches entities of a definition", () => {
@@ -31,16 +33,22 @@ describe("appliesTo terms", () => {
     expect(matchesRule({ component: "food" }, entity("knife"))).toBe(false);
   });
 
-  it("matches entities by form", () => {
-    expect(matchesRule({ form: "placeable" }, entity("oven", "placed"))).toBe(true);
-    expect(matchesRule({ form: "placeable" }, entity("knife"))).toBe(false);
+  it("matches a component an entity has now, even one its definition lacks", () => {
+    const sharpenedBread: RuleSubject = {
+      kind: "entity",
+      definitionId: "bread",
+      components: { ...resolveThingComponents(catalog, "bread", {}), sharp: {} },
+      location: "held",
+    };
+    expect(matchesRule({ component: "sharp" }, sharpenedBread)).toBe(true);
+    expect(matchesRule({ component: "sharp" }, entity("bread"))).toBe(false);
   });
 
-  it("matches a property on entities, the user and dead agents but never other living agents", () => {
-    expect(matchesRule({ property: "sharp" }, entity("knife"))).toBe(true);
-    expect(matchesRule({ property: "flesh" }, user)).toBe(true);
-    expect(matchesRule({ property: "flesh" }, deadAgent)).toBe(true);
-    expect(matchesRule({ property: "flesh" }, livingAgent)).toBe(false);
+  it("matches a component on the user and dead agents but never other living agents", () => {
+    expect(matchesRule({ component: "sharp" }, entity("knife"))).toBe(true);
+    expect(matchesRule({ component: "flesh" }, user)).toBe(true);
+    expect(matchesRule({ component: "flesh" }, deadAgent)).toBe(true);
+    expect(matchesRule({ component: "flesh" }, livingAgent)).toBe(false);
   });
 
   it("matches where an entity is", () => {
@@ -66,14 +74,16 @@ describe("appliesTo combinators", () => {
   });
 
   it("needs any part of anyOf", () => {
-    const rule: AppliesToRule = { anyOf: [{ component: "container" }, { isDeadAgent: true }] };
+    const rule: AppliesToRule = { anyOf: [{ component: "capacity" }, { isDeadAgent: true }] };
     expect(matchesRule(rule, entity("chest", "placed"))).toBe(true);
     expect(matchesRule(rule, deadAgent)).toBe(true);
     expect(matchesRule(rule, user)).toBe(false);
   });
 
   it("inverts with not", () => {
-    const rule: AppliesToRule = { allOf: [{ form: "carriable" }, { not: { definition: "coin" } }] };
+    const rule: AppliesToRule = {
+      allOf: [{ component: "holdable" }, { not: { definition: "coin" } }],
+    };
     expect(matchesRule(rule, entity("bread"))).toBe(true);
     expect(matchesRule(rule, entity("coin"))).toBe(false);
   });
@@ -83,7 +93,7 @@ describe("what a rule guarantees", () => {
   it("guarantees the components every branch requires", () => {
     const rule: AppliesToRule = {
       anyOf: [
-        { allOf: [{ component: "weapon" }, { component: "weight" }] },
+        { allOf: [{ component: "weapon" }, { component: "holdable" }] },
         { allOf: [{ component: "weapon" }, { location: "held" }] },
       ],
     };

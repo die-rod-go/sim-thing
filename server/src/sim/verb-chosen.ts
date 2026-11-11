@@ -1,6 +1,10 @@
 import { findDefinitionByName, type Effect, type Entity, type Verb } from "@village/shared";
-import { listContents } from "../items/containers";
-import { findEntityIfPresent, listHeldEntities } from "../items/entity-store";
+import {
+  findEntityIfPresent,
+  isHeldBy,
+  listContents,
+  listHeldEntities,
+} from "../items/entity-store";
 import type { ChosenRequest, VerbRun } from "./agent-runtime";
 import type { WorldState } from "./world-state";
 
@@ -24,12 +28,14 @@ export function listUsedContents(state: WorldState, run: VerbRun): Entity[] {
 
 function isInUsedThing(run: VerbRun, entity: Entity): boolean {
   const { location } = entity;
-  if (location.kind === "inventory") return location.agentId === run.usedBodyId;
-  return location.kind === "inside" && location.containerId === run.usedEntityId;
+  return (
+    location.kind === "inside" &&
+    (location.holderId === run.usedBodyId || location.holderId === run.usedEntityId)
+  );
 }
 
 function isHeldByUser(run: VerbRun, entity: Entity): boolean {
-  return entity.location.kind === "inventory" && entity.location.agentId === run.agentId;
+  return isHeldBy(entity, run.agentId);
 }
 
 /**

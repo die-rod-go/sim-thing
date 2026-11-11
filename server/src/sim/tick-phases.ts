@@ -1,20 +1,19 @@
-import type { Needs } from "@village/shared";
+import { readAgentHealth, type Needs } from "@village/shared";
 import { config } from "../config";
 import { applyCrowdEffect, decayNeeds, findCrossedThresholds } from "../economy/needs";
 import { advanceSleep, findWakeReason, isAsleep } from "../economy/sleep";
 import { mergeAwareness, observeAgents } from "../perception/awareness";
 import { canInterrupt, detectNewPerceptions } from "../perception/interrupts";
 import {
+  computeRegeneration,
   computeStarvationDamage,
   isDead,
-  regenerateHealth,
   trackStarvation,
 } from "../status/health";
-import { findEntity, replaceEntity } from "../items/entity-store";
-import { countWholeStock, regrowStocks } from "../items/stock";
+import { regrowStocks } from "../items/stock";
+import { writeField } from "../items/thing-writes";
 import { wakeAgent } from "./action-stopping";
 import { advanceConditions } from "./conditions";
-import { applyDamage } from "./damage";
 import { WAIT_ACTION, WALK_ACTION, describeDoing } from "./action-phrases";
 import { getAgentRuntime, requestDecision } from "./agent-runtime";
 import type { TickContext } from "./tick-context";
@@ -27,12 +26,22 @@ import {
   listLivingAgents,
   listVisibleAgentIds,
   markAgentChanged,
-  markEntityChanged,
   replaceAgent,
   toPerceiver,
 } from "./world-access";
 
 const { minutesPerTick } = config.clock;
+
+/** Raises or lowers the agent's health field; going under 0 kills, with `killed` as the cause. */
+function changeHealth(context: TickContext, agentId: string, change: number, killed = ""): void {
+  if (change === 0) return;
+  const { state } = context;
+  const health = readAgentHealth(state.items, findAgent(state, agentId));
+  writeField(context, { kind: "agent", agentId }, state.items.world.agentHealth, health + change, {
+    killed,
+    sourceAgentId: null,
+  });
+}
 
 /**
  * Phase 1: stocks regrow; conditions run their minutes or run out (reactions resolve as their
@@ -41,14 +50,7 @@ const { minutesPerTick } = config.clock;
  */
 export function applyMechanics(context: TickContext): Map<string, Needs> {
   const { state } = context;
-  for (const regrown of regrowStocks(state.entities, state.items, minutesPerTick)) {
-    const before = findEntity(state, regrown.id);
-    replaceEntity(state, regrown);
-    // Fractions grow every tick; viewers only need to hear when a whole unit is back.
-    if (countWholeStock(before) !== countWholeStock(regrown)) {
-      markEntityChanged(context.result, regrown.id);
-    }
-  }
+  regrowStocks(context, minutesPerTick);
   advanceConditions(context);
   const world = buildPerceptionWorld(state);
   const needsBefore = new Map<string, Needs>();
@@ -61,13 +63,18 @@ export function applyMechanics(context: TickContext): Map<string, Needs> {
       ? advanceSleep(updated, minutesPerTick)
       : applyCrowdEffect(updated, listVisibleAgentIds(state, world, agent).length);
     updated = trackStarvation(updated, state.tick);
-    updated = regenerateHealth(updated, { isAsleep: isSleeping, minutesPerTick });
     replaceAgent(state, updated);
-    applyDamage(context, agentId, {
-      amount: computeStarvationDamage(updated, state.tick, minutesPerTick),
-      killed: config.health.starvationKilledPhrase,
-      sourceAgentId: null,
-    });
+    changeHealth(
+      context,
+      agentId,
+      computeRegeneration(updated, { isAsleep: isSleeping, minutesPerTick }),
+    );
+    changeHealth(
+      context,
+      agentId,
+      -computeStarvationDamage(updated, state.tick, minutesPerTick),
+      config.health.starvationKilledPhrase,
+    );
   }
   return needsBefore;
 }

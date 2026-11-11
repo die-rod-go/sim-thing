@@ -1,7 +1,7 @@
 import { useEffect, useRef, type CSSProperties } from "react";
 import { GLYPH_SHEET } from "@village/shared";
 import { clientConfig } from "../client-config";
-import type { VisibleCondition } from "../format/conditions";
+import type { VisibleComponent } from "../format/conditions";
 import type { ActivityCue } from "./activity-cues";
 import type { GlyphPainter } from "./glyph-painter";
 
@@ -17,7 +17,7 @@ interface AgentMarkerProps {
   /** Drawn lying down and greyed out. */
   isDead: boolean;
   /** Drawn over the figure (flames for `burning`). */
-  visibleConditions: readonly VisibleCondition[];
+  visibleConditions: readonly VisibleComponent[];
   activityCue: ActivityCue;
   markerRef: (element: HTMLElement | null) => void;
   onSelect: (agentId: string) => void;

@@ -9,8 +9,8 @@ import { damageEffect, healEffect, transformEffect, wearEffect } from "./combat-
 import type { EffectHandler, EffectOutcome, EffectRegistry, EffectRun } from "./effect-run";
 import { destroyEffect, moveEffect, produceEffect } from "./item-effects";
 import { changeNeedEffect } from "./need-effects";
-import { listNearbySubjects } from "./nearby";
-import { setOpenEffect, takeStockEffect } from "./object-effects";
+import { listNearbyThings } from "./nearby";
+import { takeStockEffect } from "./object-effects";
 import { postNoteEffect, readNotesEffect, sleepEffect } from "./special-effects";
 
 /**
@@ -28,7 +28,6 @@ export const EFFECT_REGISTRY: EffectRegistry = {
   destroy: destroyEffect,
   move: moveEffect,
   take_stock: takeStockEffect,
-  set_open: setOpenEffect,
   sleep: sleepEffect,
   read_notes: readNotesEffect,
   post_note: postNoteEffect,
@@ -67,8 +66,8 @@ function applyOnce(effectRun: EffectRun, effect: Effect): EffectOutcome {
 export function applyEffect(effectRun: EffectRun, effect: Effect): EffectOutcome {
   if (effect.on !== "nearby") return applyOnce(effectRun, effect);
   const nearbyEffect: Effect = { ...effect, on: "self" };
-  for (const subject of listNearbySubjects(effectRun, effect.radius ?? 0)) {
-    applyOnce({ ...effectRun, self: subject }, nearbyEffect);
+  for (const thing of listNearbyThings(effectRun, effect.radius ?? 0)) {
+    applyOnce({ ...effectRun, self: thing }, nearbyEffect);
   }
   return {};
 }

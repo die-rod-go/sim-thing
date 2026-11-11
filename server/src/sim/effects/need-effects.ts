@@ -1,20 +1,24 @@
 import { applyNeedEffects } from "../../economy/needs";
-import { findEntityIfPresent } from "../../items/entity-store";
-import { countOtherUsers } from "../../items/entity-users";
 import { resolveNumber } from "../../items/verb-numbers";
+import { getAgentRuntime } from "../agent-runtime";
 import { findAgent, markAgentChanged, replaceAgent } from "../world-access";
 import {
   findEffectAgentId,
-  findUsedDefinition,
+  findUsedComponents,
   type EffectHandler,
   type EffectRun,
 } from "./effect-run";
 
+/** Other agents whose verb run is using the same thing: players at the card table. */
 function countOthersUsingSameThing(effectRun: EffectRun, agentId: string): number {
   const usedEntityId = effectRun.run?.usedEntityId ?? null;
   if (usedEntityId === null) return 0;
-  const used = findEntityIfPresent(effectRun.context.state, usedEntityId);
-  return used ? countOtherUsers(used, agentId) : 0;
+  const { state } = effectRun.context;
+  return state.agents.filter(
+    (other) =>
+      other.id !== agentId &&
+      getAgentRuntime(state, other.id).verbRun?.usedEntityId === usedEntityId,
+  ).length;
 }
 
 /** Raises or lowers a need; `perOtherUser` adds more for each other agent at the same thing. */
@@ -23,11 +27,11 @@ export const changeNeedEffect: EffectHandler<"change_need"> = {
     const { state, result } = effectRun.context;
     const agentId = findEffectAgentId(effectRun, effect);
     if (agentId === null) return {};
-    const definition = findUsedDefinition(effectRun);
+    const used = findUsedComponents(effectRun);
     const perOtherUser =
-      effect.perOtherUser === undefined ? 0 : resolveNumber(effect.perOtherUser, definition);
+      effect.perOtherUser === undefined ? 0 : resolveNumber(effect.perOtherUser, used);
     const amount =
-      resolveNumber(effect.amount, definition) +
+      resolveNumber(effect.amount, used) +
       perOtherUser * countOthersUsingSameThing(effectRun, agentId);
     const agent = findAgent(state, agentId);
     replaceAgent(state, {

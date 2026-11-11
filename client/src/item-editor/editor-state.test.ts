@@ -10,7 +10,6 @@ function buildLoadedMessage(): ItemFileMessage {
     itemFile: buildTestItemFile(),
     loadError: null,
     references: [],
-    currencyDefinitionId: "coin",
   };
 }
 
@@ -57,12 +56,12 @@ describe("item editor state", () => {
     const loaded = loadState();
     const selected = reduceEditorState(loaded, {
       kind: "selected",
-      selection: { tab: "items", index: 4 },
+      selection: { tab: "items", index: 5 },
     });
-    expect(selected.selectedIndexes.items).toBe(4);
-    const draft = removeDefinition(selected.draft ?? buildTestItemFile(), 4);
+    expect(selected.selectedIndexes.items).toBe(5);
+    const draft = removeDefinition(selected.draft ?? buildTestItemFile(), 5);
     const edited = reduceEditorState(selected, { kind: "edited", draft });
-    expect(edited.selectedIndexes.items).toBe(3);
+    expect(edited.selectedIndexes.items).toBe(4);
     const verbs = reduceEditorState(edited, {
       kind: "selected",
       selection: { tab: "verbs", index: 9 },

@@ -1,4 +1,10 @@
-import type { Entity, Glyph, ItemDefinition } from "@village/shared";
+import {
+  matchesThing,
+  resolveEntityComponents,
+  type Entity,
+  type Glyph,
+  type ThingCatalog,
+} from "@village/shared";
 
 /** One glyph to draw at a map tile, for an entity standing there. */
 export interface PlacedGlyph {
@@ -8,6 +14,18 @@ export interface PlacedGlyph {
   tileY: number;
 }
 
+/** Whether the world settings say this entity lies loose on a tile (a dropped knife, not an oven). */
+export function isLyingOnTile(catalog: ThingCatalog, entity: Entity): boolean {
+  const matcher = catalog.world.lyingWhenOnTile;
+  return (
+    matcher !== undefined &&
+    matchesThing(matcher, {
+      definitionId: entity.definitionId,
+      components: resolveEntityComponents(catalog, entity),
+    })
+  );
+}
+
 /**
  * Every entity standing on a tile (placed objects and items on the ground), drawn from its
  * definition's glyph. Carried and contained entities aren't on the map. Placed objects come
@@ -15,11 +33,10 @@ export interface PlacedGlyph {
  */
 export function listPlacedGlyphs(
   entities: readonly Entity[],
-  definitions: readonly ItemDefinition[],
+  catalog: ThingCatalog,
 ): PlacedGlyph[] {
-  const definitionsById = new Map(definitions.map((definition) => [definition.id, definition]));
   const onTiles = entities.flatMap((entity) => {
-    const definition = definitionsById.get(entity.definitionId);
+    const definition = catalog.definitionsById.get(entity.definitionId);
     if (entity.location.kind !== "tile" || !definition) return [];
     const { pos } = entity.location;
     const placedGlyph = {
@@ -28,10 +45,10 @@ export function listPlacedGlyphs(
       tileX: pos.x,
       tileY: pos.y,
     };
-    return [{ placedGlyph, isPlaced: definition.form === "placeable" }];
+    return [{ placedGlyph, isLying: isLyingOnTile(catalog, entity) }];
   });
   return [
-    ...onTiles.filter((entry) => entry.isPlaced),
-    ...onTiles.filter((entry) => !entry.isPlaced),
+    ...onTiles.filter((entry) => !entry.isLying),
+    ...onTiles.filter((entry) => entry.isLying),
   ].map((entry) => entry.placedGlyph);
 }

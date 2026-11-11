@@ -1,4 +1,11 @@
-import { describeCount, type Agent, type Entity, type Verb } from "@village/shared";
+import {
+  describeCount,
+  listComponentWords,
+  resolveEntityComponents,
+  type Agent,
+  type Entity,
+  type Verb,
+} from "@village/shared";
 import { config } from "../config";
 import type { PromptEntityGroup, ValidItem } from "../decision/context";
 import {
@@ -7,8 +14,7 @@ import {
   listHeldEntities,
   listTileEntitiesAt,
 } from "../items/entity-store";
-import { describeEntityCondition } from "../items/stock";
-import { listConditionWords } from "../status/conditions";
+import { isLyingWhenOnTile, isShownWhenCarried } from "../items/world-physics";
 import { listItemlessVerbs, listVerbsForBody, listVerbsForEntity } from "../items/verb-offers";
 import { describeItemCounts } from "./action-phrases";
 import {
@@ -19,34 +25,27 @@ import {
 import { describeAgentAsSeen } from "./world-access";
 import type { WorldState } from "./world-state";
 
-/** Nothing tells it apart from others of its definition, so it can be counted with them. */
-function isStateless(entity: Entity): boolean {
-  const { state } = entity;
-  return (
-    entity.label === null &&
-    (state.durability === undefined || state.durability === 1) &&
-    state.stock === undefined &&
-    state.isOpen === undefined &&
-    state.notes === undefined &&
-    (state.userIds ?? []).length === 0 &&
-    state.conditions.length === 0
+/** What shows of the entity: the words of its visible components, then of its number fields. */
+function listSeenWords(state: WorldState, entity: Entity): string[] {
+  return listComponentWords(
+    state.items.declarations,
+    resolveEntityComponents(state.items, entity),
+    true,
   );
 }
 
+/** Things with no label, no visible contents and the same words read as one line, counted. */
 function groupKey(state: WorldState, agentId: string, entity: Entity): string {
   const hasContents = listReachableContents(state, agentId, entity) !== null;
-  return isStateless(entity) && !hasContents
-    ? `definition:${entity.definitionId}`
+  return entity.label === null && !hasContents
+    ? `definition:${entity.definitionId}:${listSeenWords(state, entity).join("|")}`
     : `entity:${entity.id}`;
 }
 
-/** "closed, on fire": what shows of its state, then its visible conditions. */
+/** "closed, on fire": what shows of its components. */
 function describeSeenState(state: WorldState, entity: Entity): string | null {
-  const parts = [
-    describeEntityCondition(state, entity),
-    ...listConditionWords(state.items, entity.state.conditions, true),
-  ].filter((part): part is string => part !== null);
-  return parts.length > 0 ? parts.join(", ") : null;
+  const words = listSeenWords(state, entity);
+  return words.length > 0 ? words.join(", ") : null;
 }
 
 function listVerbNames(state: WorldState, agentId: string, entity: Entity): string[] {
@@ -67,7 +66,7 @@ function describeContents(state: WorldState, contents: readonly Entity[] | null)
 
 function describeGroundWords(state: WorldState, entity: Entity): string | null {
   const { location } = entity;
-  if (location.kind !== "tile" || getDefinition(state, entity).form !== "carriable") return null;
+  if (location.kind !== "tile" || !isLyingWhenOnTile(state, entity)) return null;
   const place = state.map.places.find((area) => area.name === location.place);
   const words = config.perception.groundWords;
   return place?.isIndoor ? words.indoor : words.outdoor;
@@ -113,14 +112,18 @@ export function groupEntitiesForPrompt(
 
 /** Bodies in sight that offer something (`take`), with what they carry once within reach. */
 function groupBodiesForPrompt(state: WorldState, agent: Agent): PromptEntityGroup[] {
-  const verbs = [...new Set(listVerbsForBody(state).map((verb) => verb.name))];
-  if (verbs.length === 0) return [];
   const reachable = listReachableBodies(state, agent.id);
-  return listVisibleBodies(state, agent.id).map((body) => ({
-    text: describeAgentAsSeen(body),
-    verbs,
-    condition: describeContents(state, reachable.get(body.id) ?? null),
-  }));
+  return listVisibleBodies(state, agent.id).flatMap((body) => {
+    const verbs = [...new Set(listVerbsForBody(state, body).map((verb) => verb.name))];
+    if (verbs.length === 0) return [];
+    return [
+      {
+        text: describeAgentAsSeen(body),
+        verbs,
+        condition: describeContents(state, reachable.get(body.id) ?? null),
+      },
+    ];
+  });
 }
 
 /** What is at the agent's place: placed objects and items on the ground. */
@@ -140,8 +143,8 @@ export function buildBelongings(state: WorldState, agent: Agent): PromptEntityGr
   return groupEntitiesForPrompt(state, agent.id, listHeldEntities(state, agent.id));
 }
 
-export function listItemlessVerbNames(state: WorldState): string[] {
-  return [...new Set(listItemlessVerbs(state).map((verb) => verb.name))];
+export function listItemlessVerbNames(state: WorldState, agent: Agent): string[] {
+  return [...new Set(listItemlessVerbs(state, agent).map((verb) => verb.name))];
 }
 
 /** Everything inside containers and bodies the agent is close enough to take from. */
@@ -176,7 +179,7 @@ function listAvailableVerbs(state: WorldState, agent: Agent): Verb[] {
   const things = [...listHeldEntities(state, agent.id), ...listNearbyEntities(state, agent)];
   return [
     ...things.flatMap((entity) => listVerbsForEntity(state, agent.id, entity)),
-    ...listItemlessVerbs(state),
+    ...listItemlessVerbs(state, agent),
   ];
 }
 
@@ -212,8 +215,8 @@ export function listAimOnlyTargets(state: WorldState, agent: Agent): string[] {
 
 /** What others see the agent carrying: things whose definition shows when carried ("a knife"). */
 export function listVisibleCarried(state: WorldState, agent: Agent): string[] {
-  const shown = listHeldEntities(state, agent.id).filter(
-    (entity) => getDefinition(state, entity).isVisibleWhenCarried,
+  const shown = listHeldEntities(state, agent.id).filter((entity) =>
+    isShownWhenCarried(state, entity),
   );
   return groupEntitiesForPrompt(state, agent.id, shown).map((group) => group.text);
 }
