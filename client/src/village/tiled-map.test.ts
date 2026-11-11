@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { findTileGlyph, parseTiledMap } from "./tiled-map";
+import { findTileGlyph, listTileTerrains, parseTiledMap } from "./tiled-map";
 
 const PLACES = "places";
 
@@ -25,6 +25,7 @@ function makeMapData(layerNames: string[]) {
         tiles: [
           {
             id: 0,
+            type: "grass",
             properties: [
               { name: "collides", type: "bool", value: false },
               { name: "glyph", type: "int", value: 44 },
@@ -65,6 +66,7 @@ describe("findTileGlyph", () => {
     const mapData = makeMapData(["ground"]);
     mapData.tilesets[0]?.tiles.push({
       id: 1,
+      type: "",
       properties: [{ name: "glyph", type: "int", value: 35 }],
     });
     expect(() => parseTiledMap(mapData, ["ground"], PLACES)).toThrow(/tile 1 has a bad glyph/);
@@ -86,5 +88,17 @@ describe("findTileGlyph", () => {
       const horizontalFlipFlag = 0x80000000;
       expect(findTileGlyph(map, (horizontalFlipFlag | 1) >>> 0)).toEqual(grassGlyph);
     });
+  });
+});
+
+describe("listTileTerrains", () => {
+  it("names a cell's terrain from the top layer down, skipping empty cells", () => {
+    const mapData = makeMapData(["ground", "walls"]);
+    mapData.tilesets[0]?.tiles.push({ id: 1, type: "wall", properties: [] });
+    const wallsLayer = mapData.layers[1];
+    if (wallsLayer && "data" in wallsLayer) wallsLayer.data = [2, 0];
+    const map = parseTiledMap(mapData, ["ground", "walls"], PLACES);
+    expect(listTileTerrains(map, { x: 0, y: 0 })).toEqual(["wall", "grass"]);
+    expect(listTileTerrains(map, { x: 1, y: 0 })).toEqual([]);
   });
 });

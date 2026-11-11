@@ -1,4 +1,4 @@
-import { glyphSchema, type Glyph } from "@village/shared";
+import { glyphSchema, type Glyph, type Position } from "@village/shared";
 
 /** The parts of a Tiled map the village view draws: size, one tileset, tile layers and places. */
 export interface TiledMap {
@@ -24,6 +24,8 @@ export interface TiledTileset {
   firstGid: number;
   /** Each tile's glyph, by its id within the tileset; tiles without one aren't drawn. */
   glyphsByTileId: ReadonlyMap<number, Glyph>;
+  /** Each tile's Tiled type ("grass", "stone_floor"), by its id within the tileset. */
+  terrainsByTileId: ReadonlyMap<number, string>;
 }
 
 export interface TiledTileLayer {
@@ -67,18 +69,29 @@ function parseTileGlyph(tile: Record<string, unknown>): [number, Glyph] | null {
   return [tile.id, parsed.data];
 }
 
+/** Tiled calls a tile's type `type`, or `class` from version 1.9 on. */
+function parseTileTerrain(tile: Record<string, unknown>): [number, string] | null {
+  const terrain = [tile.type, tile.class].find(
+    (value): value is string => typeof value === "string" && value !== "",
+  );
+  if (terrain === undefined || typeof tile.id !== "number") return null;
+  return [tile.id, terrain];
+}
+
 function parseTileset(tilesets: unknown[]): TiledTileset {
   const firstTileset: unknown = tilesets[0];
   if (!isRecord(firstTileset) || !Array.isArray(firstTileset.tiles)) {
     throw new Error("Map file has no embedded tileset with tile properties");
   }
-  const tileGlyphs = firstTileset.tiles
-    .filter((tile): tile is Record<string, unknown> => isRecord(tile))
-    .map(parseTileGlyph)
-    .filter((entry) => entry !== null);
+  const tiles = firstTileset.tiles.filter((tile): tile is Record<string, unknown> =>
+    isRecord(tile),
+  );
+  const tileGlyphs = tiles.map(parseTileGlyph).filter((entry) => entry !== null);
+  const tileTerrains = tiles.map(parseTileTerrain).filter((entry) => entry !== null);
   return {
     firstGid: readNumber(firstTileset, "firstgid", 1),
     glyphsByTileId: new Map(tileGlyphs),
+    terrainsByTileId: new Map(tileTerrains),
   };
 }
 
@@ -148,9 +161,25 @@ export function parseTiledMap(
   return { width, height, tileWidth, tileHeight, tileset, tileLayers, places };
 }
 
+function findTileId(map: TiledMap, rawGid: number): number | null {
+  const tileId = (rawGid & GID_FLAG_BITS_MASK) - map.tileset.firstGid;
+  return tileId < 0 ? null : tileId;
+}
+
 /** The glyph a cell's tile is drawn with, or null for an empty cell. */
 export function findTileGlyph(map: TiledMap, rawGid: number): Glyph | null {
-  const tileId = (rawGid & GID_FLAG_BITS_MASK) - map.tileset.firstGid;
-  if (tileId < 0) return null;
+  const tileId = findTileId(map, rawGid);
+  if (tileId === null) return null;
   return map.tileset.glyphsByTileId.get(tileId) ?? null;
+}
+
+/** The terrain types at a map cell, top layer first ("wall", then "stone_floor"). */
+export function listTileTerrains(map: TiledMap, position: Position): string[] {
+  const cellIndex = position.y * map.width + position.x;
+  const terrains = [...map.tileLayers].reverse().flatMap((layer) => {
+    const tileId = findTileId(map, layer.gids[cellIndex] ?? 0);
+    const terrain = tileId === null ? undefined : map.tileset.terrainsByTileId.get(tileId);
+    return terrain === undefined ? [] : [terrain];
+  });
+  return [...new Set(terrains)];
 }

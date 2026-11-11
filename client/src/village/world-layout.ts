@@ -6,6 +6,7 @@ import { computeMotionPosition, type AgentMotion } from "./agent-motion";
 import { layOutBubbleStacks, type BubbleStackBox } from "./bubble-layout";
 import { computeWorldTransform, mapToScreen, type Camera, type Size } from "./camera";
 import type { TiledPlace } from "./tiled-map";
+import { tileCenter } from "./village-geometry";
 
 /** The marker figure's height in map pixels; bubbles and cues sit above it. */
 export const FIGURE_SIZE = 16;
@@ -40,7 +41,7 @@ export function useElementRegistry<
 /**
  * The DOM the frame loop moves. The map layer is scaled by the camera; everything else is drawn
  * in screen pixels at a position taken from the map, so text stays readable at any zoom. Thought
- * clouds ride in the bubble stacks; the hover card is a single element placed beside its agent.
+ * clouds ride in the bubble stacks; the hover card is a single element placed beside its agent, the tile card beside its tile.
  */
 export interface WorldElements {
   motions: Map<string, AgentMotion>;
@@ -51,6 +52,7 @@ export interface WorldElements {
   placeLabels: ElementRegistry;
   linkLines: ElementRegistry<SVGLineElement>;
   hoverCard: { current: HTMLElement | null };
+  tileCard: { current: HTMLElement | null };
 }
 
 /** What the frame loop needs from the latest render. */
@@ -58,6 +60,9 @@ export interface WorldScene {
   places: readonly TiledPlace[];
   links: readonly ConversationLink[];
   hoveredAgentId: string | null;
+  /** The tile whose card is shown, in tile coordinates. */
+  inspectedTile: Position | null;
+  tileSize: number;
 }
 
 export interface WorldFrame {
@@ -173,7 +178,24 @@ export function clampIntoView(
   return Math.max(margin, Math.min(start, furthestStart));
 }
 
-/** Puts the hover card beside its agent, flipping to the left when it would run off the right. */
+/**
+ * Puts a card beside a screen point, flipping to the left when it would run off the right;
+ * `clearance` keeps it off the figure or tile it describes.
+ */
+function placeCardBeside(card: HTMLElement, anchor: Position, clearance: number, view: Size): void {
+  const { hoverCardViewMarginPx } = clientConfig.village;
+  const width = card.offsetWidth;
+  const height = card.offsetHeight;
+  const rightSideX = anchor.x + clearance;
+  const fitsOnRight = rightSideX + width + hoverCardViewMarginPx <= view.width;
+  const x = fitsOnRight ? rightSideX : anchor.x - clearance - width;
+  placeElement(
+    card,
+    clampIntoView(x, width, view.width, hoverCardViewMarginPx),
+    clampIntoView(anchor.y - height / 2, height, view.height, hoverCardViewMarginPx),
+  );
+}
+
 function layOutHoverCard(
   world: WorldElements,
   scene: WorldScene,
@@ -183,17 +205,17 @@ function layOutHoverCard(
   const card = world.hoverCard.current;
   const anchor = scene.hoveredAgentId ? screenPositions.get(scene.hoveredAgentId) : undefined;
   if (!card || !anchor) return;
-  const { hoverCardOffsetPx, hoverCardViewMarginPx } = clientConfig.village;
-  const width = card.offsetWidth;
-  const height = card.offsetHeight;
-  const rightSideX = anchor.x + hoverCardOffsetPx;
-  const fitsOnRight = rightSideX + width + hoverCardViewMarginPx <= frame.view.width;
-  const x = fitsOnRight ? rightSideX : anchor.x - hoverCardOffsetPx - width;
-  placeElement(
-    card,
-    clampIntoView(x, width, frame.view.width, hoverCardViewMarginPx),
-    clampIntoView(anchor.y - height / 2, height, frame.view.height, hoverCardViewMarginPx),
-  );
+  placeCardBeside(card, anchor, clientConfig.village.hoverCardOffsetPx, frame.view);
+}
+
+function layOutTileCard(world: WorldElements, scene: WorldScene, frame: WorldFrame): void {
+  const card = world.tileCard.current;
+  if (!card || !scene.inspectedTile) return;
+  const center = tileCenter(scene.inspectedTile, scene.tileSize);
+  const anchor = mapToScreen(center, frame.camera, frame.view);
+  const clearance =
+    (scene.tileSize / 2) * frame.camera.zoom + clientConfig.village.hoverCardOffsetPx;
+  placeCardBeside(card, anchor, clearance, frame.view);
 }
 
 /** Applies the camera to the map layer and moves every screen-space element for this frame. */
@@ -214,6 +236,7 @@ export function layOutWorld(world: WorldElements, scene: WorldScene, frame: Worl
   layOutLinks(world, scene, screenPositions);
   layOutPlaceLabels(world, scene, frame);
   layOutHoverCard(world, scene, frame, screenPositions);
+  layOutTileCard(world, scene, frame);
 }
 
 /** Runs `renderFrame` every animation frame while mounted. */

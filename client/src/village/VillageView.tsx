@@ -169,6 +169,7 @@ export function VillageView({
             speechBubbles={state.speechBubbles}
             thoughtsByAgent={thoughtsByAgent}
             timeSettings={state.timeSettings}
+            currentTick={state.clock.tick}
             inspectedAgentId={state.inspectedAgentId}
             highlightedAgentIds={highlightedAgentIds}
             perceptionView={selectPerceptionView(state, isDebugOverlayOn)}

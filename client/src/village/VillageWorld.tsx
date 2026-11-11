@@ -23,8 +23,10 @@ import { EntityConditionOverlays } from "./EntityConditionOverlays";
 import { EntityGlyphs } from "./EntityGlyphs";
 import type { GlyphPainter } from "./glyph-painter";
 import { TileCanvas } from "./TileCanvas";
+import { TileCard, TileHighlight } from "./TileCard";
 import type { TiledMap } from "./tiled-map";
 import { useHoveredAgent } from "./use-hovered-agent";
+import { useInspectedTile } from "./use-inspected-tile";
 import type { CameraControls } from "./use-camera-rig";
 import { tileCenter } from "./village-geometry";
 import {
@@ -46,6 +48,7 @@ interface VillageWorldProps {
   speechBubbles: SpeechBubble[];
   thoughtsByAgent: ReadonlyMap<string, VisibleThought>;
   timeSettings: SimTimeSettings;
+  currentTick: number;
   inspectedAgentId: string | null;
   highlightedAgentIds: readonly string[];
   perceptionView: PerceptionView;
@@ -84,6 +87,7 @@ function useWorldElements(): WorldElements {
   const linkLines = useElementRegistry<SVGLineElement>();
   const mapLayer = useRef<HTMLDivElement | null>(null);
   const hoverCard = useRef<HTMLElement | null>(null);
+  const tileCard = useRef<HTMLElement | null>(null);
   const [motions] = useState(() => new Map<string, AgentMotion>());
   return useMemo(
     () => ({
@@ -95,6 +99,7 @@ function useWorldElements(): WorldElements {
       placeLabels,
       linkLines,
       hoverCard,
+      tileCard,
     }),
     [motions, markers, bubbleStacks, leaderLines, placeLabels, linkLines],
   );
@@ -150,7 +155,28 @@ export function VillageWorld(props: VillageWorldProps) {
   const overheadAgentIds = [
     ...new Set([...bubblesBySpeaker.keys(), ...props.thoughtsByAgent.keys()]),
   ];
-  const sceneRef = useRef<WorldScene>({ places: [], links: [], hoveredAgentId: null });
+  const tileInspector = useInspectedTile({
+    map,
+    agents,
+    entities: props.entities,
+    definitions: props.itemDefinitions,
+    currentTick: props.currentTick,
+    timeSettings: props.timeSettings,
+  });
+  const { shownTile } = tileInspector;
+  const setTileCardElement = useCallback(
+    (element: HTMLElement | null) => {
+      world.tileCard.current = element;
+    },
+    [world],
+  );
+  const sceneRef = useRef<WorldScene>({
+    places: [],
+    links: [],
+    hoveredAgentId: null,
+    inspectedTile: null,
+    tileSize: map.tileWidth,
+  });
   const followedAgentIdRef = useRef(inspectedAgentId);
 
   useAgentMotions(world, agents, map.tileWidth, props.moveDurationMs);
@@ -179,6 +205,8 @@ export function VillageWorld(props: VillageWorldProps) {
       places: visiblePlaces,
       links: props.conversationLinks,
       hoveredAgentId: hoveredAgent?.id ?? null,
+      inspectedTile: shownTile,
+      tileSize: map.tileWidth,
     };
     followedAgentIdRef.current = inspectedAgentId;
     renderFrame(performance.now());
@@ -192,6 +220,7 @@ export function VillageWorld(props: VillageWorldProps) {
         className="village-world"
         ref={world.mapLayer}
         style={{ width: mapPixelWidth, height: mapPixelHeight }}
+        {...tileInspector.mapPointerHandlers}
       >
         <TileCanvas map={map} glyphPainter={props.glyphPainter} />
         <EntityGlyphs
@@ -204,6 +233,11 @@ export function VillageWorld(props: VillageWorldProps) {
         <EntityConditionOverlays
           entities={props.entities}
           definitions={props.conditionDefinitions}
+          tileSize={map.tileWidth}
+        />
+        <TileHighlight
+          tile={shownTile}
+          isPinned={tileInspector.isPinned}
           tileSize={map.tileWidth}
         />
         {props.perceptionView && (
@@ -259,6 +293,13 @@ export function VillageWorld(props: VillageWorldProps) {
           color={hoveredAgent ? (agentColors.get(hoveredAgent.id) ?? "white") : "white"}
           timeSettings={props.timeSettings}
           cardRef={setHoverCardElement}
+        />
+        <TileCard
+          inspection={tileInspector.inspection}
+          isPinned={tileInspector.isPinned}
+          timeSettings={props.timeSettings}
+          onClose={tileInspector.unpin}
+          cardRef={setTileCardElement}
         />
       </div>
     </>
