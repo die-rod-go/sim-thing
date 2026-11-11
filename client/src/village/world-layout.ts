@@ -64,8 +64,6 @@ export interface WorldScene {
   places: readonly TiledPlace[];
   links: readonly ConversationLink[];
   hoveredAgentId: string | null;
-  /** Higher for agents whose latest shown speech came later; absent for agents only thinking. */
-  speechOrderByAgent: ReadonlyMap<string, number>;
   /** The tile whose card is shown, in tile coordinates. */
   inspectedTile: Position | null;
   tileSize: number;
@@ -168,7 +166,6 @@ function placeLeaderLine(
  */
 function layOutBubbles(
   world: WorldElements,
-  speechOrderByAgent: ReadonlyMap<string, number>,
   screenPositions: ReadonlyMap<string, Position>,
   scale: number,
 ): void {
@@ -186,7 +183,6 @@ function layOutBubbles(
     if (!anchor) continue;
     stacks.push({
       agentId,
-      speechOrder: speechOrderByAgent.get(agentId) ?? Number.NEGATIVE_INFINITY,
       anchorX: anchor.x,
       anchorBottom: anchor.y - lift,
       width: stackElement.offsetWidth,
@@ -285,7 +281,7 @@ export function layOutWorld(world: WorldElements, scene: WorldScene, frame: Worl
   if (world.mapLayer.current) {
     world.mapLayer.current.style.transform = computeWorldTransform(frame.camera, frame.view);
   }
-  layOutBubbles(world, scene.speechOrderByAgent, screenPositions, scale);
+  layOutBubbles(world, screenPositions, scale);
   layOutMarkers(world, screenPositions, scale);
   layOutLinks(world, scene, screenPositions);
   layOutPlaceLabels(world, scene, frame);

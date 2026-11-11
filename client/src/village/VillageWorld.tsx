@@ -174,7 +174,6 @@ export function VillageWorld(props: VillageWorldProps) {
     places: [],
     links: [],
     hoveredAgentId: null,
-    speechOrderByAgent: new Map(),
     inspectedTile: null,
     tileSize: map.tileWidth,
   });
@@ -206,7 +205,6 @@ export function VillageWorld(props: VillageWorldProps) {
       places: visiblePlaces,
       links: props.conversationLinks,
       hoveredAgentId: hoveredAgent?.id ?? null,
-      speechOrderByAgent: new Map(shownBubbles.map((bubble, index) => [bubble.agentId, index])),
       inspectedTile: shownTile,
       tileSize: map.tileWidth,
     };
