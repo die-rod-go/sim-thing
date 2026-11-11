@@ -7,18 +7,34 @@ export interface BubbleStackBox {
   height: number;
 }
 
+/** Where a stack ends up: its horizontal center and its bottom edge, in screen pixels. */
+export interface BubbleStackPlacement {
+  centerX: number;
+  bottom: number;
+}
+
+export interface BubbleLayoutSpacing {
+  gap: number;
+  /** How far a stack may slide sideways off its speaker before it is lifted instead. */
+  maxSideShift: number;
+  /** Speakers closer than this horizontally count as one column and stack vertically. */
+  sameColumnTolerance: number;
+}
+
 interface PlacedBox {
+  anchorX: number;
   left: number;
   right: number;
   top: number;
   bottom: number;
 }
 
-function toPlacedBox(stack: BubbleStackBox, bottom: number): PlacedBox {
+function toPlacedBox(stack: BubbleStackBox, centerX: number, bottom: number): PlacedBox {
   const halfWidth = stack.width / 2;
   return {
-    left: stack.anchorX - halfWidth,
-    right: stack.anchorX + halfWidth,
+    anchorX: stack.anchorX,
+    left: centerX - halfWidth,
+    right: centerX + halfWidth,
     top: bottom - stack.height,
     bottom,
   };
@@ -33,30 +49,76 @@ function doBoxesOverlap(first: PlacedBox, second: PlacedBox, gap: number): boole
   );
 }
 
+function findOverlapping(
+  stack: BubbleStackBox,
+  centerX: number,
+  bottom: number,
+  placedBoxes: readonly PlacedBox[],
+  gap: number,
+): PlacedBox[] {
+  const candidate = toPlacedBox(stack, centerX, bottom);
+  return placedBoxes.filter((placed) => doBoxesOverlap(candidate, placed, gap));
+}
+
+function findNearestByAnchor(anchorX: number, boxes: readonly PlacedBox[]): PlacedBox {
+  return boxes.reduce((nearest, box) =>
+    Math.abs(box.anchorX - anchorX) < Math.abs(nearest.anchorX - anchorX) ? box : nearest,
+  );
+}
+
 /**
- * Places every stack so none overlap: stacks nearest the bottom of the screen keep their spot and
- * the rest are lifted just above whatever they would cover. Returns each stack's bottom edge.
+ * Slides the stack sideways at this height, away from the nearest speaker it would cover, until it
+ * fits. Returns null when it would have to slide too far, or when that speaker shares its column,
+ * since neither side is then "away".
  */
-export function layOutBubbleStacks(stacks: BubbleStackBox[], gap: number): Map<string, number> {
+function findSideSlot(
+  stack: BubbleStackBox,
+  bottom: number,
+  placedBoxes: readonly PlacedBox[],
+  spacing: BubbleLayoutSpacing,
+): number | null {
+  const halfWidth = stack.width / 2;
+  let overlapping = findOverlapping(stack, stack.anchorX, bottom, placedBoxes, spacing.gap);
+  if (overlapping.length === 0) return stack.anchorX;
+  const nearest = findNearestByAnchor(stack.anchorX, overlapping);
+  if (Math.abs(nearest.anchorX - stack.anchorX) < spacing.sameColumnTolerance) return null;
+  const slidesRight = stack.anchorX > nearest.anchorX;
+  let centerX = stack.anchorX;
+  while (overlapping.length > 0) {
+    centerX = slidesRight
+      ? Math.max(...overlapping.map((placed) => placed.right)) + spacing.gap + halfWidth
+      : Math.min(...overlapping.map((placed) => placed.left)) - spacing.gap - halfWidth;
+    if (Math.abs(centerX - stack.anchorX) > spacing.maxSideShift) return null;
+    overlapping = findOverlapping(stack, centerX, bottom, placedBoxes, spacing.gap);
+  }
+  return centerX;
+}
+
+/**
+ * Places every stack so none overlap. Stacks nearest the bottom of the screen keep their spot; the
+ * rest slide sideways to make room when their speaker stands apart, or are lifted just above
+ * whatever they would cover when they share a column or would slide too far.
+ */
+export function layOutBubbleStacks(
+  stacks: BubbleStackBox[],
+  spacing: BubbleLayoutSpacing,
+): Map<string, BubbleStackPlacement> {
   const ordered = [...stacks].sort(
     (first, second) =>
       second.anchorBottom - first.anchorBottom || first.agentId.localeCompare(second.agentId),
   );
   const placedBoxes: PlacedBox[] = [];
-  const bottomsByAgent = new Map<string, number>();
+  const placementsByAgent = new Map<string, BubbleStackPlacement>();
   for (const stack of ordered) {
     let bottom = stack.anchorBottom;
-    let overlapping = placedBoxes.filter((placed) =>
-      doBoxesOverlap(toPlacedBox(stack, bottom), placed, gap),
-    );
-    while (overlapping.length > 0) {
-      bottom = Math.min(...overlapping.map((placed) => placed.top)) - gap;
-      overlapping = placedBoxes.filter((placed) =>
-        doBoxesOverlap(toPlacedBox(stack, bottom), placed, gap),
-      );
+    let centerX = findSideSlot(stack, bottom, placedBoxes, spacing);
+    while (centerX === null) {
+      const covered = findOverlapping(stack, stack.anchorX, bottom, placedBoxes, spacing.gap);
+      bottom = Math.min(...covered.map((placed) => placed.top)) - spacing.gap;
+      centerX = findSideSlot(stack, bottom, placedBoxes, spacing);
     }
-    placedBoxes.push(toPlacedBox(stack, bottom));
-    bottomsByAgent.set(stack.agentId, bottom);
+    placedBoxes.push(toPlacedBox(stack, centerX, bottom));
+    placementsByAgent.set(stack.agentId, { centerX, bottom });
   }
-  return bottomsByAgent;
+  return placementsByAgent;
 }

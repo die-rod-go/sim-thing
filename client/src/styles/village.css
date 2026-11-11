@@ -318,8 +318,7 @@
 .speech-leader-line {
   position: absolute;
   top: 100%;
-  left: 50%;
-  transform: translateX(-50%);
+  transform-origin: 50% 0;
   background: #ffffff;
 }
 

@@ -36,6 +36,12 @@ export const clientConfig = {
     speechBubbleSpeakerTint: 0.18,
     /** Space between the top of a figure and the bottom of its bubble stack. */
     speechBubbleOffsetAboveFigure: 14,
+    /** How far a stack may slide sideways to clear a neighbor's before it is lifted instead. */
+    speechBubbleMaxSideShift: 260,
+    /** Speakers closer than this horizontally share a column, so their stacks pile up instead. */
+    speechBubbleSameColumnTolerance: 1,
+    /** How far in from a stack's corners a sideways leader line may start. */
+    speechBubbleLeaderLineInset: 8,
     /** Agents are drawn as this glyph of the sheet (a smiley face) in their own color. */
     agentGlyphIndex: 1,
     /** A one-glyph-pixel outline around each agent, so it stands out from the tiles under it. */
