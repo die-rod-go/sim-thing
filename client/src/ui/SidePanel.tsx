@@ -1,72 +1,59 @@
-import { useState } from "react";
-import { findAgent, type ClientState } from "../state/client-state";
+import { useMemo, useState } from "react";
+import { clientConfig } from "../client-config";
+import { buildAgentColors } from "../format/agent-colors";
+import { groupConversations } from "../format/conversations";
+import type { ClientState } from "../state/client-state";
+import { CharacterSheet } from "./CharacterSheet";
+import { ConversationsTab } from "./ConversationsTab";
 import { EventFeed } from "./EventFeed";
-import { InspectorTab } from "./InspectorTab";
-import { MemoryTab } from "./MemoryTab";
-import { PromptsTab } from "./PromptsTab";
-import { EmptyNote } from "./widgets";
+import { PanelContext, type PanelContextValue } from "./panel-context";
+import { Roster } from "./Roster";
+import { TabBar } from "./widgets";
 
-type TabName = "inspector" | "memory" | "prompts" | "events";
+type PanelTabName = "character" | "conversations" | "events";
 
-const TAB_LABELS: Record<TabName, string> = {
-  inspector: "Inspector",
-  memory: "Memory",
-  prompts: "Prompts",
-  events: "Events",
-};
-
-const TAB_NAMES = Object.keys(TAB_LABELS) as TabName[];
+const PANEL_TABS: readonly { name: PanelTabName; label: string }[] = [
+  { name: "character", label: "Character" },
+  { name: "conversations", label: "Conversations" },
+  { name: "events", label: "Events" },
+];
 
 interface SidePanelProps {
   state: ClientState;
   onSelectAgent: (agentId: string | null) => void;
 }
 
-function SelectedAgentTab({ tab, state }: { tab: TabName; state: ClientState }) {
-  const agent = findAgent(state, state.inspectedAgentId);
-  if (!agent) return <EmptyNote>Click an agent on the map or in the list above.</EmptyNote>;
-  const detail = state.agentDetail?.agentId === agent.id ? state.agentDetail : null;
-  if (tab === "inspector") return <InspectorTab agent={agent} detail={detail} state={state} />;
-  if (!detail) return <EmptyNote>Waiting for {agent.name}'s details from the server…</EmptyNote>;
-  if (tab === "memory") return <MemoryTab detail={detail} state={state} />;
-  return <PromptsTab detail={detail} state={state} />;
-}
-
 export function SidePanel({ state, onSelectAgent }: SidePanelProps) {
-  const [activeTab, setActiveTab] = useState<TabName>("inspector");
+  const [activeTab, setActiveTab] = useState<PanelTabName>("character");
+  const agentColors = useMemo(() => buildAgentColors(state.agents), [state.agents]);
+  const threads = useMemo(
+    () => groupConversations(state.events, clientConfig.conversations.maxGapTicks),
+    [state.events],
+  );
+  const contextValue = useMemo<PanelContextValue>(
+    () => ({
+      state,
+      agentColors,
+      threads,
+      selectAgent: (agentId) => {
+        onSelectAgent(agentId);
+        if (agentId !== null) setActiveTab("character");
+      },
+    }),
+    [state, agentColors, threads, onSelectAgent],
+  );
 
   return (
-    <aside className="side-panel">
-      <div className="roster">
-        {state.agents.map((agent) => (
-          <button
-            key={agent.id}
-            className={agent.id === state.inspectedAgentId ? "chip is-active" : "chip"}
-            onClick={() => onSelectAgent(agent.id === state.inspectedAgentId ? null : agent.id)}
-          >
-            {agent.name}
-          </button>
-        ))}
-        {state.agents.length === 0 && <span className="muted">No agents yet</span>}
-      </div>
-      <nav className="tabs">
-        {TAB_NAMES.map((tabName) => (
-          <button
-            key={tabName}
-            className={tabName === activeTab ? "tab is-active" : "tab"}
-            onClick={() => setActiveTab(tabName)}
-          >
-            {TAB_LABELS[tabName]}
-          </button>
-        ))}
-      </nav>
-      <div className="tab-body">
-        {activeTab === "events" ? (
-          <EventFeed state={state} />
-        ) : (
-          <SelectedAgentTab tab={activeTab} state={state} />
-        )}
-      </div>
-    </aside>
+    <PanelContext.Provider value={contextValue}>
+      <aside className="side-panel">
+        <Roster />
+        <TabBar className="tabs" tabs={PANEL_TABS} activeTab={activeTab} onChange={setActiveTab} />
+        <div className="tab-body">
+          {activeTab === "character" && <CharacterSheet />}
+          {activeTab === "conversations" && <ConversationsTab />}
+          {activeTab === "events" && <EventFeed />}
+        </div>
+      </aside>
+    </PanelContext.Provider>
   );
 }

@@ -1,53 +1,98 @@
 import type { ReactNode } from "react";
+import type { NeedName, TraitName } from "@village/shared";
+import { describeNeed, describeTrait } from "../format/character-sheet";
 import { formatPercent } from "../format/formatters";
+import { usePanelContext } from "./panel-context";
 
-const TRAIT_SLIDER_STEP = 0.01;
 const PERCENT = 100;
+const HALF = 50;
 
-export function MeterBar({ label, value }: { label: string; value: number }) {
+/** A need as a colored word with a thin bar, the way a character sheet would phrase it. */
+export function NeedRow({ needName, value }: { needName: NeedName; value: number }) {
+  const level = describeNeed(needName, value);
   const clampedValue = Math.min(Math.max(value, 0), 1);
   return (
-    <div className="meter">
-      <span className="meter-label">{label}</span>
-      <div className="meter-track">
-        <div className="meter-fill" style={{ width: `${clampedValue * PERCENT}%` }} />
-      </div>
-      <span className="meter-value">{formatPercent(clampedValue)}</span>
+    <div className="need-row" title={`${needName} ${formatPercent(clampedValue)}`}>
+      <span className="need-name">{needName}</span>
+      <span className={`need-word level-${level.levelIndex}`}>{level.word}</span>
+      <span className="need-track">
+        <span
+          className={`need-fill level-${level.levelIndex}`}
+          style={{ width: `${clampedValue * PERCENT}%` }}
+        />
+      </span>
     </div>
   );
 }
 
-export function TraitSlider({ label, value }: { label: string; value: number }) {
+/** A trait as a phrase over a bar that grows left or right from the middle. */
+export function TraitRow({ traitName, value }: { traitName: TraitName; value: number }) {
+  const description = describeTrait(traitName, value);
+  const clampedValue = Math.min(Math.max(value, -1), 1);
+  const extent = Math.abs(clampedValue) * HALF;
+  const fillStyle =
+    clampedValue < 0
+      ? { left: `${HALF - extent}%`, width: `${extent}%` }
+      : { left: `${HALF}%`, width: `${extent}%` };
   return (
-    <label className="trait">
-      <span className="meter-label">{label}</span>
-      <input
-        type="range"
-        min={-1}
-        max={1}
-        step={TRAIT_SLIDER_STEP}
-        value={value}
-        readOnly
-        disabled
-      />
-      <span className="meter-value">{value.toFixed(2)}</span>
-    </label>
+    <div className="trait-row" title={`${traitName} ${value.toFixed(2)}`}>
+      <span className="trait-name">{traitName}</span>
+      <span className={`trait-phrase intensity-${description.intensity}`}>
+        {description.phrase}
+      </span>
+      <span className="trait-track">
+        <span className="trait-midline" />
+        <span className="trait-fill" style={fillStyle} />
+      </span>
+    </div>
   );
 }
 
 export function StrengthBar({ strength }: { strength: number }) {
   return (
     <span className="strength" title={`strength ${strength.toFixed(2)}`}>
-      <span className="strength-fill" style={{ width: `${strength * PERCENT}%` }} />
-      <span className="strength-number">{strength.toFixed(2)}</span>
+      <span className="strength-fill" style={{ height: `${strength * PERCENT}%` }} />
     </span>
   );
 }
 
-export function PanelSection({ title, children }: { title: string; children: ReactNode }) {
+/** An agent's name in their map color; clicking it opens their character sheet. */
+export function AgentName({ agentId, name }: { agentId: string; name: string }) {
+  const { agentColors, selectAgent } = usePanelContext();
+  const color = agentColors.get(agentId);
+  if (color === undefined) return <span className="agent-name">{name}</span>;
+  return (
+    <button
+      className="agent-name is-link"
+      style={{ color }}
+      onClick={() => selectAgent(agentId)}
+      title={`Open ${name}'s sheet`}
+    >
+      {name}
+    </button>
+  );
+}
+
+export function ColorDot({ agentId }: { agentId: string }) {
+  const { agentColors } = usePanelContext();
+  return <span className="color-dot" style={{ background: agentColors.get(agentId) }} />;
+}
+
+export function PanelSection({
+  title,
+  aside,
+  children,
+}: {
+  title: string;
+  aside?: ReactNode;
+  children: ReactNode;
+}) {
   return (
     <section className="panel-section">
-      <h3>{title}</h3>
+      <h3>
+        <span>{title}</span>
+        {aside !== undefined && <span className="section-aside">{aside}</span>}
+      </h3>
       {children}
     </section>
   );
@@ -55,4 +100,30 @@ export function PanelSection({ title, children }: { title: string; children: Rea
 
 export function EmptyNote({ children }: { children: ReactNode }) {
   return <p className="muted empty-note">{children}</p>;
+}
+
+export function TabBar<TabName extends string>({
+  tabs,
+  activeTab,
+  onChange,
+  className,
+}: {
+  tabs: readonly { name: TabName; label: ReactNode }[];
+  activeTab: TabName;
+  onChange: (tab: TabName) => void;
+  className: string;
+}) {
+  return (
+    <nav className={className}>
+      {tabs.map((tab) => (
+        <button
+          key={tab.name}
+          className={tab.name === activeTab ? "tab is-active" : "tab"}
+          onClick={() => onChange(tab.name)}
+        >
+          {tab.label}
+        </button>
+      ))}
+    </nav>
+  );
 }

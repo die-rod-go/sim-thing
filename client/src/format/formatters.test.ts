@@ -1,7 +1,6 @@
 import { describe, expect, it } from "vitest";
 import {
   computeTickDurationMs,
-  describeAction,
   formatCount,
   formatLatency,
   formatMinutesAgo,
@@ -24,13 +23,6 @@ describe("formatters", () => {
   it("shows sub-second latency in milliseconds and longer in seconds", () => {
     expect(formatLatency(930)).toBe("930 ms");
     expect(formatLatency(2450)).toBe("2.5 s");
-  });
-
-  it("describes an idle agent and an action with a target", () => {
-    expect(describeAction(null)).toBe("idle");
-    expect(describeAction({ kind: "walk_to", target: "bakery", endsAtTick: null })).toBe(
-      "walk_to → bakery",
-    );
   });
 
   it("matches tick duration to speed and caps it", () => {

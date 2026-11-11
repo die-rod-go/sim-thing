@@ -1,13 +1,8 @@
 import { formatSimTime, type AgentDetailMessage, type LlmCallRecord } from "@village/shared";
 import { formatCount, formatLatency, formatParsedReply } from "../format/formatters";
 import { splitPromptSections } from "../format/split-prompt-sections";
-import type { ClientState } from "../state/client-state";
+import { usePanelContext } from "./panel-context";
 import { EmptyNote } from "./widgets";
-
-interface PromptsTabProps {
-  detail: AgentDetailMessage;
-  state: ClientState;
-}
 
 function PromptSections({ prompt }: { prompt: string }) {
   return (
@@ -22,7 +17,8 @@ function PromptSections({ prompt }: { prompt: string }) {
   );
 }
 
-function LlmCallEntry({ call, state }: { call: LlmCallRecord; state: ClientState }) {
+function LlmCallEntry({ call }: { call: LlmCallRecord }) {
+  const { state } = usePanelContext();
   const totalTokens = call.promptTokens + call.completionTokens;
   return (
     <details className={call.error ? "llm-call has-error" : "llm-call"}>
@@ -69,13 +65,13 @@ function LlmCallEntry({ call, state }: { call: LlmCallRecord; state: ClientState
   );
 }
 
-export function PromptsTab({ detail, state }: PromptsTabProps) {
+export function PromptsTab({ detail }: { detail: AgentDetailMessage }) {
   const calls = [...detail.llmCalls].sort((first, second) => second.id - first.id);
   if (calls.length === 0) return <EmptyNote>No LLM calls for {detail.agent.name} yet.</EmptyNote>;
   return (
     <div className="prompts-tab">
       {calls.map((call) => (
-        <LlmCallEntry key={call.id} call={call} state={state} />
+        <LlmCallEntry key={call.id} call={call} />
       ))}
     </div>
   );

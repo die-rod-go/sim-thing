@@ -1,22 +1,77 @@
 import { useMemo, useState } from "react";
-import { formatSimTime } from "@village/shared";
-import { describeEvent, filterEvents, listEventPlaces } from "../format/event-feed";
-import type { ClientState } from "../state/client-state";
-import { EmptyNote } from "./widgets";
+import type { WorldEvent } from "@village/shared";
+import { formatClockTime } from "../format/character-sheet";
+import {
+  categorizeEvent,
+  EVENT_CATEGORIES,
+  filterEvents,
+  groupEventsByHour,
+  listEventPlaces,
+  type EventCategory,
+} from "../format/event-feed";
+import { usePanelContext } from "./panel-context";
+import { AgentName, EmptyNote } from "./widgets";
 
 const ALL = "";
 
-export function EventFeed({ state }: { state: ClientState }) {
+const CATEGORY_GLYPHS: Record<EventCategory, string> = {
+  speech: "“",
+  action: "⚒",
+  exchange: "⇄",
+  movement: "→",
+  sleep: "☾",
+};
+
+/** Movement is the bulk of the log and rarely what you are looking for, so it starts hidden. */
+const DEFAULT_CATEGORIES: ReadonlySet<EventCategory> = new Set(
+  EVENT_CATEGORIES.filter((category) => category !== "movement"),
+);
+
+function toggleCategory(
+  categories: ReadonlySet<EventCategory>,
+  category: EventCategory,
+): ReadonlySet<EventCategory> {
+  const next = new Set(categories);
+  if (next.has(category)) next.delete(category);
+  else next.add(category);
+  return next;
+}
+
+function EventLine({ worldEvent }: { worldEvent: WorldEvent }) {
+  const { state } = usePanelContext();
+  const category = categorizeEvent(worldEvent);
+  return (
+    <li className={`feed-item feed-${worldEvent.kind} category-${category}`}>
+      <span className="line-time">{formatClockTime(worldEvent.tick, state.timeSettings)}</span>
+      <span className="feed-glyph" title={category}>
+        {CATEGORY_GLYPHS[category]}
+      </span>
+      <span className="feed-text">
+        <AgentName agentId={worldEvent.actorId} name={worldEvent.actorName} />{" "}
+        {worldEvent.description}
+        <span className="feed-place"> · {worldEvent.place}</span>
+      </span>
+    </li>
+  );
+}
+
+export function EventFeed() {
+  const { state } = usePanelContext();
   const [agentFilter, setAgentFilter] = useState(ALL);
   const [placeFilter, setPlaceFilter] = useState(ALL);
+  const [categories, setCategories] = useState(DEFAULT_CATEGORIES);
   const places = useMemo(() => listEventPlaces(state.events), [state.events]);
-  const visibleEvents = useMemo(
+  const hourGroups = useMemo(
     () =>
-      filterEvents(state.events, {
-        agentId: agentFilter === ALL ? null : agentFilter,
-        place: placeFilter === ALL ? null : placeFilter,
-      }),
-    [state.events, agentFilter, placeFilter],
+      groupEventsByHour(
+        filterEvents(state.events, {
+          agentId: agentFilter === ALL ? null : agentFilter,
+          place: placeFilter === ALL ? null : placeFilter,
+          categories,
+        }),
+        state.timeSettings,
+      ),
+    [state.events, state.timeSettings, agentFilter, placeFilter, categories],
   );
 
   return (
@@ -38,20 +93,29 @@ export function EventFeed({ state }: { state: ClientState }) {
             </option>
           ))}
         </select>
-        <span className="muted">{visibleEvents.length} events</span>
       </div>
-      {visibleEvents.length === 0 && <EmptyNote>No events yet.</EmptyNote>}
-      <ol className="feed-list">
-        {visibleEvents.map((worldEvent) => (
-          <li key={worldEvent.id} className={`feed-item feed-${worldEvent.kind}`}>
-            <span className="feed-time mono">
-              {formatSimTime(worldEvent.tick, state.timeSettings)}
-            </span>
-            <span className="feed-place muted">{worldEvent.place}</span>
-            <span className="feed-text">{describeEvent(worldEvent)}</span>
-          </li>
+      <div className="chip-row">
+        {EVENT_CATEGORIES.map((category) => (
+          <button
+            key={category}
+            className={categories.has(category) ? "chip is-active" : "chip"}
+            onClick={() => setCategories(toggleCategory(categories, category))}
+          >
+            {CATEGORY_GLYPHS[category]} {category}
+          </button>
         ))}
-      </ol>
+      </div>
+      {hourGroups.length === 0 && <EmptyNote>No events match.</EmptyNote>}
+      {hourGroups.map((group) => (
+        <section key={`${group.label}-${group.events[0]?.id ?? 0}`} className="feed-hour">
+          <h4 className="feed-hour-label">{group.label}</h4>
+          <ol className="feed-list">
+            {group.events.map((worldEvent) => (
+              <EventLine key={worldEvent.id} worldEvent={worldEvent} />
+            ))}
+          </ol>
+        </section>
+      ))}
     </div>
   );
 }

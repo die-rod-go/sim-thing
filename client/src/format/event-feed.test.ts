@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 import { makeSampleAgent, makeSampleEvent } from "../fixtures/sample-data";
-import { describeEvent, filterEvents, listEventPlaces } from "./event-feed";
+import { categorizeEvent, filterEvents, groupEventsByHour, listEventPlaces } from "./event-feed";
 
 const ada = makeSampleAgent("ada", "Ada", 0, 0);
 const bob = { ...makeSampleAgent("bob", "Bob", 1, 1), place: "tavern" };
@@ -30,7 +30,21 @@ describe("eventFeed", () => {
     expect(listEventPlaces(events)).toEqual(["square", "tavern"]);
   });
 
-  it("prefixes the actor's name to the description", () => {
-    expect(describeEvent(events[0]!)).toBe('Ada said "Fresh bread here!"');
+  it("hides events whose category is switched off", () => {
+    const walk = { ...makeSampleEvent(4, ada, 4), kind: "walk_started" as const };
+    expect(categorizeEvent(walk)).toBe("movement");
+    const ids = filterEvents([...events, walk], {
+      agentId: null,
+      place: null,
+      categories: new Set(["speech"]),
+    }).map((event) => event.id);
+    expect(ids).toEqual([3, 2, 1]);
+  });
+
+  it("groups consecutive events by sim day and hour", () => {
+    const late = makeSampleEvent(5, ada, 61);
+    const groups = groupEventsByHour([...events, late], { minutesPerTick: 1, startHour: 6 });
+    expect(groups.map((group) => group.label)).toEqual(["Day 1 · 06:00", "Day 1 · 07:00"]);
+    expect(groups[0]?.events).toHaveLength(3);
   });
 });

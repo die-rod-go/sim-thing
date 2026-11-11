@@ -12,7 +12,13 @@
   --danger: #ff6b6b;
   --danger-soft: #3d1c1f;
   --success: #5ad18a;
-  --panel-width: 460px;
+  --level-0: #ff5c5c;
+  --level-1: #ff9f43;
+  --level-2: #e8d06a;
+  --level-3: #9ccf8a;
+  --level-4: #5ad18a;
+  --speech: #cfe3ff;
+  --panel-width: 500px;
   --mono: ui-monospace, "Cascadia Mono", "Consolas", "Menlo", monospace;
   --sans: system-ui, "Segoe UI", Roboto, sans-serif;
   color-scheme: dark;
@@ -190,18 +196,6 @@ button.danger {
   background: var(--surface);
   border-left: 1px solid var(--border);
   min-height: 0;
-}
-
-.roster {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 4px;
-  padding: 8px;
-  border-bottom: 1px solid var(--border);
-}
-
-.chip {
-  border-radius: 12px;
 }
 
 .tabs {

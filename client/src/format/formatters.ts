@@ -1,5 +1,3 @@
-import type { CurrentAction } from "@village/shared";
-
 const MINUTES_PER_HOUR = 60;
 const MILLISECONDS_PER_SECOND = 1000;
 const PERCENT = 100;
@@ -25,11 +23,6 @@ export function formatMinutesAgo(minutes: number): string {
 export function formatLatency(latencyMs: number): string {
   if (latencyMs < MILLISECONDS_PER_SECOND) return `${latencyMs} ms`;
   return `${(latencyMs / MILLISECONDS_PER_SECOND).toFixed(1)} s`;
-}
-
-export function describeAction(action: CurrentAction | null): string {
-  if (action === null) return "idle";
-  return action.target ? `${action.kind} → ${action.target}` : action.kind;
 }
 
 /** Real milliseconds per tick at the given speed, capped so slow speeds stay responsive. */

@@ -109,7 +109,10 @@ function speakRandomLine(): void {
   const volume = pickRandom(VOLUMES);
   const text = pickRandom(LINES);
   broadcast({ type: "said", agentId: agent.id, text, volume, tick: snapshot.clock.tick });
-  broadcast({ type: "event_logged", event: { ...event, description: `said "${text}"` } });
+  broadcast({
+    type: "event_logged",
+    event: { ...event, description: `said "${text}"`, speech: { words: text, volume } },
+  });
 }
 
 function advanceTick(): void {

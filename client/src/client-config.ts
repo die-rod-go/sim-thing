@@ -37,5 +37,40 @@ export const clientConfig = {
 
   ui: {
     maxPersonalityHistoryShown: 50,
+    maxRecentLinesShown: 4,
+    maxPersonNotesShown: 3,
+    maxTagChips: 30,
+  },
+
+  conversations: {
+    /** A line more than this many ticks after the previous one at the same place opens a new thread. */
+    maxGapTicks: 10,
+  },
+
+  /** Words for need levels, from worst to best; `upperBounds` splits 0–1 into those levels. */
+  needLevels: {
+    upperBounds: [0.15, 0.35, 0.55, 0.8],
+    /** Levels at or below this index are flagged in the roster. */
+    alertLevelIndex: 1,
+    words: {
+      hunger: ["starving", "hungry", "peckish", "fed", "full"],
+      energy: ["exhausted", "tired", "drowsy", "rested", "lively"],
+      social: ["desperately lonely", "lonely", "could use company", "connected", "fulfilled"],
+      fun: ["miserably bored", "bored", "restless", "entertained", "delighted"],
+    },
+  },
+
+  /** Words for each trait's low and high end, and how far from 0 each intensity starts. */
+  traitWords: {
+    balancedBelow: 0.15,
+    strongFrom: 0.4,
+    extremeFrom: 0.7,
+    poles: {
+      extraversion: ["reserved", "outgoing"],
+      agreeableness: ["prickly", "warm"],
+      conscientiousness: ["careless", "diligent"],
+      neuroticism: ["calm", "anxious"],
+      openness: ["conventional", "curious"],
+    },
   },
 } as const;
