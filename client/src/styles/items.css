@@ -1,0 +1,113 @@
+/* The item editor builds on the character editor's styles; these cover its denser rows. */
+
+.item-tabs {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px;
+}
+
+.item-tab.is-active {
+  background: var(--accent-soft);
+  border-color: var(--accent);
+}
+
+.effect-fields {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px;
+}
+
+.inline-field,
+.value-input,
+.chip-row,
+.sprite-picker {
+  display: inline-flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 4px;
+}
+
+.inline-label {
+  color: var(--text-muted);
+}
+
+.item-select,
+.item-text {
+  width: auto;
+}
+
+.item-checkbox {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+}
+
+.chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 2px;
+  padding: 0 4px 0 8px;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 12px;
+}
+
+.effect-row,
+.rule-node {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.effect-row {
+  padding: 6px 8px;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  cursor: grab;
+}
+
+.effect-position {
+  color: var(--text-muted);
+}
+
+.effect-actions {
+  margin-left: auto;
+}
+
+.rule-children {
+  padding-left: 16px;
+  border-left: 2px solid var(--border);
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.phrase-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(260px, 1fr));
+  gap: 6px;
+}
+
+.component-name {
+  min-width: 90px;
+}
+
+.sprite-preview {
+  image-rendering: pixelated;
+  border: 1px solid var(--border);
+  background: var(--surface);
+}
+
+.verb-toggle {
+  font-weight: 600;
+}
+
+.item-preview {
+  font-family: monospace;
+}
+
+.item-problems {
+  margin-top: 16px;
+}
