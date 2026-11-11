@@ -39,8 +39,8 @@ export function useElementRegistry<
 
 /**
  * The DOM the frame loop moves. The map layer is scaled by the camera; everything else is drawn
- * in screen pixels at a position taken from the map, so text stays readable at any zoom. A new
- * per-agent overlay (e.g. thought bubbles) can be added as another registry placed like markers.
+ * in screen pixels at a position taken from the map, so text stays readable at any zoom. Thought
+ * clouds ride in the bubble stacks; the hover card is a single element placed beside its agent.
  */
 export interface WorldElements {
   motions: Map<string, AgentMotion>;
@@ -50,12 +50,14 @@ export interface WorldElements {
   leaderLines: ElementRegistry;
   placeLabels: ElementRegistry;
   linkLines: ElementRegistry<SVGLineElement>;
+  hoverCard: { current: HTMLElement | null };
 }
 
 /** What the frame loop needs from the latest render. */
 export interface WorldScene {
   places: readonly TiledPlace[];
   links: readonly ConversationLink[];
+  hoveredAgentId: string | null;
 }
 
 export interface WorldFrame {
@@ -166,6 +168,40 @@ function layOutBubbles(
   }
 }
 
+/** Clamps a box's start so the box stays inside the view, a margin away from either edge. */
+export function clampIntoView(
+  start: number,
+  length: number,
+  viewLength: number,
+  margin: number,
+): number {
+  const furthestStart = viewLength - length - margin;
+  return Math.max(margin, Math.min(start, furthestStart));
+}
+
+/** Puts the hover card beside its agent, flipping to the left when it would run off the right. */
+function layOutHoverCard(
+  world: WorldElements,
+  scene: WorldScene,
+  frame: WorldFrame,
+  screenPositions: ReadonlyMap<string, Position>,
+): void {
+  const card = world.hoverCard.current;
+  const anchor = scene.hoveredAgentId ? screenPositions.get(scene.hoveredAgentId) : undefined;
+  if (!card || !anchor) return;
+  const { hoverCardOffsetPx, hoverCardViewMarginPx } = clientConfig.village;
+  const width = card.offsetWidth;
+  const height = card.offsetHeight;
+  const rightSideX = anchor.x + hoverCardOffsetPx;
+  const fitsOnRight = rightSideX + width + hoverCardViewMarginPx <= frame.view.width;
+  const x = fitsOnRight ? rightSideX : anchor.x - hoverCardOffsetPx - width;
+  placeElement(
+    card,
+    clampIntoView(x, width, frame.view.width, hoverCardViewMarginPx),
+    clampIntoView(anchor.y - height / 2, height, frame.view.height, hoverCardViewMarginPx),
+  );
+}
+
 /** Applies the camera to the map layer and moves every screen-space element for this frame. */
 export function layOutWorld(world: WorldElements, scene: WorldScene, frame: WorldFrame): void {
   const screenPositions = new Map(
@@ -182,6 +218,7 @@ export function layOutWorld(world: WorldElements, scene: WorldScene, frame: Worl
   layOutMarkers(world, screenPositions, scale);
   layOutLinks(world, scene, screenPositions);
   layOutPlaceLabels(world, scene, frame);
+  layOutHoverCard(world, scene, frame, screenPositions);
 }
 
 /** Runs `renderFrame` every animation frame while mounted. */

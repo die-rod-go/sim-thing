@@ -35,12 +35,17 @@ export interface CameraControls {
   pan: (deltaX: number, deltaY: number) => void;
   fit: () => void;
   toggleFollow: () => void;
-  focus: (request: CameraFocusRequest) => void;
+  /** A user focus counts as manual input; an automatic one (director mode) does not. */
+  focus: (request: CameraFocusRequest, origin?: CameraInputOrigin) => void;
 }
+
+export type CameraInputOrigin = "user" | "automatic";
 
 export interface CameraRig {
   /** React state, for button highlights. */
   mode: CameraMode;
+  /** Counts pans, zooms, fits, follows and user focuses, so automatic camera work can yield. */
+  manualInputCount: number;
   controls: CameraControls;
 }
 
@@ -49,12 +54,20 @@ export function useCameraRig(): CameraRig {
   const viewSizeRef = useRef<Size>(NO_SIZE);
   const mapSizeRef = useRef<Size>(NO_SIZE);
   const [mode, setMode] = useState<CameraMode>(initialCameraController.mode);
+  const [manualInputCount, setManualInputCount] = useState(0);
 
-  const update = useCallback((change: (controller: CameraController) => CameraController) => {
-    const next = change(controllerRef.current);
-    controllerRef.current = next;
-    setMode(next.mode);
-  }, []);
+  const update = useCallback(
+    (
+      change: (controller: CameraController) => CameraController,
+      origin: CameraInputOrigin = "user",
+    ) => {
+      const next = change(controllerRef.current);
+      controllerRef.current = next;
+      setMode(next.mode);
+      if (origin === "user") setManualInputCount((count) => count + 1);
+    },
+    [],
+  );
 
   const advanceFrame = useCallback<CameraControls["advanceFrame"]>(
     (positions, tileSize, followedAgentId, nowMs) => {
@@ -110,7 +123,8 @@ export function useCameraRig(): CameraRig {
   );
 
   const focus = useCallback(
-    (request: CameraFocusRequest) => update((controller) => focusCamera(controller, request)),
+    (request: CameraFocusRequest, origin: CameraInputOrigin = "user") =>
+      update((controller) => focusCamera(controller, request), origin),
     [update],
   );
 
@@ -128,5 +142,5 @@ export function useCameraRig(): CameraRig {
     }),
     [advanceFrame, zoomAt, zoomByStep, pan, fit, toggleFollow, focus],
   );
-  return { mode, controls };
+  return { mode, manualInputCount, controls };
 }

@@ -1,4 +1,5 @@
 import type { CameraMode } from "./camera-controller";
+import { nextThoughtMode, THOUGHT_MODE_LABELS, type ThoughtMode } from "./thought-bubbles";
 import type { CameraControls as CameraControlHandles } from "./use-camera-rig";
 
 interface CameraControlsProps {
@@ -7,15 +8,29 @@ interface CameraControlsProps {
   canFollow: boolean;
   isPlaceLabelsOn: boolean;
   onPlaceLabelsChange: (isOn: boolean) => void;
+  thoughtMode: ThoughtMode;
+  onThoughtModeChange: (mode: ThoughtMode) => void;
+  isDirectorOn: boolean;
+  onDirectorChange: (isOn: boolean) => void;
 }
 
-/** The floating cluster of map buttons: zoom, fit, follow and place labels. */
+const THOUGHT_BUTTON_TEXT: Record<ThoughtMode, string> = {
+  selected: "💭 1",
+  everyone: "💭 all",
+  off: "💭 off",
+};
+
+/** The floating cluster of map buttons: zoom, fit, follow, director, place labels, thoughts. */
 export function CameraControls({
   mode,
   controls,
   canFollow,
   isPlaceLabelsOn,
   onPlaceLabelsChange,
+  thoughtMode,
+  onThoughtModeChange,
+  isDirectorOn,
+  onDirectorChange,
 }: CameraControlsProps) {
   return (
     <div className="camera-controls" role="toolbar" aria-label="Map view">
@@ -44,11 +59,29 @@ export function CameraControls({
       </button>
       <button
         type="button"
+        className={isDirectorOn ? "is-active" : undefined}
+        title="Director: the camera cuts to the liveliest conversation; any pan or zoom stops it"
+        aria-label="Director mode"
+        onClick={() => onDirectorChange(!isDirectorOn)}
+      >
+        🎬
+      </button>
+      <button
+        type="button"
         className={isPlaceLabelsOn ? "is-active" : undefined}
         title="Show place names"
         onClick={() => onPlaceLabelsChange(!isPlaceLabelsOn)}
       >
         Places
+      </button>
+      <button
+        type="button"
+        className={thoughtMode === "off" ? undefined : "is-active"}
+        title={`${THOUGHT_MODE_LABELS[thoughtMode]} (click to change)`}
+        aria-label={THOUGHT_MODE_LABELS[thoughtMode]}
+        onClick={() => onThoughtModeChange(nextThoughtMode(thoughtMode))}
+      >
+        {THOUGHT_BUTTON_TEXT[thoughtMode]}
       </button>
     </div>
   );

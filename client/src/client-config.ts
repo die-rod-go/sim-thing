@@ -42,6 +42,18 @@ export const clientConfig = {
     minFigureScale: 1.5,
     maxFigureScale: 4,
 
+    /** Thought clouds: longest text shown before an ellipsis, wrap width, and how long they last. */
+    thoughtBubbleMaxLength: 90,
+    thoughtBubbleWrapWidth: 200,
+    thoughtMaxAgeTicks: 30,
+    /** localStorage key for whose thoughts are shown; this viewer's choice survives a reload. */
+    thoughtModeStorageKey: "village.thoughtMode",
+
+    /** Pointer rest time before an agent's hover card appears, and where it sits. */
+    hoverCardDelayMs: 350,
+    hoverCardOffsetPx: 18,
+    hoverCardViewMarginPx: 8,
+
     activity: {
       /** The interaction name the sim uses for sleeping in a bed. */
       sleepInteraction: "sleep",
@@ -100,6 +112,9 @@ export const clientConfig = {
     settleEpsilon: 0.01,
     /** Pointer travel before a press becomes a drag instead of a click. */
     dragThresholdPx: 4,
+    /** Director mode cuts to a new shot this often, judging liveliness by lines this recent. */
+    directorIntervalMs: 6000,
+    directorRecentWindowTicks: 15,
   },
 
   ui: {
