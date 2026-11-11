@@ -29,7 +29,8 @@ function loadImage(url: string): Promise<HTMLImageElement> {
 async function loadVillageMap(): Promise<MapStatus> {
   const { mapUrl, tilesetUrl, requiredLayers } = clientConfig.map;
   const [mapData, tilesetImage] = await Promise.all([fetchMapData(mapUrl), loadImage(tilesetUrl)]);
-  return { kind: "ready", map: parseTiledMap(mapData, requiredLayers), tilesetImage };
+  const map = parseTiledMap(mapData, requiredLayers, clientConfig.village.placesLayerName);
+  return { kind: "ready", map, tilesetImage };
 }
 
 /** Loads the Tiled map and its tileset image once, reporting failures as readable messages. */

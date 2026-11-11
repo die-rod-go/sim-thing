@@ -1,24 +1,36 @@
-import { useEffect, useRef, useState, type RefObject } from "react";
+import { useEffect, useLayoutEffect, useMemo, useRef, useState, type RefObject } from "react";
+import "../styles/village.css";
 import { clientConfig } from "../client-config";
+import { groupConversations } from "../format/conversations";
 import { computeTickDurationMs } from "../format/formatters";
 import type { ClientState } from "../state/client-state";
+import { listConversationLinks } from "./activity-cues";
+import type { Size } from "./camera";
+import { CameraControls } from "./CameraControls";
+import { computeDaylightTint, computeHourOfDay } from "./daylight";
+import { useCameraInput } from "./use-camera-input";
+import { useCameraRig } from "./use-camera-rig";
 import { useVillageMap } from "./use-village-map";
-import { computeFitZoom } from "./village-geometry";
 import { VillageWorld } from "./VillageWorld";
 
-interface ViewSize {
-  width: number;
-  height: number;
+/** Asks the camera to frame these agents; a new requestId repeats the request. */
+export interface CameraFocus {
+  agentIds: string[];
+  requestId: number;
 }
 
 interface VillageViewProps {
   state: ClientState;
   isDebugOverlayOn: boolean;
   onSelectAgent: (agentId: string) => void;
+  cameraFocus?: CameraFocus | null;
+  highlightedAgentIds?: readonly string[];
 }
 
-function useElementSize(elementRef: RefObject<HTMLElement | null>): ViewSize {
-  const [size, setSize] = useState<ViewSize>({ width: 0, height: 0 });
+const NO_HIGHLIGHTS: readonly string[] = [];
+
+function useElementSize(elementRef: RefObject<HTMLElement | null>): Size {
+  const [size, setSize] = useState<Size>({ width: 0, height: 0 });
   useEffect(() => {
     const element = elementRef.current;
     if (!element) return;
@@ -37,53 +49,90 @@ function selectPerceptionView(state: ClientState, isDebugOverlayOn: boolean) {
   return detail.perceptionView;
 }
 
-/** The village map scaled to fit its panel; renders only what the client state says. */
-export function VillageView({ state, isDebugOverlayOn, onSelectAgent }: VillageViewProps) {
+function useConversationLinks(state: ClientState) {
+  const { maxGapTicks } = clientConfig.conversations;
+  const threads = useMemo(
+    () => groupConversations(state.events, maxGapTicks),
+    [state.events, maxGapTicks],
+  );
+  return useMemo(
+    () => listConversationLinks(threads, state.clock.tick, maxGapTicks),
+    [threads, state.clock.tick, maxGapTicks],
+  );
+}
+
+/** The village map with a pan-and-zoom camera; renders only what the client state says. */
+export function VillageView({
+  state,
+  isDebugOverlayOn,
+  onSelectAgent,
+  cameraFocus = null,
+  highlightedAgentIds = NO_HIGHLIGHTS,
+}: VillageViewProps) {
   const containerRef = useRef<HTMLDivElement>(null);
   const viewSize = useElementSize(containerRef);
   const mapStatus = useVillageMap();
+  const { mode, controls } = useCameraRig();
+  const [isPlaceLabelsOn, setPlaceLabelsOn] = useState(false);
+  const canFollow = state.inspectedAgentId !== null;
+  useCameraInput(containerRef, controls, canFollow);
+  const conversationLinks = useConversationLinks(state);
+
+  useLayoutEffect(() => {
+    controls.viewSizeRef.current = viewSize;
+  }, [controls, viewSize]);
+
+  // Only a new request id refocuses; a re-rendered request with the same id does not.
+  const focusRequestId = cameraFocus?.requestId;
+  const focusAgentIds = cameraFocus?.agentIds;
+  const latestFocusAgentIds = useRef(focusAgentIds);
+  latestFocusAgentIds.current = focusAgentIds;
+  useEffect(() => {
+    const agentIds = latestFocusAgentIds.current;
+    if (focusRequestId === undefined || !agentIds) return;
+    controls.focus({ kind: "agents", agentIds });
+  }, [controls, focusRequestId]);
+
   const moveDurationMs = computeTickDurationMs(
     state.baseTicksPerSecond,
     state.clock.speed,
     clientConfig.village.maxMoveTweenMs,
   );
-
-  let world = null;
-  if (mapStatus.kind === "ready") {
-    const { map } = mapStatus;
-    const mapPixelWidth = map.width * map.tileWidth;
-    const mapPixelHeight = map.height * map.tileHeight;
-    const zoom = computeFitZoom(viewSize.width, viewSize.height, mapPixelWidth, mapPixelHeight);
-    const offsetX = (viewSize.width - mapPixelWidth * zoom) / 2;
-    const offsetY = (viewSize.height - mapPixelHeight * zoom) / 2;
-    world = (
-      <div
-        className="village-world"
-        style={{
-          width: mapPixelWidth,
-          height: mapPixelHeight,
-          transform: `translate(${offsetX}px, ${offsetY}px) scale(${zoom})`,
-        }}
-      >
-        <VillageWorld
-          map={map}
-          tilesetImage={mapStatus.tilesetImage}
-          agents={state.agents}
-          speechBubbles={state.speechBubbles}
-          inspectedAgentId={state.inspectedAgentId}
-          perceptionView={selectPerceptionView(state, isDebugOverlayOn)}
-          moveDurationMs={moveDurationMs}
-          onSelectAgent={onSelectAgent}
-        />
-      </div>
-    );
-  }
+  const daylightTint = computeDaylightTint(
+    computeHourOfDay(state.clock.tick, state.timeSettings),
+    clientConfig.village.daylightKeyframes,
+  );
 
   return (
     <div className="village-view">
       <div className="village-canvas" ref={containerRef}>
-        {world}
+        {mapStatus.kind === "ready" && (
+          <VillageWorld
+            map={mapStatus.map}
+            tilesetImage={mapStatus.tilesetImage}
+            agents={state.agents}
+            speechBubbles={state.speechBubbles}
+            inspectedAgentId={state.inspectedAgentId}
+            highlightedAgentIds={highlightedAgentIds}
+            perceptionView={selectPerceptionView(state, isDebugOverlayOn)}
+            conversationLinks={conversationLinks}
+            daylightTint={daylightTint}
+            isPlaceLabelsOn={isPlaceLabelsOn}
+            moveDurationMs={moveDurationMs}
+            camera={controls}
+            onSelectAgent={onSelectAgent}
+          />
+        )}
       </div>
+      {mapStatus.kind === "ready" && (
+        <CameraControls
+          mode={mode}
+          controls={controls}
+          canFollow={canFollow}
+          isPlaceLabelsOn={isPlaceLabelsOn}
+          onPlaceLabelsChange={setPlaceLabelsOn}
+        />
+      )}
       {mapStatus.kind === "loading" && <div className="village-notice">Loading map…</div>}
       {mapStatus.kind === "error" && (
         <div className="village-notice village-notice-error">

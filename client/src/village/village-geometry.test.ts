@@ -1,6 +1,5 @@
 import { describe, expect, it } from "vitest";
 import {
-  computeFitZoom,
   computeRegionOutlineEdges,
   pickAgentColor,
   tileCenter,
@@ -30,12 +29,6 @@ describe("villageGeometry", () => {
   it("does not join tiles that wrap across a row end", () => {
     const lastInRow = MAP_WIDTH - 1;
     expect(computeRegionOutlineEdges([lastInRow, MAP_WIDTH], MAP_WIDTH)).toHaveLength(8);
-  });
-
-  it("prefers whole-number zoom when the map fits at least once", () => {
-    expect(computeFitZoom(1400, 1000, 640, 480)).toBe(2);
-    expect(computeFitZoom(320, 480, 640, 480)).toBe(0.5);
-    expect(computeFitZoom(0, 0, 640, 480)).toBe(1);
   });
 
   it("gives neighboring agents different colors", () => {

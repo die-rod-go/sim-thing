@@ -1,4 +1,4 @@
-/** The parts of a Tiled map the village view draws: its size, one tileset and its tile layers. */
+/** The parts of a Tiled map the village view draws: size, one tileset, tile layers and places. */
 export interface TiledMap {
   width: number;
   height: number;
@@ -6,6 +6,16 @@ export interface TiledMap {
   tileHeight: number;
   tileset: TiledTileset;
   tileLayers: TiledTileLayer[];
+  places: TiledPlace[];
+}
+
+/** A named area of the map, in map pixels. */
+export interface TiledPlace {
+  name: string;
+  x: number;
+  y: number;
+  width: number;
+  height: number;
 }
 
 export interface TiledTileset {
@@ -71,8 +81,30 @@ function parseTileLayers(layers: unknown[]): TiledTileLayer[] {
     });
 }
 
+function parsePlaces(layers: unknown[], placesLayerName: string): TiledPlace[] {
+  const placesLayer = layers.find(
+    (layer): layer is Record<string, unknown> =>
+      isRecord(layer) && layer.type === "objectgroup" && layer.name === placesLayerName,
+  );
+  if (!placesLayer || !Array.isArray(placesLayer.objects)) return [];
+  return placesLayer.objects
+    .filter((object): object is Record<string, unknown> => isRecord(object))
+    .filter((object) => typeof object.name === "string" && object.name !== "")
+    .map((object) => ({
+      name: String(object.name),
+      x: readNumber(object, "x", 0),
+      y: readNumber(object, "y", 0),
+      width: readNumber(object, "width", 0),
+      height: readNumber(object, "height", 0),
+    }));
+}
+
 /** Checks the loaded map JSON has what the village view needs; throws a readable error if not. */
-export function parseTiledMap(data: unknown, requiredLayers: readonly string[]): TiledMap {
+export function parseTiledMap(
+  data: unknown,
+  requiredLayers: readonly string[],
+  placesLayerName: string,
+): TiledMap {
   if (!isRecord(data)) throw new Error("Map file is not a JSON object (is village.json missing?)");
   const { width, height, tilewidth: tileWidth, tileheight: tileHeight, layers, tilesets } = data;
   if (
@@ -93,7 +125,8 @@ export function parseTiledMap(data: unknown, requiredLayers: readonly string[]):
   if (missingLayers.length > 0) {
     throw new Error(`Map file is missing tile layers: ${missingLayers.join(", ")}`);
   }
-  return { width, height, tileWidth, tileHeight, tileset, tileLayers };
+  const places = parsePlaces(layers, placesLayerName);
+  return { width, height, tileWidth, tileHeight, tileset, tileLayers, places };
 }
 
 /** Where a tile's image sits in the tileset, or null for an empty cell. */
