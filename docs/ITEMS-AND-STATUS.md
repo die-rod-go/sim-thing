@@ -807,7 +807,9 @@ Unit tests cover the code-driven core, named by behavior:
 
 ## Build order
 
-Each phase ends with `make check` and `make test` passing and its own commits.
+Each phase ends with `make check` and `make test` passing and its own commits. No phase has to
+preserve existing behavior exactly: changing it is fine when it keeps the spirit of the project and
+the core sim recognizable, and existing tests that pin old behavior are rewritten or removed.
 
 1. **Status:** health, stats (seeds and character editor), starvation, regen, health words, the
    Status panel, death (the dead agent lying where they fell; no `take` yet).
@@ -817,7 +819,9 @@ Each phase ends with `make check` and `make test` passing and its own commits.
    so this phase also builds the verb runner, component declarations, and the effects those need
    (`produce`, `destroy`, `take_stock`, `change_need`, `set_open`, `sleep`, `read_notes`,
    `post_note`). Coins become `coin` entities and `give` moves entities. Every carriable gets a
-   `weight`. Behavior otherwise unchanged; existing tests prove it.
+   `weight`. Behavior may change where the new model makes it simpler or better, as long as the
+   sim stays recognizable and keeps the project's spirit; tests that pin old behavior are updated
+   or replaced rather than kept by contorting the design.
 3. **Targets and combat:** verb targets, reach, `tools`, hit rolls, strength scaling, `damage`,
    `heal`, `wear`, `transform`, breaking (`onBroken`), numbers read from components. Content:
    `weapon` and `healing` components, knife, `attack`, `punch`, bandage.
