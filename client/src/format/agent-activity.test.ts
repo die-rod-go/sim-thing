@@ -1,7 +1,7 @@
 import { describe, expect, it } from "vitest";
 import type { WorldEvent } from "@village/shared";
 import { makeSampleAgent, makeSampleEvent, makeSampleLlmCall } from "../fixtures/sample-data";
-import { buildAgentActivity, findNewestThought, readLatestThought } from "./agent-activity";
+import { buildAgentActivity, findNewestThought } from "./agent-activity";
 import { groupConversations } from "./conversations";
 import { summarizeLlmCall } from "./thoughts";
 
@@ -93,15 +93,6 @@ describe("buildAgentActivity", () => {
       latestThought: { text: "Bob looks tired", tick: 9 },
     });
     expect(groups[0]?.items[0]).toMatchObject({ kind: "thought", headline: "Bob looks tired" });
-  });
-});
-
-describe("readLatestThought", () => {
-  it("reads lastThought when the agent carries one and null otherwise", () => {
-    expect(readLatestThought(ada)).toBeNull();
-    expect(
-      readLatestThought({ ...ada, lastThought: { text: "hm", tick: 2 } } as typeof ada),
-    ).toEqual({ text: "hm", tick: 2 });
   });
 });
 

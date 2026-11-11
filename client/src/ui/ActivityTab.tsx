@@ -4,7 +4,6 @@ import { clientConfig } from "../client-config";
 import {
   ACTIVITY_FILTERS,
   buildAgentActivity,
-  readLatestThought,
   type ActivityAction,
   type ActivityFilter,
   type ActivitySpeech,
@@ -108,7 +107,7 @@ export function ActivityTab({
           events: state.events,
           threads,
           thoughts: detail ? detail.llmCalls.map(summarizeLlmCall) : [],
-          latestThought: readLatestThought(agent),
+          latestThought: agent.lastThought,
         },
         filter,
       ),

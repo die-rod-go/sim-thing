@@ -1,7 +1,7 @@
 import { useMemo } from "react";
 import type { Agent, AgentDetailMessage } from "@village/shared";
 import { clientConfig } from "../client-config";
-import { findNewestThought, readLatestThought } from "../format/agent-activity";
+import { findNewestThought } from "../format/agent-activity";
 import { describeActivity, formatClockTime } from "../format/character-sheet";
 import { parseStoredChoice } from "../format/stored-preferences";
 import { summarizeLlmCall } from "../format/thoughts";
@@ -43,11 +43,7 @@ const parseSheetTab = (raw: string | null) => parseStoredChoice(raw, SHEET_TAB_N
 function NowStrip({ agent, detail }: { agent: Agent; detail: AgentDetailMessage | null }) {
   const { state } = usePanelContext();
   const newestThought = useMemo(
-    () =>
-      findNewestThought(
-        detail ? detail.llmCalls.map(summarizeLlmCall) : [],
-        readLatestThought(agent),
-      ),
+    () => findNewestThought(detail ? detail.llmCalls.map(summarizeLlmCall) : [], agent.lastThought),
     [agent, detail],
   );
   return (

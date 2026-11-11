@@ -1,4 +1,4 @@
-import type { Agent, LlmCallKind, Volume, WorldEvent } from "@village/shared";
+import type { LlmCallKind, Volume, WorldEvent } from "@village/shared";
 import type { ConversationThread, SpokenLine } from "./conversations";
 import { categorizeEvent, type EventCategory } from "./event-feed";
 import type { ThoughtEntry, ThoughtPart } from "./thoughts";
@@ -86,21 +86,6 @@ const REFLECTION_KINDS: ReadonlySet<ActivityThought["thoughtKind"]> = new Set([
 ]);
 
 const READING_ORDER: Record<ActivityItem["kind"], number> = { thought: 0, action: 1, speech: 2 };
-
-function isRecord(value: unknown): value is Record<string, unknown> {
-  return typeof value === "object" && value !== null;
-}
-
-/**
- * The agent's most recent thought when the server sends one. Read defensively: older servers
- * don't send the field at all.
- */
-export function readLatestThought(agent: Agent): LatestThought | null {
-  const candidate: unknown = Reflect.get(agent, "lastThought");
-  if (!isRecord(candidate)) return null;
-  const { text, tick } = candidate;
-  return typeof text === "string" && typeof tick === "number" ? { text, tick } : null;
-}
 
 function toThoughtItem(entry: ThoughtEntry): ActivityThought {
   const isDecision = entry.kind === "decision" || entry.kind === "interact";

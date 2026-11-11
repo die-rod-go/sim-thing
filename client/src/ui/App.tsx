@@ -3,7 +3,7 @@ import { clientConfig } from "../client-config";
 import { buildAgentColors } from "../format/agent-colors";
 import { groupConversations } from "../format/conversations";
 import { cycleAgentId, type ShortcutAction } from "../format/shortcuts";
-import { VillageView } from "../village/VillageView";
+import { VillageView, type CameraFocus } from "../village/VillageView";
 import { PanelContext, type PanelContextValue } from "./panel-context";
 import { PanelResizer } from "./PanelResizer";
 import { RosterRail } from "./RosterRail";
@@ -12,12 +12,6 @@ import { TopBar } from "./TopBar";
 import { useShellLayout, type ShellLayout } from "./use-shell-layout";
 import { useShortcuts } from "./use-shortcuts";
 import { useSimClient, type SimClient } from "./use-sim-client";
-
-/** A request for the village camera to frame some agents; a new requestId re-frames them. */
-export interface CameraFocus {
-  agentIds: string[];
-  requestId: number;
-}
 
 const NO_AGENTS: readonly string[] = [];
 
@@ -60,7 +54,6 @@ export function App() {
   const { state, selectAgent } = simClient;
   const layout = useShellLayout();
   const [isShortcutsHelpOpen, setIsShortcutsHelpOpen] = useState(false);
-  // Until VillageView takes these as props they surface as data attributes on the app root.
   const [cameraFocus, setCameraFocus] = useState<CameraFocus | null>(null);
   const [highlightedAgentIds, setHighlightedAgentIds] = useState<readonly string[]>(NO_AGENTS);
 
@@ -88,11 +81,7 @@ export function App() {
 
   return (
     <PanelContext.Provider value={contextValue}>
-      <div
-        className="app"
-        data-camera-focus={cameraFocus?.requestId}
-        data-highlighted={highlightedAgentIds.join(" ")}
-      >
+      <div className="app">
         <TopBar
           state={state}
           connectionStatus={simClient.connectionStatus}
@@ -112,6 +101,8 @@ export function App() {
             state={state}
             isDebugOverlayOn={simClient.isDebugOverlayOn}
             onSelectAgent={selectAgent}
+            cameraFocus={cameraFocus}
+            highlightedAgentIds={highlightedAgentIds}
           />
           <SidePanelDock layout={layout} />
         </main>
