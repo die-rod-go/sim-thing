@@ -1,10 +1,11 @@
 import { useEffect, useState } from "react";
 import { clientConfig } from "../client-config";
+import { createGlyphPainter, loadImage, type GlyphPainter } from "./glyph-painter";
 import { parseTiledMap, type TiledMap } from "./tiled-map";
 
 export type MapStatus =
   | { kind: "loading" }
-  | { kind: "ready"; map: TiledMap; tilesetImage: HTMLImageElement }
+  | { kind: "ready"; map: TiledMap; glyphPainter: GlyphPainter }
   | { kind: "error"; message: string };
 
 async function fetchMapData(url: string): Promise<unknown> {
@@ -17,23 +18,14 @@ async function fetchMapData(url: string): Promise<unknown> {
   }
 }
 
-function loadImage(url: string): Promise<HTMLImageElement> {
-  return new Promise((resolve, reject) => {
-    const image = new Image();
-    image.onload = () => resolve(image);
-    image.onerror = () => reject(new Error(`Could not load ${url}`));
-    image.src = url;
-  });
-}
-
 async function loadVillageMap(): Promise<MapStatus> {
-  const { mapUrl, tilesetUrl, requiredLayers } = clientConfig.map;
-  const [mapData, tilesetImage] = await Promise.all([fetchMapData(mapUrl), loadImage(tilesetUrl)]);
+  const { mapUrl, glyphSheetUrl, requiredLayers } = clientConfig.map;
+  const [mapData, glyphSheet] = await Promise.all([fetchMapData(mapUrl), loadImage(glyphSheetUrl)]);
   const map = parseTiledMap(mapData, requiredLayers, clientConfig.village.placesLayerName);
-  return { kind: "ready", map, tilesetImage };
+  return { kind: "ready", map, glyphPainter: createGlyphPainter(glyphSheet) };
 }
 
-/** Loads the Tiled map and its tileset image once, reporting failures as readable messages. */
+/** Loads the Tiled map and the glyph sheet once, reporting failures as readable messages. */
 export function useVillageMap(): MapStatus {
   const [mapStatus, setMapStatus] = useState<MapStatus>({ kind: "loading" });
 

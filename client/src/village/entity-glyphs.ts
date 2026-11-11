@@ -1,38 +1,37 @@
-import type { Entity, ItemDefinition } from "@village/shared";
+import type { Entity, Glyph, ItemDefinition } from "@village/shared";
 
-/** One sprite to draw: a tile of the map's tileset at a map tile. */
-export interface PlacedSprite {
+/** One glyph to draw at a map tile, for an entity standing there. */
+export interface PlacedGlyph {
   entityId: string;
-  /** The tile's index in the tileset, counted from 0. */
-  tile: number;
+  glyph: Glyph;
   tileX: number;
   tileY: number;
 }
 
 /**
  * Every entity standing on a tile (placed objects and items on the ground), drawn from its
- * definition's sprite. Carried and contained entities aren't on the map. Placed objects come
+ * definition's glyph. Carried and contained entities aren't on the map. Placed objects come
  * first, so a knife dropped by the card table is drawn on top of it.
  */
-export function listPlacedSprites(
+export function listPlacedGlyphs(
   entities: readonly Entity[],
   definitions: readonly ItemDefinition[],
-): PlacedSprite[] {
+): PlacedGlyph[] {
   const definitionsById = new Map(definitions.map((definition) => [definition.id, definition]));
   const onTiles = entities.flatMap((entity) => {
     const definition = definitionsById.get(entity.definitionId);
     if (entity.location.kind !== "tile" || !definition) return [];
     const { pos } = entity.location;
-    const sprite = {
+    const placedGlyph = {
       entityId: entity.id,
-      tile: definition.sprite.tile,
+      glyph: definition.glyph,
       tileX: pos.x,
       tileY: pos.y,
     };
-    return [{ sprite, isPlaced: definition.form === "placeable" }];
+    return [{ placedGlyph, isPlaced: definition.form === "placeable" }];
   });
   return [
     ...onTiles.filter((entry) => entry.isPlaced),
     ...onTiles.filter((entry) => !entry.isPlaced),
-  ].map((entry) => entry.sprite);
+  ].map((entry) => entry.placedGlyph);
 }

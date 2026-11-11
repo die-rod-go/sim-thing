@@ -1,3 +1,5 @@
+import { GLYPH_SHEET } from "@village/shared";
+
 /** Tunable values for the browser client. Sim tunables live in the server config. */
 export const clientConfig = {
   connection: {
@@ -15,7 +17,7 @@ export const clientConfig = {
 
   map: {
     mapUrl: "/village.json",
-    tilesetUrl: "/tileset.png",
+    glyphSheetUrl: `/${GLYPH_SHEET.fileName}`,
     requiredLayers: ["ground", "walls"],
     optionalLayers: ["decor"],
   },
@@ -155,10 +157,14 @@ export const clientConfig = {
     newPropertyName: "new_property",
     newConditionName: "new_condition",
     newStimulusName: "new_stimulus",
-    /** Used for a new item's sprite when no definition names a tileset yet. */
-    defaultSpriteTileset: "village",
-    /** How many times larger than a map tile the sprite preview is drawn. */
-    spritePreviewScale: 3,
+    /** A new item is drawn as a white bullet until it's given its own glyph. */
+    newDefinitionGlyph: { index: 7, color: "#ffffff" },
+    /** How many times larger than the sheet the glyph picker's grid is drawn. */
+    glyphGridScale: 2,
+    /** How many times larger than the sheet the chosen glyph's preview is drawn. */
+    glyphPreviewScale: 6,
+    /** The grid's glyphs are shown in the item's color, over this when it has no background. */
+    glyphGridBackground: "#1e1e24",
     /** Step for literal numbers in verbs and effects. */
     numberStep: 0.01,
     /** How many matches a rule lists before folding the rest into "and N more". */

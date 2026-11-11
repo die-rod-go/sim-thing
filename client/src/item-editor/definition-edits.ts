@@ -65,10 +65,6 @@ export function setComponentField(
   };
 }
 
-function pickSpriteTileset(file: ItemFile): string {
-  return file.definitions[0]?.sprite.tileset ?? clientConfig.itemEditor.defaultSpriteTileset;
-}
-
 /** A carriable with a unique id and, when it is declared, the weight every carriable needs. */
 export function buildNewDefinition(file: ItemFile): ItemDefinition {
   const id = createUniqueName(
@@ -79,7 +75,7 @@ export function buildNewDefinition(file: ItemFile): ItemDefinition {
     id,
     name: id.replaceAll("_", " "),
     form: "carriable",
-    sprite: { tileset: pickSpriteTileset(file), tile: 0 },
+    glyph: clientConfig.itemEditor.newDefinitionGlyph,
   });
   return addComponentToDefinition(file, definition, CARRIABLE_WEIGHT_COMPONENT);
 }

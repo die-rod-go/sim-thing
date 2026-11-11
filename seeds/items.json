@@ -76,7 +76,7 @@
       "name": "coin",
       "plural": "coins",
       "form": "carriable",
-      "sprite": { "tileset": "village", "tile": 20 },
+      "glyph": { "index": 36, "color": "#e8c040" },
       "isVisibleWhenCarried": false,
       "properties": ["metal"],
       "components": { "weight": { "kilograms": 0.005 } }
@@ -85,7 +85,7 @@
       "id": "bread",
       "name": "bread",
       "form": "carriable",
-      "sprite": { "tileset": "village", "tile": 16 },
+      "glyph": { "index": 127, "color": "#d89a50" },
       "isVisibleWhenCarried": false,
       "properties": ["flammable"],
       "components": { "weight": { "kilograms": 0.4 }, "food": { "hunger": 0.5 } }
@@ -94,7 +94,7 @@
       "id": "ale",
       "name": "ale",
       "form": "carriable",
-      "sprite": { "tileset": "village", "tile": 19 },
+      "glyph": { "index": 33, "color": "#e0b050" },
       "isVisibleWhenCarried": false,
       "properties": [],
       "components": { "weight": { "kilograms": 0.5 }, "drink": { "fun": 0.3, "energy": -0.05 } }
@@ -103,7 +103,7 @@
       "id": "wheat",
       "name": "wheat",
       "form": "carriable",
-      "sprite": { "tileset": "village", "tile": 17 },
+      "glyph": { "index": 231, "color": "#e8c650" },
       "isVisibleWhenCarried": false,
       "properties": ["flammable"],
       "components": { "weight": { "kilograms": 1 } }
@@ -112,7 +112,7 @@
       "id": "wood",
       "name": "wood",
       "form": "carriable",
-      "sprite": { "tileset": "village", "tile": 18 },
+      "glyph": { "index": 61, "color": "#a8703c" },
       "isVisibleWhenCarried": true,
       "properties": ["flammable"],
       "components": { "weight": { "kilograms": 2 } }
@@ -122,7 +122,7 @@
       "name": "bed",
       "plural": "beds",
       "form": "placeable",
-      "sprite": { "tileset": "village", "tile": 10 },
+      "glyph": { "index": 233, "color": "#c84a4e" },
       "properties": ["flammable"],
       "components": { "bed": {}, "durability": { "toughness": 3 } }
     },
@@ -131,7 +131,7 @@
       "name": "notice board",
       "plural": "notice boards",
       "form": "placeable",
-      "sprite": { "tileset": "village", "tile": 15 },
+      "glyph": { "index": 240, "color": "#ece4c8" },
       "properties": ["flammable"],
       "components": { "notes": { "maxNotes": 30 }, "durability": { "toughness": 3 } }
     },
@@ -140,7 +140,7 @@
       "name": "bench",
       "plural": "benches",
       "form": "placeable",
-      "sprite": { "tileset": "village", "tile": 14 },
+      "glyph": { "index": 210, "color": "#b07a44" },
       "properties": ["flammable"],
       "components": { "durability": { "toughness": 3 } }
     },
@@ -149,7 +149,7 @@
       "name": "wheat field",
       "plural": "wheat fields",
       "form": "placeable",
-      "sprite": { "tileset": "village", "tile": 6 },
+      "glyph": { "index": 34, "color": "#f0d060", "background": "#7a5e22" },
       "properties": [],
       "components": { "stock": { "capacity": 12, "regrowPerDay": 12 } }
     },
@@ -157,7 +157,7 @@
       "id": "trees",
       "name": "trees",
       "form": "placeable",
-      "sprite": { "tileset": "village", "tile": 7 },
+      "glyph": { "index": 5, "color": "#3fa04a", "background": "#24461f" },
       "properties": ["flammable"],
       "components": { "stock": { "capacity": 10, "regrowPerDay": 10 } }
     },
@@ -166,7 +166,7 @@
       "name": "oven",
       "plural": "ovens",
       "form": "placeable",
-      "sprite": { "tileset": "village", "tile": 11 },
+      "glyph": { "index": 239, "color": "#f0a028" },
       "properties": [],
       "components": {
         "durability": { "toughness": 6 },
@@ -178,7 +178,7 @@
       "name": "brew kettle",
       "plural": "brew kettles",
       "form": "placeable",
-      "sprite": { "tileset": "village", "tile": 12 },
+      "glyph": { "index": 229, "color": "#9a9aa8" },
       "properties": ["metal"],
       "components": {
         "durability": { "toughness": 5 },
@@ -190,7 +190,7 @@
       "name": "card table",
       "plural": "card tables",
       "form": "placeable",
-      "sprite": { "tileset": "village", "tile": 13 },
+      "glyph": { "index": 4, "color": "#f4f4ec" },
       "properties": ["flammable"],
       "components": { "durability": { "toughness": 3 } }
     },
@@ -199,7 +199,7 @@
       "name": "door",
       "plural": "doors",
       "form": "placeable",
-      "sprite": { "tileset": "village", "tile": 5 },
+      "glyph": { "index": 43, "color": "#e0b060" },
       "properties": ["flammable"],
       "components": {
         "openable": { "startsOpen": true, "blocksSightWhenClosed": true, "muffleWhenClosed": true },
@@ -211,7 +211,7 @@
       "name": "knife",
       "plural": "knives",
       "form": "carriable",
-      "sprite": { "tileset": "village", "tile": 21 },
+      "glyph": { "index": 47, "color": "#d0d4dc" },
       "isVisibleWhenCarried": true,
       "properties": ["sharp", "metal"],
       "components": {
@@ -226,7 +226,7 @@
       "name": "broken knife",
       "plural": "broken knives",
       "form": "carriable",
-      "sprite": { "tileset": "village", "tile": 22 },
+      "glyph": { "index": 96, "color": "#a0a4ac" },
       "properties": ["metal"],
       "components": { "weight": { "kilograms": 0.2 } }
     },
@@ -235,7 +235,7 @@
       "name": "bandage",
       "plural": "bandages",
       "form": "carriable",
-      "sprite": { "tileset": "village", "tile": 23 },
+      "glyph": { "index": 43, "color": "#f0ece0" },
       "properties": ["flammable"],
       "components": { "healing": { "health": 0.15 }, "weight": { "kilograms": 0.05 } }
     },
@@ -244,7 +244,7 @@
       "name": "jar",
       "plural": "jars",
       "form": "carriable",
-      "sprite": { "tileset": "village", "tile": 24 },
+      "glyph": { "index": 235, "color": "#c86a44" },
       "properties": ["fragile"],
       "components": { "durability": { "toughness": 0.5 }, "weight": { "kilograms": 0.8 } },
       "onBroken": [
@@ -256,7 +256,7 @@
       "id": "shards",
       "name": "shards of pottery",
       "form": "carriable",
-      "sprite": { "tileset": "village", "tile": 25 },
+      "glyph": { "index": 44, "color": "#c86a44" },
       "components": { "weight": { "kilograms": 0.8 } }
     },
     {
@@ -264,7 +264,7 @@
       "name": "chest",
       "plural": "chests",
       "form": "placeable",
-      "sprite": { "tileset": "village", "tile": 26 },
+      "glyph": { "index": 254, "color": "#c08848" },
       "properties": ["flammable"],
       "components": { "container": { "capacity": 20 } }
     }

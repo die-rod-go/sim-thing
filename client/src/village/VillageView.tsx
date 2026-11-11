@@ -161,7 +161,7 @@ export function VillageView({
         {mapStatus.kind === "ready" && (
           <VillageWorld
             map={mapStatus.map}
-            tilesetImage={mapStatus.tilesetImage}
+            glyphPainter={mapStatus.glyphPainter}
             agents={state.agents}
             entities={state.entities}
             itemDefinitions={state.itemDefinitions}
@@ -202,8 +202,8 @@ export function VillageView({
           <strong>The village map failed to load.</strong>
           <span>{mapStatus.message}</span>
           <span>
-            Generate it with <code>npm run generate-map</code> (writes maps/village.json and
-            maps/tileset.png), then reload.
+            Generate it with <code>npm run generate-map</code> (writes maps/village.json), check
+            maps/acorn-tileset-8x8.png is there, then reload.
           </span>
         </div>
       )}

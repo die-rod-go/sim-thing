@@ -20,7 +20,8 @@ import { ConversationLinks, PlaceLabels } from "./screen-overlays";
 import { groupBubblesBySpeaker, SpeechBubbleStack, useLiveSpeechBubbles } from "./SpeechBubbles";
 import type { VisibleThought } from "./thought-bubbles";
 import { EntityConditionOverlays } from "./EntityConditionOverlays";
-import { EntitySprites } from "./EntitySprites";
+import { EntityGlyphs } from "./EntityGlyphs";
+import type { GlyphPainter } from "./glyph-painter";
 import { TileCanvas } from "./TileCanvas";
 import type { TiledMap } from "./tiled-map";
 import { useHoveredAgent } from "./use-hovered-agent";
@@ -37,7 +38,7 @@ import {
 
 interface VillageWorldProps {
   map: TiledMap;
-  tilesetImage: HTMLImageElement;
+  glyphPainter: GlyphPainter;
   agents: Agent[];
   entities: readonly Entity[];
   itemDefinitions: readonly ItemDefinition[];
@@ -192,10 +193,10 @@ export function VillageWorld(props: VillageWorldProps) {
         ref={world.mapLayer}
         style={{ width: mapPixelWidth, height: mapPixelHeight }}
       >
-        <TileCanvas map={map} tilesetImage={props.tilesetImage} />
-        <EntitySprites
+        <TileCanvas map={map} glyphPainter={props.glyphPainter} />
+        <EntityGlyphs
           map={map}
-          tilesetImage={props.tilesetImage}
+          glyphPainter={props.glyphPainter}
           entities={props.entities}
           definitions={props.itemDefinitions}
         />

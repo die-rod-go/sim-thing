@@ -161,7 +161,7 @@ describe("item file validation", () => {
           id: "feather",
           name: "feather",
           form: "carriable",
-          sprite: { tileset: "village", tile: 9 },
+          glyph: { index: 9, color: "#ffffff" },
         },
       ],
     });

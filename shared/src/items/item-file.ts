@@ -1,4 +1,5 @@
 import { z } from "zod";
+import { glyphSchema } from "../glyph";
 import { NEED_NAMES, type NeedName } from "../types";
 
 /*
@@ -47,12 +48,6 @@ const propertyDeclarationSchema = z.strictObject({
   isVisible: z.boolean().default(false),
   /** The prompt word; the property name when omitted. */
   word: z.string().optional(),
-});
-
-const spriteSchema = z.strictObject({
-  tileset: z.string().min(1),
-  /** The tile's index in the tileset, counted from 0. */
-  tile: z.number().int().nonnegative(),
 });
 
 const componentPathSchema = z
@@ -269,7 +264,7 @@ export const itemDefinitionSchema = z.strictObject({
   /** Omitted for things counted without a plural ("3 bread"). */
   plural: z.string().trim().min(1).optional(),
   form: z.enum(ITEM_FORMS),
-  sprite: spriteSchema,
+  glyph: glyphSchema,
   isVisibleWhenCarried: z.boolean().default(false),
   properties: z.array(identifierSchema).default([]),
   /** Component name to its field values. */

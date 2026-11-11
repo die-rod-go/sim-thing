@@ -76,7 +76,7 @@ or if a saved entity's definition is gone (run `make reset`).
   "name": "knife",
   "plural": "knives",
   "form": "carriable",
-  "sprite": { "tileset": "village", "tile": 412 },
+  "glyph": { "index": 47, "color": "#d0d4dc" },
   "isVisibleWhenCarried": true,
   "properties": ["sharp", "metal"],
   "components": {
@@ -94,7 +94,9 @@ A definition doesn't list its verbs. Verbs are defined separately and say what t
 Verbs). The knife can be used to `attack` because it has a `weapon` component and the `attack`
 verb applies to held things with one. How hard it hits comes from that component.
 
-- `sprite` is required: placeables and items on the ground are drawn from it (see Client).
+- `glyph` is required: placeables and items on the ground are drawn from it (see Client). `index`
+  is a CP437 code in the glyph sheet (`maps/acorn-tileset-8x8.png`), `color` tints it, and an
+  optional `background` fills the tile behind it.
 - `onBroken` runs when durability reaches 0. Without it the entity is destroyed.
 - Every carriable definition must have a `weight` component (validation rejects one without), so
   anything you can hold can be thrown. Coins weigh a few grams.
@@ -184,7 +186,7 @@ never checks a property by name; only data does (reactions, `appliesTo` rules an
 adding `cursed` or `slippery` is pure data, and it does nothing until something mentions it.
 
 Agents have properties too, listed under `person` in `items.json` (`"person": { "properties":
-["flesh", "flammable"] }`). `person` isn't an item definition: it has no form, sprite or components.
+["flesh", "flammable"] }`). `person` isn't an item definition: it has no form, glyph or components.
 
 ## Verbs
 
@@ -702,7 +704,7 @@ Deaths are settled the moment damage lands, in whichever step that is.
 
 - The snapshot and its deltas carry entities instead of `objects`, with an `entities_changed`
   message for anything that moves, breaks or changes state.
-- **Placeables are drawn from their entity's sprite, not baked into the map.** The map generator
+- **Placeables are drawn from their entity's glyph, not baked into the map.** The map generator
   stops drawing objects into the decor layer, so a burned or broken object visibly changes or
   disappears. Ground items are drawn the same way.
 - Visible conditions get an overlay on agents and entities (flames for `burning`).
@@ -734,7 +736,7 @@ through the same atomic write and validation path. Changes apply on the next ser
 ```
 ┌ Items ───────┬───────────────────────────────────────────────────────────┐
 │ ▸ knife      │ Name [knife]  Plural [knives]   Form (●carriable ○placeable)│
-│   bread      │ Sprite [▦ pick tile]   ☑ visible when carried              │
+│   bread      │ Glyph [/ 47 ■ color □ bg ▸ sheet]   ☑ visible when carried │
 │   oven       │ Properties  [sharp ×] [metal ×] [+ add]                     │
 │   door       │ Components  durability  toughness [4]                       │
 │              │             weapon  damage [0.20–0.40] hit [0.70] cut       │

@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { findTileSourceRect, parseTiledMap } from "./tiled-map";
+import { findTileGlyph, parseTiledMap } from "./tiled-map";
 
 const PLACES = "places";
 
@@ -18,7 +18,23 @@ function makeMapData(layerNames: string[]) {
         objects: [{ name: "bakery", x: 16, y: 32, width: 48, height: 64 }, { name: "" }],
       },
     ],
-    tilesets: [{ firstgid: 1, name: "village", columns: 8, margin: 0, spacing: 0 }],
+    tilesets: [
+      {
+        firstgid: 1,
+        name: "village",
+        tiles: [
+          {
+            id: 0,
+            properties: [
+              { name: "collides", type: "bool", value: false },
+              { name: "glyph", type: "int", value: 44 },
+              { name: "color", type: "string", value: "#5f9e4c" },
+              { name: "background", type: "string", value: "#2c4f26" },
+            ],
+          },
+        ],
+      },
+    ],
   };
 }
 
@@ -42,20 +58,33 @@ describe("parseTiledMap", () => {
   });
 });
 
-describe("findTileSourceRect", () => {
-  const map = parseTiledMap(makeMapData(["ground"]), ["ground"], PLACES);
+describe("findTileGlyph", () => {
+  const grassGlyph = { index: 44, color: "#5f9e4c", background: "#2c4f26" };
 
-  it("skips empty cells", () => {
-    expect(findTileSourceRect(map, 0)).toBeNull();
+  it("rejects a tile whose glyph has no color", () => {
+    const mapData = makeMapData(["ground"]);
+    mapData.tilesets[0]?.tiles.push({
+      id: 1,
+      properties: [{ name: "glyph", type: "int", value: 35 }],
+    });
+    expect(() => parseTiledMap(mapData, ["ground"], PLACES)).toThrow(/tile 1 has a bad glyph/);
   });
 
-  it("finds a tile's spot in the tileset grid", () => {
-    expect(findTileSourceRect(map, 1)).toEqual({ x: 0, y: 0 });
-    expect(findTileSourceRect(map, 10)).toEqual({ x: 16, y: 16 });
-  });
+  describe("with valid glyphs", () => {
+    const map = parseTiledMap(makeMapData(["ground"]), ["ground"], PLACES);
 
-  it("ignores Tiled's flip flags", () => {
-    const horizontalFlipFlag = 0x80000000;
-    expect(findTileSourceRect(map, (horizontalFlipFlag | 2) >>> 0)).toEqual({ x: 16, y: 0 });
+    it("skips empty cells and tiles without a glyph", () => {
+      expect(findTileGlyph(map, 0)).toBeNull();
+      expect(findTileGlyph(map, 2)).toBeNull();
+    });
+
+    it("reads a tile's glyph from its properties", () => {
+      expect(findTileGlyph(map, 1)).toEqual(grassGlyph);
+    });
+
+    it("ignores Tiled's flip flags", () => {
+      const horizontalFlipFlag = 0x80000000;
+      expect(findTileGlyph(map, (horizontalFlipFlag | 1) >>> 0)).toEqual(grassGlyph);
+    });
   });
 });

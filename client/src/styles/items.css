@@ -21,7 +21,7 @@
 .inline-field,
 .value-input,
 .chip-row,
-.sprite-picker {
+.glyph-picker {
   display: inline-flex;
   flex-wrap: wrap;
   align-items: center;
@@ -94,10 +94,34 @@
   min-width: 90px;
 }
 
-.sprite-preview {
+.glyph-preview,
+.glyph-grid {
   image-rendering: pixelated;
   border: 1px solid var(--border);
   background: var(--surface);
+}
+
+.glyph-grid {
+  display: block;
+  margin-top: 4px;
+  cursor: pointer;
+}
+
+.glyph-color {
+  width: 32px;
+  height: 22px;
+  padding: 0;
+  border: 1px solid var(--border);
+  background: none;
+}
+
+.glyph-grid-toggle {
+  flex-basis: 100%;
+}
+
+.glyph-grid-toggle > summary {
+  cursor: pointer;
+  color: var(--text-muted);
 }
 
 .verb-toggle {

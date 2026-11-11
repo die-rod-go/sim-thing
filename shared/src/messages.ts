@@ -56,7 +56,7 @@ export interface SnapshotMessage {
   speedOptions: number[];
   agents: Agent[];
   entities: Entity[];
-  /** Every item definition, so the client can draw entities from their sprites and name them. */
+  /** Every item definition, so the client can draw entities from their glyphs and name them. */
   itemDefinitions: ItemDefinition[];
   /** Every condition definition, so the client can name conditions and draw the visible ones. */
   conditionDefinitions: ConditionDefinition[];

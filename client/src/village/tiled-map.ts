@@ -1,3 +1,5 @@
+import { glyphSchema, type Glyph } from "@village/shared";
+
 /** The parts of a Tiled map the village view draws: size, one tileset, tile layers and places. */
 export interface TiledMap {
   width: number;
@@ -20,9 +22,8 @@ export interface TiledPlace {
 
 export interface TiledTileset {
   firstGid: number;
-  columns: number;
-  margin: number;
-  spacing: number;
+  /** Each tile's glyph, by its id within the tileset; tiles without one aren't drawn. */
+  glyphsByTileId: ReadonlyMap<number, Glyph>;
 }
 
 export interface TiledTileLayer {
@@ -31,11 +32,6 @@ export interface TiledTileLayer {
   isVisible: boolean;
   /** Global tile ids, row by row; 0 means no tile. */
   gids: number[];
-}
-
-export interface TileSourceRect {
-  x: number;
-  y: number;
 }
 
 /** Tiled stores flip and rotation flags in the top bits of each gid. */
@@ -50,16 +46,39 @@ function readNumber(record: Record<string, unknown>, key: string, fallback: numb
   return typeof value === "number" ? value : fallback;
 }
 
+function readTileProperties(tile: Record<string, unknown>): Record<string, unknown> {
+  const { properties } = tile;
+  if (!Array.isArray(properties)) return {};
+  return Object.fromEntries(
+    properties
+      .filter((property): property is Record<string, unknown> => isRecord(property))
+      .map((property) => [String(property.name), property.value]),
+  );
+}
+
+/** A tile's glyph from its `glyph`, `color` and `background` properties. */
+function parseTileGlyph(tile: Record<string, unknown>): [number, Glyph] | null {
+  const { glyph, color, background } = readTileProperties(tile);
+  if (glyph === undefined || typeof tile.id !== "number") return null;
+  const parsed = glyphSchema.safeParse({ index: glyph, color, background });
+  if (!parsed.success) {
+    throw new Error(`Tileset tile ${tile.id} has a bad glyph: ${parsed.error.message}`);
+  }
+  return [tile.id, parsed.data];
+}
+
 function parseTileset(tilesets: unknown[]): TiledTileset {
   const firstTileset: unknown = tilesets[0];
-  if (!isRecord(firstTileset) || typeof firstTileset.columns !== "number") {
-    throw new Error("Map file has no embedded tileset");
+  if (!isRecord(firstTileset) || !Array.isArray(firstTileset.tiles)) {
+    throw new Error("Map file has no embedded tileset with tile properties");
   }
+  const tileGlyphs = firstTileset.tiles
+    .filter((tile): tile is Record<string, unknown> => isRecord(tile))
+    .map(parseTileGlyph)
+    .filter((entry) => entry !== null);
   return {
     firstGid: readNumber(firstTileset, "firstgid", 1),
-    columns: firstTileset.columns,
-    margin: readNumber(firstTileset, "margin", 0),
-    spacing: readNumber(firstTileset, "spacing", 0),
+    glyphsByTileId: new Map(tileGlyphs),
   };
 }
 
@@ -129,15 +148,9 @@ export function parseTiledMap(
   return { width, height, tileWidth, tileHeight, tileset, tileLayers, places };
 }
 
-/** Where a tile's image sits in the tileset, or null for an empty cell. */
-export function findTileSourceRect(map: TiledMap, rawGid: number): TileSourceRect | null {
-  const localId = (rawGid & GID_FLAG_BITS_MASK) - map.tileset.firstGid;
-  if (localId < 0) return null;
-  const { columns, margin, spacing } = map.tileset;
-  const column = localId % columns;
-  const row = Math.floor(localId / columns);
-  return {
-    x: margin + column * (map.tileWidth + spacing),
-    y: margin + row * (map.tileHeight + spacing),
-  };
+/** The glyph a cell's tile is drawn with, or null for an empty cell. */
+export function findTileGlyph(map: TiledMap, rawGid: number): Glyph | null {
+  const tileId = (rawGid & GID_FLAG_BITS_MASK) - map.tileset.firstGid;
+  if (tileId < 0) return null;
+  return map.tileset.glyphsByTileId.get(tileId) ?? null;
 }

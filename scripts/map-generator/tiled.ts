@@ -2,6 +2,7 @@ import { config } from "../../server/src/config";
 import type { BuildingSpec, VillageLayout } from "./layout";
 import {
   COLLIDING_TILES,
+  TILE_GLYPHS,
   TILE_NAMES,
   TILE_SIZE,
   TILESET_COLUMNS,
@@ -95,7 +96,7 @@ function buildTileLayers(layout: VillageLayout): Record<"ground" | "walls" | "de
     walls.set(0, y, "fence");
     walls.set(widthTiles - 1, y, "fence");
   }
-  // Placed objects aren't baked in: the client draws each from its entity's sprite.
+  // Placed objects aren't baked in: the client draws each from its entity's glyph.
   for (const tree of layout.decorTrees) decor.set(tree.x, tree.y, "tree");
 
   return { ground: ground.data, walls: walls.data, decor: decor.data };
@@ -118,7 +119,12 @@ function buildTileset(): Record<string, unknown> {
     tiles: TILE_NAMES.map((tileName, tileId) => ({
       id: tileId,
       type: tileName,
-      properties: [{ name: "collides", type: "bool", value: COLLIDING_TILES.has(tileName) }],
+      properties: [
+        { name: "collides", type: "bool", value: COLLIDING_TILES.has(tileName) },
+        { name: "glyph", type: "int", value: TILE_GLYPHS[tileName].index },
+        { name: "color", type: "string", value: TILE_GLYPHS[tileName].color },
+        { name: "background", type: "string", value: TILE_GLYPHS[tileName].background },
+      ],
     })),
   };
 }

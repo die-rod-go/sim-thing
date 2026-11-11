@@ -1,14 +1,15 @@
 import { readFileSync } from "node:fs";
 import { resolve } from "node:path";
 import { inflateSync } from "node:zlib";
-import { buildItemCatalog, parseItemFile } from "@village/shared";
+import { buildItemCatalog, GLYPH_SHEET, parseItemFile } from "@village/shared";
 import { describe, expect, it } from "vitest";
 import { config } from "../../server/src/config";
 import { findPlaceAt, parseWorldMap } from "../../server/src/world/map-loader";
 import { findPathToPlace, findPathToTile } from "../../server/src/world/pathfinding";
 import { buildVillageLayout } from "./layout";
+import { decodePng } from "./png-decode";
 import { buildTiledMap, serializeTiledMap, type TiledObjectLayer } from "./tiled";
-import { generateTilesetPng, TILE_NAMES, TILESET_COLUMNS } from "./tileset";
+import { generateTilesetPng, TILE_GLYPHS, TILE_NAMES, TILESET_COLUMNS } from "./tileset";
 
 const EXPECTED_PLACES = [
   "town square",
@@ -29,6 +30,9 @@ const items = buildItemCatalog(
   parseItemFile(
     JSON.parse(readFileSync(resolve(import.meta.dirname, "../../seeds/items.json"), "utf8")),
   ),
+);
+const glyphSheet = decodePng(
+  readFileSync(resolve(import.meta.dirname, "../../maps", GLYPH_SHEET.fileName)),
 );
 const doors = worldMap.placements.filter((placement) => placement.definitionId === "door");
 
@@ -131,7 +135,7 @@ describe("generated village map", () => {
 
 describe("generated tileset", () => {
   it("is a valid RGBA PNG holding every tile", () => {
-    const png = generateTilesetPng();
+    const png = generateTilesetPng(glyphSheet);
     expect(png.subarray(1, 4).toString("ascii")).toBe("PNG");
     const width = png.readUInt32BE(16);
     const height = png.readUInt32BE(20);
@@ -142,7 +146,27 @@ describe("generated tileset", () => {
     expect(pixels.length).toBe((width * 4 + 1) * height);
   });
 
+  it("paints each tile's glyph in its color over its background", () => {
+    const tileset = decodePng(generateTilesetPng(glyphSheet));
+    const waterTileId = TILE_NAMES.indexOf("water");
+    const tileSize = config.map.tileSizePixels;
+    const tileLeft = (waterTileId % TILESET_COLUMNS) * tileSize;
+    const tileTop = Math.floor(waterTileId / TILESET_COLUMNS) * tileSize;
+    const tilePixelColors = new Set<string>();
+    for (let row = 0; row < tileSize; row++) {
+      for (let column = 0; column < tileSize; column++) {
+        const offset = ((tileTop + row) * tileset.width + tileLeft + column) * 4;
+        const [red, green, blue] = tileset.pixels.subarray(offset, offset + 3);
+        const toHex = (channel: number | undefined) => (channel ?? 0).toString(16).padStart(2, "0");
+        tilePixelColors.add(`#${toHex(red)}${toHex(green)}${toHex(blue)}`);
+      }
+    }
+    expect([...tilePixelColors].sort()).toEqual(
+      [TILE_GLYPHS.water.background, TILE_GLYPHS.water.color].sort(),
+    );
+  });
+
   it("is generated deterministically", () => {
-    expect(generateTilesetPng().equals(generateTilesetPng())).toBe(true);
+    expect(generateTilesetPng(glyphSheet).equals(generateTilesetPng(glyphSheet))).toBe(true);
   });
 });

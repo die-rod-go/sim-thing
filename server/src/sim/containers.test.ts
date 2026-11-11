@@ -56,7 +56,7 @@ function addBasket(sim: TestSim): void {
     name: "basket",
     plural: "baskets",
     form: "carriable",
-    sprite: { tileset: "village", tile: 24 },
+    glyph: { index: 24, color: "#ffffff" },
     components: { container: { capacity: 5 }, weight: { kilograms: 0.5 } },
   };
   sim.state.items = buildItemCatalog(

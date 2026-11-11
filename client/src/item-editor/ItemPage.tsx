@@ -6,7 +6,7 @@ import { EffectList } from "./EffectList";
 import { describeItemPreview } from "./item-preview";
 import { ItemVerbs } from "./ItemVerbs";
 import { selectEntryProblems } from "./problems";
-import { SpritePicker } from "./SpritePicker";
+import { GlyphPicker } from "./GlyphPicker";
 import { NO_READABLE_PATHS, OptionalValue } from "./value-inputs";
 import { Checkbox, Chips, Choice, InlineField, ItemProblemList } from "./widgets";
 
@@ -56,7 +56,7 @@ export function ItemPage({
           </InlineField>
         </div>
         <div className="effect-fields">
-          <SpritePicker sprite={definition.sprite} onChange={(sprite) => update({ sprite })} />
+          <GlyphPicker glyph={definition.glyph} onChange={(glyph) => update({ glyph })} />
           <Checkbox
             label="visible when carried"
             checked={definition.isVisibleWhenCarried}

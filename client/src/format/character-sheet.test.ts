@@ -48,10 +48,10 @@ describe("characterSheet", () => {
   });
 
   it("counts what the agent carries by definition, coins included", () => {
-    const sprite = { tileset: "village", tile: 0 };
+    const glyph = { index: 0, color: "#ffffff" };
     const definitions = [
-      { id: "coin", name: "coin", plural: "coins", form: "carriable" as const, sprite },
-      { id: "bread", name: "bread", form: "carriable" as const, sprite },
+      { id: "coin", name: "coin", plural: "coins", form: "carriable" as const, glyph },
+      { id: "bread", name: "bread", form: "carriable" as const, glyph },
     ].map((definition) => ({
       ...definition,
       isVisibleWhenCarried: false,

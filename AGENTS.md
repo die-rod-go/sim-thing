@@ -116,7 +116,7 @@ need one, ask first.
 | earshot         | Whether the sound simulation lets a listener hear a sound                             |
 | needs           | Hunger, energy, social, fun (0–1, 1 = satisfied)                                      |
 | reflection      | The morning, daytime, night and weekly LLM passes                                     |
-| item definition | A template in `seeds/items.json`: name, form, properties, components                  |
+| item definition | A template in `seeds/items.json`: name, form, glyph, properties, components           |
 | entity          | One instance of a definition in the world, with its own id, location and state        |
 | form            | `placeable` (sits on a tile, like an oven) or `carriable` (fits in an inventory)      |
 | property        | A plain tag on a definition (`flammable`, `sharp`); only data checks it               |
@@ -130,3 +130,4 @@ need one, ask first.
 | durability      | An entity's 0–1 condition, 1 = intact. At 0 it breaks                                 |
 | stats           | `strength` and `agility`, 0–1, set per character in the seeds                         |
 | status          | The UI section showing health, needs and conditions together                          |
+| glyph           | How a tile or item is drawn: a CP437 index in the glyph sheet, a color, a background  |
