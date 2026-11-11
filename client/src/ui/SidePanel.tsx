@@ -1,59 +1,27 @@
-import { useMemo, useState } from "react";
-import { clientConfig } from "../client-config";
-import { buildAgentColors } from "../format/agent-colors";
-import { groupConversations } from "../format/conversations";
-import type { ClientState } from "../state/client-state";
+import { findAgent } from "../state/client-state";
 import { CharacterSheet } from "./CharacterSheet";
-import { ConversationsTab } from "./ConversationsTab";
-import { EventFeed } from "./EventFeed";
-import { PanelContext, type PanelContextValue } from "./panel-context";
-import { Roster } from "./Roster";
-import { TabBar } from "./widgets";
+import { usePanelContext } from "./panel-context";
+import { StoryFeed } from "./StoryFeed";
 
-type PanelTabName = "character" | "conversations" | "events";
-
-const PANEL_TABS: readonly { name: PanelTabName; label: string }[] = [
-  { name: "character", label: "Character" },
-  { name: "conversations", label: "Conversations" },
-  { name: "events", label: "Events" },
-];
-
-interface SidePanelProps {
-  state: ClientState;
-  onSelectAgent: (agentId: string | null) => void;
-}
-
-export function SidePanel({ state, onSelectAgent }: SidePanelProps) {
-  const [activeTab, setActiveTab] = useState<PanelTabName>("character");
-  const agentColors = useMemo(() => buildAgentColors(state.agents), [state.agents]);
-  const threads = useMemo(
-    () => groupConversations(state.events, clientConfig.conversations.maxGapTicks),
-    [state.events],
-  );
-  const contextValue = useMemo<PanelContextValue>(
-    () => ({
-      state,
-      agentColors,
-      threads,
-      selectAgent: (agentId) => {
-        onSelectAgent(agentId);
-        if (agentId !== null) setActiveTab("character");
-      },
-    }),
-    [state, agentColors, threads, onSelectAgent],
-  );
-
+/** The story of the whole village, or one villager's sheet while someone is selected. */
+export function SidePanel() {
+  const { state, selectAgent } = usePanelContext();
+  const agent = findAgent(state, state.inspectedAgentId);
   return (
-    <PanelContext.Provider value={contextValue}>
-      <aside className="side-panel">
-        <Roster />
-        <TabBar className="tabs" tabs={PANEL_TABS} activeTab={activeTab} onChange={setActiveTab} />
-        <div className="tab-body">
-          {activeTab === "character" && <CharacterSheet />}
-          {activeTab === "conversations" && <ConversationsTab />}
-          {activeTab === "events" && <EventFeed />}
-        </div>
-      </aside>
-    </PanelContext.Provider>
+    <aside className="side-panel">
+      {agent ? (
+        <CharacterSheet key={agent.id} agent={agent} onClose={() => selectAgent(null)} />
+      ) : (
+        <>
+          <header className="panel-header">
+            <h2>Story</h2>
+            <span className="muted">Click a villager to see what they think</span>
+          </header>
+          <div className="panel-scroll">
+            <StoryFeed />
+          </div>
+        </>
+      )}
+    </aside>
   );
 }

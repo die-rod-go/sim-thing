@@ -1,30 +1,6 @@
 import { NEED_NAMES, type Agent } from "@village/shared";
-import { clientConfig } from "../client-config";
-import { formatCarrying, formatClockTime } from "../format/character-sheet";
-import { usePanelContext } from "./panel-context";
+import { formatCarrying } from "../format/character-sheet";
 import { EmptyNote, NeedRow, PanelSection } from "./widgets";
-
-function RecentLines({ agent }: { agent: Agent }) {
-  const { state } = usePanelContext();
-  const lines = state.events
-    .filter((event) => event.actorId === agent.id && event.speech !== undefined)
-    .slice(-clientConfig.ui.maxRecentLinesShown)
-    .reverse();
-  if (lines.length === 0) return <EmptyNote>Hasn't said anything lately.</EmptyNote>;
-  return (
-    <ul className="quote-list">
-      {lines.map((event) => (
-        <li key={event.id}>
-          <span className="line-time">{formatClockTime(event.tick, state.timeSettings)}</span>
-          <span className={`line-words volume-${event.speech?.volume ?? "normal"}`}>
-            “{event.speech?.words}”
-          </span>
-          <span className="muted"> at {event.place}</span>
-        </li>
-      ))}
-    </ul>
-  );
-}
 
 export function OverviewTab({ agent }: { agent: Agent }) {
   return (
@@ -74,9 +50,6 @@ export function OverviewTab({ agent }: { agent: Agent }) {
             ))}
           </ul>
         )}
-      </PanelSection>
-      <PanelSection title="Lately said">
-        <RecentLines agent={agent} />
       </PanelSection>
     </div>
   );

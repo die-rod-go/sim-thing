@@ -1,0 +1,205 @@
+/* Character sheet frame, the "now" strip and the activity timeline. */
+
+.character-sheet {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  min-height: 0;
+}
+
+.sheet-header {
+  flex: none;
+  padding: 10px 14px 0;
+  border-bottom: 1px solid var(--border);
+  background: var(--surface);
+}
+
+.sheet-close {
+  margin-left: auto;
+  margin-right: 28px;
+}
+
+.sheet-body {
+  flex: 1;
+  overflow-y: auto;
+  padding: 4px 14px 14px;
+}
+
+.sheet-tabs {
+  display: flex;
+  margin: 8px -14px 0;
+  padding: 0 8px;
+  overflow-x: auto;
+}
+
+.sheet-tabs .tab {
+  flex: none;
+  padding: 6px 8px;
+  font-size: 11px;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+}
+
+.now-strip {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  margin-top: 6px;
+}
+
+.now-strip p {
+  margin: 0;
+  line-height: 1.45;
+}
+
+.now-label {
+  display: inline-block;
+  min-width: 52px;
+  margin-right: 6px;
+  font-size: 11px;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  color: var(--text-muted);
+}
+
+.now-intention {
+  padding: 3px 8px;
+  border-left: 3px solid var(--accent);
+  background: var(--surface-raised);
+}
+
+.now-thought {
+  display: flex;
+  align-items: baseline;
+  gap: 0;
+  padding: 3px 8px;
+  border-left: 3px solid var(--thought);
+  background: var(--thought-soft);
+}
+
+.now-thought-text {
+  flex: 1;
+  font-style: italic;
+  color: var(--thought);
+  display: -webkit-box;
+  -webkit-line-clamp: 3;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+}
+
+.now-thought .line-time {
+  margin-left: 8px;
+}
+
+/* Activity */
+
+.activity .chip-row {
+  margin: 8px 0;
+}
+
+.small-note {
+  margin: 0 0 6px;
+  font-size: 12px;
+}
+
+.activity-list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+}
+
+.activity-group {
+  display: grid;
+  grid-template-columns: 40px 1fr;
+  gap: 8px;
+  padding: 6px 0;
+  border-bottom: 1px solid var(--border);
+}
+
+.activity-group > .line-time {
+  padding-top: 2px;
+}
+
+.activity-items {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  min-width: 0;
+}
+
+.activity-label {
+  font-size: 10px;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  color: var(--text-muted);
+}
+
+.activity-thought {
+  padding: 4px 10px;
+  border-radius: 12px 12px 12px 3px;
+  background: var(--thought-soft);
+}
+
+.activity-thought-text {
+  margin: 1px 0 0;
+  font-style: italic;
+  line-height: 1.45;
+  color: var(--thought);
+}
+
+.thought-kind-night,
+.thought-kind-morning,
+.thought-kind-weekly {
+  border: 1px solid var(--thought);
+}
+
+.activity-thought-parts {
+  display: grid;
+  gap: 1px;
+  margin: 3px 0 0;
+  font-size: 12px;
+}
+
+.activity-thought-parts > div {
+  display: grid;
+  grid-template-columns: 64px 1fr;
+  gap: 6px;
+}
+
+.activity-thought-parts dt {
+  color: var(--text-muted);
+}
+
+.activity-thought-parts dd {
+  margin: 0;
+}
+
+.activity-action {
+  display: grid;
+  grid-template-columns: 14px 1fr;
+  gap: 6px;
+  line-height: 1.4;
+}
+
+.activity-action.category-movement {
+  color: var(--text-muted);
+}
+
+.activity-action.feed-action_failed {
+  color: var(--danger);
+}
+
+.activity-speech p {
+  margin: 0;
+  line-height: 1.45;
+}
+
+.activity-reply-to {
+  padding-left: 8px;
+  border-left: 2px solid var(--border);
+  font-size: 12px;
+}
+
+.activity-said .line-words {
+  color: var(--speech);
+}
