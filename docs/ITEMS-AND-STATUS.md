@@ -31,12 +31,12 @@ These join the glossary in `AGENTS.md`. One concept, one name.
 | item definition | A template in `seeds/items.json`: name, form, properties, components                                  |
 | entity          | One instance of a definition in the world, with its own id, location and state                        |
 | form            | `placeable` (sits on a tile, like an oven) or `carriable` (fits in an inventory, like a knife)        |
-| property        | A plain tag on a definition (`flammable`, `fragile`, `sharp`). Reactions match on these               |
+| property        | A plain tag on a definition (`flammable`, `fragile`, `sharp`). Reactions and verb rules match on them |
 | component       | A structured part with fields (`durability`, `stock`, `openable`)                                     |
 | verb            | Something an agent can do (`attack`, `eat`, `take`), offered by whatever its `appliesTo` rule matches |
 | effect          | One step a verb, condition or reaction performs (`damage`, `heal`, `emit`, `produce`)                 |
 | stimulus        | A named physical cause sent by an effect (`fire`, `water`, `impact`, `cut`)                           |
-| reaction        | A rule: when a stimulus reaches something with a property or condition, run effects                   |
+| reaction        | A rule: when a stimulus reaches something with a property and/or condition, run effects               |
 | condition       | A timed state on an agent or entity (`burning`, `bleeding`, `wet`), with per-minute effects           |
 | health          | 0–1, 1 = unhurt. At 0 the agent dies                                                                  |
 | durability      | An entity's 0–1 condition, 1 = intact, on the same scale as health. At 0 it breaks                    |
@@ -56,8 +56,8 @@ record, which now holds the stats too.
 ### Where things live
 
 - `seeds/items.json`: item definitions, components, verbs, properties, conditions, reactions and
-  the `person` properties. This is
-  **content**, like `seeds/agents.json`, and the item editor edits it. Validated by a zod schema in `shared/`.
+  the `person` properties. This is **content**, like `seeds/agents.json`, and the item editor
+  edits it. Validated by a zod schema in `shared/`.
 - `server/src/config.ts`: global tunables only (health regen, starvation timing, hit-chance
   spread, strength scaling, reaction depth cap, health words).
 - `AGENTS.md` and `BRIEF.md` are updated to say so: global tunables stay in config, and item
@@ -96,6 +96,8 @@ verb applies to held things with one. How hard it hits comes from that component
 
 - `sprite` is required: placeables and items on the ground are drawn from it (see Client).
 - `onBroken` runs when durability reaches 0. Without it the entity is destroyed.
+- Every carriable definition must have a `weight` component (validation rejects one without), so
+  anything you can hold can be thrown. Coins weigh a few grams.
 
 ### Entity (instance)
 
@@ -191,8 +193,8 @@ offers a verb on every entity or agent its rule matches, and that matched thing 
 `on: "item"` refers to in the verb's effects. Verbs don't belong to definitions or components.
 
 `appliesTo` picks the thing being **used**: a held knife, the oven you're at, the chest or body you
-search, or yourself. `target` is what you **aim** it at: the person you stab, the tile you throw
-to. A rule may never match a living agent other than the user, so other people are only ever
+search, or yourself. `target` is what you **aim** it at: the person you stab, the door you throw
+a rock at. A rule may never match a living agent other than the user, so other people are only ever
 targets.
 
 `give`, `walk_to`, `recall` and `wait` stay actions of their own, not verbs.
@@ -202,7 +204,7 @@ targets.
   {
     "name": "attack",
     "appliesTo": { "allOf": [{ "component": "weapon" }, { "location": "held" }] },
-    "target": "agent",
+    "target": "agent_or_entity",
     "reach": 1,
     "minutes": 1,
     "loudness": 6,
@@ -330,27 +332,26 @@ item-specific wording ("stabbed") can read it from a component text field too.
 
 Starting verbs:
 
-| Verb                                                                        | `appliesTo`                                                 |
-| --------------------------------------------------------------------------- | ----------------------------------------------------------- |
-| `eat`                                                                       | `component: food` and `location: held`                      |
-| `drink`                                                                     | `component: drink` and `location: held`                     |
-| `attack`                                                                    | `component: weapon` and `location: held`                    |
-| `use` (bandage)                                                             | `component: healing` and `location: held`                   |
-| `harvest wheat`, `chop wood`, `bake bread`, `brew ale`, `play cards`, `sit` | that definition                                             |
-| `drop`                                                                      | `form: carriable` and `location: held`                      |
-| `throw`                                                                     | `form: carriable`, `component: weight` and `location: held` |
-| `pick up`                                                                   | `form: carriable` and `location: ground`                    |
-| `put`                                                                       | `component: container`                                      |
-| `take`                                                                      | `component: container`, or `isDeadAgent`                    |
-| `open`, `close`                                                             | `component: openable`                                       |
-| `sleep`                                                                     | `component: bed`                                            |
-| `read`, `post a note`                                                       | `component: notes`                                          |
-| `punch`                                                                     | `isUser`                                                    |
+| Verb                                                                        | `appliesTo`                                                                                                                              |
+| --------------------------------------------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------- |
+| `eat`                                                                       | `component: food` and `location: held`                                                                                                   |
+| `drink`                                                                     | `component: drink` and `location: held`                                                                                                  |
+| `attack`                                                                    | `component: weapon` and `location: held`                                                                                                 |
+| `use` (bandage)                                                             | `component: healing` and `location: held`                                                                                                |
+| `harvest wheat`, `chop wood`, `bake bread`, `brew ale`, `play cards`, `sit` | that definition                                                                                                                          |
+| `drop`                                                                      | `form: carriable` and `location: held`                                                                                                   |
+| `throw`                                                                     | `form: carriable`, `component: weight` and `location: held` (every carriable has `weight`, but the rule names it so `throw` may read it) |
+| `pick up`                                                                   | `form: carriable` and `location: ground`                                                                                                 |
+| `put`                                                                       | `component: container`                                                                                                                   |
+| `take`                                                                      | `component: container`, or `isDeadAgent`                                                                                                 |
+| `open`, `close`                                                             | `component: openable`                                                                                                                    |
+| `sleep`                                                                     | `component: bed`                                                                                                                         |
+| `read`, `post a note`                                                       | `component: notes`                                                                                                                       |
+| `punch`                                                                     | `isUser`                                                                                                                                 |
 
 - Two verbs with the same name can't both match the same thing. Validation checks every
   definition and `person` (as the user and as a dead agent) against every rule (ignoring
-  `location`) and rejects overlaps. To give one item its own
-  version of a general verb, exclude it from the general rule with `not` (a jar's own `throw`, with
+  `location`) and rejects overlaps. To give one item its own version of a general verb, exclude it from the general rule with `not` (a jar's own `throw`, with
   the general `throw` set to `not: { definition: "jar" }`).
 - For `put` and `take`, the decision's `item` names the thing moved, and `on: "chosen"` refers to
   it.
@@ -364,7 +365,7 @@ someone asleep.
 | Verb field      | Meaning                                                                                                                                                                           |
 | --------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
 | `name`          | What the agent says it does                                                                                                                                                       |
-| `target`        | `none` (just the item or object itself), `agent` (living only), `entity`, `agent_or_entity`, `tile`                                                                               |
+| `target`        | `none` (just the item or object itself), `agent` (living only), `entity`, `agent_or_entity`. An `entity` target can be on a tile or another held item (light the bottle you hold) |
 | `canTargetSelf` | Whether `agent` targets include the user ("bandage yourself"); default `false`                                                                                                    |
 | `reach`         | Tiles from the user to the target, or to the used thing when `target` is `none` (1 for melee, 6 for throw). Held items are always in reach. The target must also be in sight      |
 | `minutes`       | Duration; `null` means it ends by its own rules (sleep)                                                                                                                           |
@@ -395,7 +396,8 @@ comes from:
     or reaction, not counting `self`
 - `chance`: 0–1, rolled with the seeded generator
 - `when`: `start` or `finish` (default `finish`)
-- `requiresHit`: only if the verb's hit roll succeeded (default `true` on verbs with `hitRoll`)
+- `requiresHit`: only if the verb's hit roll succeeded (default `true` on verbs with `hitRoll`).
+  The roll happens at `finish`, so a `start` effect can't require a hit; validation rejects it
 
 | Effect                             | Parameters                                          | Does                                                                                                                                                                      |
 | ---------------------------------- | --------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
@@ -422,8 +424,11 @@ comes from:
 - A condition's `onEnd` effects run when it runs out or is removed. When an entity is destroyed or
   transformed, its conditions simply go with it, without `onEnd`.
 
-All amounts are on the 0–1 health scale, so the same numbers work on a person and a door: a thrown
-rock or a fire does a fifth as much to a door with toughness 5.
+All amounts are on the 0–1 health scale, so the same numbers work on a person and a door: a knife,
+a thrown rock or a fire does a fifth as much to a door with toughness 5.
+
+A stimulus carries the agent who started it through every reaction it sets off, so a fire spread
+from Tobias's Molotov gives each new `burning` condition Tobias as its source.
 
 Example combinations that need no new code:
 
@@ -435,8 +440,7 @@ Example combinations that need no new code:
   1, and the general `fragile` reaction after it turns the bottle into shards.
 - **Lantern:** `light` verb with `emit fire` on `target`, reach 1.
 - **Bandage:** `use` with `heal` reading `item.healing.health` and `remove_condition bleeding` on
-  `target`, target `agent`,
-  `canTargetSelf: true`, reach 1, then `destroy` on `item`.
+  `target`, target `agent`, `canTargetSelf: true`, reach 1, then `destroy` on `item`.
 - **Carving:** `carve` on wood with `tools: { properties: ["sharp"] }` and `produce` a spoon.
 
 ### Conditions
@@ -528,6 +532,7 @@ effects. `unless` skips the reaction if the receiver has that property or condit
   properties, so a fire with nothing flammable nearby burns out.
 - Each reaction that changes something visible makes a world event, so agents perceive it and
   remember it.
+- A reaction with a `damage` effect on `self` needs a `killed` phrase, like a verb.
 
 ## Status: health, stats, conditions
 
@@ -566,17 +571,17 @@ hitChance = clamp(baseHitChance + (attacker.agility - defender.agility) * combat
 ```
 
 - Defaults: `agilitySpread` 0.5, `minHitChance` 0.1, `maxHitChance` 0.95.
-- An asleep target, or an entity, is always hit. Dead agents can't be attacked. Dodging comes only from agility; there is
-  no dodge or guard action.
+- An asleep target, or an entity, is always hit, so `attack` can break a door or smash a jar. Dead
+  agents can't be attacked. Dodging comes only from agility; there is no dodge or guard action.
 - `scaledByStrength` damage is multiplied by `1 + (attacker.strength - 0.5) * combat.strengthSpread`
   (default spread 0.6, so 0.7× to 1.3×), after rolling within `{min, max}`.
 - **Throwing at an agent** uses the `throw` verb's hit roll (base 0.6). On a hit the target takes
   0.02–0.05 damage per kilogram of the item's `weight` (scaled by strength, stimulus `impact`), and
   the item lands on its tile. On a miss it lands on a random tile next to the target. Either way
   the item receives `impact` where it lands.
-- Starting numbers: punch 0.05–0.12 at base 0.8, costing the puncher 0.01 energy; the knife's `weapon`
-  component 0.2–0.4 at 0.7, plus a 40% chance of bleeding. A healthy agent survives two or three knife hits and many
-  punches.
+- Starting numbers: punch 0.05–0.12 at base 0.8, costing the puncher 0.01 energy; the knife's
+  `weapon` component 0.2–0.4 at 0.7, plus a 40% chance of bleeding. A healthy agent survives two or
+  three knife hits and many punches.
 - Each swing is one decision. A fight is a run of decisions, so it costs LLM calls and moves at the
   speed replies arrive.
 - A miss is still an event ("swung a knife at Tobias and missed") that everyone in sight perceives.
@@ -603,19 +608,20 @@ settled before the next agent acts).
 
 - A `died` event, seen by everyone in sight. It makes no sound of its own: what others hear is
   the attack's loudness, or whatever the dying agent chose to shout.
-- `Agent.death = { tick, cause }`. The cause comes from the `killed` phrase of the last damage, or
-  of the condition's source ("stabbed by Tobias", "bled to death after being stabbed by Tobias",
-  "starved"). It's for the viewer; agents learn the cause only from what they witnessed.
-- The agent's current action stops: a verb in progress is cancelled and they leave the object's users
-  (the card table).
+- `Agent.death = { tick, cause }`. The cause is the `killed` phrase of whatever did the last
+  damage (a verb, condition or reaction), with the source agent when there is one ("stabbed by
+  Tobias", "bled to death after being hurt by Tobias"). Starvation's phrase ("starved") is in
+  config. It's for the viewer; agents learn the cause only from what they witnessed.
+- The agent's current action stops: a verb in progress is cancelled and they leave the object's
+  users (the card table).
 - A decision still in flight for them is dropped when it arrives, as replies for a replaced world
   are now.
 - From then on: no decisions, no need decay, no regeneration, no reflections, no forgetting. Their
   memories stay readable in the viewer.
 - The dead agent stays on their tile, keeping their inventory (coins included), so the coin supply
-  stays closed. Others see "Mara's body", which doesn't block movement, and their awareness of Mara records her
-  as lying dead. Anyone in reach can `take` from it.
-  A dead agent still has the `person` properties, so a body can burn.
+  stays closed. Others see "Mara's body", which doesn't block movement, and their awareness of
+  Mara records her as lying dead. Anyone in reach can `take` from it. A dead agent still has the
+  `person` properties, so a body can burn.
 - Witnesses get a `seen` memory of the death; the killer gets a `did` memory. Everyone else learns
   by finding the body or being told. No code makes anyone grieve or suspect.
 - A `died` moment goes to the viewer's highlights. The client draws the marker lying down and greyed
@@ -644,15 +650,16 @@ The reply stays flat. The `interact` action keeps its name; its `interaction` fi
     that requires `location: held` or `isUser`; validation checks it.
   - The thing **chosen** to move by `put` and `take` is `item`.
 - `item` becomes an enum of held items and the contents of containers and bodies within reach, as
-  `target` already is an enum. `target` gains ground items, bodies and `yourself`. Both use
+  `target` already is an enum. `target` gains ground items, bodies, `yourself`, and held items
+  (for a verb aimed at something you carry). Both use
   definition names ("coin", "bread"), and `amount` says how many.
 - A target out of reach makes the agent walk there first, as `interact` does now. A moving target
   is followed for up to `combat.chaseTicks`, then the act fails ("Tobias got away").
 - Replies arrive in the background, a few ticks after they were asked for. So everything is checked
   again when the reply is applied: the target is still alive, in sight, and the item still
   held. If not, it fails with a reason ("Tobias was already gone").
-- **Belongings** list verbs inline, so most acts need no second call: "You carry: 3 bread (eat), a
-  knife (attack someone, throw)". **Here** lists objects with their verbs the same way. The
+- **Belongings** list verbs inline, so most acts need no second call: "You carry: 3 bread (eat,
+  throw), a knife (attack, throw)". **Here** lists objects with their verbs the same way. The
   second interact call stays for objects with many verbs or missing details.
 - **Verbs that need no item** (`isUser`, like `punch`) are listed in every decision prompt, after
   belongings ("You can also: punch someone"). Which verbs get listed is one choice in the prompt
@@ -670,8 +677,8 @@ The reply stays flat. The `interact` action keeps its name; its `interaction` fi
 - Sight sees entities on tiles as it sees objects now. What a dead agent holds, and what is inside
   a container, is visible only to an agent within `take` reach, who sees it listed under Here.
 - New `WorldEventKind`s: `attacked`, `missed`, `hurt`, `died`, `dropped`, `picked_up`, `threw`,
-  `put`, `took`, `broke`, `caught_fire`, `stopped_burning`, `condition_started`, `condition_ended`. Each is
-  filed through the existing `broadcast(event)` path. Fast repeats (a fire burning for 30 minutes)
+  `put`, `took`, `broke`, `caught_fire`, `stopped_burning`, `condition_started`, `condition_ended`.
+  Each is filed through the existing `broadcast(event)` path. Fast repeats (a fire burning for 30 minutes)
   file one memory when it starts and one when it ends, as actions do now.
 - Witnessing an attack or a death gives a decision and skips the interrupt cooldown.
 - Definition names join the known names used for memory tags, and the recall cue's "nearby
@@ -705,8 +712,8 @@ Deaths are settled the moment damage lands, in whichever step that is.
 ## Persistence
 
 - A new `entities` table (`id`, `definition_id`, `location` json, `state` json). The agent row
-  loses `inventory` and `coins` and gains `health`, `starvingSinceTick`, `conditions` and `death`. Stats join
-  `body`.
+  loses `inventory` and `coins` and gains `health`, `starvingSinceTick`, `conditions` and `death`.
+  Stats join `body`.
 - Saved sims from before this change can't load; the server says to run `make reset`.
 
 ## Seeds and the character editor
@@ -733,7 +740,7 @@ through the same atomic write and validation path. Changes apply on the next ser
 │              │             weapon  damage [0.20–0.40] hit [0.70] cut       │
 │              │             weight  kilograms [0.3]          [+ add]        │
 │ Verbs        │ Verbs that apply to it                                      │
-│ Conditions   │  ▾ attack   applies to [weapon, held]  target [agent ▾]     │
+│ Conditions   │  ▾ attack   applies to [weapon, held]  target [agent/thing▾]│
 │ Reactions    │    reach [1] minutes [1] loud [6]  hit [from weapon.hit]    │
 │ Properties   │    Effects (drag to reorder)                                │
 │              │     1 damage  on [target▾] [from weapon.damage] ☑ strength  │
@@ -742,7 +749,7 @@ through the same atomic write and validation path. Changes apply on the next ser
 │              │  ▸ throw    applies to [carriable, weight, held]            │
 │              │  [+ verb]                                                   │
 │              │ ── How agents see it ────────────────────────────────────── │
-│              │ "a knife (attack someone, throw)"                           │
+│              │ "a knife (attack, throw)"                                   │
 │              │ Problems: none                                [Save]        │
 └──────────────┴───────────────────────────────────────────────────────────┘
 ```
@@ -761,10 +768,11 @@ through the same atomic write and validation path. Changes apply on the next ser
 - Effect rows show only the fields that effect type takes; `chance`, `when` and `requiresHit` sit
   behind a "more" toggle.
 - Stimulus fields offer every stimulus already used in the file, or a new name.
-- Live validation: unknown conditions or items in effects, verbs whose target kind doesn't fit the
-  form, reactions on properties nothing has, `appliesTo` rules that match nothing or match living
-  agents, two same-named verbs matching the same thing, a verb reading a component its rule doesn't
-  guarantee, `on: item` in an `isUser` verb, and a
+- Live validation: unknown conditions or items in effects, an aimed verb whose rule doesn't
+  require `location: held` or `isUser`, reactions on properties nothing has, `appliesTo` rules
+  that match nothing or match living agents, two same-named verbs matching the same thing, a verb
+  reading a component its rule doesn't guarantee, `on: item` in an `isUser` verb, a carriable
+  without `weight`, a `start` effect that requires a hit, a missing `killed` phrase, and a
   definition still used by the map or seeds being deleted.
 - A preview line shows how the item appears in a prompt.
 - The item editor only defines items. It never places objects on the map (that stays in Tiled and
@@ -774,8 +782,8 @@ through the same atomic write and validation path. Changes apply on the next ser
 
 - The fake responder picks verbs from what's valid, like other actions, and fills `item`, `target`
   and `amount` for them.
-- Verbs with a `hitRoll` get a low weight in the fake responder (`fakeLlm.attackWeight` in config), so soak
-  runs exercise combat without wiping out the village in an hour.
+- Verbs with a `hitRoll` get a low weight in the fake responder (`fakeLlm.attackWeight` in
+  config), so soak runs exercise combat without wiping out the village in an hour.
 - The soak run reports deaths, and fails on any thrown error or a reaction chain hitting the depth
   cap.
 
@@ -787,13 +795,13 @@ Unit tests cover the code-driven core, named by behavior:
 - hit chance from agility, the clamp, always hitting sleepers, and damage scaling by strength
 - each effect type, effect modifiers (`on`, `chance`, `when`, `requiresHit`), and `tools`
 - conditions running per minute, extending rather than stacking, and ending
-- reactions, `unless`, ordering, chains and the depth cap
+- reactions, `unless`, ordering, chains, the depth cap, and the source agent carried along a chain
 - death: the cause, cancelled actions, dropped in-flight decisions, and taking from a body
 - numbers read from components (`from`, `times`) and rejecting reads a rule doesn't guarantee
 - `appliesTo` matching each term, `anyOf`/`allOf`/`not`, rejecting overlapping same-named verbs,
   and rejecting rules that match living agents
-- `take` and `put` with containers, coins moving as items, the closed-supply warning, and refusing to take from a living
-  agent
+- `take` and `put` with containers, coins moving as items, the closed-supply warning, and refusing
+  to take from a living agent
 - grouping entities in prompts, `give` choosing the oldest, and two agents grabbing the same item
 - `items.json` validation and the server refusing bad references
 
@@ -806,12 +814,13 @@ Each phase ends with `make check` and `make test` passing and its own commits.
 2. **Entities:** `items.json` and its schema, the entity store, placeables drawn from entities,
    "interaction" renamed to "verb", `AGENTS.md` and `BRIEF.md` updated. Every current interaction
    is ported to a verb with an `appliesTo` rule (bread and ale get `food` and `drink` components),
-   so this phase also builds the verb runner, component declarations, and the effects those need (`produce`, `destroy`, `take_stock`, `change_need`, `set_open`, `sleep`,
-   `read_notes`, `post_note`). Coins become `coin` entities and `give` moves entities. Behavior
-   otherwise unchanged; existing tests prove it.
-3. **Targets and combat:** verb targets, reach, `tools`, hit rolls, strength scaling,
-   `damage`, `heal`, `wear`, numbers read from components. Content: `weapon`, `weight` and
-   `healing` components, knife, `attack`, `punch`, bandage.
+   so this phase also builds the verb runner, component declarations, and the effects those need
+   (`produce`, `destroy`, `take_stock`, `change_need`, `set_open`, `sleep`, `read_notes`,
+   `post_note`). Coins become `coin` entities and `give` moves entities. Every carriable gets a
+   `weight`. Behavior otherwise unchanged; existing tests prove it.
+3. **Targets and combat:** verb targets, reach, `tools`, hit rolls, strength scaling, `damage`,
+   `heal`, `wear`, `transform`, breaking (`onBroken`), numbers read from components. Content:
+   `weapon` and `healing` components, knife, `attack`, `punch`, bandage.
 4. **Ground items:** `drop`, `pick up`, `throw`, `take` from bodies, containers with `put` and
    `take`, ground items in perception and on the map.
 5. **Conditions and reactions:** bleeding, burning, wet, poisoned, fragile breaking, fire spread,
@@ -835,7 +844,8 @@ Each phase ends with `make check` and `make test` passing and its own commits.
 12. Others see an agent's health as words once it drops below a threshold.
 13. No damage resistance by property and no armor; only `toughness` reduces damage.
 14. Bodies stay where they fell for good; no carrying, burying or decay for now.
-15. Where knives come from is left out of this design.
+15. Which items exist beyond the examples, and where knives, bandages and the like come from, is
+    left to the user's own item design.
 16. There is one kind of verb: each is defined once with an `appliesTo` rule. Verbs don't belong
     to definitions or components.
 17. A verb's numbers can be literals or read from components of the thing being used, so one verb
@@ -845,3 +855,6 @@ Each phase ends with `make check` and `make test` passing and its own commits.
 19. Coins are items (`coin` entities), not a number on the agent.
 20. A sleeping victim perceives only being hurt, not who hurt them; sight after waking does the
     rest.
+21. `attack` can target entities as well as agents, so weapons can break doors and smash jars.
+22. People are `flammable` and can catch fire from burning things next to them.
+23. Every carriable has a `weight` component, so anything held can be thrown.
