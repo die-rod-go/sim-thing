@@ -25,7 +25,7 @@ finished task without waiting to be asked: one commit per task, with a short imp
 - `server/prompts/` prompt templates (plain text)
 - `client/` village view (canvas tiles, DOM agents and bubbles) and React panels
 - `shared/` types and WebSocket message definitions used by both sides
-- `seeds/` agent seed file
+- `seeds/` agent seed file (`agents.json`) and item content (`items.json`)
 - `maps/` Tiled map files
 - `docs/` the brief and other design notes
 
@@ -53,8 +53,10 @@ need one, ask first.
 - Small functions with one job. Split a file when it passes roughly 300 lines.
 - Prefer pure functions for sim logic: take state in, return new state or events out.
 - Named exports only.
-- No magic numbers. Every tunable value (rates, caps, weights, loudness, recipes, budgets) lives in
-  the config file, as the brief requires.
+- No magic numbers. Every global tunable (rates, caps, weights, loudness, budgets) lives in the
+  config file, as the brief requires. Item content (definitions, components, verbs and their
+  numbers, recipes, conditions, reactions) lives in `seeds/items.json`, validated by the schema in
+  `shared/`.
 - Formatting comes from Prettier and lint rules from ESLint. Don't hand-format or disable rules
   without a reason in the same line.
 
@@ -84,7 +86,8 @@ need one, ask first.
 
 - Tests never call a real LLM. Use the fake LLM client with fixed replies.
 - Cover the code-driven core with unit tests: perception (sight and sound), memory filing, recall
-  scoring, forgetting, needs decay, recipes and `give`.
+  scoring, forgetting, needs decay, verbs and their effects, `appliesTo` matching, `items.json`
+  validation and `give`.
 - Name tests by behavior: `"muffles speech heard through a closed door"`.
 
 ## Errors and logging
@@ -102,14 +105,28 @@ need one, ask first.
 
 ## Glossary
 
-| Term       | Meaning                                                           |
-| ---------- | ----------------------------------------------------------------- |
-| tick       | One step of the sim clock (1 sim-minute by default)               |
-| decision   | One LLM call that returns a `DecisionReply`                       |
-| intention  | The agent's current one-line goal, carried between decisions      |
-| bucket     | A category of memories, set by where they came from               |
-| strength   | A memory's 0–1 weight; fades by half-life, bumped by recall       |
-| awareness  | The structured record of when each other agent was last perceived |
-| earshot    | Whether the sound simulation lets a listener hear a sound         |
-| needs      | Hunger, energy, social, fun (0–1, 1 = satisfied)                  |
-| reflection | The morning, night and weekly LLM passes                          |
+| Term            | Meaning                                                                               |
+| --------------- | ------------------------------------------------------------------------------------- |
+| tick            | One step of the sim clock (1 sim-minute by default)                                   |
+| decision        | One LLM call that returns a `DecisionReply`                                           |
+| intention       | The agent's current one-line goal, carried between decisions                          |
+| bucket          | A category of memories, set by where they came from                                   |
+| strength        | A memory's 0–1 weight; fades by half-life, bumped by recall                           |
+| awareness       | The structured record of when each other agent was last perceived                     |
+| earshot         | Whether the sound simulation lets a listener hear a sound                             |
+| needs           | Hunger, energy, social, fun (0–1, 1 = satisfied)                                      |
+| reflection      | The morning, night and weekly LLM passes                                              |
+| item definition | A template in `seeds/items.json`: name, form, properties, components                  |
+| entity          | One instance of a definition in the world, with its own id, location and state        |
+| form            | `placeable` (sits on a tile, like an oven) or `carriable` (fits in an inventory)      |
+| property        | A plain tag on a definition (`flammable`, `sharp`); only data checks it               |
+| component       | A structured part with fields (`durability`, `stock`, `openable`, `food`)             |
+| verb            | Something an agent can do, offered by whatever its `appliesTo` rule matches           |
+| effect          | One step a verb, condition or reaction performs (`produce`, `destroy`, `change_need`) |
+| stimulus        | A named physical cause sent by an effect (`fire`, `water`, `impact`, `cut`)           |
+| reaction        | A rule: when a stimulus reaches something with a property or condition, run effects   |
+| condition       | A timed state on an agent or entity (`burning`, `bleeding`), with per-minute effects  |
+| health          | 0–1, 1 = unhurt. At 0 the agent dies                                                  |
+| durability      | An entity's 0–1 condition, 1 = intact. At 0 it breaks                                 |
+| stats           | `strength` and `agility`, 0–1, set per character in the seeds                         |
+| status          | The UI section showing health, needs and conditions together                          |

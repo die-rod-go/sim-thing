@@ -1,7 +1,7 @@
 # Items, verbs and status: design
 
-Status: **agreed design**. Nothing here is built yet. Decisions taken in review are listed at the
-end.
+Status: **agreed design**. Phases 1 (status) and 2 (entities) of the build order are built; the
+rest is not yet. Decisions taken in review are listed at the end.
 
 ## Goal
 

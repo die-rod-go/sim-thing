@@ -4,7 +4,7 @@ Nov 10, 2026 · @no
 
 ## Overview
 
-Build a browser-viewable village simulation in which 6 LLM-driven agents (configurable) walk around a 2D tile map, interact with objects and talk to each other. Each agent has memory buckets, needs, mood, goals and a slowly changing personality. A cheap LLM drives every decision; code handles only physics, perception, time and memory plumbing.
+Build a browser-viewable village simulation in which 6 LLM-driven agents (configurable) walk around a 2D tile map, use objects and items and talk to each other. Each agent has memory buckets, needs, mood, goals and a slowly changing personality. A cheap LLM drives every decision; code handles only physics, perception, time and memory plumbing.
 
 **Design rule: hardcode the containers, not the meaning.** Code decides where information is stored and what an agent can perceive. The LLM decides what to do, what to say, what to believe and how to feel. Do not add rule-based social behavior (trust formulas, affinity scores, scripted reactions).
 
@@ -31,7 +31,7 @@ The sim loop is the only writer of world state; the browser never calls the LLM 
 | LLM       | OpenAI-compatible client                      | Base URL, model and key from `.env`; works with OpenRouter or Ollama; use JSON output mode |
 | Rendering | Canvas 2D + DOM (no game engine)              | Tiles drawn once to a canvas; agents, speech bubbles and overlays as DOM/SVG above it      |
 | UI panels | React via Vite                                | Inspector and controls beside the village view                                             |
-| Map       | Tiled JSON + a free CC0 tileset (e.g. Kenney) | Object layer defines interactables                                                         |
+| Map       | Tiled JSON + a free CC0 tileset (e.g. Kenney) | Object layer places item definitions from `seeds/items.json`                               |
 
 Suggested layout: `server/` (sim loop, world, agents, memory, llm, db, ws), `server/prompts/` (plain-text prompt templates for decision, interact, morning, night and weekly calls, so prompts can be tuned without code changes), `client/` (village view, React panels), `shared/` (types and WebSocket message definitions), `maps/` (Tiled files), `seeds/` (agent seed file).
 
@@ -59,7 +59,7 @@ Mark every target `.PHONY`, indent recipe lines with tabs, and add a `make help`
 The world is ground truth and is fully code-driven: map, positions, object state, time and perception.
 
 - **Map:** a Tiled tilemap with named places (rooms or zones such as `bakery`, `tavern`, `square`, homes) and a collision layer, about 40×30 tiles. The implementing agent generates the map JSON with a script (rooms, walls, doors and objects on a Kenney tileset), so it can still be opened and edited in Tiled later. The v1 places are listed under Economy and professions. Movement uses grid pathfinding; one tile per tick.
-- **Objects:** defined on a Tiled object layer. Custom properties give each object a `name`, `place`, and an `interactions` list, e.g. `oven: ["bake bread"]`. Each interaction has a duration in ticks and may change object state and agent needs (eating restores hunger; sleeping in a bed restores energy). Keep all recipes and effects in config (see Economy and professions), not scattered code. Doors are objects too, with open and close interactions; they start open, and a closed door blocks sight and muffles sound.
+- **Items and objects:** everything that can be used is an **entity**, one instance of an **item definition** from `seeds/items.json` (see `docs/ITEMS-AND-STATUS.md`). A Tiled object names a placeable definition (`definition: "oven"`) and its own `name` ("bakery door") and loads as an entity on that tile; carried things (bread, wheat, coins) are entities in an agent's inventory. **Verbs** are defined once in `items.json` with an `appliesTo` rule, so the oven offers `bake bread` and any held food offers `eat`. A verb has a duration in minutes and a list of effects (use up the bread, take stock from the field, produce 4 bread, change a need). Per-item content (verbs, recipes, need effects, stock) lives in `items.json`; global tunables stay in config. Doors are entities too, with `open` and `close`; they start open, and a closed door blocks sight and muffles sound. Placed objects are drawn from their entity's sprite, not baked into the map.
 - **Perception:** sight and sound, simulated as described below. This is the only gate on information.
 - **Sim clock:** discrete ticks; 1 tick = 1 sim-minute (configurable). The sim starts at 06:00 on day 1. The clock advances only after every agent that needs a decision has one; LLM calls for all agents run in parallel with a concurrency limit (default 8). The UI can pause, step one tick and change speed. Speed sets the maximum ticks per real second: at 1x (0.8 ticks/s) a sim-day takes 30 real minutes, plus time spent waiting on the LLM.
 - **Event log:** every world event is appended to an `events` table (tick, actor, kind, target, place, text). This drives memory writes and is kept for debugging and future replay.
@@ -78,13 +78,13 @@ Agents learn about the world only through two small simulations that run in code
 
 ## Economy and professions
 
-Five of the six agents have a profession tied to a workplace, and a fixed supply of coins lets them trade. Code defines only what each object produces; prices, deals, debts and haggling are entirely up to the agents.
+Five of the six agents have a profession tied to a workplace, and a fixed supply of coins lets them trade. Data in `items.json` defines only what each object produces; prices, deals, debts and haggling are entirely up to the agents.
 
 &#91;embedded content: production chain · 2 raw goods, 2 products\]
 
 The baker and tavern keeper both depend on the farmers and the woodcutter, and everyone depends on the baker, so there is pressure to trade from day one.
 
-| Place                                     | Objects: interactions                                                                                   |
+| Place                                     | Objects: verbs                                                                                          |
 | ----------------------------------------- | ------------------------------------------------------------------------------------------------------- |
 | Homes (one per agent except the newcomer) | bed: sleep. Which home is whose is only persona and seed text, not a rule; the tavern has one spare bed |
 | Town square                               | notice board: read, post a note; bench: sit                                                             |
@@ -93,9 +93,9 @@ The baker and tavern keeper both depend on the farmers and the woodcutter, and e
 | Bakery                                    | oven: bake bread                                                                                        |
 | Tavern                                    | brew kettle: brew ale; card table: play cards                                                           |
 
-Starting recipe values (all in config; tune by watching):
+Starting verb values (all in `seeds/items.json`; tune by watching):
 
-| Interaction   | Inputs          | Outputs                                             | Ticks                                                    | Need effects                                                                                                           |
+| Verb          | Inputs          | Outputs                                             | Ticks                                                    | Need effects                                                                                                           |
 | ------------- | --------------- | --------------------------------------------------- | -------------------------------------------------------- | ---------------------------------------------------------------------------------------------------------------------- |
 | harvest wheat | —               | 3 wheat (one shared field holds 12, regrows 12/day) | 60                                                       | energy −0.1                                                                                                            |
 | chop wood     | —               | 2 wood (trees hold 10, regrow 10/day)               | 60                                                       | energy −0.15                                                                                                           |
@@ -107,8 +107,8 @@ Starting recipe values (all in config; tune by watching):
 | sit on bench  | —               | —                                                   | 20                                                       | energy +0.1                                                                                                            |
 | sleep (bed)   | —               | —                                                   | until rested or woken, or the nap length the agent chose | energy + the agent's own recovery rate per hour, halved while hunger is below 0.3; other needs decay at a quarter rate |
 
-- **Money:** a closed supply. Each agent starts with 30 coins. There are no wages, set prices or shop logic: agents sell what they make by saying so and using `give`. Credit, debt, haggling and refusing to trade all emerge from talk.
-- **Inventory:** agents carry items; held items have their own interactions (bread: eat; ale: drink). Any agent may use any object in v1, and everyone nearby sees it.
+- **Money:** a closed supply of `coin` entities. Each agent starts with 30 coins in its inventory. Nothing makes or destroys coins (validation warns if a verb could). There are no wages, set prices or shop logic: agents sell what they make by saying so and using `give`. Credit, debt, haggling and refusing to trade all emerge from talk.
+- **Inventory:** an agent's inventory is every entity it carries. Prompts group identical ones ("30 coins, 3 bread (eat)"). Held items offer verbs through their components (bread has `food`: eat; ale has `drink`: drink). Any agent may use any object in v1, and everyone nearby sees it.
 - **Notice board:** an object whose state is a list of short notes (author, text, tick). Reading puts the newest 5 into the reader's `seen` bucket. It gives the square a purpose: offers, prices, rumors.
 - **Scarcity:** there is one wheat field, shared by both farmers, and one stand of trees, and both regrow slowly. Each agent needs about 2 bread a day, so the village needs about 3 bakes daily (6 wheat, 3 wood) plus ale, which supply only just covers. No death in v1; at zero hunger an agent just feels starving.
 - **Professions are persona text, not code.** Nothing stops a baker from chopping wood or the newcomer from taking up farming.
@@ -135,8 +135,7 @@ interface Agent {
   };
   body: { sleepRecoveryPerHour: number }; // seeded per agent, 0.12–0.18
   profession: string; // persona text, e.g. "baker; works at the bakery" (not enforced)
-  coins: number;
-  inventory: Record<string, number>; // e.g. {bread: 2, wheat: 1}
+  // What it carries is the entities whose location is this agent: coins, bread, wheat...
   needs: Record<"hunger" | "energy" | "social" | "fun", number>; // 0..1, 1 = satisfied
   mood: string; // short text the agent writes itself
   goals: {
@@ -248,7 +247,7 @@ For a perception interrupt mid-action, the prompt includes the current action an
 
 Each decision:
 
-1. Build the context: persona (traits as words, core, self-image), mood, needs as words, goals, daily plan, current intention, place, nearby objects, the "Around you" awareness section, coins and inventory, working memory, the current conversation (up to 12 lines heard in the last 30 ticks), recalled memories grouped by bucket, and the action menu. Target about 3,000 tokens; trim recalled memories first if over.
+1. Build the context: persona (traits as words, core, self-image), mood, needs as words, goals, daily plan, current intention, place, nearby entities with their verbs, the "Around you" awareness section, belongings with their verbs, working memory, the current conversation (up to 12 lines heard in the last 30 ticks), recalled memories grouped by bucket, and the action menu. Target about 3,000 tokens; trim recalled memories first if over.
 2. Call the LLM in JSON mode; validate the reply against a schema; retry once on invalid output or an API error (with backoff), then fall back to `wait`.
 3. Execute in the world, then `broadcast` the resulting event.
 4. Save the full prompt and reply to a `llm_calls` table, with token counts and latency, for the inspector.
@@ -264,10 +263,10 @@ interface DecisionReply {
   say?: string; // words spoken aloud as this action starts; omit to stay silent
   volume?: "whisper" | "normal" | "shout"; // default 'normal'
   action: "walk_to" | "interact" | "give" | "recall" | "wait" | "continue";
-  target?: string; // place, agent, object or held item, by display name
-  interaction?: string; // for interact, if the agent already knows it; otherwise a second call asks
-  text?: string; // for interactions that take words (posting a note)
-  item?: string; // for give: an item name or "coins"
+  target?: string; // place, agent, or something here (the oven), by display name
+  verb?: string; // for interact, if the agent already knows it; otherwise a second call asks
+  text?: string; // for verbs that take words (posting a note)
+  item?: string; // something carried, by definition name ("bread", "coin"): used by interact, handed over by give
   amount?: number; // for give
   query?: string; // for recall
   minutes?: number; // for wait (a maximum; interrupts still wake the agent) or for a nap
@@ -278,7 +277,7 @@ interface DecisionReply {
 
 Why it looks like this:
 
-- **Flat, not nested.** One `action` enum plus optional fields is the shape small models fill most reliably. Send it as a strict JSON schema where the provider supports structured output, with `action` and `target` as enums built from what is valid right now (nearby agents and objects, known places, held items), so invalid targets can't be produced at all. Otherwise validate and retry once.
+- **Flat, not nested.** One `action` enum plus optional fields is the shape small models fill most reliably. Send it as a strict JSON schema where the provider supports structured output, with `action`, `target` and `item` as enums built from what is valid right now (nearby agents and objects, known places; held items for `item`), so invalid names can't be produced at all. Otherwise validate and retry once.
 - **Thought, then intention, then the act.** Fields are generated in order, so the model reasons before it commits. Keep `thought` short; it is for choice quality and the prompt viewer, not for storage.
 - **Intention is the agent's thread.** Without it, an agent that walks to the bakery to buy bread arrives with no idea why. The next prompt opens with it ("You were: going to buy bread from Mara, offering 2 coins"), and the agent rewrites it whenever it changes its mind. It bridges the daily plan and single actions.
 - **Speech rides along with any action.** `say` is not an action, so an agent can talk while walking, working or handing over coins. Pure conversation is `say` plus `wait`. Speech happens on the action's first tick and costs no extra call.
@@ -287,14 +286,14 @@ Why it looks like this:
 - **Impossible acts fail in the world, not the parser.** A well-formed reply that can't be carried out (Bob walked out of reach, no wheat left) isn't retried. The failure is filed in `did` and working memory ("I tried to hand Bob the bread but he'd walked off"), and the agent decides again next tick, learning from it like anything else.
 - **Names, not ids.** Agents use display names; the server maps them case-insensitively to ids.
 
-| Action     | Uses                                          | Behavior                                                                                                                                              |
-| ---------- | --------------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `walk_to`  | `target`                                      | Pathfind to a known place or a visible agent; ends on arrival                                                                                         |
-| `interact` | `target`, `interaction`?, `text`?, `minutes`? | Walks to the object first if needed. If `interaction` is missing or unknown, a second call lists the object's interactions with missing inputs marked |
-| `give`     | `target`, `item`, `amount`                    | Hands items or coins to an agent within 1 tile; the only way goods and money change hands                                                             |
-| `recall`   | `query`                                       | Searches memory into working memory, then decides again                                                                                               |
-| `wait`     | `minutes`                                     | Idle or pause between lines of conversation; any interrupt wakes the agent                                                                            |
-| `continue` | —                                             | Keep doing the current action; offered only when interrupted mid-action                                                                               |
+| Action     | Uses                                             | Behavior                                                                                                                                                    |
+| ---------- | ------------------------------------------------ | ----------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `walk_to`  | `target`                                         | Pathfind to a known place or a visible agent; ends on arrival                                                                                               |
+| `interact` | `target` or `item`, `verb`?, `text`?, `minutes`? | Uses something here (`target`, walking to it first if needed) or something carried (`item`). If `verb` is missing or unknown, a second call lists its verbs |
+| `give`     | `target`, `item`, `amount`                       | Hands items or coins to an agent within 1 tile, oldest first; the only way goods and money change hands                                                     |
+| `recall`   | `query`                                          | Searches memory into working memory, then decides again                                                                                                     |
+| `wait`     | `minutes`                                        | Idle or pause between lines of conversation; any interrupt wakes the agent                                                                                  |
+| `continue` | —                                                | Keep doing the current action; offered only when interrupted mid-action                                                                                     |
 
 There is no conversation object and no addressee. The "Around you" section shows who would obviously hear and who else was recently nearby, and the agent decides what to say and to whom in its own words, so group conversations come for free. The "current conversation" in the prompt is up to 12 lines heard in the last 30 ticks.
 
@@ -303,7 +302,7 @@ There is no conversation object and no addressee. The "Around you" section shows
 Each tick runs in a fixed order, so runs are reproducible:
 
 1. **Mechanics:** stocks regrow; needs decay (other needs at a quarter rate while asleep); sleepers recover energy; the crowd effect applies to those awake.
-2. **Actions progress:** walkers take one step along their stored path; arrival ends `walk_to` (first visit to a place files a `places` memory); interactions finish at their end tick; sleepers wake on their own (rested, hungry, nap over); waits run out. Every event is broadcast (perceived, filed, added to working memory) as it happens.
+2. **Actions progress:** walkers take one step along their stored path; arrival ends `walk_to` (first visit to a place files a `places` memory); verbs finish at their end tick; sleepers wake on their own (rested, hungry, nap over); waits run out. Every event is broadcast (perceived, filed, added to working memory) as it happens.
 3. **Sight:** each agent's awareness is refreshed from what it can see; someone newly in view is a new perception.
 4. **Needs** that crossed the decision threshold flag a decision.
 5. **Decisions** run in parallel through the concurrency limiter; the tick waits for all of them, then applies them in agent order (speech first, then the act), so the outcome doesn't depend on which call returned first. Events from this step flag decisions for the next tick (a reply to what was just said comes one tick later).
@@ -311,11 +310,11 @@ Each tick runs in a fixed order, so runs are reproducible:
 
 Resolved details:
 
-- **Doors:** pathfinding treats doors as floor. Walking onto a closed door opens it (an event everyone nearby perceives); it stays open until someone closes it with the `close` interaction.
+- **Doors:** pathfinding treats doors as floor. Walking onto a closed door opens it (an event everyone nearby perceives); it stays open until someone closes it with the `close` verb.
 - **Voices:** in a village everyone knows everyone's voice, so a listener recognizes any agent it hears out of sight.
 - **Who gets a decision:** an agent with no action decides every tick until it has one. Hearing its own name clearly, speech in a conversation it takes part in, being handed something, a need crossing its threshold, or (for sleepers) any sound loud enough to reach them always give a decision. Anything else new it perceives (someone coming into view, an action nearby, overheard speech) gives one at most once per `interruptCooldownTicks`.
-- **Interact:** the interaction is settled when the agent decides (including the second call when needed), then the agent walks to the object if it isn't already next to it, and the interaction starts on arrival. Held items work anywhere.
-- **Changing course:** choosing anything but `continue` stops the current action first: an interaction is cancelled with no refund, a sleeper wakes, a walk or wait ends. `give` is instant and leaves the agent free to decide again on the next tick.
+- **Interact:** the verb is settled when the agent decides (including the second call when needed), then the agent walks to the object if it isn't already next to it, and the verb starts on arrival. Held items work anywhere. Everything is checked again when the act is applied; when two agents reach for the same thing, the second fails ("someone got to it first").
+- **Changing course:** choosing anything but `continue` stops the current action first: a verb is cancelled with no refund (its `start` effects stay done, its `finish` effects never run), a sleeper wakes, a walk or wait ends. `give` is instant and leaves the agent free to decide again on the next tick.
 - **Failures** are broadcast as `action_failed` events, so the actor files "I tried to ... but ..." in `did` and onlookers see it; the text is also shown once as "What just went wrong" in the next prompt.
 - **Offline runs:** `LLM_PROVIDER=fake` replaces the LLM with a seeded stand-in that picks valid actions from the reply schema, for running without a key and for the headless soak test (`npm run soak -w @village/server`).
 - **Reflection timing:** falling asleep or waking only notes which pass is due; the passes run at the end of that tick (all agents in parallel), and the clock waits for them as it waits for decisions. Reflection calls count against the token budget and are logged like decisions.
@@ -360,7 +359,7 @@ The page is the village view on the left and a React side panel on the right; th
 Build in five milestones; each ends with something visible running in the browser.
 
 1. **World skeleton:** server tick loop, generated map loaded, agents walking random paths, WebSocket streaming to the village view, pause/step/speed working. No LLM.
-2. **LLM decisions:** sight-based perception, action menu, JSON decisions, `walk_to`, `interact` (two-step), `wait`, needs decay and effects, inventory, coins, recipes, give, notice board, prompt viewer.
+2. **LLM decisions:** sight-based perception, action menu, JSON decisions, `walk_to`, `interact` (two-step), `wait`, needs decay and effects, entities and verbs from `items.json`, coins, give, notice board, prompt viewer.
 3. **Memory:** buckets, broadcast filing, recall scoring with association pass, fading with recall bumps, memory tab.
 4. **Talking:** `say` with the sound simulation, doors, awareness and the "Around you" section, conversation participation, `overheard`, `note`, `recall`, speech bubbles.
 5. **Reflection:** morning plan, nightly reflection, weekly personality pass with clamping, personality history.
@@ -374,7 +373,7 @@ Done when:
 - [ ] After 7 sim-days, `personality_history` shows at least one trait change with a stated reason.
 - [ ] Memory per agent stays under its bucket caps after 3 sim-days.
 - [ ] The LLM provider and model switch by changing `.env` only.
-- [ ] All weights, caps, decay rates, k values, recipes, loudness values and the token budget live in one config file.
+- [ ] All global weights, caps, decay rates, k values, loudness values and the token budget live in one config file; item content (definitions, verbs, recipes) lives in `seeds/items.json`.
 
 misc:
 
