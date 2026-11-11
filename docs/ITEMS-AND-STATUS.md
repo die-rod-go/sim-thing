@@ -1,6 +1,7 @@
 # Items, verbs and status: design
 
-Status: **draft for review**. Nothing here is built yet. Open questions are collected at the end.
+Status: **agreed design**. Nothing here is built yet. Decisions taken in review are listed at the
+end, with the one question still open.
 
 ## Goal
 
@@ -43,7 +44,7 @@ These join the glossary in `AGENTS.md`. One concept, one name.
 
 **Rename:** "interaction" becomes "verb" everywhere (config, code, prompts, the reply's
 `interaction` field becomes `verb`). That keeps one name for one concept now that verbs exist on
-items, objects and bodies. See open question 1.
+items, objects and bodies.
 
 ## Data model
 
@@ -56,7 +57,7 @@ items, objects and bodies. See open question 1.
   `items.json`.
 
 This changes the brief's "recipes live in config" rule, so `AGENTS.md` and `BRIEF.md` get updated
-with it. See open question 2.
+with it: global tunables stay in config, and item content lives in `items.json`.
 
 ### Item definition
 
@@ -266,6 +267,10 @@ Reactions can trigger reactions (fire spreads, a burning shelf drops a jar...). 
 config (`reactions.maxDepthPerTick`) stops loops. Each reaction that changes something visible makes
 a world event, so agents perceive it and remember it.
 
+Fire spreads only between entities (objects, items, agents), never across floor tiles or grass.
+Tiles have no properties, so `nearby` means entities within `radius`, and a fire with nothing
+flammable next to it burns out.
+
 ## Status: health, stats, conditions
 
 ### Health
@@ -286,7 +291,8 @@ a world event, so agents perceive it and remember it.
 
 `strength` and `agility`, 0–1 (0.5 is average), set per character in `seeds/agents.json` and the
 character editor. They reach the agent's own prompt as words ("quite strong, clumsy") so it knows
-its body. Other agents don't see them; they find out by watching. See open question 4.
+its body. Other agents never see them, not even as words like "burly": they find out by watching
+fights and remembering them.
 
 ### Combat
 
@@ -331,7 +337,7 @@ Health bar first (red as it drops), then the four need bars, then condition chip
 
 ## Decisions and prompts
 
-The reply stays flat. `interact` keeps its name (see open question 1 for `verb`):
+The reply stays flat. The `interact` action keeps its name; its `interaction` field becomes `verb`:
 
 | Intent               | Reply                                                                |
 | -------------------- | -------------------------------------------------------------------- |
@@ -349,7 +355,9 @@ The reply stays flat. `interact` keeps its name (see open question 1 for `verb`)
   throw), a knife (attack someone, throw)". The second interact call stays for objects with many
   verbs or missing details.
 - **Here** and **Around you** show items on the ground, visible conditions and visible carried
-  items ("Tobias, carrying a knife", "a broken jar on the floor", "the door (on fire)").
+  items ("Tobias, carrying a knife", "a broken jar on the floor", "the door (on fire)"). A carried
+  item is visible to others only if its definition sets `isVisibleWhenCarried` (a knife yes, coins
+  no).
 - Prompts present verbs plainly. They don't encourage or discourage violence.
 
 ## Events and memory
@@ -399,8 +407,10 @@ through the same atomic write and validation path. Changes apply on `make reset`
 - Live validation: unknown conditions or items in effects, verbs whose target kind doesn't fit the
   form, reactions on properties nothing has.
 - A preview line shows how the item appears in a prompt.
-- The character editor's inventory picker lists definitions from this file.
-- Placing new placeables on the map stays in Tiled or the map generator for now (open question 6).
+- The item editor only defines items. It never places objects on the map (that stays in Tiled and
+  the map generator) and never sets anyone's inventory.
+- Starting inventories stay in the character editor, whose inventory picker lists the definitions
+  from this file and flags unknown ones.
 
 ## Build order
 
@@ -409,7 +419,8 @@ Each phase ends with `make check` and `make test` passing and its own commits.
 1. **Status:** health, stats (seeds and character editor), starvation, regen, health words,
    "Status" panel, death and bodies (no `take` yet). Unit tests for starvation, regen and death.
 2. **Entities:** `items.json` and its schema, the entity store, all current objects and items
-   ported. Behavior unchanged; existing tests prove it.
+   ported, "interaction" renamed to "verb", `AGENTS.md` and `BRIEF.md` updated. Behavior
+   unchanged; existing tests prove it.
 3. **Verbs and effects:** the effect runner, targets, reach, hit rolls, strength scaling. Content:
    knife `attack`, body `punch`, bandage. Tests for hit chance, damage scaling and each effect.
 4. **Ground items:** `drop`, `pick up`, `throw`, `take` from bodies, ground items in perception and
@@ -417,20 +428,19 @@ Each phase ends with `make check` and `make test` passing and its own commits.
 5. **Conditions and reactions:** bleeding, burning, wet, fragile breaking, fire spread, depth cap.
 6. **Item editor.**
 
-## Open questions
+## Decisions
 
-1. **Rename "interaction" to "verb" everywhere,** including the reply field? Recommended, for one
-   name per concept. It touches prompts, fake replies and many tests.
-2. **`seeds/items.json` vs `config.ts`:** fine to move per-item numbers out of config into the
-   editable content file (and update the "everything in config" rule)?
-3. **Fire on tiles:** should fire spread only between entities (as designed), or also across floor
-   tiles and grass? Tile fire is a bigger change (tiles would need properties too).
-4. **Can agents judge others' strength/agility** by looking ("a burly man")? Proposed: no, they
-   learn by watching.
-5. **Who sees carried items?** Proposed: only definitions with `isVisibleWhenCarried` (a knife yes,
-   a coin purse no).
-6. **Should the item editor also place objects on the map** and set starting inventories, or leave
-   that to Tiled and the character editor?
-7. **A viewer kill switch** (config flag that removes `attack` verbs) for runs where you want a
-   peaceful village?
-8. **Knife supply:** who starts with one, or how are knives made (a smithy, a recipe)?
+1. "Interaction" is renamed to "verb" everywhere, including the reply field.
+2. Per-item content moves from `config.ts` to `seeds/items.json`; config keeps global tunables.
+3. Fire spreads between entities only, not across tiles.
+4. Agents can't see each other's strength or agility; they learn it by watching.
+5. Carried items are visible to others only with `isVisibleWhenCarried`.
+6. The item editor doesn't place objects on the map; the character editor sets starting
+   inventories.
+7. No kill switch for violence.
+8. Agents attack and dodge only through the hit roll; there is no active dodge or guard stance.
+
+## Still open
+
+- **Knife supply:** who starts with one, or how knives are made. To be decided before phase 3
+  content.
