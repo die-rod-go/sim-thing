@@ -36,15 +36,15 @@ export const clientConfig = {
     speechBubbleSpeakerTint: 0.18,
     /** Space between the top of a figure and the bottom of its bubble stack. */
     speechBubbleOffsetAboveFigure: 14,
+    /** Agents are drawn as this glyph of the sheet (a smiley face) in their own color. */
+    agentGlyphIndex: 1,
+    /** A one-glyph-pixel outline around each agent, so it stands out from the tiles under it. */
+    agentOutlineColor: "#0c0c10",
     /** In map pixels, scaled with the figure. */
-    selectionRingRadius: 9,
+    selectionRingRadius: 11,
     visibleTileAlpha: 0.28,
     speechReachLineWidth: 1,
     placesLayerName: "places",
-
-    /** Figures are drawn at map size times the zoom, kept within these bounds. */
-    minFigureScale: 1.5,
-    maxFigureScale: 4,
 
     /** Thought clouds: longest text shown before an ellipsis, wrap width, and how long they last. */
     thoughtBubbleMaxLength: 90,

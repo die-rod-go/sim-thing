@@ -10,6 +10,34 @@ import { GlyphPicker } from "./GlyphPicker";
 import { NO_READABLE_PATHS, OptionalValue } from "./value-inputs";
 import { Checkbox, Chips, Choice, InlineField, ItemProblemList } from "./widgets";
 
+/** For things that open and close: the glyph drawn while closed, or the usual one when unset. */
+function ClosedGlyphField({
+  definition,
+  onChange,
+}: {
+  definition: ItemDefinition;
+  onChange: (changes: Partial<ItemDefinition>) => void;
+}) {
+  const canClose = Object.hasOwn(definition.components, "openable");
+  if (!canClose && !definition.glyphWhenClosed) return null;
+  const { glyphWhenClosed } = definition;
+  return (
+    <div className="effect-fields">
+      <Checkbox
+        label="different glyph when closed"
+        checked={glyphWhenClosed !== undefined}
+        onChange={(isOn) => onChange({ glyphWhenClosed: isOn ? definition.glyph : undefined })}
+      />
+      {glyphWhenClosed && (
+        <GlyphPicker
+          glyph={glyphWhenClosed}
+          onChange={(glyph) => onChange({ glyphWhenClosed: glyph })}
+        />
+      )}
+    </div>
+  );
+}
+
 /** One item definition: what it is, its components, the verbs it offers and how prompts show it. */
 export function ItemPage({
   file,
@@ -57,6 +85,9 @@ export function ItemPage({
         </div>
         <div className="effect-fields">
           <GlyphPicker glyph={definition.glyph} onChange={(glyph) => update({ glyph })} />
+        </div>
+        <ClosedGlyphField definition={definition} onChange={update} />
+        <div className="effect-fields">
           <Checkbox
             label="visible when carried"
             checked={definition.isVisibleWhenCarried}

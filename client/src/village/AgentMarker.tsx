@@ -1,20 +1,15 @@
-import type { CSSProperties } from "react";
+import { useEffect, useRef, type CSSProperties } from "react";
+import { GLYPH_SHEET } from "@village/shared";
 import { clientConfig } from "../client-config";
 import type { VisibleCondition } from "../format/conditions";
 import type { ActivityCue } from "./activity-cues";
-import { FIGURE_SIZE } from "./world-layout";
-
-const FIGURE_CENTER = FIGURE_SIZE / 2;
-const HEAD_RADIUS = 3;
-const BODY_TOP = 5;
-const BODY_WIDTH = 8;
-const BODY_HEIGHT = 7;
-const BODY_CORNER_RADIUS = 2;
+import type { GlyphPainter } from "./glyph-painter";
 
 interface AgentMarkerProps {
   agentId: string;
   name: string;
   color: string;
+  glyphPainter: GlyphPainter;
   isSelected: boolean;
   isHighlighted: boolean;
   isSpeaking: boolean;
@@ -50,6 +45,51 @@ function ActivityCueBadge({ cue }: { cue: ActivityCue }) {
   );
 }
 
+const { glyphSizePixels } = GLYPH_SHEET;
+const OUTLINE_WIDTH = 1;
+const OUTLINED_SIZE = glyphSizePixels + OUTLINE_WIDTH * 2;
+const OUTLINE_OFFSETS = [-1, 0, 1].flatMap((offsetX) =>
+  [-1, 0, 1].map((offsetY) => ({ x: offsetX * OUTLINE_WIDTH, y: offsetY * OUTLINE_WIDTH })),
+);
+
+/**
+ * The agent's glyph in its color with a dark outline, drawn at the sheet's own pixel size. CSS
+ * scales it so the glyph fills one figure, which matches one map tile.
+ */
+function AgentGlyph({ color, glyphPainter }: { color: string; glyphPainter: GlyphPainter }) {
+  const canvasRef = useRef<HTMLCanvasElement>(null);
+
+  useEffect(() => {
+    const context = canvasRef.current?.getContext("2d");
+    if (!context) throw new Error("The browser could not create a 2D canvas for an agent");
+    const { agentGlyphIndex, agentOutlineColor } = clientConfig.village;
+    context.clearRect(0, 0, OUTLINED_SIZE, OUTLINED_SIZE);
+    const drawAt = (offset: { x: number; y: number }, glyphColor: string) =>
+      glyphPainter.drawGlyph(
+        context,
+        { index: agentGlyphIndex, color: glyphColor },
+        {
+          x: OUTLINE_WIDTH + offset.x,
+          y: OUTLINE_WIDTH + offset.y,
+          width: glyphSizePixels,
+          height: glyphSizePixels,
+        },
+      );
+    for (const offset of OUTLINE_OFFSETS) drawAt(offset, agentOutlineColor);
+    drawAt({ x: 0, y: 0 }, color);
+  }, [color, glyphPainter]);
+
+  return (
+    <canvas
+      className="agent-glyph"
+      ref={canvasRef}
+      width={OUTLINED_SIZE}
+      height={OUTLINED_SIZE}
+      style={{ "--outlined-glyph-ratio": OUTLINED_SIZE / glyphSizePixels } as CSSProperties}
+    />
+  );
+}
+
 /**
  * One agent on the map, centered on 0,0 in screen pixels: its figure (scaled by the frame loop
  * through `--figure-scale`), name label, activity cue, mute toggle and selection, highlight and
@@ -59,6 +99,7 @@ export function AgentMarker({
   agentId,
   name,
   color,
+  glyphPainter,
   isSelected,
   isHighlighted,
   isSpeaking,
@@ -102,23 +143,7 @@ export function AgentMarker({
         onPointerLeave={() => onHoverEnd(agentId)}
         onPointerDown={() => onHoverEnd(agentId)}
       >
-        <svg viewBox={`0 0 ${FIGURE_SIZE} ${FIGURE_SIZE}`}>
-          <rect
-            x={FIGURE_CENTER - BODY_WIDTH / 2}
-            y={BODY_TOP}
-            width={BODY_WIDTH}
-            height={BODY_HEIGHT}
-            rx={BODY_CORNER_RADIUS}
-            fill={color}
-          />
-          <circle
-            cx={FIGURE_CENTER}
-            cy={HEAD_RADIUS}
-            r={HEAD_RADIUS}
-            fill={color}
-            className="agent-head"
-          />
-        </svg>
+        <AgentGlyph color={color} glyphPainter={glyphPainter} />
       </button>
       <button
         type="button"

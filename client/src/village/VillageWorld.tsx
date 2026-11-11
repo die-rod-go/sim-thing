@@ -224,6 +224,7 @@ export function VillageWorld(props: VillageWorldProps) {
             agentId={agent.id}
             name={agent.name}
             color={agentColors.get(agent.id) ?? "white"}
+            glyphPainter={props.glyphPainter}
             isSelected={agent.id === inspectedAgentId}
             isHighlighted={highlighted.has(agent.id)}
             isSpeaking={bubblesBySpeaker.has(agent.id)}

@@ -94,7 +94,7 @@
 
 .agent-marker {
   --figure-scale: 1;
-  --figure-size: calc(12px * var(--figure-scale));
+  --figure-size: calc(16px * var(--figure-scale));
   position: absolute;
   top: 0;
   left: 0;
@@ -162,10 +162,12 @@
   border: 0;
 }
 
-.agent-figure svg {
-  width: var(--figure-size);
-  height: var(--figure-size);
-  overflow: visible;
+/* The canvas holds the glyph plus its outline, so it's a little larger than the figure itself. */
+.agent-glyph {
+  display: block;
+  width: calc(var(--figure-size) * var(--outlined-glyph-ratio));
+  height: calc(var(--figure-size) * var(--outlined-glyph-ratio));
+  image-rendering: pixelated;
 }
 
 /* Sits right against the figure so the pointer can cross onto it without leaving the marker's hover. */
@@ -193,15 +195,10 @@
   opacity: 0.6;
 }
 
-.agent-marker.is-dead .agent-figure svg {
+.agent-marker.is-dead .agent-glyph {
   transform: rotate(90deg);
   filter: grayscale(1);
   opacity: 0.6;
-}
-
-.agent-head {
-  stroke: rgb(0 0 0 / 80%);
-  stroke-width: 1;
 }
 
 .agent-label {

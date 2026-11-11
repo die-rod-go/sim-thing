@@ -8,7 +8,7 @@ import { computeWorldTransform, mapToScreen, type Camera, type Size } from "./ca
 import type { TiledPlace } from "./tiled-map";
 
 /** The marker figure's height in map pixels; bubbles and cues sit above it. */
-export const FIGURE_SIZE = 12;
+export const FIGURE_SIZE = 16;
 
 export interface ElementRegistry<ElementType extends Element = HTMLElement> {
   elements: Map<string, ElementType>;
@@ -73,12 +73,6 @@ export function computeAgentPositions(
   return new Map(
     [...motions].map(([agentId, motion]) => [agentId, computeMotionPosition(motion, nowMs)]),
   );
-}
-
-/** Figures grow with the zoom, within bounds so they stay clickable and don't swamp the map. */
-export function computeFigureScale(zoom: number): number {
-  const { minFigureScale, maxFigureScale } = clientConfig.village;
-  return Math.min(Math.max(zoom, minFigureScale), maxFigureScale);
 }
 
 function placeElement(element: HTMLElement, x: number, y: number): void {
@@ -210,7 +204,8 @@ export function layOutWorld(world: WorldElements, scene: WorldScene, frame: Worl
       mapToScreen(position, frame.camera, frame.view),
     ]),
   );
-  const scale = computeFigureScale(frame.camera.zoom);
+  // Figures scale exactly with the map, so an agent's glyph pixels match the tiles' pixels.
+  const scale = frame.camera.zoom;
   if (world.mapLayer.current) {
     world.mapLayer.current.style.transform = computeWorldTransform(frame.camera, frame.view);
   }

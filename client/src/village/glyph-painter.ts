@@ -44,6 +44,8 @@ export function createGlyphPainter(sheetImage: HTMLImageElement): GlyphPainter {
       }
       const source = findGlyphSourcePosition(glyph.index);
       const { glyphSizePixels } = GLYPH_SHEET;
+      // Glyphs are scaled up into tiles; smoothing would blur their pixels.
+      context.imageSmoothingEnabled = false;
       context.drawImage(
         findTintedSheet(glyph.color),
         source.x,

@@ -199,7 +199,8 @@
       "name": "door",
       "plural": "doors",
       "form": "placeable",
-      "glyph": { "index": 43, "color": "#e0b060" },
+      "glyph": { "index": 39, "color": "#e0b060" },
+      "glyphWhenClosed": { "index": 43, "color": "#f0c878", "background": "#6b4426" },
       "properties": ["flammable"],
       "components": {
         "openable": { "startsOpen": true, "blocksSightWhenClosed": true, "muffleWhenClosed": true },

@@ -168,6 +168,20 @@ describe("item file validation", () => {
     expect(messagesFor(file).some((message) => message.includes("needs a weight"))).toBe(true);
   });
 
+  it("warns about a closed glyph on something that can't be closed", () => {
+    const base = buildTestItemFile();
+    const file = buildTestItemFile({
+      definitions: base.definitions.map((definition) =>
+        definition.id === "oven"
+          ? { ...definition, glyphWhenClosed: { index: 43, color: "#ffffff" } }
+          : definition,
+      ),
+    });
+    expect(messagesFor(file)).toContain(
+      "warning: definitions.3 (oven).glyphWhenClosed: Only something with the openable component is ever closed, so this glyph is never drawn.",
+    );
+  });
+
   it("rejects an engine component declared with the wrong fields", () => {
     const base = buildTestItemFile();
     const file = buildTestItemFile({
