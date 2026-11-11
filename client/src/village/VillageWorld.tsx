@@ -1,16 +1,19 @@
 import { useCallback, useLayoutEffect, useMemo, useRef, useState } from "react";
-import type { Agent } from "@village/shared";
+import type { Agent, SimTimeSettings } from "@village/shared";
 import { clientConfig } from "../client-config";
 import { buildAgentColors } from "../format/agent-colors";
 import type { SpeechBubble } from "../state/client-state";
 import { pickActivityCue, type ConversationLink } from "./activity-cues";
 import { retargetMotion, type AgentMotion } from "./agent-motion";
 import { AgentMarker } from "./AgentMarker";
+import { HoverCard } from "./HoverCard";
 import { PerceptionOverlay, type PerceptionView } from "./perception-overlay";
 import { ConversationLinks, PlaceLabels } from "./screen-overlays";
 import { groupBubblesBySpeaker, SpeechBubbleStack, useLiveSpeechBubbles } from "./SpeechBubbles";
+import type { VisibleThought } from "./thought-bubbles";
 import { TileCanvas } from "./TileCanvas";
 import type { TiledMap } from "./tiled-map";
+import { useHoveredAgent } from "./use-hovered-agent";
 import type { CameraControls } from "./use-camera-rig";
 import { tileCenter } from "./village-geometry";
 import {
@@ -27,6 +30,8 @@ interface VillageWorldProps {
   tilesetImage: HTMLImageElement;
   agents: Agent[];
   speechBubbles: SpeechBubble[];
+  thoughtsByAgent: ReadonlyMap<string, VisibleThought>;
+  timeSettings: SimTimeSettings;
   inspectedAgentId: string | null;
   highlightedAgentIds: readonly string[];
   perceptionView: PerceptionView;
@@ -37,6 +42,8 @@ interface VillageWorldProps {
   camera: CameraControls;
   onSelectAgent: (agentId: string) => void;
 }
+
+const NO_BUBBLES: readonly SpeechBubble[] = [];
 
 function useBubbleKeys(): (bubble: SpeechBubble) => number {
   const [keyer] = useState(() => {
@@ -60,9 +67,19 @@ function useWorldElements(): WorldElements {
   const placeLabels = useElementRegistry();
   const linkLines = useElementRegistry<SVGLineElement>();
   const mapLayer = useRef<HTMLDivElement | null>(null);
+  const hoverCard = useRef<HTMLElement | null>(null);
   const [motions] = useState(() => new Map<string, AgentMotion>());
   return useMemo(
-    () => ({ motions, mapLayer, markers, bubbleStacks, leaderLines, placeLabels, linkLines }),
+    () => ({
+      motions,
+      mapLayer,
+      markers,
+      bubbleStacks,
+      leaderLines,
+      placeLabels,
+      linkLines,
+      hoverCard,
+    }),
     [motions, markers, bubbleStacks, leaderLines, placeLabels, linkLines],
   );
 }
@@ -105,7 +122,18 @@ export function VillageWorld(props: VillageWorldProps) {
 
   const mapPixelWidth = map.width * map.tileWidth;
   const mapPixelHeight = map.height * map.tileHeight;
-  const sceneRef = useRef<WorldScene>({ places: [], links: [] });
+  const { hoveredAgentId, startHover, endHover } = useHoveredAgent();
+  const hoveredAgent = agents.find((agent) => agent.id === hoveredAgentId) ?? null;
+  const setHoverCardElement = useCallback(
+    (element: HTMLElement | null) => {
+      world.hoverCard.current = element;
+    },
+    [world],
+  );
+  const overheadAgentIds = [
+    ...new Set([...bubblesBySpeaker.keys(), ...props.thoughtsByAgent.keys()]),
+  ];
+  const sceneRef = useRef<WorldScene>({ places: [], links: [], hoveredAgentId: null });
   const followedAgentIdRef = useRef(inspectedAgentId);
 
   useAgentMotions(world, agents, map.tileWidth, props.moveDurationMs);
@@ -130,7 +158,11 @@ export function VillageWorld(props: VillageWorldProps) {
   );
   useLayoutEffect(() => {
     camera.mapSizeRef.current = { width: mapPixelWidth, height: mapPixelHeight };
-    sceneRef.current = { places: visiblePlaces, links: props.conversationLinks };
+    sceneRef.current = {
+      places: visiblePlaces,
+      links: props.conversationLinks,
+      hoveredAgentId: hoveredAgent?.id ?? null,
+    };
     followedAgentIdRef.current = inspectedAgentId;
     renderFrame(performance.now());
   });
@@ -171,19 +203,28 @@ export function VillageWorld(props: VillageWorldProps) {
             markerRef={world.markers.register(agent.id)}
             onSelect={props.onSelectAgent}
             onZoomTo={(agentId) => camera.focus({ kind: "agent", agentId })}
+            onHoverStart={startHover}
+            onHoverEnd={endHover}
           />
         ))}
-        {[...bubblesBySpeaker].map(([agentId, bubbles]) => (
+        {overheadAgentIds.map((agentId) => (
           <SpeechBubbleStack
             key={agentId}
             speakerName={agentNames.get(agentId) ?? agentId}
-            bubbles={bubbles}
+            bubbles={bubblesBySpeaker.get(agentId) ?? NO_BUBBLES}
+            thought={props.thoughtsByAgent.get(agentId) ?? null}
             bubbleKeys={bubbleKeys}
             stackRef={world.bubbleStacks.register(agentId)}
             leaderLineRef={world.leaderLines.register(agentId)}
             onExpire={expireBubble}
           />
         ))}
+        <HoverCard
+          agent={hoveredAgent}
+          color={hoveredAgent ? (agentColors.get(hoveredAgent.id) ?? "white") : "white"}
+          timeSettings={props.timeSettings}
+          cardRef={setHoverCardElement}
+        />
       </div>
     </>
   );

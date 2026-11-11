@@ -21,6 +21,8 @@ interface AgentMarkerProps {
   markerRef: (element: HTMLElement | null) => void;
   onSelect: (agentId: string) => void;
   onZoomTo: (agentId: string) => void;
+  onHoverStart: (agentId: string) => void;
+  onHoverEnd: (agentId: string) => void;
 }
 
 function ActivityCueBadge({ cue }: { cue: ActivityCue }) {
@@ -56,6 +58,8 @@ export function AgentMarker({
   markerRef,
   onSelect,
   onZoomTo,
+  onHoverStart,
+  onHoverEnd,
 }: AgentMarkerProps) {
   const ringDiameter = clientConfig.village.selectionRingRadius * 2;
   const classNames = ["agent-marker"];
@@ -74,10 +78,15 @@ export function AgentMarker({
       <button
         type="button"
         className="agent-figure"
-        title={`${name} (double-click to zoom in)`}
-        aria-label={`Inspect ${name}`}
+        aria-label={`Inspect ${name}; double-click to zoom in`}
         onClick={() => onSelect(agentId)}
         onDoubleClick={() => onZoomTo(agentId)}
+        onPointerEnter={(event) => {
+          // A pointer that arrives with a button held is mid-drag, not resting on the agent.
+          if (event.buttons === 0) onHoverStart(agentId);
+        }}
+        onPointerLeave={() => onHoverEnd(agentId)}
+        onPointerDown={() => onHoverEnd(agentId)}
       >
         <svg viewBox={`0 0 ${FIGURE_SIZE} ${FIGURE_SIZE}`}>
           <rect

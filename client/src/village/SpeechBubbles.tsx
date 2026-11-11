@@ -1,6 +1,7 @@
 import { useCallback, useState } from "react";
 import { clientConfig } from "../client-config";
 import type { SpeechBubble } from "../state/client-state";
+import type { VisibleThought } from "./thought-bubbles";
 
 /**
  * Bubbles still on screen. Each bubble fades by CSS animation after its lifetime and is dropped
@@ -31,17 +32,22 @@ export function groupBubblesBySpeaker(bubbles: SpeechBubble[]): Map<string, Spee
 
 interface SpeechBubbleStackProps {
   speakerName: string;
-  bubbles: SpeechBubble[];
+  bubbles: readonly SpeechBubble[];
+  thought: VisibleThought | null;
   bubbleKeys: (bubble: SpeechBubble) => number;
   stackRef: (element: HTMLElement | null) => void;
   leaderLineRef: (element: HTMLElement | null) => void;
   onExpire: (bubble: SpeechBubble) => void;
 }
 
-/** One speaker's bubbles, oldest on top; world-layout positions the whole stack each frame. */
+/**
+ * Everything over one agent's head: its thought cloud on top, then its speech bubbles, oldest
+ * first. World-layout positions the whole stack each frame, so the two never overlap.
+ */
 export function SpeechBubbleStack({
   speakerName,
   bubbles,
+  thought,
   bubbleKeys,
   stackRef,
   leaderLineRef,
@@ -54,9 +60,19 @@ export function SpeechBubbleStack({
     speechBubbleFadeMs,
     speechBubbleLeaderLineWidth,
     speechBubbleLeaderLineAlpha,
+    thoughtBubbleWrapWidth,
   } = clientConfig.village;
   return (
     <div className="speech-stack" ref={stackRef} style={{ gap: speechBubbleGap }}>
+      {thought && (
+        <div
+          className="thought-bubble"
+          style={{ maxWidth: thoughtBubbleWrapWidth }}
+          title={`${speakerName} thinks: ${thought.fullText}`}
+        >
+          {thought.shortText}
+        </div>
+      )}
       {bubbles.map((bubble) => (
         <div
           key={bubbleKeys(bubble)}

@@ -4,12 +4,15 @@ import { clientConfig } from "../client-config";
 import { groupConversations } from "../format/conversations";
 import { computeTickDurationMs } from "../format/formatters";
 import type { ClientState } from "../state/client-state";
+import { useStoredState } from "../ui/use-stored-state";
 import { listConversationLinks } from "./activity-cues";
 import type { Size } from "./camera";
 import { CameraControls } from "./CameraControls";
 import { computeDaylightTint, computeHourOfDay } from "./daylight";
+import { parseThoughtMode, selectVisibleThoughts, type ThoughtMode } from "./thought-bubbles";
 import { useCameraInput } from "./use-camera-input";
 import { useCameraRig } from "./use-camera-rig";
+import { useDirector } from "./use-director";
 import { useVillageMap } from "./use-village-map";
 import { VillageWorld } from "./VillageWorld";
 
@@ -49,15 +52,38 @@ function selectPerceptionView(state: ClientState, isDebugOverlayOn: boolean) {
   return detail.perceptionView;
 }
 
-function useConversationLinks(state: ClientState) {
+function useConversations(state: ClientState) {
   const { maxGapTicks } = clientConfig.conversations;
   const threads = useMemo(
     () => groupConversations(state.events, maxGapTicks),
     [state.events, maxGapTicks],
   );
-  return useMemo(
+  const links = useMemo(
     () => listConversationLinks(threads, state.clock.tick, maxGapTicks),
     [threads, state.clock.tick, maxGapTicks],
+  );
+  return { threads, links };
+}
+
+function useVisibleThoughts(state: ClientState, mode: ThoughtMode) {
+  const { thoughtMaxAgeTicks, thoughtBubbleMaxLength } = clientConfig.village;
+  return useMemo(
+    () =>
+      selectVisibleThoughts(state.agents, {
+        mode,
+        inspectedAgentId: state.inspectedAgentId,
+        currentTick: state.clock.tick,
+        maxAgeTicks: thoughtMaxAgeTicks,
+        maxLength: thoughtBubbleMaxLength,
+      }),
+    [
+      state.agents,
+      state.inspectedAgentId,
+      state.clock.tick,
+      mode,
+      thoughtMaxAgeTicks,
+      thoughtBubbleMaxLength,
+    ],
   );
 }
 
@@ -72,11 +98,22 @@ export function VillageView({
   const containerRef = useRef<HTMLDivElement>(null);
   const viewSize = useElementSize(containerRef);
   const mapStatus = useVillageMap();
-  const { mode, controls } = useCameraRig();
+  const { mode, manualInputCount, controls } = useCameraRig();
   const [isPlaceLabelsOn, setPlaceLabelsOn] = useState(false);
+  const [thoughtMode, setThoughtMode] = useStoredState<ThoughtMode>(
+    clientConfig.village.thoughtModeStorageKey,
+    "selected",
+    parseThoughtMode,
+  );
   const canFollow = state.inspectedAgentId !== null;
   useCameraInput(containerRef, controls, canFollow);
-  const conversationLinks = useConversationLinks(state);
+  const conversations = useConversations(state);
+  const thoughtsByAgent = useVisibleThoughts(state, thoughtMode);
+  const director = useDirector(controls, manualInputCount, {
+    threads: conversations.threads,
+    events: state.events,
+    currentTick: state.clock.tick,
+  });
 
   useLayoutEffect(() => {
     controls.viewSizeRef.current = viewSize;
@@ -112,10 +149,12 @@ export function VillageView({
             tilesetImage={mapStatus.tilesetImage}
             agents={state.agents}
             speechBubbles={state.speechBubbles}
+            thoughtsByAgent={thoughtsByAgent}
+            timeSettings={state.timeSettings}
             inspectedAgentId={state.inspectedAgentId}
             highlightedAgentIds={highlightedAgentIds}
             perceptionView={selectPerceptionView(state, isDebugOverlayOn)}
-            conversationLinks={conversationLinks}
+            conversationLinks={conversations.links}
             daylightTint={daylightTint}
             isPlaceLabelsOn={isPlaceLabelsOn}
             moveDurationMs={moveDurationMs}
@@ -131,6 +170,10 @@ export function VillageView({
           canFollow={canFollow}
           isPlaceLabelsOn={isPlaceLabelsOn}
           onPlaceLabelsChange={setPlaceLabelsOn}
+          thoughtMode={thoughtMode}
+          onThoughtModeChange={setThoughtMode}
+          isDirectorOn={director.isDirectorOn}
+          onDirectorChange={director.setDirectorOn}
         />
       )}
       {mapStatus.kind === "loading" && <div className="village-notice">Loading map…</div>}
