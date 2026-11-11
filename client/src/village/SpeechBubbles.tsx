@@ -63,11 +63,15 @@ export function SpeechBubbleStack({
     speechBubbleLeaderLineWidth,
     speechBubbleLeaderLineAlpha,
     speechBubbleSpeakerTint,
+    speechBubbleFontSizes,
     thoughtBubbleWrapWidth,
   } = clientConfig.village;
   const speakerTintStyle = {
     "--speaker-color": speakerColor,
     "--speaker-tint": `${speechBubbleSpeakerTint * 100}%`,
+    "--font-size-whisper": `${speechBubbleFontSizes.whisper}px`,
+    "--font-size-normal": `${speechBubbleFontSizes.normal}px`,
+    "--font-size-shout": `${speechBubbleFontSizes.shout}px`,
   } as CSSProperties;
   return (
     <div
