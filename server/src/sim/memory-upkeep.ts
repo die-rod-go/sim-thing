@@ -1,11 +1,23 @@
+import type { Memory } from "@village/shared";
 import { config } from "../config";
-import { applyForgetting, forgetMemories } from "../memory/forgetting";
+import { applyForgetting, forgetMemories, groupByAgentAndBucket } from "../memory/forgetting";
 import type { WorldState } from "./world-state";
 
-/** Trims each agent's buckets to `bucketCap` (weakest first) without fading anything. */
+function needsTrimming(bucketGroup: readonly Memory[]): boolean {
+  return (
+    bucketGroup.length > config.memory.bucketCap ||
+    bucketGroup.some((memory) => memory.strength < config.memory.deleteBelowStrength)
+  );
+}
+
+/**
+ * Trims each agent's buckets to `bucketCap` (weakest first) without fading anything. Runs every
+ * tick, so it only sorts the buckets that actually need trimming.
+ */
 export function enforceBucketCaps(state: WorldState): void {
-  for (const agent of state.agents) {
-    const { deletedIds } = forgetMemories(state.memoryStore.listByAgent(agent.id), 0);
+  for (const bucketGroup of groupByAgentAndBucket(state.memoryStore.all()).values()) {
+    if (!needsTrimming(bucketGroup)) continue;
+    const { deletedIds } = forgetMemories(bucketGroup, 0);
     for (const memoryId of deletedIds) state.memoryStore.remove(memoryId);
   }
 }

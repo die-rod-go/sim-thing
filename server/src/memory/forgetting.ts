@@ -14,7 +14,7 @@ export interface ForgettingResult {
   deletedIds: string[];
 }
 
-function groupByAgentAndBucket(memories: readonly Memory[]): Map<string, Memory[]> {
+export function groupByAgentAndBucket(memories: readonly Memory[]): Map<string, Memory[]> {
   const groups = new Map<string, Memory[]>();
   for (const memory of memories) {
     const key = `${memory.agentId}\u0000${memory.bucket}`;
