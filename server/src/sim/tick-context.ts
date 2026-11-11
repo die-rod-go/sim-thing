@@ -8,6 +8,11 @@ export interface SimDependencies {
   reflectionHook: ReflectionHook;
   /** Overrides `config.server.promptsDirectory`, e.g. in tests. */
   promptsDirectory?: string;
+  /**
+   * Lets the clock run on while decisions wait for the LLM, applying each on the first tick after
+   * it returns. Off (each tick waits for its decisions) keeps runs reproducible, e.g. in tests.
+   */
+  shouldDecideInBackground?: boolean;
 }
 
 /** One tick in progress: the world, what the tick has produced so far, and the dependencies. */

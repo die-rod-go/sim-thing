@@ -80,6 +80,8 @@ export interface TestSimOptions {
   /** Runs the real reflection passes, handing personality changes here; off when omitted. */
   reflection?: (change: Omit<PersonalityChange, "id">) => void;
   dailyTokenBudget?: number;
+  /** Runs decisions in the background, as the live sim does; off (each tick waits) when omitted. */
+  shouldDecideInBackground?: boolean;
 }
 
 export function createTestSim(options: TestSimOptions): TestSim {
@@ -105,6 +107,7 @@ export function createTestSim(options: TestSimOptions): TestSim {
   });
   const advanceTick = createDecisionStrategy({
     callStructured: llm.callStructured,
+    shouldDecideInBackground: options.shouldDecideInBackground,
     reflectionHook: options.reflection
       ? createReflectionHook({
           callStructured: llm.callStructured,

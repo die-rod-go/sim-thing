@@ -109,12 +109,17 @@ export interface DecisionRequest {
 /**
  * Phase 5a: who decides this tick. No action means a decision; otherwise an urgent flag (own
  * name, conversation, woken, need, handed something) or a perception flag outside the cooldown.
- * Every flag is consumed here, so flags raised later in the tick count for the next tick.
+ * Every flag is consumed here, so flags raised later in the tick count for the next tick. An agent
+ * still waiting on a decision is skipped and keeps its flag for after that decision lands.
  */
-export function selectDecisionRequests(context: TickContext): DecisionRequest[] {
+export function selectDecisionRequests(
+  context: TickContext,
+  isAgentDeciding: (agentId: string) => boolean = () => false,
+): DecisionRequest[] {
   const { state } = context;
   const requests: DecisionRequest[] = [];
   for (const agent of state.agents) {
+    if (isAgentDeciding(agent.id)) continue;
     const runtime = getAgentRuntime(state, agent.id);
     const pending = runtime.pendingDecision;
     runtime.pendingDecision = null;

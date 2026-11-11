@@ -455,6 +455,8 @@ export const config = {
   },
 
   decision: {
+    /** The running sim lets the clock go on while decisions wait for the LLM; tests always wait. */
+    shouldDecideInBackground: true,
     conversationLines: 12,
     conversationWindowTicks: 30,
     promptTokenTarget: 3000,
