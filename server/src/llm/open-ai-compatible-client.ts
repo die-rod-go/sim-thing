@@ -101,6 +101,7 @@ export class OpenAiCompatibleClient implements LlmClient {
       max_tokens: request.maxTokens,
       ...(request.temperature === undefined ? {} : { temperature: request.temperature }),
       ...responseFormat,
+      ...(this.settings.isThinkingDisabled ? { thinking: { type: "disabled" } } : {}),
     };
   }
 }

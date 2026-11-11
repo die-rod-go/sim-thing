@@ -8,6 +8,7 @@ const settings: LlmEnv = {
   apiKey: "test-key",
   model: "test/model",
   isStructuredOutputEnabled: true,
+  isThinkingDisabled: false,
 };
 
 const replySchema = { type: "object", properties: {}, required: [], additionalProperties: false };
@@ -82,6 +83,16 @@ describe("OpenAiCompatibleClient", () => {
     expect(sentBody(fetchStub)).not.toHaveProperty("response_format");
   });
 
+  it("leaves thinking to the provider's default unless disabled", async () => {
+    const defaultStub = stubFetch(completion);
+    await new OpenAiCompatibleClient(settings).complete({ prompt: "hi", maxTokens: 50 });
+    expect(sentBody(defaultStub)).not.toHaveProperty("thinking");
+    const disabledStub = stubFetch(completion);
+    const client = new OpenAiCompatibleClient({ ...settings, isThinkingDisabled: true });
+    await client.complete({ prompt: "hi", maxTokens: 50 });
+    expect(sentBody(disabledStub).thinking).toEqual({ type: "disabled" });
+  });
+
   it("estimates tokens from length when usage is missing", async () => {
     stubFetch({ choices: [{ message: { content: "12345678" } }] });
     const client = new OpenAiCompatibleClient(settings);
@@ -123,5 +134,13 @@ describe("readLlmEnv", () => {
     expect(readLlmEnv({ ...environment, LLM_STRUCTURED_OUTPUT: "false" })).toMatchObject({
       isStructuredOutputEnabled: false,
     });
+  });
+
+  it("reads thinking as left on unless disabled with true", () => {
+    const environment = { LLM_BASE_URL: "https://x/", LLM_API_KEY: "key", LLM_MODEL: "model" };
+    expect(readLlmEnv(environment).isThinkingDisabled).toBe(false);
+    expect(readLlmEnv({ ...environment, LLM_DISABLE_THINKING: "true" }).isThinkingDisabled).toBe(
+      true,
+    );
   });
 });
