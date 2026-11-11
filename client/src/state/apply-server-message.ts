@@ -111,6 +111,8 @@ export function applyServerMessage(state: ClientState, message: ServerMessage): 
     }
     case "seed_file":
     case "seed_file_saved":
+    case "item_file":
+    case "item_file_saved":
       return state;
   }
 }

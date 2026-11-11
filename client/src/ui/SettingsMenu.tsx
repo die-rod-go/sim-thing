@@ -106,6 +106,9 @@ export function SettingsMenu(props: SettingsMenuProps) {
             <a className="menu-link" href="/characters.html" target="_blank" rel="noreferrer">
               Edit characters ↗
             </a>
+            <a className="menu-link" href="/items.html" target="_blank" rel="noreferrer">
+              Edit items ↗
+            </a>
           </section>
           <section className="menu-section">
             <button className="danger menu-danger" disabled={!isLive} onClick={confirmReset}>

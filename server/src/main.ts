@@ -17,6 +17,7 @@ import { listItemReferences, loadItemCatalog } from "./items/load-items";
 import { buildLlmStack, llmProviderSchema } from "./llm/llm-stack";
 import type { TokenBudget } from "./llm/token-budget";
 import { createLogger } from "./logger";
+import { createItemEditor } from "./item-editor";
 import { createSeedEditor } from "./seed-editor";
 import { buildSeededWorld, loadSeedFile } from "./seeds";
 import { SimLoop } from "./sim/loop";
@@ -170,6 +171,11 @@ async function run(): Promise<void> {
       seedFilePath: resolve(repositoryRoot, config.server.seedsPath),
       map,
       items,
+    }),
+    itemEditor: createItemEditor({
+      itemFilePath: resolve(repositoryRoot, config.server.itemsPath),
+      seedFilePath: resolve(repositoryRoot, config.server.seedsPath),
+      map,
     }),
     resetWorld: () =>
       loop.runBetweenTicks(() => loop.replaceState(resetDatabase(database, map, settings))),

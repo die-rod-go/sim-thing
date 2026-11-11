@@ -14,6 +14,7 @@ export default defineConfig({
       input: {
         village: fileURLToPath(new URL("./index.html", import.meta.url)),
         characters: fileURLToPath(new URL("./characters.html", import.meta.url)),
+        items: fileURLToPath(new URL("./items.html", import.meta.url)),
       },
     },
   },

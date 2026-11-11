@@ -1,5 +1,6 @@
 import type { ClientMessage, ServerMessage } from "@village/shared";
 import { createLogger } from "../logger";
+import type { ItemEditor } from "../item-editor";
 import type { SeedEditor } from "../seed-editor";
 import { buildAgentDetail, buildSettingsMessage, type SimServerContext } from "./message-builders";
 
@@ -24,6 +25,7 @@ export interface ControlDependencies {
   /** Reseeds the live world; the snapshot is sent afterwards by the handler. */
   resetWorld: () => Promise<void>;
   seedEditor: SeedEditor;
+  itemEditor: ItemEditor;
 }
 
 export function sendAgentDetail(session: ConnectionSession, context: SimServerContext): void {
@@ -90,5 +92,14 @@ export async function handleClientMessage(
       session.send({ type: "seed_file_saved", ...result, isWorldReset: shouldResetWorld });
       return;
     }
+    case "load_item_file":
+      session.send(dependencies.itemEditor.describeItemFile());
+      return;
+    case "save_item_file":
+      session.send({
+        type: "item_file_saved",
+        ...dependencies.itemEditor.saveItemFile(message.itemFile),
+      });
+      return;
   }
 }
