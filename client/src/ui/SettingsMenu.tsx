@@ -10,13 +10,15 @@ interface SettingsMenuProps {
   sendControl: (message: ClientMessage) => void;
   isDebugOverlayOn: boolean;
   onDebugOverlayChange: (isOn: boolean) => void;
+  isNotifyingPersonalityChanges: boolean;
+  onNotifyingPersonalityChangesChange: (isOn: boolean) => void;
 }
 
 function BudgetForm({
   state,
   isLive,
   sendControl,
-}: Omit<SettingsMenuProps, "isDebugOverlayOn" | "onDebugOverlayChange">) {
+}: Pick<SettingsMenuProps, "state" | "isLive" | "sendControl">) {
   const [budgetText, setBudgetText] = useState("");
   const parsedBudget = parsePositiveInteger(budgetText);
 
@@ -86,6 +88,19 @@ export function SettingsMenu(props: SettingsMenuProps) {
             <span className="menu-hint muted">
               Shades what the selected agent can see and hear.
             </span>
+          </section>
+          <section className="menu-section">
+            <label className="toggle">
+              <input
+                type="checkbox"
+                checked={props.isNotifyingPersonalityChanges}
+                onChange={(event) =>
+                  props.onNotifyingPersonalityChangesChange(event.target.checked)
+                }
+              />
+              Notify me of personality changes
+            </label>
+            <span className="menu-hint muted">A small pop-up when someone's character shifts.</span>
           </section>
           <section className="menu-section">
             <a className="menu-link" href="/characters.html" target="_blank" rel="noreferrer">

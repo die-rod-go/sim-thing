@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
-import type { WorldEvent } from "@village/shared";
-import { makeSampleAgent, makeSampleEvent } from "../fixtures/sample-data";
+import type { Moment, WorldEvent } from "@village/shared";
+import { makeSampleAgent, makeSampleEvent, makeSampleMoment } from "../fixtures/sample-data";
 import { groupConversations } from "./conversations";
 import { EVENT_CATEGORIES } from "./event-feed";
 import { buildStory, type StoryFilter } from "./story-feed";
@@ -10,7 +10,12 @@ const ada = makeSampleAgent("ada", "Ada", 0, 0);
 const bob = makeSampleAgent("bob", "Bob", 1, 0);
 const clara = { ...makeSampleAgent("clara", "Clara", 9, 9), place: "tavern" };
 
-const SHOW_ALL: StoryFilter = { agentId: null, place: null, categories: new Set(EVENT_CATEGORIES) };
+const SHOW_ALL: StoryFilter = {
+  agentId: null,
+  place: null,
+  categories: new Set(EVENT_CATEGORIES),
+  isShowingMoments: false,
+};
 
 function makeAction(
   id: number,
@@ -25,12 +30,31 @@ function makeAction(
   };
 }
 
-function storyKeys(events: WorldEvent[], filter: StoryFilter, currentTick: number): string[] {
+function storyKeys(
+  events: WorldEvent[],
+  filter: StoryFilter,
+  currentTick: number,
+  moments: Moment[] = [],
+): string[] {
   const threads = groupConversations(events, MAX_GAP_TICKS);
-  return buildStory(events, threads, filter, currentTick, MAX_GAP_TICKS).map((item) =>
-    item.kind === "thread" ? `thread-${item.thread.id}` : `event-${item.event.id}`,
-  );
+  return buildStory(events, threads, filter, currentTick, MAX_GAP_TICKS, moments).map((item) => {
+    if (item.kind === "thread") return `thread-${item.thread.id}`;
+    return item.kind === "event" ? `event-${item.event.id}` : `moment-${item.moment.id}`;
+  });
 }
+
+const goalMoment: Moment = {
+  ...makeSampleMoment(7, ada, 5),
+  kind: "goal_added",
+  text: "set a new goal",
+  goal: { text: "Open a stall", why: "", progress: "", kind: "world" },
+};
+const planMoment: Moment = {
+  ...makeSampleMoment(8, ada, 6),
+  kind: "daily_plan",
+  text: "planned the day",
+  plan: "Bake",
+};
 
 describe("buildStory", () => {
   it("pins a live conversation above newer events", () => {
@@ -69,6 +93,7 @@ describe("buildStory", () => {
       agentId: "ada",
       place: null,
       categories: new Set(EVENT_CATEGORIES.filter((category) => category !== "movement")),
+      isShowingMoments: false,
     };
     expect(storyKeys(events, filter, 100)).toEqual(["event-3"]);
   });
@@ -76,5 +101,14 @@ describe("buildStory", () => {
   it("drops conversations when talk is filtered out", () => {
     const filter: StoryFilter = { ...SHOW_ALL, categories: new Set(["action"]) };
     expect(storyKeys([makeSampleEvent(1, ada, 1)], filter, 100)).toEqual([]);
+  });
+
+  it("leaves moments out unless the reader turns them on", () => {
+    expect(storyKeys([], SHOW_ALL, 100, [goalMoment])).toEqual([]);
+  });
+
+  it("shows only the big beats when moments are on", () => {
+    const filter: StoryFilter = { ...SHOW_ALL, isShowingMoments: true };
+    expect(storyKeys([], filter, 100, [goalMoment, planMoment])).toEqual(["moment-7"]);
   });
 });

@@ -203,3 +203,100 @@
 .activity-said .line-words {
   color: var(--speech);
 }
+
+.activity-label .text-button {
+  text-transform: none;
+  letter-spacing: normal;
+  margin-left: 8px;
+}
+
+.activity-moment {
+  padding: 4px 8px;
+  border-left: 3px solid var(--warning);
+  background: var(--warning-soft);
+  border-radius: 0 4px 4px 0;
+}
+
+.activity-moment p {
+  margin: 2px 0 0;
+}
+
+.activity-moment-detail {
+  font-size: 12px;
+}
+
+.activity-failures {
+  color: var(--danger);
+}
+
+.diary {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+}
+
+.diary-entry {
+  padding: 8px 0 12px;
+  border-bottom: 1px solid var(--border);
+}
+
+.diary-day {
+  margin: 0 0 4px;
+  font-size: 12px;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  color: var(--text-muted);
+}
+
+.diary-mood {
+  margin: 4px 0;
+}
+
+.relationship-web {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  padding-bottom: 8px;
+  border-bottom: 1px solid var(--border);
+}
+
+.web-edge {
+  stroke: var(--text-muted);
+  stroke-opacity: 0.5;
+  stroke-linecap: round;
+}
+
+.web-center {
+  stroke: var(--text);
+  stroke-width: 2;
+}
+
+.web-node {
+  cursor: pointer;
+}
+
+.web-node circle {
+  stroke: rgb(0 0 0 / 60%);
+  stroke-width: 1;
+}
+
+.web-node:hover circle {
+  stroke: var(--text);
+  stroke-width: 2;
+}
+
+.web-node text {
+  fill: var(--text);
+  font-size: 11px;
+}
+
+.web-caption {
+  align-self: stretch;
+  min-height: 2.5em;
+  margin: 4px 0 0;
+  font-size: 12px;
+}
+
+.llm-call.is-focused {
+  border-color: var(--thought);
+}

@@ -8,6 +8,10 @@ export interface SpokenLine {
   speakerName: string;
   words: string;
   volume: Volume;
+  /** What the speaker was thinking when it chose to say this, when the server sent it. */
+  thought: string | null;
+  /** The decision call that produced the line, for linking to the prompt viewer. */
+  llmCallId: number | null;
 }
 
 /** Something a participant did mid-conversation, such as handing over an item. */
@@ -44,6 +48,8 @@ function toSpokenLine(event: WorldEvent, speech: NonNullable<WorldEvent["speech"
     speakerName: event.actorName,
     words: speech.words,
     volume: speech.volume,
+    thought: speech.thought ?? null,
+    llmCallId: speech.llmCallId ?? null,
   };
 }
 

@@ -1,6 +1,7 @@
-import type { WorldEvent } from "@village/shared";
+import type { Moment, WorldEvent } from "@village/shared";
 import { isThreadOngoing, type ConversationThread } from "./conversations";
 import { categorizeEvent, type EventCategory } from "./event-feed";
+import { isStoryMoment } from "./moments";
 
 export interface StoryThreadItem {
   kind: "thread";
@@ -13,13 +14,20 @@ export interface StoryEventItem {
   event: WorldEvent;
 }
 
-export type StoryItem = StoryThreadItem | StoryEventItem;
+export interface StoryMomentItem {
+  kind: "moment";
+  moment: Moment;
+}
+
+export type StoryItem = StoryThreadItem | StoryEventItem | StoryMomentItem;
 
 export interface StoryFilter {
   agentId: string | null;
   place: string | null;
   /** Speech toggles conversation threads; the rest toggle loose events. */
   categories: ReadonlySet<EventCategory>;
+  /** Big beats in the villagers' inner lives; off unless the reader asks for them. */
+  isShowingMoments: boolean;
 }
 
 function threadEventIds(threads: ConversationThread[]): Set<number> {
@@ -40,12 +48,20 @@ function isEventShown(event: WorldEvent, filter: StoryFilter): boolean {
   );
 }
 
+function isMomentShown(moment: Moment, filter: StoryFilter): boolean {
+  if (!filter.isShowingMoments || !isStoryMoment(moment)) return false;
+  if (filter.place !== null) return false;
+  return filter.agentId === null || moment.agentId === filter.agentId;
+}
+
 function latestTick(item: StoryItem): number {
-  return item.kind === "thread" ? item.thread.endTick : item.event.tick;
+  if (item.kind === "thread") return item.thread.endTick;
+  return item.kind === "event" ? item.event.tick : item.moment.tick;
 }
 
 function latestId(item: StoryItem): number {
-  return item.kind === "thread" ? item.thread.id : item.event.id;
+  if (item.kind === "thread") return item.thread.id;
+  return item.kind === "event" ? item.event.id : item.moment.id;
 }
 
 /**
@@ -58,6 +74,7 @@ export function buildStory(
   filter: StoryFilter,
   currentTick: number,
   maxGapTicks: number,
+  moments: Moment[] = [],
 ): StoryItem[] {
   const idsInThreads = threadEventIds(threads);
   const threadItems: StoryThreadItem[] = threads
@@ -72,8 +89,16 @@ export function buildStory(
     .filter((event) => isEventShown(event, filter))
     .map((event) => ({ kind: "event", event }));
 
+  const momentItems: StoryMomentItem[] = moments
+    .filter((moment) => isMomentShown(moment, filter))
+    .map((moment) => ({ kind: "moment", moment }));
+
   const liveThreads = threadItems.filter((item) => item.isOngoing);
-  const rest: StoryItem[] = [...threadItems.filter((item) => !item.isOngoing), ...eventItems];
+  const rest: StoryItem[] = [
+    ...threadItems.filter((item) => !item.isOngoing),
+    ...eventItems,
+    ...momentItems,
+  ];
   rest.sort(
     (first, second) => latestTick(second) - latestTick(first) || latestId(second) - latestId(first),
   );

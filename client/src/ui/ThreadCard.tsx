@@ -10,6 +10,7 @@ import {
   type SpeakerRun,
 } from "../format/thread-view";
 import { usePanelContext } from "./panel-context";
+import { ThoughtReveal } from "./ThoughtReveal";
 import { AgentName, ColorDot } from "./widgets";
 
 function SpeakerRunBlock({ run }: { run: SpeakerRun }) {
@@ -24,10 +25,12 @@ function SpeakerRunBlock({ run }: { run: SpeakerRun }) {
         )}
       </div>
       {run.lines.map((line) => (
-        <p key={line.eventId} className={`run-line volume-${line.volume}`}>
-          {line.volume !== "normal" && <span className="line-volume">{line.volume}s</span>}
-          <span className="line-words">{line.words}</span>
-        </p>
+        <ThoughtReveal key={line.eventId} thought={line.thought}>
+          <p className={`run-line volume-${line.volume}`}>
+            {line.volume !== "normal" && <span className="line-volume">{line.volume}s</span>}
+            <span className="line-words">{line.words}</span>
+          </p>
+        </ThoughtReveal>
       ))}
     </li>
   );

@@ -1,4 +1,4 @@
-import { useMemo } from "react";
+import { useCallback, useMemo, useState } from "react";
 import type { Agent, AgentDetailMessage } from "@village/shared";
 import { clientConfig } from "../client-config";
 import { findNewestThought } from "../format/agent-activity";
@@ -6,6 +6,7 @@ import { describeActivity, formatClockTime } from "../format/character-sheet";
 import { parseStoredChoice } from "../format/stored-preferences";
 import { summarizeLlmCall } from "../format/thoughts";
 import { ActivityTab } from "./ActivityTab";
+import { DiaryTab } from "./DiaryTab";
 import { MemoryTab } from "./MemoryTab";
 import { OverviewTab } from "./OverviewTab";
 import { usePanelContext } from "./panel-context";
@@ -17,6 +18,7 @@ import { ColorDot, EmptyNote, TabBar } from "./widgets";
 
 const SHEET_TAB_NAMES = [
   "activity",
+  "diary",
   "overview",
   "personality",
   "relations",
@@ -28,6 +30,7 @@ type SheetTabName = (typeof SHEET_TAB_NAMES)[number];
 
 const SHEET_TAB_LABELS: Record<SheetTabName, string> = {
   activity: "Activity",
+  diary: "Diary",
   overview: "Overview",
   personality: "Personality",
   relations: "Relations",
@@ -70,22 +73,25 @@ function NowStrip({ agent, detail }: { agent: Agent; detail: AgentDetailMessage 
   );
 }
 
-function SheetBody({
-  tab,
-  agent,
-  detail,
-}: {
+interface SheetBodyProps {
   tab: SheetTabName;
   agent: Agent;
   detail: AgentDetailMessage | null;
-}) {
-  if (tab === "activity") return <ActivityTab agent={agent} detail={detail} />;
+  focusedCallId: number | null;
+  onViewPrompt: (callId: number) => void;
+}
+
+function SheetBody({ tab, agent, detail, focusedCallId, onViewPrompt }: SheetBodyProps) {
+  if (tab === "activity") {
+    return <ActivityTab agent={agent} detail={detail} onViewPrompt={onViewPrompt} />;
+  }
+  if (tab === "diary") return <DiaryTab agent={agent} />;
   if (tab === "overview") return <OverviewTab agent={agent} />;
   if (tab === "personality") return <PersonalityTab agent={agent} detail={detail} />;
   if (!detail) return <EmptyNote>Waiting for {agent.name}'s details from the server…</EmptyNote>;
   if (tab === "relations") return <RelationsTab detail={detail} />;
   if (tab === "memory") return <MemoryTab detail={detail} />;
-  return <PromptsTab detail={detail} />;
+  return <PromptsTab detail={detail} focusedCallId={focusedCallId} />;
 }
 
 /** The selected agent's sheet: a sticky "now" header over tabbed pages, activity first. */
@@ -96,6 +102,18 @@ export function CharacterSheet({ agent, onClose }: { agent: Agent; onClose: () =
     "activity",
     parseSheetTab,
   );
+  const [focusedCallId, setFocusedCallId] = useState<number | null>(null);
+  const viewPrompt = useCallback(
+    (callId: number) => {
+      setFocusedCallId(callId);
+      setActiveTab("prompts");
+    },
+    [setActiveTab],
+  );
+  const changeTab = (tab: SheetTabName) => {
+    setFocusedCallId(null);
+    setActiveTab(tab);
+  };
   const detail = state.agentDetail?.agentId === agent.id ? state.agentDetail : null;
   const tabs = SHEET_TAB_NAMES.map((tabName) => ({
     name: tabName,
@@ -118,10 +136,16 @@ export function CharacterSheet({ agent, onClose }: { agent: Agent; onClose: () =
           </button>
         </div>
         <NowStrip agent={agent} detail={detail} />
-        <TabBar className="sheet-tabs" tabs={tabs} activeTab={activeTab} onChange={setActiveTab} />
+        <TabBar className="sheet-tabs" tabs={tabs} activeTab={activeTab} onChange={changeTab} />
       </header>
       <div className="sheet-body">
-        <SheetBody tab={activeTab} agent={agent} detail={detail} />
+        <SheetBody
+          tab={activeTab}
+          agent={agent}
+          detail={detail}
+          focusedCallId={focusedCallId}
+          onViewPrompt={viewPrompt}
+        />
       </div>
     </div>
   );

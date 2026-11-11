@@ -1,3 +1,4 @@
+import { useEffect, useRef } from "react";
 import { formatSimTime, type AgentDetailMessage, type LlmCallRecord } from "@village/shared";
 import { formatCount, formatLatency, formatParsedReply } from "../format/formatters";
 import { splitPromptSections } from "../format/split-prompt-sections";
@@ -17,11 +18,18 @@ function PromptSections({ prompt }: { prompt: string }) {
   );
 }
 
-function LlmCallEntry({ call }: { call: LlmCallRecord }) {
+function LlmCallEntry({ call, isFocused }: { call: LlmCallRecord; isFocused: boolean }) {
   const { state } = usePanelContext();
+  const entryRef = useRef<HTMLDetailsElement>(null);
+  useEffect(() => {
+    if (isFocused) entryRef.current?.scrollIntoView({ block: "start" });
+  }, [isFocused]);
   const totalTokens = call.promptTokens + call.completionTokens;
+  const className = ["llm-call", call.error ? "has-error" : "", isFocused ? "is-focused" : ""]
+    .filter(Boolean)
+    .join(" ");
   return (
-    <details className={call.error ? "llm-call has-error" : "llm-call"}>
+    <details className={className} ref={entryRef} open={isFocused || undefined}>
       <summary>
         <span className={`tag tag-${call.kind}`}>{call.kind}</span>
         <span>{formatSimTime(call.tick, state.timeSettings)}</span>
@@ -65,13 +73,20 @@ function LlmCallEntry({ call }: { call: LlmCallRecord }) {
   );
 }
 
-export function PromptsTab({ detail }: { detail: AgentDetailMessage }) {
+export function PromptsTab({
+  detail,
+  focusedCallId,
+}: {
+  detail: AgentDetailMessage;
+  /** A call to open and scroll to, e.g. after "view prompt" on a line. */
+  focusedCallId: number | null;
+}) {
   const calls = [...detail.llmCalls].sort((first, second) => second.id - first.id);
   if (calls.length === 0) return <EmptyNote>No LLM calls for {detail.agent.name} yet.</EmptyNote>;
   return (
     <div className="prompts-tab">
       {calls.map((call) => (
-        <LlmCallEntry key={call.id} call={call} />
+        <LlmCallEntry key={call.id} call={call} isFocused={call.id === focusedCallId} />
       ))}
     </div>
   );
