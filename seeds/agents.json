@@ -153,7 +153,8 @@
       "agility": 0.5,
       "inventory": {
         "coin": 30,
-        "bread": 2
+        "bread": 2,
+        "knife": 1
       },
       "mood": "Sleepy and content.",
       "goals": [
@@ -198,7 +199,8 @@
       "inventory": {
         "coin": 30,
         "bread": 2,
-        "ale": 6
+        "ale": 6,
+        "bandage": 1
       },
       "mood": "Cheerful, a bit bored.",
       "goals": [

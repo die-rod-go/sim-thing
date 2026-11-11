@@ -1,5 +1,6 @@
 import { readComponentField, toSimTime, type Agent, type Entity } from "@village/shared";
 import { config } from "../config";
+import type { NamedCandidate } from "../decision/resolve-name";
 import { isAsleep } from "../economy/sleep";
 import { getDefinition } from "../items/entity-store";
 import { pushWorkingMemory } from "../memory/working-memory";
@@ -84,6 +85,13 @@ export function listLivingAgents(state: WorldState): Agent[] {
 /** The name others use for the agent: their own name, or "Mara's body" once dead. */
 export function describeAgentAsSeen(agent: Agent): string {
   return isDead(agent) ? describeBodyName(agent.name) : agent.name;
+}
+
+/** Other agents under the names this agent would use for them: the dead as "Mara's body". */
+export function listOthersAsSeen(state: WorldState, agentId: string): NamedCandidate[] {
+  return state.agents
+    .filter((other) => other.id !== agentId)
+    .map((other) => ({ id: other.id, name: describeAgentAsSeen(other) }));
 }
 
 export function toPerceiver(agent: Agent): Perceiver {

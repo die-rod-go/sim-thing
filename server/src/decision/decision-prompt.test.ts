@@ -45,7 +45,7 @@ function buildContext(overrides: Partial<DecisionContext> = {}): DecisionContext
     currentAction: null,
     isMidActionInterrupt: false,
     lastFailure: null,
-    validTargets: { places: ["bakery", "farm"], agents: ["Tom"], entities: ["oven"] },
+    validTargets: { places: ["bakery", "farm"], agents: ["Tom"], entities: ["oven"], aimOnly: [] },
     validItems: [{ name: "coin", plural: "coins" }, { name: "bread" }],
     ...overrides,
   };
@@ -189,6 +189,7 @@ describe("describeAroundYou", () => {
           isInSight: true,
           isDead: false,
           healthAsSeen: null,
+          visibleCarried: [],
         },
         {
           agentId: "clara",
@@ -200,6 +201,7 @@ describe("describeAroundYou", () => {
           isInSight: true,
           isDead: false,
           healthAsSeen: null,
+          visibleCarried: [],
         },
         {
           agentId: "dave",
@@ -211,6 +213,7 @@ describe("describeAroundYou", () => {
           isInSight: false,
           isDead: false,
           healthAsSeen: null,
+          visibleCarried: [],
         },
         {
           agentId: "ed",
@@ -222,6 +225,7 @@ describe("describeAroundYou", () => {
           isInSight: false,
           isDead: false,
           healthAsSeen: null,
+          visibleCarried: [],
         },
         {
           agentId: "fay",
@@ -233,6 +237,7 @@ describe("describeAroundYou", () => {
           isInSight: false,
           isDead: false,
           healthAsSeen: null,
+          visibleCarried: [],
         },
       ],
       normalHearerIds: ["bob", "clara"],
@@ -259,6 +264,7 @@ describe("describeAroundYou", () => {
           doing: "sitting",
           isDead: false,
           healthAsSeen: "looks hurt",
+          visibleCarried: [],
         },
         {
           ...base,
@@ -267,6 +273,7 @@ describe("describeAroundYou", () => {
           doing: "lying dead",
           isDead: true,
           healthAsSeen: null,
+          visibleCarried: [],
         },
       ],
       normalHearerIds: ["bob", "mara"],

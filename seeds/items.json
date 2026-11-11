@@ -51,12 +51,25 @@
         "fun": { "type": "number" },
         "energy": { "type": "number" }
       }
+    },
+    "weapon": {
+      "description": "Something to fight with.",
+      "fields": {
+        "damage": { "type": "range", "description": "Health one hit takes, before strength." },
+        "hitChance": { "type": "number", "description": "Chance to hit someone as nimble." },
+        "stimulus": { "type": "text", "description": "What a hit sends to what it hits." }
+      }
+    },
+    "healing": {
+      "description": "Something that heals wounds.",
+      "fields": { "health": { "type": "number", "description": "Health it gives back." } }
     }
   },
   "properties": {
     "flesh": { "description": "Living or once-living bodies.", "isVisible": false },
     "flammable": { "description": "Catches fire.", "isVisible": false },
-    "metal": { "description": "Made of metal.", "isVisible": false }
+    "metal": { "description": "Made of metal.", "isVisible": false },
+    "sharp": { "description": "Has an edge or a point.", "isVisible": false }
   },
   "person": { "properties": ["flesh", "flammable"] },
   "definitions": [
@@ -194,6 +207,39 @@
         "openable": { "startsOpen": true, "blocksSightWhenClosed": true, "muffleWhenClosed": true },
         "durability": { "toughness": 5 }
       }
+    },
+    {
+      "id": "knife",
+      "name": "knife",
+      "plural": "knives",
+      "form": "carriable",
+      "sprite": { "tileset": "village", "tile": 21 },
+      "isVisibleWhenCarried": true,
+      "properties": ["sharp", "metal"],
+      "components": {
+        "durability": { "toughness": 4 },
+        "weapon": { "damage": { "min": 0.2, "max": 0.4 }, "hitChance": 0.7, "stimulus": "cut" },
+        "weight": { "kilograms": 0.3 }
+      },
+      "onBroken": [{ "type": "transform", "into": "broken_knife" }]
+    },
+    {
+      "id": "broken_knife",
+      "name": "broken knife",
+      "plural": "broken knives",
+      "form": "carriable",
+      "sprite": { "tileset": "village", "tile": 22 },
+      "properties": ["metal"],
+      "components": { "weight": { "kilograms": 0.2 } }
+    },
+    {
+      "id": "bandage",
+      "name": "bandage",
+      "plural": "bandages",
+      "form": "carriable",
+      "sprite": { "tileset": "village", "tile": 23 },
+      "properties": ["flammable"],
+      "components": { "healing": { "health": 0.15 }, "weight": { "kilograms": 0.05 } }
     }
   ],
   "verbs": [
@@ -384,6 +430,81 @@
         "ongoing": "closing the {item}",
         "done": "closed the {item}",
         "attempt": "close the {item}"
+      }
+    },
+    {
+      "name": "attack",
+      "appliesTo": { "allOf": [{ "component": "weapon" }, { "location": "held" }] },
+      "target": "agent_or_entity",
+      "reach": 1,
+      "minutes": 1,
+      "loudness": 6,
+      "hitRoll": { "baseHitChance": { "from": "item.weapon.hitChance" } },
+      "effects": [
+        {
+          "type": "damage",
+          "on": "target",
+          "amount": { "from": "item.weapon.damage" },
+          "stimulus": { "from": "item.weapon.stimulus" },
+          "scaledByStrength": true
+        },
+        { "type": "wear", "on": "item", "amount": 0.02, "requiresHit": false }
+      ],
+      "phrases": {
+        "ongoing": "attacking {target} with a {item}",
+        "hit": "hit {target} with a {item}",
+        "missed": "swung a {item} at {target} and missed",
+        "killed": "killed by {actor} with a {item}",
+        "attempt": "attack {target} with a {item}"
+      }
+    },
+    {
+      "name": "punch",
+      "appliesTo": { "isUser": true },
+      "target": "agent",
+      "reach": 1,
+      "minutes": 1,
+      "loudness": 4,
+      "hitRoll": { "baseHitChance": 0.8 },
+      "effects": [
+        {
+          "type": "damage",
+          "on": "target",
+          "amount": { "min": 0.05, "max": 0.12 },
+          "stimulus": "impact",
+          "scaledByStrength": true
+        },
+        {
+          "type": "change_need",
+          "on": "user",
+          "need": "energy",
+          "amount": -0.01,
+          "requiresHit": false
+        }
+      ],
+      "phrases": {
+        "ongoing": "punching {target}",
+        "hit": "punched {target}",
+        "missed": "swung a fist at {target} and missed",
+        "killed": "beaten to death by {actor}",
+        "attempt": "punch {target}"
+      }
+    },
+    {
+      "name": "use",
+      "appliesTo": { "allOf": [{ "component": "healing" }, { "location": "held" }] },
+      "target": "agent",
+      "canTargetSelf": true,
+      "reach": 1,
+      "minutes": 5,
+      "effects": [
+        { "type": "heal", "on": "target", "amount": { "from": "item.healing.health" } },
+        { "type": "destroy", "on": "item" }
+      ],
+      "phrases": {
+        "ongoing": "bandaging {target} with a {item}",
+        "done": "bandaged {target}",
+        "attempt": "bandage {target} with a {item}"
       }
     }
   ],

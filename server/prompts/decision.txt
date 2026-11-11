@@ -43,7 +43,7 @@ Places you know: {{knownPlaces}}
 ## What you can do
 Actions: {{actions}}
 - walk_to: go to a place you know, or to someone in sight. Needs target.
-- interact: use something here or something you carry, with one of the verbs listed beside it. For something here, set target to it; for something you carry, set item to it. Add verb if you know which one; add text for verbs that take words, like posting a note; add minutes for a nap.
+- interact: use something here or something you carry, with one of the verbs listed beside it. For something here, set target to it; for something you carry, set item to it. Verbs done to someone or something (and those under "You can also", which need nothing carried) take a target: the person or thing, or yourself. Add verb if you know which one; add text for verbs that take words, like posting a note; add minutes for a nap.
 - give: hand things you carry, coins included, to someone within reach. Needs target (the person), item and amount.
 - recall: search your memory. Needs query (the people, places or things you want to remember). You decide again right after.
 - wait: stay where you are for up to minutes. Anything new you notice ends the wait early.

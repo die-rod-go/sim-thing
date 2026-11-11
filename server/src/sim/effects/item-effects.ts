@@ -30,7 +30,7 @@ export const produceEffect: EffectHandler<"produce"> = {
   },
 };
 
-/** Removes the entity for good (eating the bread). */
+/** Removes the entity for good (eating the bread, using up a bandage, a door smashed apart). */
 export const destroyEffect: EffectHandler<"destroy"> = {
   apply(effectRun, effect) {
     const entity = findEffectEntity(effectRun, effect);

@@ -1,4 +1,5 @@
 import type { Effect, EffectOfType, EffectType } from "@village/shared";
+import { damageEffect, healEffect, transformEffect, wearEffect } from "./combat-effects";
 import type { EffectHandler, EffectOutcome, EffectRegistry, EffectRun } from "./effect-run";
 import { destroyEffect, moveEffect, produceEffect } from "./item-effects";
 import { changeNeedEffect } from "./need-effects";
@@ -12,6 +13,10 @@ import { postNoteEffect, readNotesEffect, sleepEffect } from "./special-effects"
  */
 export const EFFECT_REGISTRY: EffectRegistry = {
   change_need: changeNeedEffect,
+  damage: damageEffect,
+  heal: healEffect,
+  wear: wearEffect,
+  transform: transformEffect,
   produce: produceEffect,
   destroy: destroyEffect,
   move: moveEffect,

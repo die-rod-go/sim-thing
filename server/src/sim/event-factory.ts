@@ -11,6 +11,8 @@ export interface EventFields {
   item?: string;
   amount?: number;
   itemText?: string;
+  actorDescription?: string;
+  targetDescription?: string;
 }
 
 /** A world event by the agent, at the agent's tile, on the tick being simulated. */
@@ -31,6 +33,8 @@ export function createEvent(state: WorldState, actor: Agent, fields: EventFields
   if (fields.item !== undefined) event.item = fields.item;
   if (fields.amount !== undefined) event.amount = fields.amount;
   if (fields.itemText !== undefined) event.itemText = fields.itemText;
+  if (fields.actorDescription !== undefined) event.actorDescription = fields.actorDescription;
+  if (fields.targetDescription !== undefined) event.targetDescription = fields.targetDescription;
   return event;
 }
 

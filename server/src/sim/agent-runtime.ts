@@ -9,11 +9,26 @@ const walkDestinationSchema = z.discriminatedUnion("kind", [
   z.object({ kind: z.literal("entity"), entityId: z.string() }),
 ]);
 
+/** What an aimed verb is aimed at: an agent (the user itself included) or an entity. */
+const verbAimSchema = z.discriminatedUnion("kind", [
+  z.object({ kind: z.literal("agent"), agentId: z.string() }),
+  z.object({ kind: z.literal("entity"), entityId: z.string() }),
+]);
+
+/** What a verb is used with: an entity (held bread, the oven) or nothing (a bare-handed verb). */
+const usedThingSchema = z.discriminatedUnion("kind", [
+  z.object({ kind: z.literal("entity"), entityId: z.string() }),
+  z.object({ kind: z.literal("user") }),
+]);
+
 /** A verb to start once the agent gets where it is going. */
 const pendingVerbSchema = z.object({
   verb: z.string(),
   text: z.string().optional(),
   minutes: z.number().optional(),
+  /** What it is used with, when that isn't the walk's destination (a held knife). */
+  used: usedThingSchema.optional(),
+  aim: verbAimSchema.optional(),
 });
 
 const walkSchema = z.object({
@@ -21,6 +36,8 @@ const walkSchema = z.object({
   remainingSteps: z.array(positionSchema),
   /** Set when the walk leads to a verb that starts on arrival. */
   pendingVerb: pendingVerbSchema.nullable(),
+  /** For a walk after an aimed verb's target: the tick the agent stops following and gives up. */
+  giveUpAtTick: z.number().int().optional(),
 });
 
 /** A verb in progress: what is used, and what its `finish` effects need to know. */
@@ -33,6 +50,10 @@ const verbRunSchema = z.object({
   usedDefinitionId: z.string().nullable(),
   usedName: z.string(),
   startedAtTick: z.number().int(),
+  /** What the verb is aimed at; absent for a verb with no target. */
+  aim: verbAimSchema.optional(),
+  /** How the target reads in phrases ("Tobias", "the bakery door", "themselves"). */
+  aimName: z.string().optional(),
 });
 
 const pendingDecisionSchema = z.object({
@@ -85,6 +106,8 @@ export type AgentRuntime = z.infer<typeof agentRuntimeSchema>;
 export type Walk = z.infer<typeof walkSchema>;
 export type WalkDestination = z.infer<typeof walkDestinationSchema>;
 export type PendingVerb = z.infer<typeof pendingVerbSchema>;
+export type VerbAim = z.infer<typeof verbAimSchema>;
+export type UsedThing = z.infer<typeof usedThingSchema>;
 export type VerbRun = z.infer<typeof verbRunSchema>;
 export type PendingDecision = z.infer<typeof pendingDecisionSchema>;
 

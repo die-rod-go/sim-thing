@@ -1,4 +1,10 @@
-import { matchesRule, type Entity, type RuleSubject, type Verb } from "@village/shared";
+import {
+  matchesRule,
+  type Entity,
+  type ItemCatalog,
+  type RuleSubject,
+  type Verb,
+} from "@village/shared";
 import { getDefinition, type EntityWorld } from "./entity-store";
 
 /** Verb names are matched without regard to case or surrounding space. */
@@ -43,4 +49,11 @@ export function listItemlessVerbs(world: EntityWorld): Verb[] {
 export function findVerbByName(verbs: readonly Verb[], name: string): Verb | undefined {
   const wanted = normalizeVerbName(name);
   return verbs.find((verb) => normalizeVerbName(verb.name) === wanted);
+}
+
+/** The names of verbs that make a hit roll (attacks). */
+export function listHitRollVerbNames(items: ItemCatalog): string[] {
+  return [
+    ...new Set(items.verbs.filter((verb) => verb.hitRoll !== undefined).map((verb) => verb.name)),
+  ];
 }

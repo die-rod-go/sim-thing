@@ -15,7 +15,9 @@ import { getAgentRuntime } from "./agent-runtime";
 import {
   buildBelongings,
   groupEntitiesForPrompt,
+  listAimOnlyTargets,
   listItemlessVerbNames,
+  listVisibleCarried,
   listNearbyEntities,
   listNearbyEntityNames,
   listValidItems,
@@ -53,6 +55,7 @@ function buildAwarenessEntries(state: WorldState, agent: Agent): AwarenessEntry[
         isInSight,
         isDead: isInSight && isDead(other),
         healthAsSeen: isInSight && !isDead(other) ? describeHealthAsSeen(other.health) : null,
+        visibleCarried: isInSight && !isDead(other) ? listVisibleCarried(state, other) : [],
       },
     ];
   });
@@ -64,6 +67,7 @@ export function buildValidTargets(state: WorldState, agent: Agent): DecisionTarg
     places: state.map.places.map((place) => place.name),
     agents: visibleIds.map((agentId) => describeAgentAsSeen(findAgent(state, agentId))),
     entities: listNearbyEntityNames(state, agent),
+    aimOnly: listAimOnlyTargets(state, agent),
   };
 }
 

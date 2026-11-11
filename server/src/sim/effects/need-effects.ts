@@ -22,6 +22,7 @@ export const changeNeedEffect: EffectHandler<"change_need"> = {
   apply(effectRun, effect) {
     const { state, result } = effectRun.context;
     const agentId = findEffectAgentId(effectRun, effect);
+    if (agentId === null) return {};
     const definition = findUsedDefinition(effectRun);
     const perOtherUser =
       effect.perOtherUser === undefined ? 0 : resolveNumber(effect.perOtherUser, definition);

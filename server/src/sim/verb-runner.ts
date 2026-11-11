@@ -1,14 +1,13 @@
 import {
-  describeCount,
   findDefinition,
   listPossibleLocations,
   type Agent,
+  type Effect,
   type Entity,
   type Verb,
 } from "@village/shared";
 import { config } from "../config";
 import {
-  countHeld,
   describeEntityName,
   findEntityIfPresent,
   listHeldOfDefinition,
@@ -23,14 +22,31 @@ import {
   listVerbsForEntity,
   listVerbsForSubject,
 } from "../items/verb-offers";
+import { isDead } from "../status/health";
 import { describeAttempt, describeItemCounts, describeOngoingVerb } from "./action-phrases";
-import { getAgentRuntime, type PendingVerb, type VerbRun } from "./agent-runtime";
+import {
+  getAgentRuntime,
+  type PendingVerb,
+  type UsedThing,
+  type VerbAim,
+  type VerbRun,
+} from "./agent-runtime";
 import { applyEffect, findEffectBlocker } from "./effects/effect-registry";
 import type { EffectOutcome, EffectRun } from "./effects/effect-run";
 import { broadcastEvent } from "./event-broadcast";
 import { createEvent } from "./event-factory";
 import { failAction } from "./failure";
 import type { TickContext } from "./tick-context";
+import { computeVerbReach, describeAimName, findAimProblem, isAimInReach } from "./verb-aim";
+import { describeMissingTools, describeShortfall } from "./verb-checks";
+import {
+  announceHitRoll,
+  computeLoudness,
+  describeAimedPhrases,
+  describeRunTarget,
+  prefixPhrases,
+  rollForHit,
+} from "./verb-hits";
 import {
   findAgent,
   markAgentChanged,
@@ -40,8 +56,7 @@ import {
 } from "./world-access";
 import type { WorldState } from "./world-state";
 
-/** What a verb is used with: an entity (held bread, the oven) or nothing (a bare-handed verb). */
-export type UsedThing = { kind: "entity"; entityId: string } | { kind: "user" };
+export type { UsedThing } from "./agent-runtime";
 
 const { minutesPerTick } = config.clock;
 
@@ -82,21 +97,6 @@ function resolveUse(
     : { failure: describeUnknownVerb(state, entity, verbName), name };
 }
 
-function describeShortfall(state: WorldState, agentId: string, verb: Verb): string | null {
-  const reasons = Object.entries(verb.inputs).flatMap(([definitionId, needed]) => {
-    const held = countHeld(state, agentId, definitionId);
-    if (held >= needed) return [];
-    const definition = findDefinition(state.items, definitionId);
-    const neededText = describeCount(definition, needed);
-    return [
-      held === 0
-        ? `I don't have any ${definition.plural ?? definition.name}: I need ${neededText}`
-        : `I don't have enough ${definition.plural ?? definition.name}: I need ${neededText} and have ${held}`,
-    ];
-  });
-  return reasons.length === 0 ? null : reasons.join("; ");
-}
-
 /** Inputs are used up oldest first, never the thing the verb is used with. */
 function consumeInputs(
   context: TickContext,
@@ -116,7 +116,7 @@ function consumeInputs(
   }
 }
 
-function effectsAt(verb: Verb, when: "start" | "finish") {
+function effectsAt(verb: Verb, when: "start" | "finish"): Effect[] {
   return verb.effects.filter((effect) => (effect.when ?? "finish") === when);
 }
 
@@ -127,13 +127,6 @@ function computeEndTick(state: WorldState, verb: Verb, definitionId: string | nu
   return state.tick + Math.max(1, Math.ceil(minutes / minutesPerTick));
 }
 
-function computeLoudness(state: WorldState, verb: Verb, run: VerbRun): number | null {
-  if (verb.loudness === null) return null;
-  const definition =
-    run.usedDefinitionId === null ? null : findDefinition(state.items, run.usedDefinitionId);
-  return resolveNumber(verb.loudness, definition);
-}
-
 function changeUsers(context: TickContext, run: VerbRun, change: typeof addEntityUser) {
   if (run.usedEntityId === null) return;
   const entity = findEntityIfPresent(context.state, run.usedEntityId);
@@ -142,8 +135,13 @@ function changeUsers(context: TickContext, run: VerbRun, change: typeof addEntit
   markEntityChanged(context.result, entity.id);
 }
 
-function buildRun(state: WorldState, agentId: string, use: ResolvedUse): VerbRun {
-  return {
+function buildRun(
+  state: WorldState,
+  agentId: string,
+  use: ResolvedUse,
+  aim: VerbAim | undefined,
+): VerbRun {
+  const run: VerbRun = {
     agentId,
     verb: use.verb.name,
     usedEntityId: use.entity?.id ?? null,
@@ -151,6 +149,7 @@ function buildRun(state: WorldState, agentId: string, use: ResolvedUse): VerbRun
     usedName: use.name,
     startedAtTick: state.tick,
   };
+  return aim ? { ...run, aim, aimName: describeAimName(state, agentId, aim) } : run;
 }
 
 function beginRun(context: TickContext, run: VerbRun, use: ResolvedUse): void {
@@ -176,23 +175,38 @@ function beginRun(context: TickContext, run: VerbRun, use: ResolvedUse): void {
 
 function announceStart(context: TickContext, run: VerbRun, verb: Verb) {
   const { state, result } = context;
+  const phrases = describeAimedPhrases(state, run, (names) =>
+    describeOngoingVerb(state.items, run.verb, names),
+  );
   broadcastEvent(
     state,
     createEvent(state, findAgent(state, run.agentId), {
       kind: "action_started",
-      description: `started ${describeOngoingVerb(state.items, run.verb, run.usedName)}`,
-      targetId: run.usedEntityId,
-      targetName: run.usedName,
+      ...prefixPhrases(phrases, "started "),
+      ...describeRunTarget(run),
       loudness: computeLoudness(state, verb, run),
     }),
     result,
   );
 }
 
+/** Why an aimed verb can't go on at its target: no target, not alive or in sight, out of reach. */
+function findAimedBlocker(state: WorldState, verb: Verb, run: VerbRun): string | null {
+  if (verb.target === "none") return null;
+  if (!run.aim) return `I didn't say what to ${verb.name}`;
+  const problem = findAimProblem(state, run.agentId, run.aim);
+  if (problem !== null) return problem;
+  const reach = computeVerbReach(state, verb, run.usedDefinitionId);
+  return isAimInReach(state, run.agentId, run.aim, reach)
+    ? null
+    : `${run.aimName} was out of reach`;
+}
+
 /**
  * Starts a verb where the agent stands. Everything is checked first (the thing is still there and
- * offers the verb, the inputs are held, no `start` effect is blocked); then inputs are spent and
- * `start` effects run. A failure is filed in the world.
+ * offers the verb, its target is alive, in sight and in reach, tools and inputs are held, no
+ * `start` effect is blocked); then inputs are spent and `start` effects run. A failure is filed in
+ * the world.
  */
 export function startVerbNow(
   context: TickContext,
@@ -203,17 +217,15 @@ export function startVerbNow(
   const { state, result } = context;
   const use = resolveUse(state, agentId, used, request.verb);
   if ("failure" in use) {
-    failAction(
-      state,
-      result,
-      agentId,
-      describeAttempt(state.items, request.verb, use.name),
-      use.failure,
-    );
+    const attempt = describeAttempt(state.items, request.verb, { item: use.name });
+    failAction(state, result, agentId, attempt, use.failure);
     return;
   }
-  const attempt = describeAttempt(state.items, use.verb.name, use.name);
-  const run = buildRun(state, agentId, use);
+  const run = buildRun(state, agentId, use, request.aim);
+  const attempt = describeAttempt(state.items, use.verb.name, {
+    item: use.name,
+    target: run.aimName,
+  });
   const effectRun: EffectRun = {
     context,
     verb: use.verb,
@@ -222,6 +234,8 @@ export function startVerbNow(
     minutes: request.minutes,
   };
   const blocker =
+    findAimedBlocker(state, use.verb, run) ??
+    describeMissingTools(state, agentId, use.verb, run.usedEntityId) ??
     describeShortfall(state, agentId, use.verb) ??
     effectsAt(use.verb, "start")
       .map((effect) => findEffectBlocker(effectRun, effect))
@@ -275,37 +289,101 @@ function isTakenByOther(state: WorldState, run: VerbRun): boolean {
   return used?.location.kind === "inventory" && used.location.agentId !== run.agentId;
 }
 
-/** Finishes the agent's verb: its `finish` effects run, then an `action_finished` event. */
-export function finishRunningVerb(context: TickContext, agentId: string): void {
+/** A `start` effect used up or changed the thing itself (eating the bread), so it may be gone. */
+function isUsedUpAtStart(verb: Verb): boolean {
+  return effectsAt(verb, "start").some(
+    (effect) => effect.on === "item" && (effect.type === "destroy" || effect.type === "transform"),
+  );
+}
+
+/** Why an aimed verb can't finish: the thing used is no longer held, or the target is gone. */
+function findFinishBlocker(state: WorldState, run: VerbRun, verb: Verb): string | null {
+  if (isTakenByOther(state, run)) return "someone got to it first";
+  if (verb.target === "none") return null;
+  const isUsedGone =
+    run.usedEntityId !== null && findEntityIfPresent(state, run.usedEntityId) === undefined;
+  if (isUsedGone && !isUsedUpAtStart(verb)) return `I no longer had the ${run.usedName}`;
+  if (!run.aim) return `I didn't say what to ${verb.name}`;
+  return findAimProblem(state, run.agentId, run.aim);
+}
+
+/** Whether the effect runs: one that requires a hit (the default with a hit roll) waits for one. */
+function isEffectRunning(verb: Verb, effect: Effect, isHit: boolean): boolean {
+  const isStart = (effect.when ?? "finish") === "start";
+  const requiresHit = !isStart && (effect.requiresHit ?? verb.hitRoll !== undefined);
+  return isHit || !requiresHit;
+}
+
+function failRun(context: TickContext, run: VerbRun, reason: string): void {
   const { state, result } = context;
+  endRun(context, run.agentId, run);
+  const attempt = describeAttempt(state.items, run.verb, {
+    item: run.usedName,
+    target: run.aimName,
+  });
+  failAction(state, result, run.agentId, attempt, reason);
+}
+
+function announceFinish(context: TickContext, run: VerbRun, outcomes: EffectOutcome[]): void {
+  const { state, result } = context;
+  const made = sumMade(outcomes);
+  const making =
+    Object.keys(made).length > 0 ? `, making ${describeItemCounts(state.items, made)}` : "";
+  const phrases = describeAimedPhrases(
+    state,
+    run,
+    (names) => `${describeOngoingVerb(state.items, run.verb, names)}${making}`,
+  );
+  broadcastEvent(
+    state,
+    createEvent(state, findAgent(state, run.agentId), {
+      kind: "action_finished",
+      ...prefixPhrases(phrases, "finished "),
+      ...describeRunTarget(run),
+    }),
+    result,
+  );
+}
+
+/**
+ * Finishes the agent's verb. An aimed verb checks again that the thing used is still held and the
+ * target still alive and in sight. A hit roll is made (a target out of reach by now is missed) and
+ * announced; then the `finish` effects run, those that require a hit only on a hit.
+ */
+export function finishRunningVerb(context: TickContext, agentId: string): void {
+  const { state } = context;
   const run = getAgentRuntime(state, agentId).verbRun;
   const verb = run ? findRunVerb(state, run) : undefined;
   if (!run || !verb) {
     endRun(context, agentId, run);
     return;
   }
-  if (isTakenByOther(state, run)) {
-    endRun(context, agentId, run);
-    const attempt = describeAttempt(state.items, run.verb, run.usedName);
-    failAction(state, result, agentId, attempt, "someone got to it first");
+  const blocker = findFinishBlocker(state, run, verb);
+  if (blocker !== null) {
+    failRun(context, run, blocker);
     return;
   }
-  const effectRun: EffectRun = { context, verb, run, text: "" };
-  const outcomes = effectsAt(verb, "finish").map((effect) => applyEffect(effectRun, effect));
-  const finished = endRun(context, agentId, run);
-  const made = sumMade(outcomes);
-  const making =
-    Object.keys(made).length > 0 ? `, making ${describeItemCounts(state.items, made)}` : "";
-  broadcastEvent(
-    state,
-    createEvent(state, finished, {
-      kind: "action_finished",
-      description: `finished ${describeOngoingVerb(state.items, run.verb, run.usedName)}${making}`,
-      targetId: run.usedEntityId,
-      targetName: run.usedName,
-    }),
-    result,
-  );
+  const reach = computeVerbReach(state, verb, run.usedDefinitionId);
+  const isInReach = !run.aim || isAimInReach(state, agentId, run.aim, reach);
+  if (!isInReach && verb.hitRoll === undefined) {
+    failRun(context, run, `${run.aimName} was out of reach`);
+    return;
+  }
+  const isHit = verb.hitRoll === undefined || (isInReach && rollForHit(state, run, verb));
+  if (verb.hitRoll !== undefined) announceHitRoll(context, run, verb, isHit);
+  const effectRun: EffectRun = {
+    context,
+    verb,
+    run,
+    text: "",
+    isAttackAnnounced: verb.hitRoll !== undefined,
+  };
+  const outcomes = effectsAt(verb, "finish")
+    .filter((effect) => isEffectRunning(verb, effect, isHit))
+    .map((effect) => applyEffect(effectRun, effect));
+  if (isDead(findAgent(state, agentId))) return;
+  endRun(context, agentId, run);
+  if (verb.hitRoll === undefined) announceFinish(context, run, outcomes);
 }
 
 /**

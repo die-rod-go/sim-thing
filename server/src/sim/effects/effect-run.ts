@@ -9,7 +9,9 @@ import type {
 import { findDefinition } from "@village/shared";
 import { describeEntityName, findEntityIfPresent } from "../../items/entity-store";
 import type { VerbRun } from "../agent-runtime";
+import { isDead } from "../../status/health";
 import type { TickContext } from "../tick-context";
+import { findAgent } from "../world-access";
 
 /** One verb's effects being run: the tick, the verb, and what the decision supplied. */
 export interface EffectRun {
@@ -20,6 +22,10 @@ export interface EffectRun {
   text: string;
   /** Minutes the decision chose, for a nap. */
   minutes?: number;
+  /** The entity `on: self` refers to: the one breaking, while its `onBroken` effects run. */
+  selfEntityId?: string;
+  /** The hit roll's `attacked` or `missed` event already showed what happens to the target. */
+  isAttackAnnounced?: boolean;
 }
 
 export interface EffectOutcome {
@@ -45,25 +51,44 @@ export function findUsedDefinition(effectRun: EffectRun): ItemDefinition | null 
     : findDefinition(effectRun.context.state.items, usedDefinitionId);
 }
 
+/** Who or what one effect works on. */
+export type EffectSubjectRef =
+  { kind: "agent"; agentId: string } | { kind: "entity"; entityId: string };
+
 /**
- * The entity an effect works on. Only `on: item` is built so far; `chosen`, `target` and the rest
- * come with the verbs that need them. Undefined when the entity is already gone (eaten earlier).
+ * What the effect's `on` refers to in this run: the user, the thing used, the verb's target, or
+ * `self` (the entity breaking, for `onBroken`). Null when there is none, such as `item` in a
+ * bare-handed verb. `chosen` and `nearby` come with the phases that need them; the server refuses
+ * an `items.json` that uses them before then.
  */
-export function findEffectEntity(effectRun: EffectRun, effect: Effect): Entity | undefined {
-  if (effect.on !== "item") {
-    throw new Error(`"${effectRun.verb.name}": ${effect.type} on ${effect.on} isn't built yet`);
+export function findEffectSubject(effectRun: EffectRun, effect: Effect): EffectSubjectRef | null {
+  const { run, selfEntityId } = effectRun;
+  switch (effect.on ?? "self") {
+    case "user":
+      return { kind: "agent", agentId: run.agentId };
+    case "item":
+      return run.usedEntityId === null ? null : { kind: "entity", entityId: run.usedEntityId };
+    case "target":
+      return run.aim ?? null;
+    case "self":
+      return selfEntityId === undefined ? null : { kind: "entity", entityId: selfEntityId };
+    default:
+      throw new Error(`"${effectRun.verb.name}": ${effect.type} on ${effect.on} isn't built yet`);
   }
-  const { usedEntityId } = effectRun.run;
-  if (usedEntityId === null) return undefined;
-  return findEntityIfPresent(effectRun.context.state, usedEntityId);
 }
 
-/** The agent an effect works on. Only `on: user` is built so far. */
-export function findEffectAgentId(effectRun: EffectRun, effect: Effect): string {
-  if (effect.on !== "user") {
-    throw new Error(`"${effectRun.verb.name}": ${effect.type} on ${effect.on} isn't built yet`);
-  }
-  return effectRun.run.agentId;
+/** The entity an effect works on; undefined when it is an agent, or already gone (eaten earlier). */
+export function findEffectEntity(effectRun: EffectRun, effect: Effect): Entity | undefined {
+  const subject = findEffectSubject(effectRun, effect);
+  if (subject?.kind !== "entity") return undefined;
+  return findEntityIfPresent(effectRun.context.state, subject.entityId);
+}
+
+/** The living agent an effect works on, or null when it works on a thing or on the dead. */
+export function findEffectAgentId(effectRun: EffectRun, effect: Effect): string | null {
+  const subject = findEffectSubject(effectRun, effect);
+  if (subject?.kind !== "agent") return null;
+  return isDead(findAgent(effectRun.context.state, subject.agentId)) ? null : subject.agentId;
 }
 
 export function describeEffectEntity(effectRun: EffectRun, entity: Entity): string {

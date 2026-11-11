@@ -94,7 +94,22 @@ function eventTags(event: WorldEvent, context: FilingContext, isActorKnown: bool
   ]);
 }
 
-function draftsForParticipants(event: WorldEvent, context: FilingContext): MemoryDraft[] {
+/**
+ * The agent an act was aimed at, who files it as done to them ("Tobias hit me with a knife"), if
+ * they took it in: a sleeper doesn't perceive the attack that wakes them.
+ */
+function aimedTargetId(event: WorldEvent, perceptions: readonly EventPerception[]): string | null {
+  if (event.targetDescription === undefined || event.targetId === null) return null;
+  if (event.targetId === event.actorId) return null;
+  const targetId = event.targetId;
+  return perceptions.some((perception) => perception.agentId === targetId) ? targetId : null;
+}
+
+function draftsForParticipants(
+  event: WorldEvent,
+  perceptions: readonly EventPerception[],
+  context: FilingContext,
+): MemoryDraft[] {
   // The dead remember nothing more, not even dying.
   if (event.kind === "died") return [];
   const tags = eventTags(event, context, true);
@@ -105,7 +120,17 @@ function draftsForParticipants(event: WorldEvent, context: FilingContext): Memor
         text: `I ${SPEECH_PAST_TENSE[event.speech.volume]}: "${event.speech.words}"`,
         tags,
       }
-    : { agentId: event.actorId, bucket: "did", text: `I ${event.description}`, tags };
+    : {
+        agentId: event.actorId,
+        bucket: "did",
+        text: `I ${event.actorDescription ?? event.description}`,
+        tags,
+      };
+  const targetId = aimedTargetId(event, perceptions);
+  if (targetId !== null && event.targetDescription !== undefined) {
+    const text = `${event.actorName} ${event.targetDescription}`;
+    return [actorDraft, { agentId: targetId, bucket: "did", text, tags }];
+  }
   const recipientId = giveRecipientId(event);
   if (recipientId === null) return [actorDraft];
   const recipientDraft: MemoryDraft = {
@@ -183,7 +208,11 @@ function draftsForPerceivers(
   perceptions: readonly EventPerception[],
   context: FilingContext,
 ): MemoryDraft[] {
-  const participantIds = new Set([event.actorId, giveRecipientId(event)]);
+  const participantIds = new Set([
+    event.actorId,
+    giveRecipientId(event),
+    aimedTargetId(event, perceptions),
+  ]);
   const drafts: MemoryDraft[] = [];
   for (const perception of perceptions) {
     if (participantIds.has(perception.agentId)) continue;
@@ -244,7 +273,7 @@ function materializeDrafts(
 export function fileEvent(perceived: PerceivedEvent, context: FilingContext): Memory[] {
   const { event, perceptions } = perceived;
   const drafts = [
-    ...draftsForParticipants(event, context),
+    ...draftsForParticipants(event, perceptions, context),
     ...draftsForPerceivers(event, perceptions, context),
   ];
   return materializeDrafts(drafts, event.tick, context);

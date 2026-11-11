@@ -15,6 +15,7 @@ import {
 import { loadWorld, saveWorld } from "./db/world-repository";
 import { listItemReferences, loadItemCatalog } from "./items/load-items";
 import { buildLlmStack, llmProviderSchema } from "./llm/llm-stack";
+import { listHitRollVerbNames } from "./items/verb-offers";
 import type { TokenBudget } from "./llm/token-budget";
 import { createLogger } from "./logger";
 import { createSeedEditor } from "./seed-editor";
@@ -128,6 +129,7 @@ async function run(): Promise<void> {
 
   const llm = buildLlmStack({
     provider: environment.LLM_PROVIDER,
+    fakeResponderOptions: { hitRollVerbNames: listHitRollVerbNames(items) },
     tokenUsageStore: createTokenUsageStore(database),
     dailyTokenBudget: settings.dailyTokenBudget,
     recordLlmCall: (record) => appendLlmCall(database, record),

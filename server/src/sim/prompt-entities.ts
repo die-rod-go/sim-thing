@@ -1,4 +1,5 @@
-import { describeCount, type Agent, type Entity } from "@village/shared";
+import { describeCount, type Agent, type Entity, type Verb } from "@village/shared";
+import { config } from "../config";
 import type { PromptEntityGroup, ValidItem } from "../decision/context";
 import {
   describeEntityName,
@@ -78,6 +79,37 @@ export function listNearbyEntityNames(state: WorldState, agent: Agent): string[]
   return [
     ...new Set(listNearbyEntities(state, agent).map((entity) => describeEntityName(state, entity))),
   ];
+}
+
+/** Every verb the agent could use right now: with what it carries, here, or bare-handed. */
+function listAvailableVerbs(state: WorldState, agent: Agent): Verb[] {
+  const things = [...listHeldEntities(state, agent.id), ...listNearbyEntities(state, agent)];
+  return [
+    ...things.flatMap((entity) => listVerbsForEntity(state, agent.id, entity)),
+    ...listItemlessVerbs(state),
+  ];
+}
+
+/**
+ * Targets only an aimed verb takes: "yourself" when a verb can be aimed at oneself, and what the
+ * agent carries when a verb can be aimed at a thing.
+ */
+export function listAimOnlyTargets(state: WorldState, agent: Agent): string[] {
+  const verbs = listAvailableVerbs(state, agent);
+  const canAimAtSelf = verbs.some((verb) => verb.canTargetSelf && verb.target !== "none");
+  const canAimAtThings = verbs.some(
+    (verb) => verb.target === "entity" || verb.target === "agent_or_entity",
+  );
+  const carried = canAimAtThings ? listValidItems(state, agent).map((item) => item.name) : [];
+  return [...(canAimAtSelf ? [config.verbs.selfTargetName] : []), ...carried];
+}
+
+/** What others see the agent carrying: things whose definition shows when carried ("a knife"). */
+export function listVisibleCarried(state: WorldState, agent: Agent): string[] {
+  const shown = listHeldEntities(state, agent.id).filter(
+    (entity) => getDefinition(state, entity).isVisibleWhenCarried,
+  );
+  return groupEntitiesForPrompt(state, agent.id, shown).map((group) => group.text);
 }
 
 /** What the agent carries, by definition: what `item` may name. */

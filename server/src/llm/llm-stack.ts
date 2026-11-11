@@ -3,7 +3,7 @@ import { createStructuredCaller, type StructuredCaller } from "./call-structured
 import { ConcurrencyLimiter } from "./concurrency-limiter";
 import { readLlmEnv } from "./env";
 import { FakeLlmClient } from "./fake-llm-client";
-import { createFakeResponder } from "./fake-responder";
+import { createFakeResponder, type FakeResponderOptions } from "./fake-responder";
 import { OpenAiCompatibleClient } from "./open-ai-compatible-client";
 import { TokenBudget } from "./token-budget";
 import type { LlmCallSink, LlmClient, TokenUsageStore } from "./types";
@@ -17,6 +17,8 @@ export interface LlmStackOptions {
   tokenUsageStore: TokenUsageStore;
   dailyTokenBudget: number;
   recordLlmCall: LlmCallSink;
+  /** For the `fake` provider: what the offline responder needs to know about the items. */
+  fakeResponderOptions?: FakeResponderOptions;
   /** Supplies the client directly (tests); otherwise built from the provider. */
   client?: LlmClient;
   pause?: (milliseconds: number) => Promise<void>;
@@ -31,14 +33,19 @@ export interface LlmStack {
 }
 
 /** `fake` runs offline with a seeded responder; `openai` reads LLM_* from the environment. */
-export function createLlmClient(provider: LlmProvider): LlmClient {
+export function createLlmClient(
+  provider: LlmProvider,
+  fakeResponderOptions: FakeResponderOptions = {},
+): LlmClient {
   return provider === "fake"
-    ? new FakeLlmClient(createFakeResponder(), { isKeepingRequests: false })
+    ? new FakeLlmClient(createFakeResponder({}, undefined, fakeResponderOptions), {
+        isKeepingRequests: false,
+      })
     : new OpenAiCompatibleClient(readLlmEnv());
 }
 
 export function buildLlmStack(options: LlmStackOptions): LlmStack {
-  const client = options.client ?? createLlmClient(options.provider);
+  const client = options.client ?? createLlmClient(options.provider, options.fakeResponderOptions);
   const limiter = new ConcurrencyLimiter();
   const budget = new TokenBudget(options.tokenUsageStore, {
     dailyTokenBudget: options.dailyTokenBudget,

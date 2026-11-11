@@ -53,12 +53,12 @@ describe("loading items.json", () => {
       verbs: [
         ...file.verbs,
         {
-          name: "punch",
+          name: "shout",
           appliesTo: { isUser: true },
-          effects: [{ type: "heal", on: "user", amount: 0.1 }],
+          effects: [{ type: "emit", on: "user", stimulus: "noise" }],
         },
       ],
     };
-    expect(() => buildCheckedItemCatalog(withPunch, [])).toThrow(/The heal effect isn't built yet/);
+    expect(() => buildCheckedItemCatalog(withPunch, [])).toThrow(/The emit effect isn't built yet/);
   });
 });

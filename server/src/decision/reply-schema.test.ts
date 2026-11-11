@@ -9,6 +9,7 @@ const targets: DecisionTargets = {
   places: ["bakery", "town square"],
   agents: ["Bob"],
   entities: ["oven"],
+  aimOnly: [],
 };
 
 const items: ValidItem[] = [{ name: "bread" }, { name: "coin", plural: "coins" }];

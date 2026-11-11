@@ -5,6 +5,7 @@ import {
   findItemFileProblems,
   hasItemErrors,
   itemFileSchema,
+  type Effect,
   type ItemCatalog,
   type ItemFile,
   type ItemProblem,
@@ -36,30 +37,40 @@ export function listItemReferences(map: WorldMap, seedFile: SeedFile): ItemRefer
   ];
 }
 
+const UNBUILT_SUBJECTS: ReadonlySet<string> = new Set(["chosen", "nearby"]);
+const BUILT_MOVE_DESTINATIONS: ReadonlySet<string> = new Set(["user", "ground"]);
+
+function findUnbuiltEffectProblem(effect: Effect): string | null {
+  if (!isEffectBuilt(effect.type)) return `The ${effect.type} effect isn't built yet.`;
+  if (effect.on !== undefined && UNBUILT_SUBJECTS.has(effect.on)) {
+    return `Effects on ${effect.on} aren't built yet.`;
+  }
+  if (effect.type === "move" && !BUILT_MOVE_DESTINATIONS.has(effect.to)) {
+    return `Moving to ${effect.to} isn't built yet.`;
+  }
+  return null;
+}
+
 /**
- * Parts of the format this build parses and validates but can't run yet: verb targets, hit rolls,
- * tools, effects with no implementation, conditions and reactions. Refused rather than ignored, so
- * content never silently does nothing.
+ * Parts of the format this build parses and validates but can't run yet: effects with no
+ * implementation or aimed at what isn't built (`chosen`, `nearby`, moving into containers or
+ * throwing), conditions and reactions. Refused rather than ignored, so content never silently does
+ * nothing.
  */
 export function findUnbuiltFeatures(file: ItemFile): ItemProblem[] {
   const problems: ItemProblem[] = [];
   const add = (path: string, message: string) =>
     problems.push({ severity: "error", path, message });
-  file.verbs.forEach((verb, index) => {
-    const path = `verbs.${index} (${verb.name})`;
-    if (verb.target !== "none") add(path, "Verb targets aren't built yet.");
-    if (verb.hitRoll !== undefined) add(path, "Hit rolls aren't built yet.");
-    if (verb.tools !== undefined) add(path, "Tools aren't built yet.");
-    verb.effects.forEach((effect, effectIndex) => {
-      if (!isEffectBuilt(effect.type)) {
-        add(`${path}.effects.${effectIndex}`, `The ${effect.type} effect isn't built yet.`);
-      }
+  const checkEffects = (effects: readonly Effect[], path: string) =>
+    effects.forEach((effect, effectIndex) => {
+      const problem = findUnbuiltEffectProblem(effect);
+      if (problem !== null) add(`${path}.${effectIndex}`, problem);
     });
+  file.verbs.forEach((verb, index) => {
+    checkEffects(verb.effects, `verbs.${index} (${verb.name}).effects`);
   });
   file.definitions.forEach((definition, index) => {
-    if (definition.onBroken !== undefined) {
-      add(`definitions.${index} (${definition.id})`, "Breaking (onBroken) isn't built yet.");
-    }
+    checkEffects(definition.onBroken ?? [], `definitions.${index} (${definition.id}).onBroken`);
   });
   if (file.conditions.length > 0) add("conditions", "Conditions aren't built yet.");
   if (file.reactions.length > 0) add("reactions", "Reactions aren't built yet.");

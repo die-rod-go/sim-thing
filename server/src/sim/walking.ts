@@ -1,4 +1,4 @@
-import type { Agent, Position } from "@village/shared";
+import type { Agent, Position, Verb } from "@village/shared";
 import { config } from "../config";
 import { computeChebyshevDistance } from "../economy/give";
 import {
@@ -14,11 +14,20 @@ import { canSee } from "../perception/sight";
 import { findPlaceAt } from "../world/map-loader";
 import { findPathToAny, findPathToPlace, findPathToTile } from "../world/pathfinding";
 import { WALK_ACTION } from "./action-phrases";
-import { getAgentRuntime, type PendingVerb, type WalkDestination } from "./agent-runtime";
+import { describeAttempt } from "./action-phrases";
+import {
+  getAgentRuntime,
+  type PendingVerb,
+  type UsedThing,
+  type WalkDestination,
+} from "./agent-runtime";
 import { broadcastEvent } from "./event-broadcast";
 import { createEvent } from "./event-factory";
 import { failAction } from "./failure";
 import type { TickContext } from "./tick-context";
+import { findVerbByName, listItemlessVerbs, listVerbsForEntity } from "../items/verb-offers";
+import { isDead } from "../status/health";
+import { computeVerbReach, describeAimName, findAimProblem, isAimInReach } from "./verb-aim";
 import { startVerbNow } from "./verb-runner";
 import {
   buildPerceptionWorld,
@@ -93,12 +102,18 @@ export function startWalk(
     return false;
   }
   const name = destinationName(state, destination);
+  const isChase = destination.kind === "agent" && pendingVerb?.aim !== undefined;
   const walking: Agent = {
     ...agent,
     currentAction: { kind: WALK_ACTION, target: name, endsAtTick: null },
   };
   replaceAgent(state, walking);
-  getAgentRuntime(state, agentId).walk = { destination, remainingSteps: path, pendingVerb };
+  getAgentRuntime(state, agentId).walk = {
+    destination,
+    remainingSteps: path,
+    pendingVerb,
+    ...(isChase ? { giveUpAtTick: state.tick + path.length + config.combat.chaseTicks } : {}),
+  };
   markAgentChanged(result, agentId);
   const towards = destination.kind === "agent" ? `towards ${name}` : `to ${where}`;
   broadcastEvent(
@@ -165,6 +180,72 @@ function stepOnce(context: TickContext, agentId: string, nextStep: Position): vo
   }
 }
 
+function describePendingAttempt(state: WorldState, agentId: string, pending: PendingVerb): string {
+  const used = pending.used;
+  const usedEntity =
+    used?.kind === "entity" ? findEntityIfPresent(state, used.entityId) : undefined;
+  return describeAttempt(state.items, pending.verb, {
+    item: usedEntity ? describeEntityName(state, usedEntity) : "",
+    target: pending.aim ? describeAimName(state, agentId, pending.aim) : undefined,
+  });
+}
+
+/**
+ * On the way to an aimed verb's target: start as soon as it is in reach and sight, give up on a
+ * dead target, or once a moving one has been followed for too long. True when the walk is over.
+ */
+function pursueAim(context: TickContext, agentId: string): boolean {
+  const { state, result } = context;
+  const walk = getAgentRuntime(state, agentId).walk;
+  const pending = walk?.pendingVerb;
+  if (!walk || !pending?.aim || !pending.used) return false;
+  const { aim, used } = pending;
+  const problem = findAimProblem(state, agentId, aim);
+  const isTargetDead = aim.kind === "agent" && isDead(findAgent(state, aim.agentId));
+  if (isTargetDead && problem !== null) {
+    failAction(state, result, agentId, describePendingAttempt(state, agentId, pending), problem);
+    return true;
+  }
+  const verb = findPendingVerb(state, agentId, pending);
+  const reach = verb ? computeVerbReach(state, verb, findUsedDefinitionId(state, used)) : 0;
+  if (problem === null && isAimInReach(state, agentId, aim, reach)) {
+    walk.pendingVerb = null;
+    getAgentRuntime(state, agentId).walk = null;
+    startVerbNow(context, agentId, used, pending);
+    return true;
+  }
+  const hasGivenUp = walk.giveUpAtTick !== undefined && state.tick >= walk.giveUpAtTick;
+  const isLost = walk.remainingSteps.length === 0 && walk.giveUpAtTick === undefined;
+  if (hasGivenUp || isLost) {
+    const aimName = describeAimName(state, agentId, aim);
+    const reason = problem ?? (hasGivenUp ? `${aimName} got away` : `${aimName} was out of reach`);
+    failAction(state, result, agentId, describePendingAttempt(state, agentId, pending), reason);
+    return true;
+  }
+  if (walk.remainingSteps.length === 0) {
+    walk.remainingSteps = computePath(state, findAgent(state, agentId).pos, walk.destination) ?? [];
+  }
+  return false;
+}
+
+function findUsedDefinitionId(state: WorldState, used: UsedThing): string | null {
+  if (used.kind === "user") return null;
+  return findEntityIfPresent(state, used.entityId)?.definitionId ?? null;
+}
+
+function findPendingVerb(
+  state: WorldState,
+  agentId: string,
+  pending: PendingVerb,
+): Verb | undefined {
+  const used = pending.used;
+  if (!used || used.kind === "user") return findVerbByName(listItemlessVerbs(state), pending.verb);
+  const entity = findEntityIfPresent(state, used.entityId);
+  return entity
+    ? findVerbByName(listVerbsForEntity(state, agentId, entity), pending.verb)
+    : undefined;
+}
+
 function arrive(context: TickContext, agentId: string): void {
   const { state, result } = context;
   const runtime = getAgentRuntime(state, agentId);
@@ -175,10 +256,14 @@ function arrive(context: TickContext, agentId: string): void {
   replaceAgent(state, agent);
   markAgentChanged(result, agentId);
   const { destination } = walk;
-  if (destination.kind === "entity" && walk.pendingVerb) {
-    const used = { kind: "entity", entityId: destination.entityId } as const;
-    startVerbNow(context, agentId, used, walk.pendingVerb);
-    return;
+  if (walk.pendingVerb) {
+    const used: UsedThing | null =
+      walk.pendingVerb.used ??
+      (destination.kind === "entity" ? { kind: "entity", entityId: destination.entityId } : null);
+    if (used) {
+      startVerbNow(context, agentId, used, walk.pendingVerb);
+      return;
+    }
   }
   const name = destinationName(state, destination);
   let description = `arrived at ${describeDestination(state, destination)}`;
@@ -207,12 +292,18 @@ function refreshAgentPath(context: TickContext, agentId: string): void {
   walk.remainingSteps = computePath(state, walker.pos, walk.destination) ?? walk.remainingSteps;
 }
 
-/** One tile per tick along the stored path, opening closed doors on the way; ends on arrival. */
+/**
+ * One tile per tick along the stored path, opening closed doors on the way; ends on arrival. A
+ * walk towards an aimed verb's target ends as soon as the target is in reach.
+ */
 export function advanceWalk(context: TickContext, agentId: string): void {
+  if (pursueAim(context, agentId)) return;
   refreshAgentPath(context, agentId);
   const walk = getAgentRuntime(context.state, agentId).walk;
   if (!walk) return;
   const nextStep = walk.remainingSteps.shift();
   if (nextStep) stepOnce(context, agentId, nextStep);
-  if (walk.remainingSteps.length === 0) arrive(context, agentId);
+  if (pursueAim(context, agentId)) return;
+  const isPursuing = walk.pendingVerb?.aim !== undefined && walk.pendingVerb.used !== undefined;
+  if (walk.remainingSteps.length === 0 && !isPursuing) arrive(context, agentId);
 }

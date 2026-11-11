@@ -69,12 +69,26 @@ function applyConversationSocial(
   }
 }
 
-/** Flags decisions for those who perceived the event; the decision phase applies the cooldown. */
+const ATTACK_KINDS: readonly WorldEvent["kind"][] = ["attacked", "missed"];
+
+/**
+ * Flags decisions for those who perceived the event; the decision phase applies the cooldown.
+ * Being attacked, and seeing an attack or a death, skip it.
+ */
 function flagDecisions(state: WorldState, event: WorldEvent, perceptions: EventPerception[]): void {
+  const isAttack = ATTACK_KINDS.includes(event.kind);
   for (const perception of perceptions) {
     const perceiver = findAgent(state, perception.agentId);
     const runtime = getAgentRuntime(state, perceiver.id);
-    if (event.kind === "died" && perception.isInSight) {
+    if (isAttack && event.targetId === perceiver.id) {
+      requestDecision(runtime, `${event.actorName} attacked me`, true);
+    } else if (isAttack && perception.isInSight) {
+      requestDecision(
+        runtime,
+        `I saw ${event.actorName} attack ${event.targetName ?? "something"}`,
+        true,
+      );
+    } else if (event.kind === "died" && perception.isInSight) {
       requestDecision(runtime, `I saw ${event.actorName} die`, true);
     } else if (event.kind === "gave" && event.targetId === perceiver.id) {
       requestDecision(runtime, `${event.actorName} handed me something`, true);
@@ -86,14 +100,31 @@ function flagDecisions(state: WorldState, event: WorldEvent, perceptions: EventP
   }
 }
 
+export interface BroadcastOptions {
+  /** Agents who take in nothing of it: a sleeper doesn't perceive the attack that wakes them. */
+  unperceivedBy?: readonly string[];
+}
+
 /**
  * The brief's `broadcast(event)`: works out who perceived it, updates heard awareness and the
  * conversation log, files memories for the actor and every perceiver, mirrors them into working
  * memory, adds conversation social, and flags who needs a decision because of it.
  */
-export function broadcastEvent(state: WorldState, event: WorldEvent, result: TickResult): void {
+export function broadcastEvent(
+  state: WorldState,
+  event: WorldEvent,
+  result: TickResult,
+  options: BroadcastOptions = {},
+): void {
   const world = buildPerceptionWorld(state);
-  const perceptions = perceiveEvent(world, event, listLivingAgents(state).map(toPerceiver));
+  const unperceivedBy = options.unperceivedBy ?? [];
+  const perceptions = perceiveEvent(
+    world,
+    event,
+    listLivingAgents(state)
+      .filter((agent) => !unperceivedBy.includes(agent.id))
+      .map(toPerceiver),
+  );
   const perceived = { event, perceptions };
   mergeHeardAwareness(state, event, perceptions);
   if (event.kind === "said") state.conversationLog = recordSpeech(state.conversationLog, perceived);

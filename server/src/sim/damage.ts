@@ -9,14 +9,14 @@ import { buildDeathMoment, recordMoments } from "./moments";
 import type { TickContext } from "./tick-context";
 import { findAgent, markAgentChanged, rememberBriefly, replaceAgent } from "./world-access";
 
-const SOURCE_PLACEHOLDER = "{source}";
+const ACTOR_PLACEHOLDER = "{actor}";
 
 /** Health lost to one cause. Verbs, conditions and starvation all come through here. */
 export interface Damage {
   amount: number;
-  /** The cause of death if this damage kills, e.g. "stabbed by {source}" or "starved". */
+  /** The cause of death if this damage kills, e.g. "stabbed by {actor}" or "starved". */
   killed: string;
-  /** The agent who did it, if anyone; fills `{source}` in `killed`. */
+  /** The agent who did it, if anyone; fills `{actor}` in `killed`. */
   sourceAgentId: string | null;
 }
 
@@ -24,7 +24,7 @@ function describeCause(context: TickContext, damage: Damage): string {
   const source = damage.sourceAgentId
     ? findAgent(context.state, damage.sourceAgentId).name
     : config.death.unknownSource;
-  return damage.killed.split(SOURCE_PLACEHOLDER).join(source);
+  return damage.killed.split(ACTOR_PLACEHOLDER).join(source);
 }
 
 /**

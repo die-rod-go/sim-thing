@@ -27,6 +27,10 @@ const CATEGORY_BY_KIND: Record<WorldEventKind, EventCategory> = {
   fell_asleep: "sleep",
   woke: "sleep",
   died: "action",
+  attacked: "action",
+  missed: "action",
+  hurt: "action",
+  broke: "action",
 };
 
 export function categorizeEvent(event: WorldEvent): EventCategory {

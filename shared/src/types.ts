@@ -182,7 +182,11 @@ export type WorldEventKind =
   | "posted_note"
   | "fell_asleep"
   | "woke"
-  | "died";
+  | "died"
+  | "attacked"
+  | "missed"
+  | "hurt"
+  | "broke";
 
 /**
  * One thing that happened in the world. `description` is a past-tense verb phrase whose subject is
@@ -207,6 +211,10 @@ export interface WorldEvent {
   amount?: number;
   /** The same, counted for reading: "3 coins", "a knife". */
   itemText?: string;
+  /** The description as the actor files it, when it differs ("bandaged myself"). */
+  actorDescription?: string;
+  /** The description as the target agent files it ("hit me with a knife"). */
+  targetDescription?: string;
 }
 
 export type LlmCallKind =

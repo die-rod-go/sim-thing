@@ -13,6 +13,9 @@ import { toMessages, type JsonSchema, type LlmRequest } from "./types";
 
 type JsonRecord = Record<string, unknown>;
 
+/** The responder's own pseudo-action for an interact with a hit-roll verb. */
+const ATTACK_CHOICE = "attack";
+
 function isRecord(value: unknown): value is JsonRecord {
   return typeof value === "object" && value !== null && !Array.isArray(value);
 }
@@ -69,7 +72,14 @@ interface DecisionChoices {
   /** Things carried, named as `item`, with their verbs. */
   heldItems: Map<string, string[]>;
   inSight: string[];
+  /** Verbs that need nothing carried ("You can also: punch."). */
+  itemlessVerbs: string[];
   isHungry: boolean;
+}
+
+export interface FakeResponderOptions {
+  /** Verbs with a hit roll: picked only rarely (`attackWeight`), at someone in sight. */
+  hitRollVerbNames?: readonly string[];
 }
 
 function readDecisionChoices(schema: JsonSchema, prompt: string): DecisionChoices {
@@ -90,6 +100,10 @@ function readDecisionChoices(schema: JsonSchema, prompt: string): DecisionChoice
       .split(", ")
       .map((entry) => entry.replace(/ \(.*$/, "").trim())
       .filter((name) => targets.has(name)),
+    itemlessVerbs: (readLine(prompt, "You can also: ") ?? "")
+      .replace(/\.$/, "")
+      .split(", ")
+      .filter(Boolean),
     isHungry: config.llm.fakeResponder.hungryWords.some((word) =>
       readLineAfter(prompt, "It is ").includes(word),
     ),
@@ -108,16 +122,25 @@ function findFoodToEat(choices: DecisionChoices): string | null {
   return food?.[0] ?? null;
 }
 
+function withoutVerbs(uses: Map<string, string[]>, excluded: ReadonlySet<string>) {
+  return [...uses].map(
+    ([name, verbs]) => [name, verbs.filter((verb) => !excluded.has(verb))] as const,
+  );
+}
+
 /** Fills `target` for something here or `item` for something carried, and a verb it offers. */
 function buildInteractFields(
   random: SeededRandom,
   choices: DecisionChoices,
+  hitRollVerbs: ReadonlySet<string>,
 ): { fields: JsonRecord; usedName: string } | null {
   const tuning = config.llm.fakeResponder;
-  const here = [...choices.objects].filter(
+  const here = withoutVerbs(choices.objects, hitRollVerbs).filter(
     ([name, verbs]) => choices.targets.has(name) && verbs.length > 0,
   );
-  const carried = [...choices.heldItems].filter(([, verbs]) => verbs.length > 0);
+  const carried = withoutVerbs(choices.heldItems, hitRollVerbs).filter(
+    ([, verbs]) => verbs.length > 0,
+  );
   const usable = [
     ...here.map(([name, verbs]) => ({ field: "target", name, verbs })),
     ...carried.map(([name, verbs]) => ({ field: "item", name, verbs })),
@@ -128,7 +151,30 @@ function buildInteractFields(
   return { fields: { [chosen.field]: chosen.name, verb }, usedName: chosen.name };
 }
 
-function buildDecisionReply(random: SeededRandom, choices: DecisionChoices): JsonRecord {
+/** A hit-roll verb aimed at someone in sight: with something carried, or bare-handed. */
+function buildAttackFields(
+  random: SeededRandom,
+  choices: DecisionChoices,
+  hitRollVerbs: ReadonlySet<string>,
+): JsonRecord | null {
+  if (choices.inSight.length === 0) return null;
+  const options = [
+    ...[...choices.heldItems].flatMap(([name, verbs]) =>
+      verbs.filter((verb) => hitRollVerbs.has(verb)).map((verb) => ({ item: name, verb })),
+    ),
+    ...choices.itemlessVerbs
+      .filter((verb) => hitRollVerbs.has(verb))
+      .map((verb) => ({ item: null, verb })),
+  ];
+  if (options.length === 0) return null;
+  return { ...random.pick(options), target: random.pick(choices.inSight) };
+}
+
+function buildDecisionReply(
+  random: SeededRandom,
+  choices: DecisionChoices,
+  hitRollVerbs: ReadonlySet<string>,
+): JsonRecord {
   const tuning = config.llm.fakeResponder;
   const reply: JsonRecord = {
     thought: "I take stock and pick something sensible to do.",
@@ -154,9 +200,14 @@ function buildDecisionReply(random: SeededRandom, choices: DecisionChoices): Jso
   if (choices.actions.includes("continue") && random.next() < tuning.continueChance) {
     return { ...reply, action: "continue" };
   }
-  const interact = buildInteractFields(random, choices);
+  const interact = buildInteractFields(random, choices, hitRollVerbs);
+  const attack = buildAttackFields(random, choices, hitRollVerbs);
   const otherPlaces = choices.places.filter((place) => place !== choices.currentPlace);
-  const weights = Object.entries(tuning.actionWeights).filter(([action]) => {
+  const weights = [
+    ...Object.entries(tuning.actionWeights),
+    [ATTACK_CHOICE, tuning.attackWeight] as [string, number],
+  ].filter(([action]) => {
+    if (action === ATTACK_CHOICE) return attack !== null && choices.actions.includes("interact");
     if (!choices.actions.includes(action)) return false;
     if (action === "interact") return interact !== null;
     if (action === "walk_to") return otherPlaces.length > 0;
@@ -168,6 +219,9 @@ function buildDecisionReply(random: SeededRandom, choices: DecisionChoices): Jso
     const line = random.pick(tuning.lines);
     const say = choices.inSight.length > 0 ? `${random.pick(choices.inSight)}! ${line}` : line;
     Object.assign(reply, { say, volume: "normal" });
+  }
+  if (action === ATTACK_CHOICE && attack !== null) {
+    return { ...reply, action: "interact", ...attack, intention: "settling a score" };
   }
   if (action === "interact" && interact !== null) {
     const text = random.pick(tuning.lines);
@@ -237,40 +291,46 @@ function promptText(request: LlmRequest): string {
 
 type FakeAnswer = (request: LlmRequest, random: SeededRandom) => unknown;
 
-const BUILT_IN_ANSWERS: Record<string, FakeAnswer> = {
-  decision_reply: (request, random) =>
-    buildDecisionReply(random, readDecisionChoices(request.jsonSchema ?? {}, promptText(request))),
-  interact_reply: (request, random) => ({
-    verb: random.pick(readEnum(request.jsonSchema ?? {}, "verb")),
-    text: random.pick(config.llm.fakeResponder.lines),
-    minutes: null,
-  }),
-  morning_reply: () => ({
-    dailyPlan: "Work in the morning, eat at midday, see who is around in the afternoon.",
-    mood: "ready for the day",
-  }),
-  night_reply: () => ({
-    summary: "I went about my work and talked with a few people.",
-    moodEntry: "tired but settled",
-    insights: [{ text: "Keeping busy makes the day go well." }],
-    peopleNotes: [],
-  }),
-  conversation_summary_reply: () => ({
-    summary: "I chatted with the people around me about the day's work. Nothing was settled.",
-  }),
-  weekly_reply: (_request, random) => ({
-    traitChanges: [
-      {
-        trait: random.pick(TRAIT_NAMES),
-        delta: (random.next() < 0.5 ? -1 : 1) * config.traits.weeklyDeltaClamp,
-        reason: "This week I acted a little differently from how I used to.",
-      },
-    ],
-    core: null,
-    selfImage: null,
-    goals: [],
-  }),
-};
+function buildBuiltInAnswers(hitRollVerbs: ReadonlySet<string>): Record<string, FakeAnswer> {
+  return {
+    decision_reply: (request, random) =>
+      buildDecisionReply(
+        random,
+        readDecisionChoices(request.jsonSchema ?? {}, promptText(request)),
+        hitRollVerbs,
+      ),
+    interact_reply: (request, random) => ({
+      verb: random.pick(readEnum(request.jsonSchema ?? {}, "verb")),
+      text: random.pick(config.llm.fakeResponder.lines),
+      minutes: null,
+    }),
+    morning_reply: () => ({
+      dailyPlan: "Work in the morning, eat at midday, see who is around in the afternoon.",
+      mood: "ready for the day",
+    }),
+    night_reply: () => ({
+      summary: "I went about my work and talked with a few people.",
+      moodEntry: "tired but settled",
+      insights: [{ text: "Keeping busy makes the day go well." }],
+      peopleNotes: [],
+    }),
+    conversation_summary_reply: () => ({
+      summary: "I chatted with the people around me about the day's work. Nothing was settled.",
+    }),
+    weekly_reply: (_request, random) => ({
+      traitChanges: [
+        {
+          trait: random.pick(TRAIT_NAMES),
+          delta: (random.next() < 0.5 ? -1 : 1) * config.traits.weeklyDeltaClamp,
+          reason: "This week I acted a little differently from how I used to.",
+        },
+      ],
+      core: null,
+      selfImage: null,
+      goals: [],
+    }),
+  };
+}
 
 /**
  * Answers decision, interact and reflection calls with plausible valid replies, and any other
@@ -279,12 +339,14 @@ const BUILT_IN_ANSWERS: Record<string, FakeAnswer> = {
 export function createFakeResponder(
   answerOverrides: Record<string, FakeAnswer> = {},
   seed: number = config.llm.fakeResponder.seed,
+  options: FakeResponderOptions = {},
 ): FakeResponder {
   const random = new SeededRandom(seed);
+  const builtInAnswers = buildBuiltInAnswers(new Set(options.hitRollVerbNames ?? []));
   return (request) => {
     const prompt = promptText(request);
     const schemaName = request.schemaName ?? "";
-    const answerFor = answerOverrides[schemaName] ?? BUILT_IN_ANSWERS[schemaName];
+    const answerFor = answerOverrides[schemaName] ?? builtInAnswers[schemaName];
     const answer = answerFor
       ? answerFor(request, random)
       : sampleFromJsonSchema(request.jsonSchema ?? {}, random);

@@ -15,10 +15,15 @@ export function formatMinutesAgo(minutesAgo: number): string {
   return days === 1 ? "1 day ago" : `${days} days ago`;
 }
 
-/** "Tobias, looks hurt (chopping wood)", or "Mara's body" for someone lying dead in sight. */
+/**
+ * "Tobias, looks hurt, carrying a knife (chopping wood)", or "Mara's body" for someone lying dead
+ * in sight.
+ */
 function describeInSight(entry: AwarenessEntry): string {
   if (entry.isDead) return describeBodyName(entry.name);
-  const name = entry.healthAsSeen ? `${entry.name}, ${entry.healthAsSeen}` : entry.name;
+  const carrying =
+    entry.visibleCarried.length > 0 ? `carrying ${entry.visibleCarried.join(" and ")}` : null;
+  const name = [entry.name, entry.healthAsSeen, carrying].filter(Boolean).join(", ");
   return entry.doing ? `${name} (${entry.doing})` : name;
 }
 

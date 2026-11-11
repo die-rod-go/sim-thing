@@ -7,6 +7,8 @@ export interface DecisionTargets {
   agents: string[];
   /** Things at the agent's place: placed objects and items on the ground. */
   entities: string[];
+  /** Names only an aimed verb can take: "yourself", or something carried to aim at. */
+  aimOnly: string[];
 }
 
 /** An item the agent may name as `item`: something it carries, by definition name. */
@@ -41,6 +43,8 @@ export interface AwarenessEntry {
   isDead: boolean;
   /** How their health looks, when they're in sight and it shows; null otherwise. */
   healthAsSeen: string | null;
+  /** What they carry that shows ("a knife"), when they're in sight. */
+  visibleCarried: string[];
 }
 
 export interface AroundYou {

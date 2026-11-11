@@ -200,7 +200,7 @@ export const config = {
     doing: "lying dead",
     /** The `died` event's description; its subject is the dead agent. */
     eventDescription: "died",
-    /** Fills `{source}` in a killed phrase when no agent did the damage. */
+    /** Fills `{actor}` in a killed phrase when no agent did the damage. */
     unknownSource: "someone",
   },
 
@@ -269,9 +269,22 @@ export const config = {
     jsonIndent: 2,
   },
 
+  combat: {
+    /** Each point of agility the attacker has over the defender adds this much hit chance. */
+    agilitySpread: 0.5,
+    minHitChance: 0.1,
+    maxHitChance: 0.95,
+    /** Strength-scaled damage is multiplied by 1 + (strength - midpoint) * spread. */
+    strengthSpread: 0.6,
+    strengthMidpoint: 0.5,
+    /** Ticks an agent keeps following a moving target, beyond the first path there, before giving up. */
+    chaseTicks: 10,
+    /** Events for damage that isn't an attack, and for something breaking. Their subject is the actor. */
+    hurtDescription: "was hurt",
+    brokePhrase: "broke the {target}",
+  },
+
   verbs: {
-    /** Tiles from the agent to a placed thing it uses. */
-    useReachTiles: 1,
     /**
      * Phrases for a verb that leaves some out of `items.json`. `{verb}` is the verb's name and
      * `{item}` the thing used.
@@ -280,7 +293,16 @@ export const config = {
       ongoing: "using the {item} ({verb})",
       done: "used the {item} ({verb})",
       attempt: "{verb} the {item}",
+      hit: "{verb} {target}",
+      missed: "tried to {verb} {target} and missed",
+      killed: "killed by {actor}",
     },
+    /** What a decision names to aim a verb at oneself ("bandage yourself"). */
+    selfTargetName: "yourself",
+    /** How `{target}` reads when the agent aims a verb at itself: to others, and in its own memory. */
+    selfTargetWords: { others: "themselves", own: "myself" },
+    /** How `{target}` reads in the target's own memory ("Tobias hit me"). */
+    targetOwnWord: "me",
   },
 
   doors: {
@@ -392,6 +414,8 @@ export const config = {
     fakeResponder: {
       seed: 7,
       actionWeights: { walk_to: 3, interact: 4, wait: 2, give: 0.5, recall: 0.5 },
+      /** Verbs with a hit roll are picked this rarely, so soak runs see fights without a massacre. */
+      attackWeight: 0.05,
       continueChance: 0.5,
       sayChance: 0.3,
       omitVerbChance: 0.25,

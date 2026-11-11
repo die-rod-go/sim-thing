@@ -35,7 +35,15 @@ export type PlannedUse =
 /** The physical act a decision settled on, with names already resolved where that needs the LLM. */
 export type PlannedAction =
   | { kind: "walk_to"; target: string }
-  | { kind: "interact"; use: PlannedUse; verb: string; text?: string; minutes?: number }
+  | {
+      kind: "interact";
+      use: PlannedUse;
+      verb: string;
+      text?: string;
+      minutes?: number;
+      /** What an aimed verb is aimed at, as the reply named it ("Tobias", "yourself"). */
+      targetName?: string;
+    }
   | { kind: "give"; target: string; item: string; amount: number }
   | { kind: "wait"; minutes: number }
   | { kind: "continue" }
@@ -172,10 +180,37 @@ function listAllCandidates(state: WorldState, agent: Agent): UseCandidate[] {
  */
 function listUseCandidates(state: WorldState, agent: Agent, reply: DecisionReply): UseCandidate[] {
   if (!reply.item && !reply.target) return listAllCandidates(state, agent);
-  return [
+  const named = [
     reply.item ? findHeldCandidate(state, agent, reply.item) : null,
     reply.target ? findNearbyCandidate(state, agent, reply.target) : null,
   ].filter((candidate): candidate is UseCandidate => candidate !== null);
+  // "attack Tobias" without naming the knife: whatever is carried may be what is meant.
+  if (reply.item) return named;
+  const carried = listAllCandidates(state, agent).filter(
+    (candidate) => candidate.use.kind === "held",
+  );
+  return [...named, ...carried];
+}
+
+/**
+ * An aimed verb carries the reply's `target` as what it is aimed at; one that can be aimed at
+ * oneself defaults to that ("use the bandage").
+ */
+function aimInteract(
+  verb: Verb,
+  reply: DecisionReply,
+  action: Extract<PlannedAction, { kind: "interact" }>,
+): PlannedAction {
+  if (verb.target === "none") return action;
+  const targetName = reply.target ?? (verb.canTargetSelf ? config.verbs.selfTargetName : undefined);
+  if (targetName === undefined) {
+    return {
+      kind: "fail",
+      attempt: verb.name,
+      reason: `I didn't say who or what to ${verb.name}`,
+    };
+  }
+  return { ...action, targetName };
 }
 
 function describeUseName(state: WorldState, use: UseCandidate["use"]): string {
@@ -209,13 +244,15 @@ async function askWhichVerb(
     ...buildInteractReplySchema(verbNames),
   });
   if (!answer.ok) return { kind: "wait", minutes: config.decision.defaultWaitMinutes };
-  return {
+  const action: Extract<PlannedAction, { kind: "interact" }> = {
     kind: "interact",
     use: candidate.use,
     verb: answer.value.verb,
     text: answer.value.text ?? reply.text,
     minutes: answer.value.minutes ?? reply.minutes,
   };
+  const verb = findVerbByName(candidate.verbs, answer.value.verb);
+  return verb ? aimInteract(verb, reply, action) : action;
 }
 
 /**
@@ -233,10 +270,21 @@ async function planInteract(
   const details = { text: reply.text, minutes: reply.minutes };
   for (const candidate of candidates) {
     const verb = findVerbByName(candidate.verbs, verbName);
-    if (verb) return { kind: "interact", use: candidate.use, verb: verb.name, ...details };
+    if (verb) {
+      const action = { kind: "interact", use: candidate.use, verb: verb.name, ...details } as const;
+      return aimInteract(verb, reply, action);
+    }
   }
   const itemless = findVerbByName(listItemlessVerbs(state), verbName);
-  if (itemless) return { kind: "interact", use: { kind: "user" }, verb: itemless.name, ...details };
+  if (itemless) {
+    const action = {
+      kind: "interact",
+      use: { kind: "user" },
+      verb: itemless.name,
+      ...details,
+    } as const;
+    return aimInteract(itemless, reply, action);
+  }
   const [first] = reply.item || reply.target ? candidates : [];
   const name = reply.item ?? reply.target ?? verbName;
   if (!first) {

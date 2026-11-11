@@ -51,7 +51,7 @@ describe("death", () => {
     const context = contextOf(sim);
     applyDamage(context, "mara", {
       amount: LETHAL,
-      killed: "stabbed by {source}",
+      killed: "stabbed by {actor}",
       sourceAgentId: "ilsa",
     });
     const mara = sim.agent("mara");

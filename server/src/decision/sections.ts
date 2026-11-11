@@ -83,6 +83,6 @@ export function describeMemories(memories: Partial<Record<Bucket, RecalledMemory
 }
 
 export function listTargetNames(targets: DecisionTargets): string[] {
-  const allNames = [...targets.places, ...targets.agents, ...targets.entities];
+  const allNames = [...targets.places, ...targets.agents, ...targets.entities, ...targets.aimOnly];
   return [...new Set(allNames)];
 }

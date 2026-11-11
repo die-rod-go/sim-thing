@@ -1,13 +1,11 @@
 import { findDefinition, type Agent, type AgentThought, type DecisionReply } from "@village/shared";
 import { config } from "../config";
-import { normalizeDisplayName, resolveName, type NamedCandidate } from "../decision/resolve-name";
+import { normalizeDisplayName, resolveName } from "../decision/resolve-name";
 import { computeChebyshevDistance, executeGive } from "../economy/give";
 import {
   describeEntityName,
-  findEntityIfPresent,
   listHeldOfDefinition,
   listTileEntitiesAt,
-  resolveEntityPosition,
 } from "../items/entity-store";
 import { findVerbByName, listVerbsForEntity } from "../items/verb-offers";
 import { filePersonNote } from "../memory/filing";
@@ -21,13 +19,14 @@ import { broadcastEvent } from "./event-broadcast";
 import { createEvent, createSpeechEvent } from "./event-factory";
 import { failAction } from "./failure";
 import type { TickContext } from "./tick-context";
-import { startVerbNow } from "./verb-runner";
+import { startOrApproachVerb } from "./verb-approach";
 import { startWalk } from "./walking";
 import type { WorldState } from "./world-state";
 import {
   describeAgentAsSeen,
   findAgent,
   listKnownNames,
+  listOthersAsSeen,
   markAgentChanged,
   markEntityChanged,
   rememberBriefly,
@@ -75,13 +74,6 @@ function applyFreeActs(context: TickContext, agentId: string, decided: DecidedRe
     );
     broadcastEvent(state, speech, context.result);
   }
-}
-
-/** Other agents under the names this agent would use for them: the dead as "Mara's body". */
-function listOthersAsSeen(state: WorldState, agentId: string): NamedCandidate[] {
-  return state.agents
-    .filter((other) => other.id !== agentId)
-    .map((other) => ({ id: other.id, name: describeAgentAsSeen(other) }));
 }
 
 function startWait(context: TickContext, agentId: string, minutes: number): void {
@@ -145,8 +137,8 @@ function findHeldToUse(
 }
 
 /**
- * Applies interact: everything is checked again, since the reply was asked for a few ticks ago. A
- * held item is used at once; a placed thing at once if in reach, after a walk otherwise.
+ * Applies interact. A held item is named by definition, so the oldest one that still offers the
+ * verb is used; the rest is checked by `startOrApproachVerb`.
  */
 function executeInteract(
   context: TickContext,
@@ -156,33 +148,19 @@ function executeInteract(
   const { state, result } = context;
   const request = { verb: action.verb, text: action.text, minutes: action.minutes };
   const { use } = action;
-  if (use.kind === "user") {
-    startVerbNow(context, agentId, use, request);
-    return;
-  }
   if (use.kind === "held") {
     const entityId = findHeldToUse(state, agentId, use, action.verb);
     if (entityId === null) {
-      const attempt = describeAttempt(state.items, action.verb, use.name);
+      const attempt = describeAttempt(state.items, action.verb, { item: use.name });
       failAction(state, result, agentId, attempt, `I no longer had any ${use.name}`);
       return;
     }
-    startVerbNow(context, agentId, { kind: "entity", entityId }, request);
+    const used = { kind: "entity", entityId } as const;
+    startOrApproachVerb(context, agentId, used, request, action.targetName);
     return;
   }
-  const entity = findEntityIfPresent(state, use.entityId);
-  const position = entity ? resolveEntityPosition(state, entity) : null;
-  const agent = findAgent(state, agentId);
-  if (!entity || !position || entity.location.kind === "inventory") {
-    // Held by someone else now, or gone: the verb runner names the reason.
-    startVerbNow(context, agentId, { kind: "entity", entityId: use.entityId }, request);
-    return;
-  }
-  if (computeChebyshevDistance(agent.pos, position.pos) <= config.verbs.useReachTiles) {
-    startVerbNow(context, agentId, { kind: "entity", entityId: entity.id }, request);
-    return;
-  }
-  startWalk(context, agentId, { kind: "entity", entityId: entity.id }, request);
+  const used = use.kind === "user" ? use : ({ kind: "entity", entityId: use.entityId } as const);
+  startOrApproachVerb(context, agentId, used, request, action.targetName);
 }
 
 function executeGiveAction(

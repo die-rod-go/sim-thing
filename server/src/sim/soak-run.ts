@@ -2,7 +2,8 @@ import { BUCKETS, type PersonalityChange, type WorldEventKind } from "@village/s
 import { config } from "../config";
 import { isAsleep } from "../economy/sleep";
 import { createFakeResponder } from "../llm/fake-responder";
-import { createTestSim, type TestSim } from "./test-sim";
+import { listHitRollVerbNames } from "../items/verb-offers";
+import { createTestSim, loadTestItems, type TestSim } from "./test-sim";
 
 /** Events that only a decision can start, so each needs an LLM call by the actor on that tick. */
 const DECIDED_EVENT_KINDS: readonly WorldEventKind[] = ["said", "walk_started", "gave"];
@@ -35,7 +36,9 @@ const ticksPerHour = 60 / config.clock.minutesPerTick;
 export async function runSoak(options: SoakOptions): Promise<SoakReport> {
   const personalityChanges: Omit<PersonalityChange, "id">[] = [];
   const sim = createTestSim({
-    responder: createFakeResponder(),
+    responder: createFakeResponder({}, undefined, {
+      hitRollVerbNames: listHitRollVerbNames(loadTestItems()),
+    }),
     reflection: (change) => personalityChanges.push(change),
   });
   sim.client.requests.length = 0;

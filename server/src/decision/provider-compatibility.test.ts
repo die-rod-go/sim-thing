@@ -23,7 +23,7 @@ function findEnumsUnderTypeUnions(schema: unknown, path: string): string[] {
 
 const schemasSentToProviders: Record<string, JsonSchema> = {
   decision: buildDecisionReplySchema(
-    { places: ["bakery"], agents: ["Bob"], entities: ["oven"] },
+    { places: ["bakery"], agents: ["Bob"], entities: ["oven"], aimOnly: [] },
     [{ name: "bread" }, { name: "coin", plural: "coins" }],
     { isMidActionInterrupt: true },
   ).jsonSchema,
