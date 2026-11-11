@@ -67,7 +67,7 @@ export function VerbEditor({
         </div>
         <h4>Applies to</h4>
         <RuleBuilder
-          rule={verb.appliesTo}
+          matcher={verb.appliesTo}
           file={file}
           onChange={(appliesTo) => update({ appliesTo })}
         />

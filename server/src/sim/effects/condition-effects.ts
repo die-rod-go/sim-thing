@@ -1,33 +1,43 @@
 import { config } from "../../config";
+import { addComponent, removeComponent } from "../../items/thing-writes";
 import { createThingEvent } from "../../items/things";
 import { resolveNumber, resolveText } from "../../items/verb-numbers";
-import { endCondition, startCondition } from "../conditions";
 import { broadcastEvent } from "../event-broadcast";
-import { findEffectSubject, findUsedComponents, type EffectHandler } from "./effect-run";
-import { sendStimulus } from "./stimulus";
+import { sendStimulus } from "../rule-engine";
+import {
+  describeRunCause,
+  findEffectSubject,
+  findValueSources,
+  type EffectHandler,
+} from "./effect-run";
 
-/** Adds a component (a condition when it has an entry) to the subject, caused by whoever is behind the run. */
+/** Adds a component to the subject for `minutes`, or until removed; the run's agent is its source. */
 export const addConditionEffect: EffectHandler<"add_condition"> = {
   apply(effectRun, effect) {
     const subject = findEffectSubject(effectRun, effect);
     if (subject === null) return {};
     const minutes =
       effect.minutes === undefined
-        ? undefined
-        : resolveNumber(effect.minutes, findUsedComponents(effectRun));
-    startCondition(effectRun.context, subject, effect.condition, {
-      minutes,
-      sourceAgentId: effectRun.sourceAgentId,
-    });
+        ? null
+        : resolveNumber(effect.minutes, findValueSources(effectRun));
+    addComponent(
+      effectRun.context,
+      subject,
+      effect.condition,
+      { minutes },
+      describeRunCause(effectRun),
+    );
     return {};
   },
 };
 
-/** Removes a component the subject has, running its `onEnd` effects if it is a condition. */
+/** Removes a component the subject has. */
 export const removeConditionEffect: EffectHandler<"remove_condition"> = {
   apply(effectRun, effect) {
     const subject = findEffectSubject(effectRun, effect);
-    if (subject !== null) endCondition(effectRun.context, subject, effect.condition);
+    if (subject !== null) {
+      removeComponent(effectRun.context, subject, effect.condition, describeRunCause(effectRun));
+    }
     return {};
   },
 };
@@ -37,7 +47,7 @@ export const emitEffect: EffectHandler<"emit"> = {
   apply(effectRun, effect) {
     const subject = findEffectSubject(effectRun, effect);
     if (subject === null) return {};
-    sendStimulus(effectRun, subject, resolveText(effect.stimulus, findUsedComponents(effectRun)));
+    sendStimulus(effectRun, subject, resolveText(effect.stimulus, findValueSources(effectRun)));
     return {};
   },
 };
@@ -51,7 +61,7 @@ export const makeSoundEffect: EffectHandler<"make_sound"> = {
     const event = createThingEvent(state, subject, {
       kind: "sound",
       description: config.effects.soundDescription,
-      loudness: resolveNumber(effect.loudness, findUsedComponents(effectRun)),
+      loudness: resolveNumber(effect.loudness, findValueSources(effectRun)),
     });
     if (event !== null) broadcastEvent(state, event, result);
     return {};

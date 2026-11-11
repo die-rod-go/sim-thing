@@ -32,7 +32,7 @@ function setUp(): TestSim {
 
 function closeDoor(sim: TestSim) {
   const door = findEntityByLabel(sim.state, "bakery door");
-  addComponent(contextOf(sim), entityThing(door), "closed", { minutes: null, sourceAgentId: null });
+  addComponent(contextOf(sim), entityThing(door), "closed", { minutes: null });
   return findEntity(sim.state, door.id);
 }
 

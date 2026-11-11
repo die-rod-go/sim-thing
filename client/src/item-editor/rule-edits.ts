@@ -1,81 +1,77 @@
-import type { AppliesToRule, ItemFile } from "@village/shared";
+import { THING_WHERES, type ItemFile, type Matcher } from "@village/shared";
 
-export const RULE_KINDS = [
+export const MATCHER_KINDS = [
   "definition",
-  "component",
-  "location",
-  "isUser",
-  "isDeadAgent",
+  "has",
+  "where",
+  "field",
   "allOf",
   "anyOf",
   "not",
 ] as const;
-export type RuleKind = (typeof RULE_KINDS)[number];
+export type MatcherKind = (typeof MATCHER_KINDS)[number];
 
-export const RULE_KIND_LABELS: Record<RuleKind, string> = {
+export const MATCHER_KIND_LABELS: Record<MatcherKind, string> = {
   definition: "is the item",
-  component: "has component",
-  location: "is",
-  isUser: "is the user",
-  isDeadAgent: "is a dead agent",
+  has: "has component",
+  where: "is",
+  field: "field compares (JSON)",
   allOf: "all of",
   anyOf: "any of",
   not: "not",
 };
 
-export function findRuleKind(rule: AppliesToRule): RuleKind {
-  const kind = RULE_KINDS.find((candidate) => Object.hasOwn(rule, candidate));
-  if (kind === undefined) throw new Error(`Unknown appliesTo rule: ${JSON.stringify(rule)}`);
+export function findMatcherKind(matcher: Matcher): MatcherKind {
+  const kind = MATCHER_KINDS.find((candidate) => Object.hasOwn(matcher, candidate));
+  if (kind === undefined) throw new Error(`Unknown matcher: ${JSON.stringify(matcher)}`);
   return kind;
 }
 
-export function isRuleGroup(
-  rule: AppliesToRule,
-): rule is { allOf: AppliesToRule[] } | { anyOf: AppliesToRule[] } {
-  return "allOf" in rule || "anyOf" in rule;
+export function isMatcherGroup(
+  matcher: Matcher,
+): matcher is { allOf: Matcher[] } | { anyOf: Matcher[] } {
+  return "allOf" in matcher || "anyOf" in matcher;
 }
 
-/** A starting rule of the kind, naming the first thing of that kind in the file. */
-export function buildRuleOfKind(kind: RuleKind, file: ItemFile): AppliesToRule {
+/** A starting matcher of the kind, naming the first thing of that kind in the file. */
+export function buildMatcherOfKind(kind: MatcherKind, file: ItemFile): Matcher {
   switch (kind) {
     case "definition":
       return { definition: file.definitions[0]?.id ?? "" };
-    case "component":
-      return { component: Object.keys(file.components)[0] ?? "" };
-    case "location":
-      return { location: "held" };
-    case "isUser":
-      return { isUser: true };
-    case "isDeadAgent":
-      return { isDeadAgent: true };
+    case "has":
+      return { has: Object.keys(file.components)[0] ?? "" };
+    case "where":
+      return { where: THING_WHERES[0] };
+    case "field":
+      return { field: `${Object.keys(file.components)[0] ?? "component"}.field`, atLeast: 0 };
     case "allOf":
       return { allOf: [] };
     case "anyOf":
       return { anyOf: [] };
     case "not":
-      return { not: { isUser: true } };
+      return { not: { where: THING_WHERES[0] } };
   }
 }
 
-/** Changes a rule's kind, keeping its parts when switching between `allOf` and `anyOf`. */
-export function changeRuleKind(rule: AppliesToRule, kind: RuleKind, file: ItemFile): AppliesToRule {
-  if (isRuleGroup(rule)) {
-    const parts = "allOf" in rule ? rule.allOf : rule.anyOf;
+/** Changes a matcher's kind, keeping its parts when switching between `allOf` and `anyOf`. */
+export function changeMatcherKind(matcher: Matcher, kind: MatcherKind, file: ItemFile): Matcher {
+  if (isMatcherGroup(matcher)) {
+    const parts = "allOf" in matcher ? matcher.allOf : matcher.anyOf;
     if (kind === "allOf") return { allOf: parts };
     if (kind === "anyOf") return { anyOf: parts };
   }
-  return buildRuleOfKind(kind, file);
+  return buildMatcherOfKind(kind, file);
 }
 
-export function listRuleParts(rule: AppliesToRule): AppliesToRule[] {
-  if ("allOf" in rule) return rule.allOf;
-  if ("anyOf" in rule) return rule.anyOf;
+export function listMatcherParts(matcher: Matcher): Matcher[] {
+  if ("allOf" in matcher) return matcher.allOf;
+  if ("anyOf" in matcher) return matcher.anyOf;
   return [];
 }
 
 /** The same group with new parts; terms that aren't groups come back unchanged. */
-export function withRuleParts(rule: AppliesToRule, parts: AppliesToRule[]): AppliesToRule {
-  if ("allOf" in rule) return { allOf: parts };
-  if ("anyOf" in rule) return { anyOf: parts };
-  return rule;
+export function withMatcherParts(matcher: Matcher, parts: Matcher[]): Matcher {
+  if ("allOf" in matcher) return { allOf: parts };
+  if ("anyOf" in matcher) return { anyOf: parts };
+  return matcher;
 }

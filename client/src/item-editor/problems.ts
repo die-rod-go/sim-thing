@@ -11,17 +11,18 @@ export interface ValidationContext {
 }
 
 /** The sections of the file whose entries the editor lists one by one. */
-export type FileSection = "definitions" | "verbs" | "conditions" | "reactions";
+export type FileSection = "definitions" | "verbs" | "rules";
 
 function describeEntry(file: ItemFile, section: FileSection, index: number): string {
   if (section === "definitions") return file.definitions[index]?.id ?? "";
   if (section === "verbs") return file.verbs[index]?.name ?? "";
-  if (section === "conditions") return file.conditions[index]?.name ?? "";
-  return file.reactions[index]?.stimulus ?? "";
+  const rule = file.rules[index];
+  if (!rule) return "";
+  return rule.trigger === "stimulus" ? `stimulus ${rule.stimulus}` : rule.trigger;
 }
 
 function isFileSection(key: unknown): key is FileSection {
-  return key === "definitions" || key === "verbs" || key === "conditions" || key === "reactions";
+  return key === "definitions" || key === "verbs" || key === "rules";
 }
 
 /** "verbs.3 (eat).effects.0", matching the paths `findItemFileProblems` writes. */

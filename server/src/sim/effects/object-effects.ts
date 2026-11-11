@@ -3,7 +3,7 @@ import { resolveNumber } from "../../items/verb-numbers";
 import {
   describeEffectEntity,
   findEffectEntity,
-  findUsedComponents,
+  findValueSources,
   type EffectHandler,
 } from "./effect-run";
 
@@ -12,7 +12,7 @@ export const takeStockEffect: EffectHandler<"take_stock"> = {
   findBlocker(effectRun, effect) {
     const entity = findEffectEntity(effectRun, effect);
     if (!entity) return null;
-    const amount = resolveNumber(effect.amount, findUsedComponents(effectRun));
+    const amount = resolveNumber(effect.amount, findValueSources(effectRun));
     return countWholeStock(effectRun.context.state, entity) < amount
       ? `The ${describeEffectEntity(effectRun, entity)} is empty`
       : null;
@@ -20,11 +20,7 @@ export const takeStockEffect: EffectHandler<"take_stock"> = {
   apply(effectRun, effect) {
     const entity = findEffectEntity(effectRun, effect);
     if (!entity) return {};
-    takeStock(
-      effectRun.context,
-      entity,
-      resolveNumber(effect.amount, findUsedComponents(effectRun)),
-    );
+    takeStock(effectRun.context, entity, resolveNumber(effect.amount, findValueSources(effectRun)));
     return {};
   },
 };

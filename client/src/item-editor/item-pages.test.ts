@@ -3,9 +3,9 @@ import { createElement } from "react";
 import { renderToString } from "react-dom/server";
 import { describe, expect, it } from "vitest";
 import { parseItemFile } from "@village/shared";
-import { ConditionPanel, ReactionPanel } from "./ConditionPanels";
 import { ComponentPanel } from "./DeclarationPanels";
 import { ItemPage } from "./ItemPage";
+import { RulesPanel } from "./RulesPanel";
 import { listStimuli } from "./verb-edits";
 import { VerbEditor } from "./VerbEditor";
 
@@ -32,27 +32,20 @@ describe("item editor pages", () => {
     }
   });
 
-  it("renders conditions and reactions", () => {
+  it("renders a rule's trigger summary and JSON", () => {
     const file = parseItemFile({
       ...itemFile,
-      components: {
-        ...itemFile.components,
-        burning: { words: "on fire", isVisible: true },
-      },
-      conditions: [{ name: "burning", defaultMinutes: 10 }],
-      reactions: [
+      rules: [
         {
+          trigger: "stimulus",
           stimulus: "fire",
           if: { has: "flammable" },
-          effects: [{ type: "add_condition", condition: "burning" }],
+          effects: [{ type: "announce", text: "caught fire" }],
         },
       ],
     });
-    const props = { ...common, file, index: 0 };
-    expect(renderToString(createElement(ConditionPanel, props))).toContain("burning");
-    expect(renderToString(createElement(ComponentPanel, { ...props, name: "burning" }))).toContain(
-      "on fire",
-    );
-    expect(renderToString(createElement(ReactionPanel, props))).toContain("flammable");
+    const html = renderToString(createElement(RulesPanel, { ...common, file, index: 0 }));
+    expect(html).toContain("flammable");
+    expect(html).toContain("caught fire");
   });
 });

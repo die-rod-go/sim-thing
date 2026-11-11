@@ -103,6 +103,20 @@
       "description": "Something that heals wounds.",
       "fields": { "health": { "type": "number", "description": "Health it gives back." } }
     },
+    "breaks_into": {
+      "description": "What it turns into when it breaks.",
+      "fields": { "item": { "type": "item", "description": "The item it becomes." } }
+    },
+    "breaks_loudly": {
+      "description": "Makes a noise when it breaks.",
+      "fields": {
+        "loudness": {
+          "type": "number",
+          "description": "How far the noise carries, in tiles.",
+          "min": 0
+        }
+      }
+    },
     "writing": {
       "description": "Something written, like a note.",
       "fields": {
@@ -123,7 +137,11 @@
       "id": "bread",
       "name": "bread",
       "glyph": { "index": 127, "color": "#d89a50" },
-      "components": { "holdable": { "kilograms": 0.4 }, "flammable": {}, "food": { "hunger": 0.5 } }
+      "components": {
+        "holdable": { "kilograms": 0.4 },
+        "flammable": {},
+        "food": { "hunger": 0.5 }
+      }
     },
     {
       "id": "ale",
@@ -225,9 +243,9 @@
         "sharp": {},
         "metal": {},
         "health": { "max": 4, "current": 4 },
-        "weapon": { "damage": { "min": 0.2, "max": 0.4 }, "hitChance": 0.7, "stimulus": "cut" }
-      },
-      "onBroken": [{ "type": "transform", "into": "broken_knife" }]
+        "weapon": { "damage": { "min": 0.2, "max": 0.4 }, "hitChance": 0.7, "stimulus": "cut" },
+        "breaks_into": { "item": "broken_knife" }
+      }
     },
     {
       "id": "broken_knife",
@@ -255,12 +273,10 @@
       "components": {
         "holdable": { "kilograms": 0.8 },
         "fragile": {},
-        "health": { "max": 0.5, "current": 0.5 }
-      },
-      "onBroken": [
-        { "type": "make_sound", "on": "self", "loudness": 10 },
-        { "type": "transform", "on": "self", "into": "shards" }
-      ]
+        "health": { "max": 0.5, "current": 0.5 },
+        "breaks_into": { "item": "shards" },
+        "breaks_loudly": { "loudness": 10 }
+      }
     },
     {
       "id": "shards",
@@ -316,7 +332,7 @@
   "verbs": [
     {
       "name": "eat",
-      "appliesTo": { "allOf": [{ "component": "food" }, { "location": "held" }] },
+      "appliesTo": { "allOf": [{ "has": "food" }, { "where": "held" }] },
       "minutes": 15,
       "effects": [
         { "type": "destroy", "on": "item", "when": "start" },
@@ -331,7 +347,7 @@
     },
     {
       "name": "drink",
-      "appliesTo": { "allOf": [{ "component": "drink" }, { "location": "held" }] },
+      "appliesTo": { "allOf": [{ "has": "drink" }, { "where": "held" }] },
       "minutes": 15,
       "effects": [
         { "type": "destroy", "on": "item", "when": "start" },
@@ -348,7 +364,11 @@
           "amount": { "from": "item.drink.energy" }
         }
       ],
-      "phrases": { "ongoing": "drinking {item}", "done": "drank {item}", "attempt": "drink {item}" }
+      "phrases": {
+        "ongoing": "drinking {item}",
+        "done": "drank {item}",
+        "attempt": "drink {item}"
+      }
     },
     {
       "name": "harvest wheat",
@@ -441,7 +461,7 @@
     },
     {
       "name": "sleep",
-      "appliesTo": { "component": "bed" },
+      "appliesTo": { "has": "bed" },
       "minutes": null,
       "effects": [{ "type": "sleep", "on": "item", "when": "start" }],
       "phrases": {
@@ -452,7 +472,7 @@
     },
     {
       "name": "read",
-      "appliesTo": { "component": "notice_board" },
+      "appliesTo": { "has": "notice_board" },
       "minutes": 5,
       "effects": [{ "type": "read_notes", "on": "item", "when": "start" }],
       "phrases": {
@@ -463,7 +483,7 @@
     },
     {
       "name": "post a note",
-      "appliesTo": { "component": "notice_board" },
+      "appliesTo": { "has": "notice_board" },
       "minutes": 5,
       "takesText": true,
       "effects": [{ "type": "post_note", "on": "item", "when": "start" }],
@@ -475,7 +495,7 @@
     },
     {
       "name": "open",
-      "appliesTo": { "allOf": [{ "component": "door" }, { "component": "closed" }] },
+      "appliesTo": { "allOf": [{ "has": "door" }, { "has": "closed" }] },
       "minutes": 1,
       "loudness": 3,
       "isDoneInPassing": true,
@@ -490,7 +510,7 @@
     },
     {
       "name": "close",
-      "appliesTo": { "allOf": [{ "component": "door" }, { "not": { "component": "closed" } }] },
+      "appliesTo": { "allOf": [{ "has": "door" }, { "not": { "has": "closed" } }] },
       "minutes": 1,
       "loudness": 3,
       "effects": [
@@ -504,7 +524,7 @@
     },
     {
       "name": "attack",
-      "appliesTo": { "allOf": [{ "component": "weapon" }, { "location": "held" }] },
+      "appliesTo": { "allOf": [{ "has": "weapon" }, { "where": "held" }] },
       "target": "agent_or_entity",
       "reach": 1,
       "minutes": 1,
@@ -530,7 +550,6 @@
     },
     {
       "name": "punch",
-      "appliesTo": { "isUser": true },
       "target": "agent",
       "reach": 1,
       "minutes": 1,
@@ -562,7 +581,7 @@
     },
     {
       "name": "use",
-      "appliesTo": { "allOf": [{ "component": "healing" }, { "location": "held" }] },
+      "appliesTo": { "allOf": [{ "has": "healing" }, { "where": "held" }] },
       "target": "agent",
       "canTargetSelf": true,
       "reach": 1,
@@ -580,7 +599,7 @@
     },
     {
       "name": "drop",
-      "appliesTo": { "allOf": [{ "component": "holdable" }, { "location": "held" }] },
+      "appliesTo": { "allOf": [{ "has": "holdable" }, { "where": "held" }] },
       "effects": [{ "type": "move", "on": "chosen", "to": "ground" }],
       "phrases": {
         "ongoing": "dropping {item}",
@@ -590,7 +609,7 @@
     },
     {
       "name": "pick up",
-      "appliesTo": { "allOf": [{ "component": "holdable" }, { "location": "ground" }] },
+      "appliesTo": { "allOf": [{ "has": "holdable" }, { "where": "here" }] },
       "effects": [{ "type": "move", "on": "item", "to": "user" }],
       "phrases": {
         "ongoing": "picking up the {item}",
@@ -600,7 +619,7 @@
     },
     {
       "name": "throw",
-      "appliesTo": { "allOf": [{ "component": "holdable" }, { "location": "held" }] },
+      "appliesTo": { "allOf": [{ "has": "holdable" }, { "where": "held" }] },
       "target": "agent_or_entity",
       "reach": 6,
       "minutes": 1,
@@ -626,7 +645,7 @@
     },
     {
       "name": "put",
-      "appliesTo": { "component": "capacity" },
+      "appliesTo": { "has": "capacity" },
       "effects": [{ "type": "move", "on": "chosen", "to": "item" }],
       "phrases": {
         "ongoing": "putting something in the {item}",
@@ -636,7 +655,7 @@
     },
     {
       "name": "take",
-      "appliesTo": { "anyOf": [{ "component": "capacity" }, { "isDeadAgent": true }] },
+      "appliesTo": { "anyOf": [{ "has": "capacity" }, { "definition": "person" }] },
       "effects": [{ "type": "move", "on": "chosen", "to": "user" }],
       "phrases": {
         "ongoing": "taking something from {item}",
@@ -645,79 +664,145 @@
       }
     }
   ],
-  "conditions": [
+  "rules": [
     {
-      "name": "bleeding",
-      "defaultMinutes": 20,
-      "everyMinute": [{ "type": "damage", "on": "self", "amount": { "min": 0.01, "max": 0.01 } }],
-      "phrases": {
-        "killed": "bled to death",
-        "started": "started bleeding",
-        "ended": "stopped bleeding"
-      }
-    },
-    {
-      "name": "burning",
-      "defaultMinutes": 30,
-      "everyMinute": [
-        { "type": "damage", "on": "self", "amount": { "min": 0.01, "max": 0.01 } },
-        { "type": "emit", "on": "nearby", "radius": 1, "stimulus": "fire", "chance": 0.05 }
-      ],
-      "phrases": {
-        "killed": "burned to death",
-        "started": "caught fire",
-        "ended": "stopped burning"
-      }
-    },
-    {
-      "name": "wet",
-      "defaultMinutes": 60,
-      "phrases": { "started": "got wet", "ended": "dried off" }
-    },
-    {
-      "name": "poisoned",
-      "defaultMinutes": null,
-      "everyMinute": [{ "type": "damage", "on": "self", "amount": { "min": 0.003, "max": 0.003 } }],
-      "phrases": {
-        "killed": "died of poison",
-        "started": "was poisoned",
-        "ended": "got over the poison"
-      }
-    }
-  ],
-  "reactions": [
-    {
+      "trigger": "stimulus",
       "stimulus": "fire",
       "if": { "allOf": [{ "has": "flammable" }, { "not": { "has": "wet" } }] },
-      "effects": [{ "type": "add_condition", "on": "self", "condition": "burning" }]
+      "effects": [{ "type": "add_condition", "condition": "burning", "minutes": 30 }]
     },
     {
+      "trigger": "stimulus",
       "stimulus": "fire",
       "if": { "has": "wet" },
-      "effects": [{ "type": "remove_condition", "on": "self", "condition": "wet" }]
+      "effects": [{ "type": "remove_condition", "condition": "wet" }]
     },
     {
+      "trigger": "stimulus",
+      "stimulus": "water",
+      "if": { "has": "burning" },
+      "effects": [{ "type": "remove_condition", "condition": "burning" }]
+    },
+    {
+      "trigger": "every",
+      "minutes": 1,
+      "if": { "has": "burning" },
+      "killed": "burned to death",
+      "effects": [
+        { "type": "damage", "amount": { "min": 0.01, "max": 0.01 } },
+        { "type": "emit", "on": "nearby", "radius": 1, "stimulus": "fire", "chance": 0.05 }
+      ]
+    },
+    {
+      "trigger": "stimulus",
+      "stimulus": "cut",
+      "if": { "has": "flesh" },
+      "effects": [
+        { "type": "add_condition", "condition": "bleeding", "minutes": 20, "chance": 0.4 }
+      ]
+    },
+    {
+      "trigger": "every",
+      "minutes": 1,
+      "if": { "has": "bleeding" },
+      "killed": "bled to death",
+      "effects": [{ "type": "damage", "amount": { "min": 0.01, "max": 0.01 } }]
+    },
+    {
+      "trigger": "every",
+      "minutes": 1,
+      "if": { "has": "poisoned" },
+      "killed": "died of poison",
+      "effects": [{ "type": "damage", "amount": { "min": 0.003, "max": 0.003 } }]
+    },
+    {
+      "trigger": "stimulus",
       "stimulus": "impact",
       "if": { "allOf": [{ "has": "fragile" }, { "has": "burning" }] },
       "effects": [{ "type": "emit", "on": "nearby", "radius": 1, "stimulus": "fire" }]
     },
     {
+      "trigger": "stimulus",
       "stimulus": "impact",
       "if": { "has": "fragile" },
+      "effects": [{ "type": "set", "field": "health.current", "to": 0 }]
+    },
+    {
+      "trigger": "becomes",
+      "if": { "allOf": [{ "field": "health.current", "atMost": 0 }, { "has": "breaks_loudly" }] },
+      "effects": [{ "type": "make_sound", "loudness": { "from": "self.breaks_loudly.loudness" } }]
+    },
+    {
+      "trigger": "becomes",
+      "if": { "allOf": [{ "field": "health.current", "atMost": 0 }, { "has": "breaks_into" }] },
       "effects": [
-        { "type": "make_sound", "on": "self", "loudness": 10 },
-        { "type": "transform", "on": "self", "into": "shards" }
+        { "type": "announce", "text": "broke" },
+        { "type": "transform", "into": { "from": "self.breaks_into.item" } }
       ]
     },
     {
-      "stimulus": "water",
-      "if": { "has": "burning" },
-      "effects": [{ "type": "remove_condition", "on": "self", "condition": "burning" }]
+      "trigger": "becomes",
+      "if": {
+        "allOf": [
+          { "field": "health.current", "atMost": 0 },
+          { "not": { "has": "breaks_into" } },
+          { "not": { "definition": "person" } }
+        ]
+      },
+      "effects": [{ "type": "announce", "text": "broke" }, { "type": "destroy" }]
     },
     {
-      "stimulus": "cut",
-      "if": { "has": "flesh" },
-      "effects": [{ "type": "add_condition", "on": "self", "condition": "bleeding", "chance": 0.4 }]
+      "trigger": "every",
+      "minutes": 60,
+      "if": { "has": "regrows" },
+      "effects": [
+        { "type": "change", "field": "stock.amount", "by": { "from": "self.regrows.perHour" } }
+      ]
+    },
+    {
+      "trigger": "becomes",
+      "if": { "allOf": [{ "has": "alive" }, { "field": "health.current", "atMost": 0 }] },
+      "effects": [{ "type": "remove_condition", "condition": "alive" }]
+    },
+    {
+      "trigger": "becomes",
+      "if": { "has": "burning" },
+      "effects": [{ "type": "announce", "text": "caught fire" }]
+    },
+    {
+      "trigger": "becomes",
+      "if": { "not": { "has": "burning" } },
+      "effects": [{ "type": "announce", "text": "stopped burning" }]
+    },
+    {
+      "trigger": "becomes",
+      "if": { "has": "bleeding" },
+      "effects": [{ "type": "announce", "text": "started bleeding" }]
+    },
+    {
+      "trigger": "becomes",
+      "if": { "not": { "has": "bleeding" } },
+      "effects": [{ "type": "announce", "text": "stopped bleeding" }]
+    },
+    {
+      "trigger": "becomes",
+      "if": { "has": "wet" },
+      "effects": [{ "type": "announce", "text": "got wet" }]
+    },
+    {
+      "trigger": "becomes",
+      "if": { "not": { "has": "wet" } },
+      "effects": [{ "type": "announce", "text": "dried off" }]
+    },
+    {
+      "trigger": "becomes",
+      "if": { "has": "poisoned" },
+      "effects": [{ "type": "announce", "text": "was poisoned", "isPrivate": true }]
+    },
+    {
+      "trigger": "becomes",
+      "if": { "not": { "has": "poisoned" } },
+      "effects": [{ "type": "announce", "text": "got over the poison", "isPrivate": true }]
     }
   ]
 }

@@ -1,34 +1,35 @@
 import {
-  describeRuleSubject,
-  listAllRuleSubjects,
+  describeThingView,
+  listAllEffects,
+  listAllVerbViews,
+  listDefinitionViews,
   listGuaranteedComponents,
-  listDefinitionSubjects,
-  listPossibleLocations,
-  matchesRule,
+  matchesAppliesTo,
+  matchesThing,
   verbSchema,
-  type AppliesToRule,
   type Effect,
   type FieldType,
   type ItemDefinition,
   type ItemFile,
+  type Matcher,
   type Verb,
 } from "@village/shared";
 import { clientConfig } from "../client-config";
 import { createUniqueName, removeAt, replaceAt } from "./list-edits";
 
-/** Whether the rule matches the definition anywhere it can be (held, on the ground, placed). */
-export function doesRuleMatchDefinition(
+/** Whether the verb applies to the definition anywhere it can be (held, here, inside). */
+export function doesVerbApplyToDefinition(
   file: ItemFile,
-  rule: AppliesToRule,
+  verb: Verb,
   definition: ItemDefinition,
 ): boolean {
-  return listDefinitionSubjects(file, definition).some((subject) => matchesRule(rule, subject));
+  return listDefinitionViews(file, definition).some((view) => matchesAppliesTo(verb, view));
 }
 
-/** Indexes of the verbs whose rule matches the definition, in file order. */
+/** Indexes of the verbs that apply to the definition, in file order. */
 export function listVerbIndexesForDefinition(file: ItemFile, definition: ItemDefinition): number[] {
   return file.verbs.flatMap((verb, index) =>
-    doesRuleMatchDefinition(file, verb.appliesTo, definition) ? [index] : [],
+    doesVerbApplyToDefinition(file, verb, definition) ? [index] : [],
   );
 }
 
@@ -40,32 +41,29 @@ export function countOtherDefinitionsMatched(
 ): number {
   return file.definitions.filter(
     (definition) =>
-      definition.id !== definitionId && doesRuleMatchDefinition(file, verb.appliesTo, definition),
+      definition.id !== definitionId && doesVerbApplyToDefinition(file, verb, definition),
   ).length;
 }
 
-/** "knife (held)", "the user", ...: everything the rule matches, for the live match list. */
-export function listRuleMatches(file: ItemFile, rule: AppliesToRule): string[] {
-  return listAllRuleSubjects(file)
-    .filter((subject) => matchesRule(rule, subject))
-    .map(describeRuleSubject);
+/** "knife (held)", "person (here)", ...: everything the matcher matches, for the live match list. */
+export function listAppliesToMatches(file: ItemFile, matcher: Matcher): string[] {
+  return listAllVerbViews(file)
+    .filter((view) => matchesThing(matcher, view))
+    .map(describeThingView);
 }
 
 /** A verb applying to just this definition, held in the hand when it can be held. */
 export function buildVerbForDefinition(file: ItemFile, definition: ItemDefinition): Verb {
-  const appliesTo: AppliesToRule = listPossibleLocations(file, definition).includes("held")
-    ? { allOf: [{ definition: definition.id }, { location: "held" }] }
+  const isHoldable = listDefinitionViews(file, definition).some((view) => view.where === "held");
+  const appliesTo: Matcher = isHoldable
+    ? { allOf: [{ definition: definition.id }, { where: "held" }] }
     : { definition: definition.id };
   return verbSchema.parse({ name: createNewVerbName(file), appliesTo, effects: [] });
 }
 
-/** A verb that applies to the user, ready for its rule to be built in the Verbs tab. */
+/** A bare-handed verb, ready to be given an `appliesTo` in the Verbs tab. */
 export function buildNewVerb(file: ItemFile): Verb {
-  return verbSchema.parse({
-    name: createNewVerbName(file),
-    appliesTo: { isUser: true },
-    effects: [],
-  });
+  return verbSchema.parse({ name: createNewVerbName(file), effects: [] });
 }
 
 function createNewVerbName(file: ItemFile): string {
@@ -89,18 +87,19 @@ export function removeVerb(file: ItemFile, index: number): ItemFile {
 }
 
 /**
- * Component reads a verb with this rule may use, as "item.<component>.<field>" paths: the fields
- * of the given type in every component the rule guarantees.
+ * Component reads a verb with this matcher may use, as "item.<component>.<field>" paths: the
+ * fields of the given type in every component the matcher guarantees. None when bare-handed.
  */
 export function listReadablePaths(
   file: ItemFile,
-  rule: AppliesToRule,
+  matcher: Matcher | undefined,
   fieldType: FieldType,
 ): string[] {
+  if (matcher === undefined) return [];
   const definitionsById = new Map(
     file.definitions.map((definition) => [definition.id, definition]),
   );
-  return [...listGuaranteedComponents(rule, definitionsById)].flatMap((component) =>
+  return [...listGuaranteedComponents(matcher, definitionsById)].flatMap((component) =>
     Object.entries(file.components[component]?.fields ?? {})
       .filter(([, field]) => field.type === fieldType)
       .map(([field]) => `item.${component}.${field}`),
@@ -112,20 +111,11 @@ function listEffectStimuli(effect: Effect): string[] {
   return typeof effect.stimulus === "string" ? [effect.stimulus] : [];
 }
 
-function listAllEffects(file: ItemFile): Effect[] {
-  return [
-    ...file.verbs.flatMap((verb) => verb.effects),
-    ...file.conditions.flatMap((condition) => [...condition.everyMinute, ...condition.onEnd]),
-    ...file.reactions.flatMap((reaction) => reaction.effects),
-    ...file.definitions.flatMap((definition) => definition.onBroken ?? []),
-  ];
-}
-
 /** Every stimulus the file emits or reacts to, sorted, for stimulus pickers. */
 export function listStimuli(file: ItemFile): string[] {
   const stimuli = new Set([
     ...listAllEffects(file).flatMap(listEffectStimuli),
-    ...file.reactions.map((reaction) => reaction.stimulus),
+    ...file.rules.flatMap((rule) => (rule.trigger === "stimulus" ? [rule.stimulus] : [])),
   ]);
   stimuli.delete("");
   return [...stimuli].sort();

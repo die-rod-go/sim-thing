@@ -1,16 +1,16 @@
 import {
   findCarrierId,
   findDefinition,
-  listDefinitionSubjects,
-  matchesRule,
+  listDefinitionViews,
+  matchesAppliesTo,
   type Entity,
-  type RuleSubject,
+  type ThingView,
   type Verb,
 } from "@village/shared";
 import { config } from "../config";
 import { describeEntityName, findEntityIfPresent, isHeldByOther } from "../items/entity-store";
 import {
-  buildEntitySubject,
+  buildEntityView,
   findVerbByName,
   listItemlessVerbs,
   listVerbsForBody,
@@ -38,7 +38,7 @@ function describeUnknownVerb(state: WorldState, entity: Entity | null, verbName:
     : `The ${name} doesn't do '${verbName}'`;
 }
 
-/** A body offers what its rule gives a dead agent; nobody can take from someone alive. */
+/** A body offers what its appliesTo gives a dead agent; nobody can take from someone alive. */
 function resolveBodyUse(
   state: WorldState,
   bodyId: string,
@@ -80,7 +80,7 @@ export function resolveUse(
 
 /**
  * The running verb, found again by name. When several verbs share the name (the general `eat` and
- * a poisoned one), the one whose rule matches what was used wins: the thing as it is now, or an
+ * a poisoned one), the one whose appliesTo matches what was used wins: the thing as it is now, or an
  * untouched one of its definition, since a `start` effect may have changed or used it up.
  */
 export function findRunVerb(state: WorldState, run: VerbRun): Verb | undefined {
@@ -100,11 +100,9 @@ function listOfferedVerbs(state: WorldState, run: VerbRun): Verb[] {
   }
   const entity =
     run.usedEntityId === null ? undefined : findEntityIfPresent(state, run.usedEntityId);
-  const subjects: RuleSubject[] = [
-    ...(entity ? [buildEntitySubject(state, run.agentId, entity)] : []),
-    ...listDefinitionSubjects(state.items.file, findDefinition(state.items, run.usedDefinitionId)),
-  ].filter((subject): subject is RuleSubject => subject !== null);
-  return state.items.verbs.filter((verb) =>
-    subjects.some((subject) => matchesRule(verb.appliesTo, subject)),
-  );
+  const views: ThingView[] = [
+    ...(entity ? [buildEntityView(state, run.agentId, entity)] : []),
+    ...listDefinitionViews(state.items.file, findDefinition(state.items, run.usedDefinitionId)),
+  ].filter((view): view is ThingView => view !== null);
+  return state.items.verbs.filter((verb) => views.some((view) => matchesAppliesTo(verb, view)));
 }

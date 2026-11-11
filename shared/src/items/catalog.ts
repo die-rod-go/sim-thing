@@ -2,13 +2,8 @@ import type { Agent } from "../types";
 import { parseComponentPath, type ComponentDeclarations } from "./component-schema";
 import { resolveComponents, type ComponentChanges, type ResolvedComponents } from "./components";
 import type { Entity } from "./entity";
-import type {
-  ConditionDefinition,
-  ItemDefinition,
-  ItemFile,
-  Verb,
-  WorldSettings,
-} from "./item-file";
+import type { ItemDefinition, ItemFile, Verb, WorldSettings } from "./item-file";
+import { buildRuleIndex, type RuleIndex } from "./rule-index";
 
 /**
  * What resolving a thing's components needs: the declarations, the world settings and the
@@ -25,7 +20,7 @@ export interface ThingCatalog {
 /** A parsed `items.json` with lookups by id and name. */
 export interface ItemCatalog extends ThingCatalog {
   file: ItemFile;
-  conditionsByName: ReadonlyMap<string, ConditionDefinition>;
+  rules: RuleIndex;
   verbs: readonly Verb[];
 }
 
@@ -53,7 +48,7 @@ export function buildItemCatalog(file: ItemFile): ItemCatalog {
   return {
     ...buildThingCatalog(file.components, file.world, file.definitions),
     file,
-    conditionsByName: new Map(file.conditions.map((condition) => [condition.name, condition])),
+    rules: buildRuleIndex(file.rules),
     verbs: file.verbs,
   };
 }

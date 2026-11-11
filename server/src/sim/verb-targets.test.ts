@@ -117,7 +117,7 @@ describe("verb fields and effect modifiers", () => {
     addVerbs(sim, [
       {
         name: "whittle",
-        appliesTo: { allOf: [{ definition: "wood" }, { location: "held" }] },
+        appliesTo: { allOf: [{ definition: "wood" }, { where: "held" }] },
         tools: { components: ["sharp"] },
         effects: [{ type: "change_need", on: "user", need: "fun", amount: 0.1 }],
       },
@@ -138,7 +138,6 @@ describe("verb fields and effect modifiers", () => {
     addVerbs(sim, [
       {
         name: "shove",
-        appliesTo: { isUser: true },
         target: "agent",
         hitRoll: { baseHitChance: 0.5 },
         effects: [

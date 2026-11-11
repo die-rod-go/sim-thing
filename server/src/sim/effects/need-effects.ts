@@ -4,7 +4,7 @@ import { getAgentRuntime } from "../agent-runtime";
 import { findAgent, markAgentChanged, replaceAgent } from "../world-access";
 import {
   findEffectAgentId,
-  findUsedComponents,
+  findValueSources,
   type EffectHandler,
   type EffectRun,
 } from "./effect-run";
@@ -27,11 +27,11 @@ export const changeNeedEffect: EffectHandler<"change_need"> = {
     const { state, result } = effectRun.context;
     const agentId = findEffectAgentId(effectRun, effect);
     if (agentId === null) return {};
-    const used = findUsedComponents(effectRun);
+    const sources = findValueSources(effectRun);
     const perOtherUser =
-      effect.perOtherUser === undefined ? 0 : resolveNumber(effect.perOtherUser, used);
+      effect.perOtherUser === undefined ? 0 : resolveNumber(effect.perOtherUser, sources);
     const amount =
-      resolveNumber(effect.amount, used) +
+      resolveNumber(effect.amount, sources) +
       perOtherUser * countOthersUsingSameThing(effectRun, agentId);
     const agent = findAgent(state, agentId);
     replaceAgent(state, {

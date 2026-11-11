@@ -1,0 +1,34 @@
+import { describe, expect, it } from "vitest";
+import type { Rule } from "./item-file";
+import { buildRuleIndex } from "./rule-index";
+
+const rules: Rule[] = [
+  { trigger: "every", minutes: 5, if: { has: "regrows" }, effects: [] },
+  { trigger: "stimulus", stimulus: "fire", if: { has: "flammable" }, effects: [] },
+  { trigger: "becomes", if: { has: "burning" }, effects: [] },
+  { trigger: "stimulus", stimulus: "fire", if: { has: "wet" }, effects: [] },
+  {
+    trigger: "becomes",
+    if: { allOf: [{ field: "health.current", atMost: 0 }, { has: "burning" }] },
+    effects: [],
+  },
+  { trigger: "every", minutes: 1, if: { has: "burning" }, effects: [] },
+];
+
+describe("the rule index", () => {
+  const index = buildRuleIndex(rules);
+
+  it("lists every-rules in file order with their place in the file", () => {
+    expect(index.every.map((entry) => entry.index)).toEqual([0, 5]);
+  });
+
+  it("groups stimulus rules by stimulus in file order", () => {
+    expect(index.stimulusByName.get("fire")?.map((entry) => entry.index)).toEqual([1, 3]);
+    expect(index.stimulusByName.has("water")).toBe(false);
+  });
+
+  it("files a becomes rule under every component its matcher mentions", () => {
+    expect(index.becomesByComponent.get("burning")?.map((entry) => entry.index)).toEqual([2, 4]);
+    expect(index.becomesByComponent.get("health")?.map((entry) => entry.index)).toEqual([4]);
+  });
+});

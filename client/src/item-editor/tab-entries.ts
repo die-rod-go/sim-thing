@@ -1,9 +1,9 @@
 import type { ItemFile, ItemProblem } from "@village/shared";
-import { addCondition, addReaction, removeCondition, removeReaction } from "./condition-edits";
 import { addComponentDeclaration, removeComponentDeclaration } from "./declaration-edits";
 import { addDefinition, removeDefinition } from "./definition-edits";
 import type { EditorTab } from "./editor-state";
 import { selectEntryProblems, selectProblemsUnder } from "./problems";
+import { addRule, describeRuleTrigger, removeRule, summarizeRule } from "./rules-edits";
 import { addVerb, buildNewVerb, removeVerb } from "./verb-edits";
 import { findWorstSeverity, type SideListEntry } from "./widgets";
 
@@ -11,8 +11,7 @@ export const TAB_LABELS: Record<EditorTab, string> = {
   items: "Items",
   verbs: "Verbs",
   components: "Components",
-  conditions: "Conditions",
-  reactions: "Reactions",
+  rules: "Rules",
 };
 
 /** What the sidebar lists for a tab, each with its worst problem. */
@@ -32,17 +31,11 @@ export function listTabEntries(
         label: verb.name,
         severity: findWorstSeverity(selectEntryProblems(problems, file, "verbs", index)),
       }));
-    case "conditions":
-      return file.conditions.map((condition, index) => ({
-        label: condition.name,
-        detail: file.components[condition.name]?.words,
-        severity: findWorstSeverity(selectEntryProblems(problems, file, "conditions", index)),
-      }));
-    case "reactions":
-      return file.reactions.map((reaction, index) => ({
-        label: reaction.stimulus,
-        detail: JSON.stringify(reaction.if),
-        severity: findWorstSeverity(selectEntryProblems(problems, file, "reactions", index)),
+    case "rules":
+      return file.rules.map((rule, index) => ({
+        label: describeRuleTrigger(rule),
+        detail: summarizeRule(rule),
+        severity: findWorstSeverity(selectEntryProblems(problems, file, "rules", index)),
       }));
     case "components":
       return Object.keys(file.components).map((name) => ({
@@ -58,10 +51,8 @@ export function addTabEntry(file: ItemFile, tab: EditorTab, stimuli: readonly st
       return addDefinition(file);
     case "verbs":
       return addVerb(file, buildNewVerb(file));
-    case "conditions":
-      return addCondition(file);
-    case "reactions":
-      return addReaction(file, stimuli);
+    case "rules":
+      return addRule(file, stimuli);
     case "components":
       return addComponentDeclaration(file);
   }
@@ -73,10 +64,8 @@ export function removeTabEntry(file: ItemFile, tab: EditorTab, index: number): I
       return removeDefinition(file, index);
     case "verbs":
       return removeVerb(file, index);
-    case "conditions":
-      return removeCondition(file, index);
-    case "reactions":
-      return removeReaction(file, index);
+    case "rules":
+      return removeRule(file, index);
     case "components": {
       const name = Object.keys(file.components)[index];
       return name === undefined ? file : removeComponentDeclaration(file, name);

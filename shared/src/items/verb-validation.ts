@@ -1,90 +1,43 @@
-import {
-  describeRuleSubject,
-  listAllRuleSubjects,
-  listGuaranteedComponents,
-  listSubjectsWithAddedComponents,
-  matchesRule,
-  requiresHeldOrUser,
-  resolveBodyDefaults,
-  type RuleSubject,
-} from "./applies-to";
+import { describeThingView, listAllVerbViews, matchesAppliesTo } from "./applies-to";
 import { listVerbReads } from "./effect-reads";
 import { checkEffect, type EffectCheckContext } from "./effect-validation";
-import type { AppliesToRule, ItemDefinition, Verb } from "./item-file";
+import type { ItemDefinition, Verb } from "./item-file";
+import { checkMatcher, couldMatchAnyView, listViewsAfterEffects } from "./matcher-validation";
+import { listGuaranteedComponents, requiresWhere, type ThingView } from "./matchers";
+import { checkComponentReads } from "./read-validation";
 
 function describeVerbPath(verb: Verb, index: number): string {
   return `verbs.${index} (${verb.name})`;
 }
 
-function listRuleTerms(rule: AppliesToRule): AppliesToRule[] {
-  if ("anyOf" in rule) return rule.anyOf.flatMap(listRuleTerms);
-  if ("allOf" in rule) return rule.allOf.flatMap(listRuleTerms);
-  if ("not" in rule) return listRuleTerms(rule.not);
-  return [rule];
-}
-
-function checkRuleNames(rule: AppliesToRule, path: string, context: EffectCheckContext) {
-  const { file, definitionIds, problems } = context;
-  for (const term of listRuleTerms(rule)) {
-    if ("definition" in term && !definitionIds.has(term.definition)) {
-      problems.error(path, `appliesTo names unknown item "${term.definition}".`);
-    }
-    if ("component" in term && !Object.hasOwn(file.components, term.component)) {
-      problems.error(path, `appliesTo names unknown component "${term.component}".`);
-    }
-  }
-}
-
-function checkRuleReach(
-  verb: Verb,
-  path: string,
-  subjects: RuleSubject[],
-  context: EffectCheckContext,
-) {
-  const matched = subjects.filter((subject) => matchesRule(verb.appliesTo, subject));
-  if (matched.some((subject) => subject.kind === "living_agent")) {
-    context.problems.error(
-      path,
-      "appliesTo matches other living agents; people can only be targets, never used.",
-    );
-  }
-  const couldMatch =
-    matched.length > 0 ||
-    listSubjectsWithAddedComponents(context.file, subjects).some((subject) =>
-      matchesRule(verb.appliesTo, subject),
-    );
+function checkReach(verb: Verb, path: string, context: EffectCheckContext) {
+  const { appliesTo } = verb;
+  if (appliesTo === undefined) return;
+  const views = listAllVerbViews(context.file);
+  const couldMatch = couldMatchAnyView(appliesTo, listViewsAfterEffects(context.file, views));
   if (!couldMatch) context.problems.warning(path, "appliesTo matches nothing.");
 }
 
-function checkComponentReads(
+function checkVerbReads(
   verb: Verb,
   path: string,
   definitionsById: ReadonlyMap<string, ItemDefinition>,
   context: EffectCheckContext,
 ) {
-  const guaranteed = listGuaranteedComponents(verb.appliesTo, definitionsById);
-  for (const read of listVerbReads(verb)) {
-    const where = `${path}.${read.where}`;
-    if (!guaranteed.has(read.component)) {
-      context.problems.error(
-        where,
-        `Reads item.${read.component}.${read.field}, but appliesTo doesn't require the ${read.component} component.`,
-      );
-      continue;
-    }
-    const field = context.file.components[read.component]?.fields[read.field];
-    if (field === undefined) {
-      context.problems.error(where, `Component ${read.component} has no field "${read.field}".`);
-    } else if (field.type !== read.expectedType) {
-      context.problems.error(
-        where,
-        `${read.component}.${read.field} is a ${field.type}, but this needs a ${read.expectedType}.`,
-      );
-    }
-  }
+  const guaranteed =
+    verb.appliesTo === undefined ? null : listGuaranteedComponents(verb.appliesTo, definitionsById);
+  checkComponentReads(
+    { reads: listVerbReads(verb), allowedWho: "item", guaranteed, source: "appliesTo", path },
+    context,
+  );
 }
 
-function checkEffects(verb: Verb, path: string, isUserVerb: boolean, context: EffectCheckContext) {
+function checkEffects(
+  verb: Verb,
+  path: string,
+  isBareHanded: boolean,
+  context: EffectCheckContext,
+) {
   const { problems } = context;
   verb.effects.forEach((effect, effectIndex) => {
     const effectPath = `${path}.effects.${effectIndex}`;
@@ -95,7 +48,7 @@ function checkEffects(verb: Verb, path: string, isUserVerb: boolean, context: Ef
     if (effect.requiresHit === true && verb.hitRoll === undefined) {
       problems.warning(effectPath, "requiresHit does nothing in a verb without a hitRoll.");
     }
-    if (effect.on === "item" && isUserVerb) {
+    if (effect.on === "item" && isBareHanded) {
       problems.error(
         effectPath,
         "`on: item` in a verb the user does bare-handed: there's no item.",
@@ -142,22 +95,19 @@ function checkItemNames(verb: Verb, path: string, context: EffectCheckContext) {
 }
 
 /** Same-named verbs must never both apply to the same kind of thing in the same place. */
-function checkOverlaps(
-  verbs: readonly Verb[],
-  subjects: RuleSubject[],
-  context: EffectCheckContext,
-) {
+function checkOverlaps(verbs: readonly Verb[], views: ThingView[], context: EffectCheckContext) {
   verbs.forEach((verb, index) => {
     verbs.slice(0, index).forEach((earlier) => {
       if (earlier.name.trim().toLowerCase() !== verb.name.trim().toLowerCase()) return;
-      const shared = subjects.find(
-        (subject) =>
-          matchesRule(verb.appliesTo, subject) && matchesRule(earlier.appliesTo, subject),
+      const isBothBareHanded = verb.appliesTo === undefined && earlier.appliesTo === undefined;
+      const shared = views.find(
+        (view) => matchesAppliesTo(verb, view) && matchesAppliesTo(earlier, view),
       );
-      if (shared === undefined) return;
+      if (!isBothBareHanded && shared === undefined) return;
+      const where = shared === undefined ? "bare hands" : describeThingView(shared);
       context.problems.error(
         describeVerbPath(verb, index),
-        `Another "${verb.name}" verb also applies to ${describeRuleSubject(shared)}; narrow one rule with \`not\`.`,
+        `Another "${verb.name}" verb also applies to ${where}; narrow one appliesTo with \`not\`.`,
       );
     });
   });
@@ -168,22 +118,25 @@ export function checkVerbs(
   context: EffectCheckContext,
 ): void {
   const { file } = context;
-  const subjects = listAllRuleSubjects(file);
-  const user: RuleSubject = { kind: "user", components: resolveBodyDefaults(file) };
   file.verbs.forEach((verb, index) => {
     const path = describeVerbPath(verb, index);
-    checkRuleNames(verb.appliesTo, `${path}.appliesTo`, context);
-    checkRuleReach(verb, `${path}.appliesTo`, subjects, context);
-    if (verb.target !== "none" && !requiresHeldOrUser(verb.appliesTo)) {
+    if (verb.appliesTo !== undefined) {
+      checkMatcher(verb.appliesTo, `${path}.appliesTo`, context, { isAppliesTo: true });
+    }
+    checkReach(verb, `${path}.appliesTo`, context);
+    const isAimedAtSomething = verb.target !== "none";
+    const isHeldOrBareHanded =
+      verb.appliesTo === undefined || requiresWhere(verb.appliesTo, "held");
+    if (isAimedAtSomething && !isHeldOrBareHanded) {
       context.problems.error(
         `${path}.appliesTo`,
-        "An aimed verb's rule must require `location: held` or `isUser`, so `target` is free for what it's aimed at.",
+        "An aimed verb's appliesTo must require `where: held` (or be omitted), so `target` is free for what it's aimed at.",
       );
     }
-    checkComponentReads(verb, path, definitionsById, context);
-    checkEffects(verb, path, matchesRule(verb.appliesTo, user), context);
+    checkVerbReads(verb, path, definitionsById, context);
+    checkEffects(verb, path, verb.appliesTo === undefined, context);
     checkPhrases(verb, `${path}.phrases`, context);
     checkItemNames(verb, path, context);
   });
-  checkOverlaps(file.verbs, subjects, context);
+  checkOverlaps(file.verbs, listAllVerbViews(file), context);
 }

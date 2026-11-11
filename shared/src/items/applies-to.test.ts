@@ -1,122 +1,96 @@
 import { describe, expect, it } from "vitest";
 import {
-  listGuaranteedComponents,
-  matchesRule,
-  requiresHeldOrUser,
-  type RuleSubject,
-  type SubjectLocation,
+  describeThingView,
+  isBareHanded,
+  isLyingWhenOnTile,
+  listAddableComponents,
+  listAllVerbViews,
+  listDefinitionViews,
+  listPossibleWheres,
+  listViewsWithAddedComponents,
+  matchesAppliesTo,
 } from "./applies-to";
 import { buildItemCatalog, resolveThingComponents } from "./catalog";
-import type { AppliesToRule } from "./item-file";
+import type { Verb } from "./item-file";
+import type { ThingView } from "./matchers";
 import { buildTestItemFile } from "./test-item-file";
 
-const catalog = buildItemCatalog(buildTestItemFile());
+const file = buildTestItemFile();
+const catalog = buildItemCatalog(file);
 
-function entity(definitionId: string, location: SubjectLocation = "held"): RuleSubject {
-  const components = resolveThingComponents(catalog, definitionId, {});
-  return { kind: "entity", definitionId, components, location };
+function view(definitionId: string, where: ThingView["where"] = "held"): ThingView {
+  return { definitionId, components: resolveThingComponents(catalog, definitionId, {}), where };
 }
 
-const body = resolveThingComponents(catalog, "person", {});
-const user: RuleSubject = { kind: "user", components: body };
-const deadAgent: RuleSubject = { kind: "dead_agent", components: body };
-const livingAgent: RuleSubject = { kind: "living_agent" };
+function verbWith(appliesTo: Verb["appliesTo"]): Verb {
+  const [eat] = file.verbs;
+  if (eat === undefined) throw new Error("the test file has no verb");
+  return { ...eat, appliesTo };
+}
 
-describe("appliesTo terms", () => {
-  it("matches entities of a definition", () => {
-    expect(matchesRule({ definition: "knife" }, entity("knife"))).toBe(true);
-    expect(matchesRule({ definition: "knife" }, entity("bread"))).toBe(false);
+describe("a verb's appliesTo meeting a thing", () => {
+  it("applies when its matcher matches the view", () => {
+    const eat = verbWith({ allOf: [{ has: "food" }, { where: "held" }] });
+    expect(matchesAppliesTo(eat, view("bread", "held"))).toBe(true);
+    expect(matchesAppliesTo(eat, view("bread", "here"))).toBe(false);
+    expect(matchesAppliesTo(eat, view("knife", "held"))).toBe(false);
   });
 
-  it("matches entities that have a component", () => {
-    expect(matchesRule({ component: "food" }, entity("bread"))).toBe(true);
-    expect(matchesRule({ component: "food" }, entity("knife"))).toBe(false);
-  });
-
-  it("matches a component an entity has now, even one its definition lacks", () => {
-    const sharpenedBread: RuleSubject = {
-      kind: "entity",
-      definitionId: "bread",
-      components: { ...resolveThingComponents(catalog, "bread", {}), sharp: {} },
-      location: "held",
-    };
-    expect(matchesRule({ component: "sharp" }, sharpenedBread)).toBe(true);
-    expect(matchesRule({ component: "sharp" }, entity("bread"))).toBe(false);
-  });
-
-  it("matches a component on the user and dead agents but never other living agents", () => {
-    expect(matchesRule({ component: "sharp" }, entity("knife"))).toBe(true);
-    expect(matchesRule({ component: "flesh" }, user)).toBe(true);
-    expect(matchesRule({ component: "flesh" }, deadAgent)).toBe(true);
-    expect(matchesRule({ component: "flesh" }, livingAgent)).toBe(false);
-  });
-
-  it("matches where an entity is", () => {
-    expect(matchesRule({ location: "held" }, entity("knife", "held"))).toBe(true);
-    expect(matchesRule({ location: "held" }, entity("knife", "ground"))).toBe(false);
-    expect(matchesRule({ location: "ground" }, entity("knife", "inside"))).toBe(false);
-  });
-
-  it("matches dead agents and the user with their own terms", () => {
-    expect(matchesRule({ isDeadAgent: true }, deadAgent)).toBe(true);
-    expect(matchesRule({ isDeadAgent: true }, user)).toBe(false);
-    expect(matchesRule({ isUser: true }, user)).toBe(true);
-    expect(matchesRule({ isUser: true }, entity("knife"))).toBe(false);
+  it("never applies to a thing when the verb is bare-handed", () => {
+    const punch = verbWith(undefined);
+    expect(isBareHanded(punch)).toBe(true);
+    expect(matchesAppliesTo(punch, view("knife"))).toBe(false);
+    expect(isBareHanded(verbWith({ has: "food" }))).toBe(false);
   });
 });
 
-describe("appliesTo combinators", () => {
-  const heldFood: AppliesToRule = { allOf: [{ component: "food" }, { location: "held" }] };
-
-  it("needs every part of allOf", () => {
-    expect(matchesRule(heldFood, entity("bread", "held"))).toBe(true);
-    expect(matchesRule(heldFood, entity("bread", "ground"))).toBe(false);
+describe("where things can be met", () => {
+  it("lets what lies loose be held, here or inside, and everything else only be here", () => {
+    const knife = catalog.definitionsById.get("knife");
+    const oven = catalog.definitionsById.get("oven");
+    if (knife === undefined || oven === undefined) throw new Error("missing test definition");
+    expect(listPossibleWheres(file, knife)).toEqual(["held", "here", "inside"]);
+    expect(listPossibleWheres(file, oven)).toEqual(["here"]);
+    expect(listDefinitionViews(file, oven).map(describeThingView)).toEqual(["oven (here)"]);
   });
 
-  it("needs any part of anyOf", () => {
-    const rule: AppliesToRule = { anyOf: [{ component: "capacity" }, { isDeadAgent: true }] };
-    expect(matchesRule(rule, entity("chest", "placed"))).toBe(true);
-    expect(matchesRule(rule, deadAgent)).toBe(true);
-    expect(matchesRule(rule, user)).toBe(false);
+  it("says whether something with these components lies on the floor", () => {
+    const bread = resolveThingComponents(catalog, "bread", {});
+    const oven = resolveThingComponents(catalog, "oven", {});
+    expect(isLyingWhenOnTile(file, "bread", bread)).toBe(true);
+    expect(isLyingWhenOnTile(file, "oven", oven)).toBe(false);
   });
 
-  it("inverts with not", () => {
-    const rule: AppliesToRule = {
-      allOf: [{ component: "holdable" }, { not: { definition: "coin" } }],
-    };
-    expect(matchesRule(rule, entity("bread"))).toBe(true);
-    expect(matchesRule(rule, entity("coin"))).toBe(false);
+  it("lists every definition but the body in each place, and a dead body here", () => {
+    const described = listAllVerbViews(file).map(describeThingView);
+    expect(described).toContain("knife (held)");
+    expect(described).toContain("chest (here)");
+    expect(described).toContain("person (here)");
+    expect(described).not.toContain("person (held)");
+    expect(described.filter((entry) => entry.startsWith("person"))).toHaveLength(1);
   });
 });
 
-describe("what a rule guarantees", () => {
-  it("guarantees the components every branch requires", () => {
-    const rule: AppliesToRule = {
-      anyOf: [
-        { allOf: [{ component: "weapon" }, { component: "holdable" }] },
-        { allOf: [{ component: "weapon" }, { location: "held" }] },
-      ],
-    };
-    expect([...listGuaranteedComponents(rule, catalog.definitionsById)]).toEqual(["weapon"]);
+describe("components that effects add", () => {
+  const withCondition = buildTestItemFile({
+    components: { ...file.components, burning: {} },
+    verbs: [
+      {
+        name: "light",
+        appliesTo: { has: "holdable" },
+        effects: [{ type: "add_condition", on: "item", condition: "burning" }],
+      },
+    ],
   });
 
-  it("guarantees a named definition's own components", () => {
-    const guaranteed = listGuaranteedComponents({ definition: "knife" }, catalog.definitionsById);
-    expect(guaranteed.has("weapon")).toBe(true);
+  it("lists the components add_condition effects name", () => {
+    expect(listAddableComponents(withCondition)).toEqual(["burning"]);
+    expect(listAddableComponents(file)).toEqual([]);
   });
 
-  it("guarantees nothing through not", () => {
-    const rule: AppliesToRule = { not: { component: "weapon" } };
-    expect(listGuaranteedComponents(rule, catalog.definitionsById).size).toBe(0);
-  });
-
-  it("knows when every match is held or the user", () => {
-    expect(requiresHeldOrUser({ allOf: [{ component: "weapon" }, { location: "held" }] })).toBe(
-      true,
-    );
-    expect(requiresHeldOrUser({ isUser: true })).toBe(true);
-    expect(requiresHeldOrUser({ anyOf: [{ location: "held" }, { component: "weapon" }] })).toBe(
-      false,
-    );
+  it("gives every view the addable components too", () => {
+    const [bread] = listViewsWithAddedComponents(withCondition, [view("bread")]);
+    expect(Object.hasOwn(bread?.components ?? {}, "burning")).toBe(true);
+    expect(Object.hasOwn(bread?.components ?? {}, "food")).toBe(true);
   });
 });

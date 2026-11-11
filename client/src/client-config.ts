@@ -154,8 +154,12 @@ export const clientConfig = {
     newVerbName: "new verb",
     newComponentName: "new_component",
     newFieldName: "newField",
-    newConditionName: "new_condition",
+    /** Rows and indent of the JSON text a rule is edited as. */
+    ruleTextAreaRows: 14,
+    jsonIndent: 2,
     newStimulusName: "new_stimulus",
+    /** Starting text for a new `set` field path and `announce` phrase. */
+    newTextValue: "text",
     /** A new item is drawn as a white bullet until it's given its own glyph. */
     newDefinitionGlyph: { index: 7, color: "#ffffff" },
     /** How many times larger than the sheet the glyph picker's grid is drawn. */

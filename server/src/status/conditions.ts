@@ -8,7 +8,7 @@ import {
 import { config } from "../config";
 
 /**
- * The tick a component added during `tick` runs out. A condition first runs on the next tick's
+ * The tick a component added during `tick` runs out. A component first counts on the next tick's
  * mechanics, so it lasts its whole `minutes`, rounded up to whole ticks.
  */
 export function computeConditionEndTick(

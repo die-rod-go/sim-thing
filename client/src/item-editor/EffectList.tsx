@@ -9,7 +9,7 @@ import {
   type EffectType,
   type ItemFile,
 } from "@village/shared";
-import { NumberInput } from "../characters/fields";
+import { NumberInput, TextInput } from "../characters/fields";
 import { clientConfig } from "../client-config";
 import {
   buildEffect,
@@ -42,6 +42,13 @@ interface EffectContext {
 const { numberStep } = clientConfig.itemEditor;
 const NO_SUBJECT = "";
 const NO_TIMING = "";
+
+/** Text as the number or boolean it spells, else as text, for a `set` effect's value. */
+function parseScalar(text: string): number | string | boolean {
+  if (text === "true") return true;
+  if (text === "false") return false;
+  return text.trim() !== "" && Number.isFinite(Number(text)) ? Number(text) : text;
+}
 
 function EffectField({
   spec,
@@ -108,19 +115,52 @@ function EffectField({
     case "need":
       return <Choice value={String(raw)} choices={NEED_NAMES} onChange={set} />;
     case "condition":
-      return (
-        <Choice
-          value={String(raw)}
-          choices={file.conditions.map((condition) => condition.name)}
-          onChange={set}
-        />
-      );
+      return <Choice value={String(raw)} choices={Object.keys(file.components)} onChange={set} />;
     case "definition":
       return (
         <Choice
           value={String(raw)}
           choices={file.definitions.map((definition) => definition.id)}
           onChange={set}
+        />
+      );
+    case "definition_value": {
+      const fromPath = typeof raw === "object" && raw !== null && "from" in raw ? raw.from : null;
+      return (
+        <>
+          <Checkbox
+            label="from a field"
+            checked={fromPath !== null}
+            onChange={(isFrom) =>
+              set(isFrom ? { from: "self.component.field" } : (file.definitions[0]?.id ?? ""))
+            }
+          />
+          {fromPath === null ? (
+            <Choice
+              value={String(raw)}
+              choices={file.definitions.map((definition) => definition.id)}
+              onChange={set}
+            />
+          ) : (
+            <TextInput value={String(fromPath)} onChange={(from) => set({ from })} />
+          )}
+        </>
+      );
+    }
+    case "text":
+      return (
+        <TextInput
+          value={typeof raw === "string" ? raw : ""}
+          placeholder={spec.key}
+          onChange={set}
+        />
+      );
+    case "scalar":
+      return (
+        <TextInput
+          value={String(raw)}
+          placeholder="number, true/false or text"
+          onChange={(text) => set(parseScalar(text))}
         />
       );
     case "choice":

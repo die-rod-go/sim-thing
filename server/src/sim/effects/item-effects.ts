@@ -10,10 +10,9 @@ import {
 import { resolveNumber } from "../../items/verb-numbers";
 import type { TickResult, WorldState } from "../world-state";
 import { findAgent, markEntityChanged, markEntityRemoved } from "../world-access";
-import { announceUnverbedBreaking } from "./breaking";
 import {
   findEffectEntity,
-  findUsedComponents,
+  findValueSources,
   requireVerbRun,
   type EffectHandler,
 } from "./effect-run";
@@ -31,10 +30,7 @@ function locateWith(state: WorldState, agentId: string, into: "user" | "ground")
 export const produceEffect: EffectHandler<"produce"> = {
   apply(effectRun, effect) {
     const { state, result } = effectRun.context;
-    const count = Math.max(
-      0,
-      Math.round(resolveNumber(effect.count, findUsedComponents(effectRun))),
-    );
+    const count = Math.max(0, Math.round(resolveNumber(effect.count, findValueSources(effectRun))));
     for (let made = 0; made < count; made += 1) {
       const location = locateWith(state, requireVerbRun(effectRun, effect).agentId, effect.into);
       markEntityChanged(result, createEntity(state, effect.item, location).id);
@@ -53,12 +49,11 @@ function spillContents(state: WorldState, result: TickResult, container: Entity)
   }
 }
 
-/** Removes the entity for good (eating the bread, using up a bandage, a door smashed apart). */
+/** Removes the entity for good (eating the bread, using up a bandage). */
 export const destroyEffect: EffectHandler<"destroy"> = {
   apply(effectRun, effect) {
     const entity = findEffectEntity(effectRun, effect);
     if (!entity) return {};
-    announceUnverbedBreaking(effectRun, entity.id);
     spillContents(effectRun.context.state, effectRun.context.result, entity);
     removeEntity(effectRun.context.state, entity.id);
     markEntityRemoved(effectRun.context.result, entity.id);

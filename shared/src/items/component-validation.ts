@@ -5,6 +5,7 @@ import type {
   FieldType,
   FieldValue,
 } from "./component-schema";
+import { listAddableComponents } from "./applies-to";
 import type { ItemDefinition, ItemFile } from "./item-file";
 import type { ProblemList } from "./item-problems";
 
@@ -105,5 +106,16 @@ export function checkComponentValues(
         problems.error(componentPath, `${componentName} has no field "${fieldName}".`);
       }
     }
+  }
+}
+
+/** Warns about a declared component no definition has and no effect adds. */
+export function checkUnusedComponents(file: ItemFile, problems: ProblemList): void {
+  const inUse = new Set([
+    ...file.definitions.flatMap((definition) => Object.keys(definition.components)),
+    ...listAddableComponents(file),
+  ]);
+  for (const name of Object.keys(file.components)) {
+    if (!inUse.has(name)) problems.warning(`components.${name}`, "Nothing has this component.");
   }
 }

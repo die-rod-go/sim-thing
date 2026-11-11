@@ -12,6 +12,7 @@ import {
   readFieldOf,
   readHealth,
 } from "../sim/combat-test-kit";
+import type { RuleCause } from "../sim/rule-cause";
 import type { TestSim } from "../sim/test-sim";
 import { replaceAgent } from "../sim/world-access";
 import { addComponent, removeComponent, replaceDefinition, writeField } from "./thing-writes";
@@ -19,6 +20,7 @@ import { createEntity, findEntity } from "./entity-store";
 import { readComponents, readThingChanges, type ThingRef } from "./things";
 
 const HEALTH = "health.current";
+const MARA_CAUSE: RuleCause = { killed: "", sourceAgentId: "mara", depth: 0 };
 const OPEN_GROUND = { x: 23, y: 19 };
 const TOBIAS: ThingRef = { kind: "agent", agentId: "tobias" };
 
@@ -89,10 +91,7 @@ describe("adding and removing components on an entity", () => {
   it("adds a component the definition lacks, ending when asked", () => {
     const sim = setUp();
     const bench = entityThing(placeBench(sim));
-    const isNew = addComponent(contextOf(sim), bench, "burning", {
-      minutes: 5,
-      sourceAgentId: "mara",
-    });
+    const isNew = addComponent(contextOf(sim), bench, "burning", { minutes: 5 }, MARA_CAUSE);
     expect(isNew).toBe(true);
     expect(readComponents(sim.state, bench)).toHaveProperty("burning");
     expect(readThingChanges(sim.state, bench)?.burning).toEqual({
@@ -105,15 +104,12 @@ describe("adding and removing components on an entity", () => {
   it("extends a timed component to the later end and never shortens it", () => {
     const sim = setUp();
     const bench = entityThing(placeBench(sim));
-    addComponent(contextOf(sim), bench, "burning", { minutes: 5, sourceAgentId: null });
-    const isNewAgain = addComponent(contextOf(sim), bench, "burning", {
-      minutes: 10,
-      sourceAgentId: "mara",
-    });
+    addComponent(contextOf(sim), bench, "burning", { minutes: 5 });
+    const isNewAgain = addComponent(contextOf(sim), bench, "burning", { minutes: 10 }, MARA_CAUSE);
     const longEnd = readThingChanges(sim.state, bench)?.burning?.endsAtTick;
     expect(isNewAgain).toBe(false);
     expect(longEnd).toBe(sim.state.tick + 1 + 10);
-    addComponent(contextOf(sim), bench, "burning", { minutes: 2, sourceAgentId: null });
+    addComponent(contextOf(sim), bench, "burning", { minutes: 2 });
     expect(readThingChanges(sim.state, bench)?.burning?.endsAtTick).toBe(longEnd);
     expect(readThingChanges(sim.state, bench)?.burning?.sourceAgentId).toBe("mara");
   });
@@ -121,15 +117,15 @@ describe("adding and removing components on an entity", () => {
   it("lets a component with no end beat any end", () => {
     const sim = setUp();
     const bench = entityThing(placeBench(sim));
-    addComponent(contextOf(sim), bench, "burning", { minutes: 5, sourceAgentId: null });
-    addComponent(contextOf(sim), bench, "burning", { minutes: null, sourceAgentId: null });
+    addComponent(contextOf(sim), bench, "burning", { minutes: 5 });
+    addComponent(contextOf(sim), bench, "burning", { minutes: null });
     expect(readThingChanges(sim.state, bench)?.burning?.endsAtTick).toBeNull();
   });
 
   it("removes an added component and reports whether there was one", () => {
     const sim = setUp();
     const bench = entityThing(placeBench(sim));
-    addComponent(contextOf(sim), bench, "burning", { minutes: 5, sourceAgentId: null });
+    addComponent(contextOf(sim), bench, "burning", { minutes: 5 });
     expect(removeComponent(contextOf(sim), bench, "burning")).toBe(true);
     expect(readThingChanges(sim.state, bench)).toEqual({});
     expect(removeComponent(contextOf(sim), bench, "burning")).toBe(false);
@@ -150,7 +146,6 @@ describe("replacing an entity's definition", () => {
     const bench = placeBench(sim);
     addComponent(contextOf(sim), entityThing(bench), "burning", {
       minutes: 5,
-      sourceAgentId: null,
     });
     writeField(contextOf(sim), entityThing(bench), HEALTH, 1);
     replaceDefinition(contextOf(sim), bench.id, "shards");
@@ -180,13 +175,10 @@ describe("writing an agent's body", () => {
 
   it("adds, extends and removes a component on the body", () => {
     const sim = setUp();
-    const isNew = addComponent(contextOf(sim), TOBIAS, "bleeding", {
-      minutes: 5,
-      sourceAgentId: "mara",
-    });
+    const isNew = addComponent(contextOf(sim), TOBIAS, "bleeding", { minutes: 5 }, MARA_CAUSE);
     expect(isNew).toBe(true);
     const firstEnd = sim.agent("tobias").bodyChanges.bleeding?.endsAtTick ?? 0;
-    addComponent(contextOf(sim), TOBIAS, "bleeding", { minutes: 20, sourceAgentId: null });
+    addComponent(contextOf(sim), TOBIAS, "bleeding", { minutes: 20 });
     expect(sim.agent("tobias").bodyChanges.bleeding?.endsAtTick).toBeGreaterThan(firstEnd);
     expect(removeComponent(contextOf(sim), TOBIAS, "bleeding")).toBe(true);
     expect(sim.agent("tobias").bodyChanges).toEqual({});
@@ -209,7 +201,7 @@ describe("an agent's health field", () => {
   it("settles death when it reaches 0, with the given cause", () => {
     const sim = setUp();
     const context = contextOf(sim);
-    writeField(context, TOBIAS, HEALTH, 0, { killed: "stabbed by {actor}", sourceAgentId: "mara" });
+    writeField(context, TOBIAS, HEALTH, 0, { ...MARA_CAUSE, killed: "stabbed by {actor}" });
     expect(sim.agent("tobias").death).toEqual({
       tick: sim.state.tick,
       cause: "stabbed by Mara",

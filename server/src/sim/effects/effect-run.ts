@@ -7,43 +7,41 @@ import type {
   Verb,
 } from "@village/shared";
 import { describeEntityName, findEntityIfPresent } from "../../items/entity-store";
-import type { ThingRef } from "../../items/things";
+import { readComponents, type ThingRef } from "../../items/things";
+import type { ValueSources } from "../../items/verb-numbers";
 import type { VerbRun } from "../agent-runtime";
+import { describeVerbPhrase } from "../action-phrases";
+import type { RuleCause } from "../rule-cause";
 import { isDead } from "../../status/health";
 import type { TickContext } from "../tick-context";
 import { readRunComponents } from "../used-components";
 import { findAgent } from "../world-access";
 
 /**
- * One list of effects being run: a verb's, or a condition's or reaction's. A verb's run knows
- * its user, item and target; a condition or reaction only knows `self`.
+ * One list of effects being run: a verb's, or a rule's. A verb's run knows its user, item and
+ * target; a rule only knows `self`.
  */
 export interface EffectRun {
   context: TickContext;
-  /** Null for a condition's or a reaction's effects. */
+  /** Null for a rule's effects. */
   verb: Verb | null;
   run: VerbRun | null;
   /** Words from the decision, for verbs that take text (posting a note). */
   text: string;
   /** Minutes the decision chose, for a nap. */
   minutes?: number;
-  /**
-   * What `on: self` refers to: whatever carries the condition or reaction, or the entity breaking
-   * while its `onBroken` effects run.
-   */
+  /** What `on: self` refers to: the thing the rule fired on. */
   self?: ThingRef;
-  /** The agent behind it: the verb's user, or whoever caused the condition or the chain. */
+  /** The agent behind it: the verb's user, or whoever is behind the chain of rules. */
   sourceAgentId: string | null;
-  /** How a death from a condition's or reaction's damage reads; verbs use their own phrase. */
+  /** How a death from a rule's damage reads; verbs use their own phrase. */
   killed?: string;
-  /** How many reactions deep this run is: 0 for a verb or a condition. */
-  reactionDepth: number;
+  /** How many rules deep this run is: 0 for a verb or an `every` rule. */
+  depth: number;
   /** The hit roll's `attacked` or `missed` event already showed what happens to the target. */
   isAttackAnnounced?: boolean;
   /** Whether the verb's hit roll hit; absent for a verb without one, which counts as a hit. */
   isHit?: boolean;
-  /** These are `onBroken` effects, after the `broke` event was seen. */
-  isBreakAnnounced?: boolean;
 }
 
 export interface EffectOutcome {
@@ -68,9 +66,34 @@ export function findUsedComponents(effectRun: EffectRun): ResolvedComponents | n
   return effectRun.run === null ? null : readRunComponents(effectRun.context.state, effectRun.run);
 }
 
+/** What the run's values read from: the thing used (`item.`) and the thing a rule fired on (`self.`). */
+export function findValueSources(effectRun: EffectRun): ValueSources {
+  const { self } = effectRun;
+  return {
+    item: findUsedComponents(effectRun),
+    self: self === undefined ? null : readComponents(effectRun.context.state, self),
+  };
+}
+
+/** How a death from this run reads: the verb's killed phrase, or the rule's; `{actor}` is filled in later. */
+function describeRunKilling(effectRun: EffectRun): string {
+  const { run, verb } = effectRun;
+  if (verb === null || run === null) return effectRun.killed ?? "";
+  return describeVerbPhrase(verb, "killed", { item: run.usedName, target: run.aimName });
+}
+
+/** What a write made by this run carries: who is behind it, how a death reads, how deep it is. */
+export function describeRunCause(effectRun: EffectRun): RuleCause {
+  return {
+    killed: describeRunKilling(effectRun),
+    sourceAgentId: effectRun.sourceAgentId,
+    depth: effectRun.depth,
+  };
+}
+
 /** Names what runs the effects, for errors. */
 export function describeEffectOwner(effectRun: EffectRun): string {
-  return effectRun.verb === null ? "a condition or reaction" : `"${effectRun.verb.name}"`;
+  return effectRun.verb === null ? "a rule" : `"${effectRun.verb.name}"`;
 }
 
 /** The verb run behind effects that only make sense in a verb (sleeping, producing for the user). */

@@ -139,7 +139,6 @@ describe("talking and perception", () => {
     const door = findEntityByLabel(sim.state, "bakery door");
     addComponent(contextOf(sim), entityThing(door), "closed", {
       minutes: null,
-      sourceAgentId: null,
     });
     await sim.advance(20);
     expect(Object.hasOwn(findEntityByLabel(sim.state, "bakery door").changes, "closed")).toBe(

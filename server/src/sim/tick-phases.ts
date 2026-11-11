@@ -10,12 +10,12 @@ import {
   isDead,
   trackStarvation,
 } from "../status/health";
-import { regrowStocks } from "../items/stock";
 import { writeField } from "../items/thing-writes";
 import { wakeAgent } from "./action-stopping";
-import { advanceConditions } from "./conditions";
 import { WAIT_ACTION, WALK_ACTION, describeDoing } from "./action-phrases";
 import { getAgentRuntime, requestDecision } from "./agent-runtime";
+import { NO_RULE_CAUSE } from "./rule-cause";
+import { expireComponents, runEveryRules } from "./rule-timers";
 import type { TickContext } from "./tick-context";
 import { finishRunningVerb } from "./verb-runner";
 import { advanceWalk } from "./walking";
@@ -38,20 +38,21 @@ function changeHealth(context: TickContext, agentId: string, change: number, kil
   const { state } = context;
   const health = readAgentHealth(state.items, findAgent(state, agentId));
   writeField(context, { kind: "agent", agentId }, state.items.world.agentHealth, health + change, {
+    ...NO_RULE_CAUSE,
     killed,
-    sourceAgentId: null,
   });
 }
 
 /**
- * Phase 1: stocks regrow; conditions run their minutes or run out (reactions resolve as their
- * stimuli arrive); for the living, needs decay (slower asleep), sleepers recover, crowds
- * affect the awake, health regenerates, and starvation does damage after its grace period.
+ * Phase 1: components that ran out are removed, then `every` rules fire (stimulus and `becomes`
+ * rules resolve as their causes happen); for the living, needs decay (slower asleep), sleepers
+ * recover, crowds affect the awake, health regenerates, and starvation does damage after its
+ * grace period.
  */
 export function applyMechanics(context: TickContext): Map<string, Needs> {
   const { state } = context;
-  regrowStocks(context, minutesPerTick);
-  advanceConditions(context);
+  expireComponents(context);
+  runEveryRules(context, minutesPerTick);
   const world = buildPerceptionWorld(state);
   const needsBefore = new Map<string, Needs>();
   for (const agentId of listLivingAgents(state).map((agent) => agent.id)) {

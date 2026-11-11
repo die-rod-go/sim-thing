@@ -2,12 +2,10 @@ import { type ItemDefinition, type ItemFile, type ItemProblem } from "@village/s
 import { CommittedTextInput, TextInput } from "../characters/fields";
 import { ComponentValues } from "./ComponentValues";
 import { updateDefinition } from "./definition-edits";
-import { EffectList } from "./EffectList";
 import { describeItemPreview } from "./item-preview";
 import { ItemVerbs } from "./ItemVerbs";
 import { selectEntryProblems } from "./problems";
 import { GlyphPicker } from "./GlyphPicker";
-import { NO_READABLE_PATHS, OptionalValue } from "./value-inputs";
 import { InlineField, ItemProblemList } from "./widgets";
 
 /** One item definition: what it is, its components, the verbs it offers and how prompts show it. */
@@ -59,22 +57,6 @@ export function ItemPage({
           file={file}
           onChange={(changed) => onEdit(updateDefinition(file, definitionIndex, changed))}
         />
-        <h4>When it breaks</h4>
-        <OptionalValue
-          label="onBroken"
-          isSet={definition.onBroken !== undefined}
-          onToggle={(isSet) => update({ onBroken: isSet ? [] : undefined })}
-        >
-          <EffectList
-            effects={definition.onBroken ?? []}
-            onChange={(onBroken) => update({ onBroken })}
-            file={file}
-            owner="on_broken"
-            stimuli={stimuli}
-            paths={NO_READABLE_PATHS}
-          />
-        </OptionalValue>
-        <p className="field-hint">Off: it is destroyed when its health runs out.</p>
       </section>
       <section className="form-section">
         <h3>Verbs that apply to it</h3>

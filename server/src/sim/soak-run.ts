@@ -62,7 +62,7 @@ export async function runSoak(options: SoakOptions): Promise<SoakReport> {
     // Prompts are large; keep only what the checks need so long runs stay small.
     sim.records.length = 0;
     eventCount += result.events.length;
-    problems.push(...result.reactionCapHits);
+    problems.push(...result.ruleDepthCapHits);
     for (const event of result.events) {
       const isDecided = DECIDED_EVENT_KINDS.includes(event.kind);
       if (isDecided && !callTicksByAgent.get(event.actorId)?.has(event.tick)) {

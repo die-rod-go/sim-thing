@@ -1,15 +1,19 @@
 import type { FieldType } from "./component-schema";
 import {
-  ITEM_VALUE_PATH_PATTERN,
+  parseValuePath,
+  type DefinitionValue,
   type Effect,
   type NumberValue,
   type RangeValue,
   type TextValue,
+  type ValuePathSubject,
 } from "./effect-schema";
-import type { Verb } from "./item-file";
+import type { Rule, Verb } from "./item-file";
 
-/** One place a verb reads a component field, and the field type that slot needs. */
+/** One place a verb or rule reads a component field, and the field type that slot needs. */
 export interface ComponentRead {
+  /** `item` for the thing a verb is used with, `self` for the thing a rule fired on. */
+  who: ValuePathSubject;
   component: string;
   field: string;
   expectedType: FieldType;
@@ -17,14 +21,8 @@ export interface ComponentRead {
   where: string;
 }
 
-function parsePath(path: string): { component: string; field: string } | null {
-  const match = ITEM_VALUE_PATH_PATTERN.exec(path);
-  if (!match?.[1] || !match[2]) return null;
-  return { component: match[1], field: match[2] };
-}
-
 function readFrom(path: string, expectedType: FieldType, where: string): ComponentRead[] {
-  const parsed = parsePath(path);
+  const parsed = parseValuePath(path);
   return parsed ? [{ ...parsed, expectedType, where }] : [];
 }
 
@@ -37,6 +35,10 @@ export function listNumberReads(value: NumberValue | null, where: string): Compo
 export function listRangeReads(value: RangeValue, where: string): ComponentRead[] {
   if ("from" in value) return readFrom(value.from, "range", where);
   return value.times === undefined ? [] : readFrom(value.times, "number", where);
+}
+
+export function listDefinitionReads(value: DefinitionValue, where: string): ComponentRead[] {
+  return typeof value === "string" ? [] : readFrom(value.from, "item", where);
 }
 
 export function listTextReads(value: TextValue | undefined, where: string): ComponentRead[] {
@@ -69,9 +71,18 @@ export function listEffectReads(effect: Effect, where: string): ComponentRead[] 
       return listNumberReads(effect.count, `${where}.count`);
     case "make_sound":
       return listNumberReads(effect.loudness, `${where}.loudness`);
+    case "change":
+      return listNumberReads(effect.by, `${where}.by`);
+    case "transform":
+      return listDefinitionReads(effect.into, `${where}.into`);
     default:
       return [];
   }
+}
+
+/** Every component field a rule reads, in its effects. */
+export function listRuleReads(rule: Rule): ComponentRead[] {
+  return rule.effects.flatMap((effect, index) => listEffectReads(effect, `effects.${index}`));
 }
 
 /** Every component field a verb reads, in its numbers and its effects. */

@@ -71,7 +71,7 @@ function computeEndTick(
   used: ResolvedComponents | null,
 ): number | null {
   if (verb.minutes === null) return null;
-  const minutes = resolveNumber(verb.minutes, used);
+  const minutes = resolveNumber(verb.minutes, { item: used, self: null });
   return state.tick + Math.max(1, Math.ceil(minutes / minutesPerTick));
 }
 
@@ -183,7 +183,7 @@ export function startVerbNow(
     text: request.text ?? "",
     minutes: request.minutes,
     sourceAgentId: agentId,
-    reactionDepth: 0,
+    depth: 0,
   };
   const blocker =
     findAimedBlocker(state, use.verb, run) ??
@@ -313,7 +313,7 @@ export function finishRunningVerb(context: TickContext, agentId: string): void {
     run: finishing,
     text: "",
     sourceAgentId: agentId,
-    reactionDepth: 0,
+    depth: 0,
   };
   const blocker =
     findFinishBlocker(state, run, verb) ?? findEffectsBlocker(checkRun, effectsAt(verb, "finish"));
@@ -335,7 +335,7 @@ export function finishRunningVerb(context: TickContext, agentId: string): void {
     run: finishing,
     text: "",
     sourceAgentId: agentId,
-    reactionDepth: 0,
+    depth: 0,
     isAttackAnnounced: verb.hitRoll !== undefined,
     isHit,
   };

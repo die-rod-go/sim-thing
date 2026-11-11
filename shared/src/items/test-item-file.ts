@@ -81,7 +81,7 @@ export function buildTestItemFile(
     verbs: [
       {
         name: "eat",
-        appliesTo: { allOf: [{ component: "food" }, { location: "held" }] },
+        appliesTo: { allOf: [{ has: "food" }, { where: "held" }] },
         effects: [
           { type: "destroy", on: "item", when: "start" },
           { type: "change_need", on: "user", need: "hunger", amount: { from: "item.food.hunger" } },

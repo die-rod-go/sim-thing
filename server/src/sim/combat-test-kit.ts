@@ -11,7 +11,9 @@ import { writeField } from "../items/thing-writes";
 import { readField, type ThingRef } from "../items/things";
 import { withAgentHealth } from "../status/health";
 import type { PendingVerb, UsedThing } from "./agent-runtime";
+import type { EffectRun } from "./effects/effect-run";
 import { createNoReflectionHook } from "./reflection-hook";
+import { sendStimulus } from "./rule-engine";
 import { createTestSim, scriptByAgent, type TestSim } from "./test-sim";
 import type { TickContext } from "./tick-context";
 import { startOrApproachVerb } from "./verb-approach";
@@ -95,6 +97,44 @@ export function addVerbs(sim: TestSim, verbs: unknown[]): void {
   const file = sim.state.items.file;
   const parsed = parseItemFile({ ...file, verbs: [...file.verbs, ...verbs] });
   sim.state.items = buildItemCatalog(parsed);
+}
+
+export interface ItemExtras {
+  components?: Record<string, unknown>;
+  definitions?: unknown[];
+  rules?: unknown[];
+}
+
+/** The project's items plus extra components, definitions and rules, for what the shipped ones don't cover. */
+export function extendItems(sim: TestSim, extras: ItemExtras): void {
+  const file = sim.state.items.file;
+  const parsed = parseItemFile({
+    ...file,
+    components: { ...file.components, ...extras.components },
+    definitions: [...file.definitions, ...(extras.definitions ?? [])],
+    rules: [...file.rules, ...(extras.rules ?? [])],
+  });
+  sim.state.items = buildItemCatalog(parsed);
+}
+
+/** A run of rule effects as a verb's action would start one: Mara's by default. */
+export function buildRuleRun(
+  context: TickContext,
+  sourceAgentId: string | null = "mara",
+): EffectRun {
+  return { context, verb: null, run: null, text: "", sourceAgentId, depth: 0 };
+}
+
+/** Sends a stimulus as one of Mara's verbs would, returning the context it ran in. */
+export function stimulate(
+  sim: TestSim,
+  receiver: ThingRef,
+  stimulus: string,
+  sourceAgentId: string | null = "mara",
+): TickContext {
+  const context = contextOf(sim);
+  sendStimulus(buildRuleRun(context, sourceAgentId), receiver, stimulus);
+  return context;
 }
 
 export function entityThing(entity: Entity): ThingRef {

@@ -176,16 +176,12 @@ export type WorldEventKind =
   | "attacked"
   | "missed"
   | "hurt"
-  | "broke"
   | "dropped"
   | "picked_up"
   | "threw"
   | "put"
   | "took"
-  | "caught_fire"
-  | "stopped_burning"
-  | "condition_started"
-  | "condition_ended"
+  | "announced"
   | "sound";
 
 /**

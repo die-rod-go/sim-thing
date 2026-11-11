@@ -6,6 +6,7 @@ import {
   removeConditionEffect,
 } from "./condition-effects";
 import { damageEffect, healEffect, transformEffect, wearEffect } from "./combat-effects";
+import { announceEffect, changeEffect, setEffect } from "./data-effects";
 import type { EffectHandler, EffectOutcome, EffectRegistry, EffectRun } from "./effect-run";
 import { destroyEffect, moveEffect, produceEffect } from "./item-effects";
 import { changeNeedEffect } from "./need-effects";
@@ -35,6 +36,9 @@ export const EFFECT_REGISTRY: EffectRegistry = {
   remove_condition: removeConditionEffect,
   emit: emitEffect,
   make_sound: makeSoundEffect,
+  set: setEffect,
+  change: changeEffect,
+  announce: announceEffect,
 };
 
 export function isEffectBuilt(type: EffectType): boolean {

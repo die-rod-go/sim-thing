@@ -1,34 +1,6 @@
 import { describe, expect, it } from "vitest";
-import type { ItemFile } from "./item-file";
-import { findItemFileProblems } from "./item-validation";
 import { buildTestItemFile } from "./test-item-file";
-
-function messagesFor(file: ItemFile, options: Parameters<typeof findItemFileProblems>[1] = {}) {
-  return findItemFileProblems(file, options).map(
-    (problem) => `${problem.severity}: ${problem.path}: ${problem.message}`,
-  );
-}
-
-function withVerbs(...verbs: unknown[]): ItemFile {
-  const base = buildTestItemFile();
-  return buildTestItemFile({ verbs: [...base.verbs, ...verbs] });
-}
-
-const attack = {
-  name: "attack",
-  appliesTo: { allOf: [{ component: "weapon" }, { location: "held" }] },
-  target: "agent_or_entity",
-  hitRoll: { baseHitChance: { from: "item.weapon.hitChance" } },
-  effects: [
-    {
-      type: "damage",
-      on: "target",
-      amount: { from: "item.weapon.damage" },
-      stimulus: { from: "item.weapon.stimulus" },
-    },
-  ],
-  phrases: { hit: "hit {target}", missed: "missed {target}", killed: "stabbed by {actor}" },
-};
+import { attack, messagesFor, withVerbs } from "./validation-test-kit";
 
 describe("item file validation", () => {
   it("finds nothing wrong with a sound file", () => {
@@ -41,23 +13,23 @@ describe("item file validation", () => {
 
   it("rejects two same-named verbs that match the same thing", () => {
     const messages = messagesFor(
-      withVerbs({ name: "eat", appliesTo: { component: "food" }, effects: [] }),
+      withVerbs({ name: "eat", appliesTo: { has: "food" }, effects: [] }),
     );
     expect(messages.some((message) => message.includes('Another "eat" verb'))).toBe(true);
   });
 
-  it("allows same-named verbs once one rule excludes the other's items", () => {
+  it("allows same-named verbs once one appliesTo excludes the other's items", () => {
     const base = buildTestItemFile();
     const file = buildTestItemFile({
       verbs: [
         {
           name: "throw",
-          appliesTo: { allOf: [{ location: "held" }, { not: { definition: "knife" } }] },
+          appliesTo: { allOf: [{ where: "held" }, { not: { definition: "knife" } }] },
           effects: [],
         },
         {
           name: "throw",
-          appliesTo: { allOf: [{ location: "held" }, { definition: "knife" }] },
+          appliesTo: { allOf: [{ where: "held" }, { definition: "knife" }] },
           effects: [],
         },
         ...base.verbs,
@@ -66,29 +38,22 @@ describe("item file validation", () => {
     expect(messagesFor(file).filter((message) => message.includes("throw"))).toEqual([]);
   });
 
-  it("rejects a rule that matches other living agents", () => {
-    const messages = messagesFor(
-      withVerbs({ name: "poke", appliesTo: { not: { component: "food" } }, effects: [] }),
-    );
-    expect(messages.some((message) => message.includes("matches other living agents"))).toBe(true);
-  });
-
-  it("warns about a rule that matches nothing", () => {
+  it("warns about an appliesTo that matches nothing", () => {
     const messages = messagesFor(
       withVerbs({
         name: "polish",
-        appliesTo: { allOf: [{ definition: "oven" }, { location: "held" }] },
+        appliesTo: { allOf: [{ definition: "oven" }, { where: "held" }] },
         effects: [],
       }),
     );
     expect(messages).toContain("warning: verbs.2 (polish).appliesTo: appliesTo matches nothing.");
   });
 
-  it("rejects reading a component the rule doesn't guarantee", () => {
+  it("rejects reading a component appliesTo doesn't guarantee", () => {
     const messages = messagesFor(
       withVerbs({
         ...attack,
-        appliesTo: { anyOf: [{ component: "weapon" }, { component: "food" }] },
+        appliesTo: { anyOf: [{ has: "weapon" }, { has: "food" }] },
         target: "none",
         effects: [{ type: "damage", on: "user", amount: { from: "item.weapon.damage" } }],
       }),
@@ -103,16 +68,15 @@ describe("item file validation", () => {
     expect(messages.some((message) => message.includes("weapon.damage is a range"))).toBe(true);
   });
 
-  it("rejects an aimed verb whose rule isn't held or the user", () => {
-    const messages = messagesFor(withVerbs({ ...attack, appliesTo: { component: "weapon" } }));
-    expect(messages.some((message) => message.includes("An aimed verb's rule"))).toBe(true);
+  it("rejects an aimed verb that isn't held or bare-handed", () => {
+    const messages = messagesFor(withVerbs({ ...attack, appliesTo: { has: "weapon" } }));
+    expect(messages.some((message) => message.includes("An aimed verb's appliesTo"))).toBe(true);
   });
 
   it("rejects on: item in a bare-handed verb", () => {
     const messages = messagesFor(
       withVerbs({
         name: "punch",
-        appliesTo: { isUser: true },
         effects: [{ type: "destroy", on: "item" }],
       }),
     );
@@ -240,25 +204,7 @@ describe("item file validation", () => {
       'error: world.sightBlockedBy: Unknown component "fog".',
     );
     expect(withWorld({ sightBlockedBy: { where: "held" } })).toContain(
-      "error: world.sightBlockedBy: `where` only works in a verb: there is no user here.",
-    );
-  });
-
-  it("rejects a condition that names no component", () => {
-    const file = buildTestItemFile({ conditions: [{ name: "cursed", defaultMinutes: null }] });
-    expect(messagesFor(file)).toContain(
-      'error: conditions.0 (cursed): Unknown component "cursed".',
-    );
-  });
-
-  it("warns about reactions on components nothing has", () => {
-    const base = buildTestItemFile();
-    const file = buildTestItemFile({
-      components: { ...base.components, wooden: {} },
-      reactions: [{ stimulus: "fire", if: { has: "wooden" }, effects: [] }],
-    });
-    expect(messagesFor(file)).toContain(
-      'warning: reactions.0 (fire): Nothing has the component "wooden".',
+      "error: world.sightBlockedBy: `where` only works in a verb's appliesTo: there is no user here.",
     );
   });
 

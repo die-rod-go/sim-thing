@@ -139,7 +139,7 @@ export function findAimProblem(state: WorldState, agentId: string, aim: VerbAim)
 
 /** The verb's reach in tiles, read from what it is used with when the verb says so. */
 export function computeVerbReach(verb: Verb, used: ResolvedComponents | null): number {
-  return resolveNumber(verb.reach, used);
+  return resolveNumber(verb.reach, { item: used, self: null });
 }
 
 /** Held things, and the user itself, are always in reach; anything else within `reach` tiles. */

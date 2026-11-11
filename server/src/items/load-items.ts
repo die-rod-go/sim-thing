@@ -55,16 +55,8 @@ export function findUnbuiltFeatures(file: ItemFile): ItemProblem[] {
   file.verbs.forEach((verb, index) => {
     checkEffects(verb.effects, `verbs.${index} (${verb.name}).effects`);
   });
-  file.definitions.forEach((definition, index) => {
-    checkEffects(definition.onBroken ?? [], `definitions.${index} (${definition.id}).onBroken`);
-  });
-  file.conditions.forEach((condition, index) => {
-    const path = `conditions.${index} (${condition.name})`;
-    checkEffects(condition.everyMinute, `${path}.everyMinute`);
-    checkEffects(condition.onEnd, `${path}.onEnd`);
-  });
-  file.reactions.forEach((reaction, index) => {
-    checkEffects(reaction.effects, `reactions.${index} (${reaction.stimulus}).effects`);
+  file.rules.forEach((rule, index) => {
+    checkEffects(rule.effects, `rules.${index} (${rule.trigger}).effects`);
   });
   return problems;
 }

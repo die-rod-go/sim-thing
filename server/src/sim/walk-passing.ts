@@ -56,7 +56,7 @@ export function clearTileInPassing(
       run,
       text: "",
       sourceAgentId: agentId,
-      reactionDepth: 0,
+      depth: 0,
     };
     const refusal = verb.effects
       .map((effect) => findEffectBlocker(effectRun, effect))

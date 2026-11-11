@@ -1,11 +1,11 @@
 import { useMemo } from "react";
 import { hasItemErrors, type ItemFile, type ItemProblem } from "@village/shared";
 import type { ConnectionStatus } from "../net/sim-connection";
-import { ConditionPanel, ReactionPanel } from "./ConditionPanels";
 import { ComponentPanel } from "./DeclarationPanels";
 import { duplicateDefinition } from "./definition-edits";
 import { countTabEntries, EDITOR_TABS, type EditorState, type EditorTab } from "./editor-state";
 import { ItemPage } from "./ItemPage";
+import { RulesPanel } from "./RulesPanel";
 import { findDraftProblems, selectEntryProblems } from "./problems";
 import { addTabEntry, listTabEntries, removeTabEntry, TAB_LABELS } from "./tab-entries";
 import { useItemEditor } from "./use-item-editor";
@@ -60,10 +60,8 @@ function TabPanel({
         />
       );
     }
-    case "conditions":
-      return <ConditionPanel {...panelProps} />;
-    case "reactions":
-      return <ReactionPanel {...panelProps} />;
+    case "rules":
+      return <RulesPanel {...panelProps} />;
     case "components": {
       const name = Object.keys(file.components)[index];
       return name === undefined ? null : (

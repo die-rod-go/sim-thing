@@ -69,8 +69,8 @@ export interface TickResult {
   verbStarts: VerbStart[];
   /** Agents who got a decision this tick. */
   decidedAgentIds: string[];
-  /** Reaction chains cut off at `reactions.maxDepth`, described; a soak run fails on any. */
-  reactionCapHits: string[];
+  /** Rule chains cut off at `rules.maxDepth`, described; a soak run fails on any. */
+  ruleDepthCapHits: string[];
 }
 
 function createAgentRuntimes(agents: readonly Agent[]): Record<string, AgentRuntime> {
@@ -118,7 +118,7 @@ export function createEmptyTickResult(tick: number): TickResult {
     removedEntityIds: [],
     verbStarts: [],
     decidedAgentIds: [],
-    reactionCapHits: [],
+    ruleDepthCapHits: [],
   };
 }
 

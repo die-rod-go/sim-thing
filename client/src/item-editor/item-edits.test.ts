@@ -1,7 +1,6 @@
 import { describe, expect, it } from "vitest";
 import { effectSchema, type ItemFile } from "@village/shared";
 import { buildTestItemFile } from "../../../shared/src/items/test-item-file";
-import { addCondition, addReaction } from "./condition-edits";
 import { renameComponentField, setComponentFieldType } from "./declaration-edits";
 import {
   addComponentToDefinition,
@@ -13,14 +12,14 @@ import { buildEffect, EFFECT_FIELD_SPECS, setEffectField } from "./effect-fields
 import { describeItemPreview } from "./item-preview";
 import { createUniqueName, moveWithin } from "./list-edits";
 import { findDraftProblems, selectEntryProblems } from "./problems";
-import { changeRuleKind } from "./rule-edits";
+import { changeMatcherKind } from "./rule-edits";
 import { listComponentUses } from "./usage";
 import { switchNumberValueMode, switchRangeValueMode } from "./value-modes";
 import {
   buildVerbForDefinition,
   countOtherDefinitionsMatched,
   listReadablePaths,
-  listRuleMatches,
+  listAppliesToMatches,
   listStimuli,
   listVerbIndexesForDefinition,
 } from "./verb-edits";
@@ -37,7 +36,7 @@ describe("item editor edits", () => {
   it("creates a held verb for something holdable and a plain one for a placed item", () => {
     const file = buildTestItemFile();
     expect(buildVerbForDefinition(file, findDefinition(file, "knife")).appliesTo).toEqual({
-      allOf: [{ definition: "knife" }, { location: "held" }],
+      allOf: [{ definition: "knife" }, { where: "held" }],
     });
     expect(buildVerbForDefinition(file, findDefinition(file, "oven")).appliesTo).toEqual({
       definition: "oven",
@@ -51,16 +50,15 @@ describe("item editor edits", () => {
     const eat = file.verbs[0];
     if (!eat) throw new Error("no eat verb");
     expect(countOtherDefinitionsMatched(file, eat, "bread")).toBe(0);
-    expect(listRuleMatches(file, { component: "holdable" })).toContain("knife (held)");
+    expect(listAppliesToMatches(file, { has: "holdable" })).toContain("knife (held)");
   });
 
-  it("offers only fields of components the rule guarantees", () => {
+  it("offers only fields of components the matcher guarantees, and none when bare-handed", () => {
     const file = buildTestItemFile();
-    const rule = { anyOf: [{ definition: "knife" }, { definition: "bread" }] };
-    expect(listReadablePaths(file, rule, "number")).toEqual(["item.holdable.kilograms"]);
-    expect(listReadablePaths(file, { component: "weapon" }, "range")).toEqual([
-      "item.weapon.damage",
-    ]);
+    const matcher = { anyOf: [{ definition: "knife" }, { definition: "bread" }] };
+    expect(listReadablePaths(file, matcher, "number")).toEqual(["item.holdable.kilograms"]);
+    expect(listReadablePaths(file, { has: "weapon" }, "range")).toEqual(["item.weapon.damage"]);
+    expect(listReadablePaths(file, undefined, "number")).toEqual([]);
   });
 
   it("keeps a literal when a number switches to a component read and back", () => {
@@ -95,7 +93,7 @@ describe("item editor edits", () => {
     const damage = buildEffect("damage", "verb", file, ["cut"]);
     expect(damage).toMatchObject({ type: "damage", on: "user", amount: { min: 0, max: 0 } });
     expect(setEffectField(damage, "on", undefined)).not.toHaveProperty("on");
-    expect(buildEffect("emit", "reaction", file, [])).not.toHaveProperty("on");
+    expect(buildEffect("emit", "rule", file, [])).not.toHaveProperty("on");
   });
 
   it("knows every field each effect type takes", () => {
@@ -109,7 +107,7 @@ describe("item editor edits", () => {
 
   it("lists every stimulus the file uses", () => {
     const file = buildTestItemFile({
-      reactions: [{ stimulus: "fire", if: { has: "metal" }, effects: [] }],
+      rules: [{ trigger: "stimulus", stimulus: "fire", if: { has: "metal" }, effects: [] }],
     });
     expect(listStimuli(file)).toEqual(["fire"]);
   });
@@ -120,14 +118,16 @@ describe("item editor edits", () => {
     expect(describeItemPreview(file, findDefinition(file, "oven"))).toBe("1 oven (bake bread)");
   });
 
-  it("finds where a component is used, including in a reaction's matcher", () => {
+  it("finds where a component is used, including in a rule's matcher", () => {
     const file = buildTestItemFile({
-      reactions: [{ stimulus: "fire", if: { allOf: [{ has: "metal" }] }, effects: [] }],
+      rules: [
+        { trigger: "stimulus", stimulus: "fire", if: { allOf: [{ has: "metal" }] }, effects: [] },
+      ],
     });
     expect(listComponentUses(file, "metal")).toEqual([
       "item knife",
       "item coin",
-      "reaction to fire",
+      "rule stimulus fire",
     ]);
   });
 
@@ -140,15 +140,6 @@ describe("item editor edits", () => {
     });
     const added = addComponentToDefinition(file, buildNewDefinition(file), "health");
     expect(added.components.health).toEqual({ current: 0.5, max: 0 });
-  });
-
-  it("adds a condition for a component without one and a reaction matching a component", () => {
-    const file = buildTestItemFile();
-    expect(addCondition(file).conditions.map((condition) => condition.name)).toEqual(["health"]);
-    expect(addReaction(file, ["fire"]).reactions[0]).toMatchObject({
-      stimulus: "fire",
-      if: { has: "health" },
-    });
   });
 
   it("reports shape errors under the entry they belong to", () => {
@@ -173,8 +164,8 @@ describe("item editor edits", () => {
 
   it("keeps a group's parts when it switches between all of and any of", () => {
     const file = buildTestItemFile();
-    expect(changeRuleKind({ allOf: [{ isUser: true }] }, "anyOf", file)).toEqual({
-      anyOf: [{ isUser: true }],
+    expect(changeMatcherKind({ allOf: [{ where: "held" }] }, "anyOf", file)).toEqual({
+      anyOf: [{ where: "held" }],
     });
   });
 

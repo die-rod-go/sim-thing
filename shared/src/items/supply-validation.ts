@@ -1,8 +1,7 @@
-import { listDefinitionSubjects, matchesRule } from "./applies-to";
-import { parseComponentPath } from "./component-schema";
+import { listDefinitionViews, matchesAppliesTo } from "./applies-to";
 import { resolveComponents } from "./components";
-import type { Effect } from "./effect-schema";
-import type { ItemDefinition, ItemFile } from "./item-file";
+import { parseValuePath, type Effect } from "./effect-schema";
+import type { ItemDefinition, ItemFile, Verb } from "./item-file";
 import type { ProblemList } from "./item-problems";
 import { matchesThing } from "./matchers";
 
@@ -10,19 +9,24 @@ function removesSomething(effect: Effect): boolean {
   return effect.type === "destroy" || effect.type === "transform";
 }
 
-function makesSupply(effect: Effect, suppliedId: string): boolean {
-  return (
-    (effect.type === "produce" && effect.item === suppliedId) ||
-    (effect.type === "transform" && effect.into === suppliedId)
+function listFieldValues(file: ItemFile, path: string): unknown[] {
+  const fieldPath = parseValuePath(path);
+  if (fieldPath === null) return [];
+  return file.definitions.map(
+    (definition) =>
+      resolveComponents(file.components, definition, {})[fieldPath.component]?.[fieldPath.field],
   );
 }
 
-function canVerbUse(file: ItemFile, verbIndex: number, supplied: ItemDefinition): boolean {
-  const verb = file.verbs[verbIndex];
-  if (!verb) return false;
-  return listDefinitionSubjects(file, supplied).some((subject) =>
-    matchesRule(verb.appliesTo, subject),
-  );
+function makesSupply(file: ItemFile, effect: Effect, suppliedId: string): boolean {
+  if (effect.type === "produce") return effect.item === suppliedId;
+  if (effect.type !== "transform") return false;
+  if (typeof effect.into === "string") return effect.into === suppliedId;
+  return listFieldValues(file, effect.into.from).includes(suppliedId);
+}
+
+function canVerbUse(verb: Verb, supplied: ItemFile, definition: ItemDefinition): boolean {
+  return listDefinitionViews(supplied, definition).some((view) => matchesAppliesTo(verb, view));
 }
 
 /** Whether an effect in a verb could remove the thing it was used on, chose or aimed at. */
@@ -36,13 +40,13 @@ function couldRemoveInVerb(effect: Effect, isSuppliedUsed: boolean): boolean {
 function checkVerbSupply(file: ItemFile, supplied: ItemDefinition, problems: ProblemList) {
   file.verbs.forEach((verb, index) => {
     const path = `verbs.${index} (${verb.name})`;
-    const isSuppliedUsed = canVerbUse(file, index, supplied);
+    const isSuppliedUsed = canVerbUse(verb, file, supplied);
     if (Object.hasOwn(verb.inputs, supplied.id)) {
       problems.warning(`${path}.inputs`, `Uses up ${supplied.id}, so the supply isn't closed.`);
     }
     verb.effects.forEach((effect, effectIndex) => {
       const effectPath = `${path}.effects.${effectIndex}`;
-      if (makesSupply(effect, supplied.id)) {
+      if (makesSupply(file, effect, supplied.id)) {
         problems.warning(effectPath, `Makes ${supplied.id}, so the supply isn't closed.`);
       } else if (couldRemoveInVerb(effect, isSuppliedUsed)) {
         problems.warning(effectPath, `Could destroy ${supplied.id}, so the supply isn't closed.`);
@@ -51,40 +55,22 @@ function checkVerbSupply(file: ItemFile, supplied: ItemDefinition, problems: Pro
   });
 }
 
-function checkReactionSupply(file: ItemFile, supplied: ItemDefinition, problems: ProblemList) {
+function checkRuleSupply(file: ItemFile, supplied: ItemDefinition, problems: ProblemList) {
   const view = {
     definitionId: supplied.id,
     components: resolveComponents(file.components, supplied, {}),
   };
-  file.reactions.forEach((reaction, index) => {
-    const reachesSupply = matchesThing(reaction.if, view);
-    reaction.effects.forEach((effect, effectIndex) => {
-      const path = `reactions.${index}.effects.${effectIndex}`;
-      if (makesSupply(effect, supplied.id)) {
+  file.rules.forEach((rule, index) => {
+    const reachesSupply = matchesThing(rule.if, view);
+    rule.effects.forEach((effect, effectIndex) => {
+      const path = `rules.${index}.effects.${effectIndex}`;
+      if (makesSupply(file, effect, supplied.id)) {
         problems.warning(path, `Makes ${supplied.id}, so the supply isn't closed.`);
-      } else if (reachesSupply && removesSomething(effect)) {
+      } else if ((reachesSupply || effect.on === "nearby") && removesSomething(effect)) {
         problems.warning(path, `Could destroy ${supplied.id}, so the supply isn't closed.`);
       }
     });
   });
-}
-
-function checkDefinitionSupply(file: ItemFile, supplied: ItemDefinition, problems: ProblemList) {
-  file.definitions.forEach((definition, index) => {
-    const path = `definitions.${index} (${definition.id})`;
-    (definition.onBroken ?? []).forEach((effect, effectIndex) => {
-      if (makesSupply(effect, supplied.id)) {
-        problems.warning(`${path}.onBroken.${effectIndex}`, `Makes ${supplied.id} when it breaks.`);
-      }
-    });
-  });
-  const healthComponent = parseComponentPath(file.world.agentHealth)?.component;
-  if (healthComponent !== undefined && Object.hasOwn(supplied.components, healthComponent)) {
-    problems.warning(
-      `definitions (${supplied.id}).components.${healthComponent}`,
-      `${supplied.id} can break, so the supply isn't closed.`,
-    );
-  }
 }
 
 /**
@@ -102,7 +88,6 @@ export function checkClosedSupply(file: ItemFile, problems: ProblemList): void {
   );
   for (const definition of supplied) {
     checkVerbSupply(file, definition, problems);
-    checkReactionSupply(file, definition, problems);
-    checkDefinitionSupply(file, definition, problems);
+    checkRuleSupply(file, definition, problems);
   }
 }

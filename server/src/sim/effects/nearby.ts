@@ -2,7 +2,7 @@ import { isSameThing, listThingsWithin, locateThing, type ThingRef } from "../..
 import type { EffectRun } from "./effect-run";
 
 /**
- * What `nearby` is measured from: `self` in a condition or reaction; in a verb, the target, else
+ * What `nearby` is measured from: `self` in a rule; in a verb, the target, else
  * the thing used, else the user.
  */
 function findNearbyCenter(effectRun: EffectRun): ThingRef | null {

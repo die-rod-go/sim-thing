@@ -31,7 +31,7 @@ import {
 } from "../world-access";
 import type { WorldState } from "../world-state";
 import { findEffectEntity, requireVerbRun, type EffectHandler, type EffectRun } from "./effect-run";
-import { sendStimulus } from "./stimulus";
+import { sendStimulus } from "../rule-engine";
 
 type MoveEffect = EffectOfType<"move">;
 

@@ -30,16 +30,12 @@ const CATEGORY_BY_KIND: Record<WorldEventKind, EventCategory> = {
   attacked: "action",
   missed: "action",
   hurt: "action",
-  broke: "action",
   dropped: "exchange",
   picked_up: "exchange",
   threw: "action",
   put: "exchange",
   took: "exchange",
-  caught_fire: "action",
-  stopped_burning: "action",
-  condition_started: "action",
-  condition_ended: "action",
+  announced: "action",
   sound: "action",
 };
 

@@ -1,11 +1,4 @@
-import type {
-  Bucket,
-  NeedName,
-  StatName,
-  TraitName,
-  Volume,
-  WorldEventKind,
-} from "@village/shared";
+import type { Bucket, NeedName, StatName, TraitName, Volume } from "@village/shared";
 
 /**
  * Every global tunable in the sim lives here: rates, caps, weights, loudness and budgets. Item
@@ -215,27 +208,18 @@ export const config = {
   },
 
   conditions: {
-    /** Event phrases for a condition that leaves them out of `items.json`; `{words}` is its words. */
-    defaultStartedPhrase: "became {words}",
-    defaultEndedPhrase: "was no longer {words}",
-    /** Added to a condition's or reaction's killed phrase when an agent caused it. */
+    /** Added to a rule's killed phrase when an agent is behind it. */
     causedBySuffix: " after being hurt by {actor}",
-    /** Conditions whose start and end are their own event kinds; the rest use condition_started/ended. */
-    eventKinds: {
-      burning: { started: "caught_fire", ended: "stopped_burning" },
-    } as Record<string, { started: WorldEventKind; ended: WorldEventKind }>,
   },
 
-  reactions: {
-    /** How many reactions one stimulus may set off in a chain before the rest are dropped. */
+  rules: {
+    /** How deep a chain of rules setting off rules may go before the rest are dropped. */
     maxDepth: 8,
   },
 
   effects: {
     /** The event a `make_sound` effect makes; its subject is the thing or agent the sound comes from. */
     soundDescription: "made a loud noise",
-    /** The event for a thing a condition or reaction broke or transformed ("the jar broke"). */
-    thingBrokeDescription: "broke",
   },
 
   traits: {
@@ -311,9 +295,8 @@ export const config = {
     strengthMidpoint: 0.5,
     /** Ticks an agent keeps following a moving target, beyond the first path there, before giving up. */
     chaseTicks: 10,
-    /** Events for damage that isn't an attack, and for something breaking. Their subject is the actor. */
+    /** The event for damage that isn't an attack. Its subject is the actor. */
     hurtDescription: "was hurt",
-    brokePhrase: "broke the {target}",
   },
 
   verbs: {

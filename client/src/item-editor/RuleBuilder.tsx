@@ -1,109 +1,113 @@
-import { RULE_LOCATIONS, type AppliesToRule, type ItemFile } from "@village/shared";
+import { THING_WHERES, type ItemFile, type Matcher } from "@village/shared";
 import { clientConfig } from "../client-config";
 import { removeAt, replaceAt } from "./list-edits";
+import { MatcherInput } from "./MatcherInput";
 import {
-  buildRuleOfKind,
-  changeRuleKind,
-  findRuleKind,
-  isRuleGroup,
-  listRuleParts,
-  RULE_KIND_LABELS,
-  RULE_KINDS,
-  withRuleParts,
+  buildMatcherOfKind,
+  changeMatcherKind,
+  findMatcherKind,
+  isMatcherGroup,
+  listMatcherParts,
+  MATCHER_KIND_LABELS,
+  MATCHER_KINDS,
+  withMatcherParts,
 } from "./rule-edits";
-import { listRuleMatches } from "./verb-edits";
-import { Choice } from "./widgets";
+import { listAppliesToMatches } from "./verb-edits";
+import { Checkbox, Choice } from "./widgets";
 
-function RuleTermValue({
-  rule,
+function MatcherTermValue({
+  matcher,
   file,
   onChange,
 }: {
-  rule: AppliesToRule;
+  matcher: Matcher;
   file: ItemFile;
-  onChange: (rule: AppliesToRule) => void;
+  onChange: (matcher: Matcher) => void;
 }) {
-  if ("definition" in rule) {
+  if ("definition" in matcher) {
     return (
       <Choice
-        value={rule.definition}
+        value={matcher.definition}
         choices={file.definitions.map((definition) => definition.id)}
         onChange={(definition) => onChange({ definition })}
       />
     );
   }
-  if ("component" in rule) {
+  if ("has" in matcher) {
     return (
       <Choice
-        value={rule.component}
+        value={matcher.has}
         choices={Object.keys(file.components)}
-        onChange={(component) => onChange({ component })}
+        onChange={(has) => onChange({ has })}
       />
     );
   }
-  if ("location" in rule) {
+  if ("where" in matcher) {
     return (
       <Choice
-        value={rule.location}
-        choices={RULE_LOCATIONS}
-        onChange={(location) => onChange({ location })}
+        value={matcher.where}
+        choices={THING_WHERES}
+        onChange={(where) => onChange({ where })}
       />
     );
   }
+  if ("field" in matcher) return <MatcherInput matcher={matcher} onChange={onChange} />;
   return null;
 }
 
-/** One node of an `appliesTo` rule: a term, or a group whose parts are nodes too. */
-function RuleNode({
-  rule,
+/** One node of an `appliesTo` matcher: a term, or a group whose parts are nodes too. */
+function MatcherNode({
+  matcher,
   file,
   onChange,
   onRemove,
 }: {
-  rule: AppliesToRule;
+  matcher: Matcher;
   file: ItemFile;
-  onChange: (rule: AppliesToRule) => void;
+  onChange: (matcher: Matcher) => void;
   onRemove?: () => void;
 }) {
-  const parts = listRuleParts(rule);
+  const parts = listMatcherParts(matcher);
   return (
     <div className="rule-node">
       <div className="effect-fields">
         <Choice
-          value={findRuleKind(rule)}
-          choices={RULE_KINDS}
-          labels={RULE_KIND_LABELS}
-          onChange={(kind) => onChange(changeRuleKind(rule, kind, file))}
+          value={findMatcherKind(matcher)}
+          choices={MATCHER_KINDS}
+          labels={MATCHER_KIND_LABELS}
+          onChange={(kind) => onChange(changeMatcherKind(matcher, kind, file))}
         />
-        <RuleTermValue rule={rule} file={file} onChange={onChange} />
+        <MatcherTermValue matcher={matcher} file={file} onChange={onChange} />
         {onRemove && (
           <button className="icon-button" title="Remove this term" onClick={onRemove}>
             ×
           </button>
         )}
       </div>
-      {"not" in rule && (
+      {"not" in matcher && (
         <div className="rule-children">
-          <RuleNode rule={rule.not} file={file} onChange={(not) => onChange({ not })} />
+          <MatcherNode matcher={matcher.not} file={file} onChange={(not) => onChange({ not })} />
         </div>
       )}
-      {isRuleGroup(rule) && (
+      {isMatcherGroup(matcher) && (
         <div className="rule-children">
           {parts.map((part, index) => (
-            <RuleNode
+            <MatcherNode
               key={index}
-              rule={part}
+              matcher={part}
               file={file}
               onChange={(changed) =>
-                onChange(withRuleParts(rule, replaceAt(parts, index, changed)))
+                onChange(withMatcherParts(matcher, replaceAt(parts, index, changed)))
               }
-              onRemove={() => onChange(withRuleParts(rule, removeAt(parts, index)))}
+              onRemove={() => onChange(withMatcherParts(matcher, removeAt(parts, index)))}
             />
           ))}
           <button
             className="icon-button add-button"
             onClick={() =>
-              onChange(withRuleParts(rule, [...parts, buildRuleOfKind("definition", file)]))
+              onChange(
+                withMatcherParts(matcher, [...parts, buildMatcherOfKind("definition", file)]),
+              )
             }
           >
             + term
@@ -114,23 +118,30 @@ function RuleNode({
   );
 }
 
-/** Builds an `appliesTo` rule and lists, live, everything it matches. */
+/** Builds an optional `appliesTo` matcher and lists, live, everything it matches. */
 export function RuleBuilder({
-  rule,
+  matcher,
   file,
   onChange,
 }: {
-  rule: AppliesToRule;
+  matcher: Matcher | undefined;
   file: ItemFile;
-  onChange: (rule: AppliesToRule) => void;
+  onChange: (matcher: Matcher | undefined) => void;
 }) {
-  const matches = listRuleMatches(file, rule);
+  const matches = matcher === undefined ? [] : listAppliesToMatches(file, matcher);
   const { maxListedRuleMatches } = clientConfig.itemEditor;
   const listed = matches.slice(0, maxListedRuleMatches);
   const hiddenCount = matches.length - listed.length;
   return (
     <div className="rule-builder">
-      <RuleNode rule={rule} file={file} onChange={onChange} />
+      <Checkbox
+        label="bare-handed (no appliesTo)"
+        checked={matcher === undefined}
+        onChange={(isBareHanded) =>
+          onChange(isBareHanded ? undefined : buildMatcherOfKind("definition", file))
+        }
+      />
+      {matcher !== undefined && <MatcherNode matcher={matcher} file={file} onChange={onChange} />}
       <p className="field-hint">
         Matches:{" "}
         {matches.length === 0

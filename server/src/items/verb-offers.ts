@@ -1,17 +1,17 @@
 import {
   isEntityId,
-  matchesRule,
+  isBareHanded,
+  matchesAppliesTo,
   resolveBodyComponents,
   resolveEntityComponents,
   type Agent,
   type Entity,
   type ItemCatalog,
-  type RuleSubject,
+  type ThingView,
   type Verb,
 } from "@village/shared";
 import { isDead } from "../status/health";
 import type { EntityWorld } from "./entity-store";
-import { isLyingWhenOnTile } from "./world-physics";
 
 /** Verb names are matched without regard to case or surrounding space. */
 export function normalizeVerbName(name: string): string {
@@ -19,59 +19,53 @@ export function normalizeVerbName(name: string): string {
 }
 
 /**
- * The entity as the agent would use it: held, on the ground, placed, or inside something. Null when
+ * The entity as the agent would use it: held, here on a tile, or inside something. Null when
  * someone else carries it, since nobody can use what another agent holds.
  */
-export function buildEntitySubject(
+export function buildEntityView(
   world: EntityWorld,
   agentId: string,
   entity: Entity,
-): RuleSubject | null {
+): ThingView | null {
   const { location } = entity;
   const base = {
-    kind: "entity" as const,
     definitionId: entity.definitionId,
     components: resolveEntityComponents(world.items, entity),
   };
-  if (location.kind === "inside") {
-    if (isEntityId(location.holderId)) return { ...base, location: "inside" };
-    return location.holderId === agentId ? { ...base, location: "held" } : null;
-  }
-  return { ...base, location: isLyingWhenOnTile(world, entity) ? "ground" : "placed" };
+  if (location.kind === "tile") return { ...base, where: "here" };
+  if (isEntityId(location.holderId)) return { ...base, where: "inside" };
+  return location.holderId === agentId ? { ...base, where: "held" } : null;
+}
+
+export function listVerbsForView(world: EntityWorld, view: ThingView): Verb[] {
+  return world.items.verbs.filter((verb) => matchesAppliesTo(verb, view));
 }
 
 /** Whether a walker may pass the entity by doing a verb on the way (opening a door). */
 export function isPassableInPassing(world: EntityWorld, entity: Entity): boolean {
-  const subject = buildEntitySubject(world, "", entity);
-  return (
-    subject !== null && listVerbsForSubject(world, subject).some((verb) => verb.isDoneInPassing)
-  );
-}
-
-export function listVerbsForSubject(world: EntityWorld, subject: RuleSubject): Verb[] {
-  return world.items.verbs.filter((verb) => matchesRule(verb.appliesTo, subject));
+  const view = buildEntityView(world, "", entity);
+  if (view === null) return false;
+  return listVerbsForView(world, { ...view, where: "here" }).some((verb) => verb.isDoneInPassing);
 }
 
 /** Every verb the agent could use the entity for, in `items.json` order. */
 export function listVerbsForEntity(world: EntityWorld, agentId: string, entity: Entity): Verb[] {
-  const subject = buildEntitySubject(world, agentId, entity);
-  return subject === null ? [] : listVerbsForSubject(world, subject);
+  const view = buildEntityView(world, agentId, entity);
+  return view === null ? [] : listVerbsForView(world, view);
 }
 
-/** Verbs that need no item, like `punch`: their rule matches the user's body. */
-export function listItemlessVerbs(world: EntityWorld, user: Agent): Verb[] {
-  return listVerbsForSubject(world, {
-    kind: "user",
-    components: resolveBodyComponents(world.items, user),
-  });
+/** Verbs that need no item, like `punch`: the ones without an `appliesTo`. */
+export function listItemlessVerbs(world: EntityWorld, _user: Agent): Verb[] {
+  return world.items.verbs.filter(isBareHanded);
 }
 
 /** Verbs a dead agent's body offers, like `take`; none while the agent lives. */
 export function listVerbsForBody(world: EntityWorld, body: Agent): Verb[] {
   if (!isDead(body)) return [];
-  return listVerbsForSubject(world, {
-    kind: "dead_agent",
+  return listVerbsForView(world, {
+    definitionId: world.items.world.agentBody,
     components: resolveBodyComponents(world.items, body),
+    where: "here",
   });
 }
 

@@ -131,14 +131,13 @@ describe("attacking someone", () => {
 });
 
 describe("breaking things", () => {
-  it("breaks a door whose health runs out, which then no longer blocks sight", () => {
+  it("destroys a door without a broken form once its health runs out, so it no longer blocks sight", () => {
     const sim = setUp(["mara"]);
     const door = findEntityByLabel(sim.state, "bakery door");
     if (door.location.kind !== "tile") throw new Error("the door isn't placed");
     const doorTile = tileIndex(sim.state.map.grid, door.location.pos);
     addComponent(contextOf(sim), entityThing(door), "closed", {
       minutes: null,
-      sourceAgentId: null,
     });
     setField(sim, entityThing(door), "health.current", 0.01);
     sim.placeAgent("mara", { x: door.location.pos.x, y: door.location.pos.y + 1 });
@@ -149,18 +148,21 @@ describe("breaking things", () => {
     const finished = finish(sim, "mara");
     expect(findEntityIfPresent(sim.state, door.id)).toBeUndefined();
     expect(buildPerceptionWorld(sim.state).sightBlockingTiles.has(doorTile)).toBe(false);
-    expect(finished.result.events.map((event) => event.description)).toContain(
-      "broke the bakery door",
+    expect(finished.result.events.filter((event) => event.kind === "announced")).toContainEqual(
+      expect.objectContaining({ actorName: "the bakery door", description: "broke" }),
     );
   });
 
-  it("turns a knife worn to nothing into a broken knife through onBroken", () => {
+  it("turns a knife worn to nothing into a broken knife, seen as it breaking", () => {
     const sim = setUp();
     const knife = handOver(sim, "mara", "knife");
     setField(sim, entityThing(knife), "health.current", 0.001);
     fixRolls(sim, ALWAYS_MISS);
     aimWith(sim, "mara", knife, "attack", "Tobias");
-    finish(sim, "mara");
+    const finished = finish(sim, "mara");
+    expect(finished.result.events).toContainEqual(
+      expect.objectContaining({ kind: "announced", actorName: "the knife", description: "broke" }),
+    );
     const broken = findEntityIfPresent(sim.state, knife.id);
     expect(broken && getDefinition(sim.state, broken).id).toBe("broken_knife");
     expect(broken?.location).toEqual({ kind: "inside", holderId: "mara" });

@@ -1,7 +1,7 @@
 import {
   describeCount,
-  listDefinitionSubjects,
-  matchesRule,
+  listDefinitionViews,
+  matchesAppliesTo,
   type ItemDefinition,
   type ItemFile,
 } from "@village/shared";
@@ -12,11 +12,11 @@ import {
  * format for a single stateless entity.
  */
 export function describeItemPreview(file: ItemFile, definition: ItemDefinition): string {
-  const [subject] = listDefinitionSubjects(file, definition);
+  const [view] = listDefinitionViews(file, definition);
   const verbNames =
-    subject === undefined
+    view === undefined
       ? []
-      : file.verbs.filter((verb) => matchesRule(verb.appliesTo, subject)).map((verb) => verb.name);
+      : file.verbs.filter((verb) => matchesAppliesTo(verb, view)).map((verb) => verb.name);
   const uniqueNames = [...new Set(verbNames)];
   const text = describeCount(definition, 1);
   return uniqueNames.length > 0 ? `${text} (${uniqueNames.join(", ")})` : text;

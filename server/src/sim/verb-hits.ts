@@ -53,7 +53,7 @@ export function prefixPhrases(phrases: AimedPhrases, prefix: string): AimedPhras
 export function computeLoudness(state: WorldState, verb: Verb, run: VerbRun): number | null {
   return verb.loudness === null
     ? null
-    : resolveNumber(verb.loudness, readRunComponents(state, run));
+    : resolveNumber(verb.loudness, { item: readRunComponents(state, run), self: null });
 }
 
 function aimTargetId(aim: VerbAim): string {
@@ -81,7 +81,10 @@ function describeDefender(state: WorldState, run: VerbRun, aim: VerbAim): Defend
 /** The hit roll, on the seeded generator: agility against agility, sleepers and things always hit. */
 export function rollForHit(state: WorldState, run: VerbRun, verb: Verb): boolean {
   if (!verb.hitRoll || !run.aim) return true;
-  const baseHitChance = resolveNumber(verb.hitRoll.baseHitChance, readRunComponents(state, run));
+  const baseHitChance = resolveNumber(verb.hitRoll.baseHitChance, {
+    item: readRunComponents(state, run),
+    self: null,
+  });
   const attacker = findAgent(state, run.agentId);
   const chance = computeHitChance(
     baseHitChance,

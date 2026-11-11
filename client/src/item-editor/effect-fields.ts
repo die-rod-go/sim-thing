@@ -20,6 +20,9 @@ export type EffectFieldKind =
   | "need"
   | "condition"
   | "definition"
+  | "definition_value"
+  | "text"
+  | "scalar"
   | "choice";
 
 export interface EffectFieldSpec {
@@ -58,7 +61,19 @@ export const EFFECT_FIELD_SPECS: Record<EffectType, readonly EffectFieldSpec[]> 
     { key: "into", kind: "choice", choices: ["user", "ground"] },
   ],
   wear: [{ key: "amount", kind: "number" }],
-  transform: [{ key: "into", kind: "definition" }],
+  transform: [{ key: "into", kind: "definition_value" }],
+  set: [
+    { key: "field", kind: "text" },
+    { key: "to", kind: "scalar" },
+  ],
+  change: [
+    { key: "field", kind: "text" },
+    { key: "by", kind: "number" },
+  ],
+  announce: [
+    { key: "text", kind: "text" },
+    { key: "isPrivate", kind: "boolean" },
+  ],
   destroy: [],
   take_stock: [{ key: "amount", kind: "number" }],
   move: [{ key: "to", kind: "choice", choices: ["ground", "user", "item", "target_tile"] }],
@@ -73,8 +88,8 @@ export const EFFECT_TYPES = Object.keys(EFFECT_FIELD_SPECS) as EffectType[];
 /** Modifiers kept behind the "more" toggle of an effect row. */
 export const MORE_MODIFIER_KEYS = ["chance", "when", "requiresHit"] as const;
 
-/** Where an effect list sits: verbs aim at more subjects than conditions, reactions and onBroken. */
-export type EffectOwner = "verb" | "condition" | "reaction" | "on_broken";
+/** Where an effect list sits: verbs aim at more subjects than rules, which act on the matched thing. */
+export type EffectOwner = "verb" | "rule";
 
 const VERB_SUBJECTS: readonly EffectSubject[] = ["target", "user", "item", "chosen", "nearby"];
 const SELF_SUBJECTS: readonly EffectSubject[] = ["self", "nearby"];
@@ -91,6 +106,10 @@ function buildDefaultFieldValue(spec: EffectFieldSpec, file: ItemFile, stimuli: 
       return 0;
     case "range":
       return { min: 0, max: 0 };
+    case "text":
+      return itemEditor.newTextValue;
+    case "scalar":
+      return 0;
     case "stimulus":
       return stimuli[0] ?? itemEditor.newStimulusName;
     case "boolean":
@@ -98,8 +117,9 @@ function buildDefaultFieldValue(spec: EffectFieldSpec, file: ItemFile, stimuli: 
     case "need":
       return NEED_NAMES[0];
     case "condition":
-      return file.conditions[0]?.name ?? itemEditor.newConditionName;
+      return Object.keys(file.components)[0] ?? itemEditor.newComponentName;
     case "definition":
+    case "definition_value":
       return file.definitions[0]?.id ?? itemEditor.newDefinitionId;
     case "choice":
       return spec.choices?.[0];

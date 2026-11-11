@@ -11,36 +11,9 @@ import { matcherSchema } from "./matcher-schema";
 
 /*
  * The shape of `seeds/items.json`: the world settings, component declarations, item definitions,
- * verbs, conditions and reactions. Cross-references (unknown names, rules a verb's numbers depend
- * on, overlapping verbs) are checked by `findItemFileProblems`.
+ * verbs and rules. Cross-references (unknown names, what a verb's or rule's numbers depend on,
+ * overlapping verbs) are checked by `findItemFileProblems`.
  */
-
-export const RULE_LOCATIONS = ["held", "ground", "placed"] as const;
-export type RuleLocation = (typeof RULE_LOCATIONS)[number];
-
-/** Which entities and agents offer a verb. Terms combine with `anyOf`, `allOf` and `not`. */
-export type AppliesToRule =
-  | { definition: string }
-  | { component: string }
-  | { location: RuleLocation }
-  | { isDeadAgent: true }
-  | { isUser: true }
-  | { anyOf: AppliesToRule[] }
-  | { allOf: AppliesToRule[] }
-  | { not: AppliesToRule };
-
-export const appliesToRuleSchema: z.ZodType<AppliesToRule> = z.lazy(() =>
-  z.union([
-    z.strictObject({ definition: identifierSchema }),
-    z.strictObject({ component: identifierSchema }),
-    z.strictObject({ location: z.enum(RULE_LOCATIONS) }),
-    z.strictObject({ isDeadAgent: z.literal(true) }),
-    z.strictObject({ isUser: z.literal(true) }),
-    z.strictObject({ anyOf: z.array(appliesToRuleSchema) }),
-    z.strictObject({ allOf: z.array(appliesToRuleSchema) }),
-    z.strictObject({ not: appliesToRuleSchema }),
-  ]),
-);
 
 export const VERB_TARGETS = ["none", "agent", "entity", "agent_or_entity"] as const;
 export type VerbTarget = (typeof VERB_TARGETS)[number];
@@ -55,19 +28,10 @@ const phrasesSchema = z.strictObject({
 });
 export type VerbPhrases = z.infer<typeof phrasesSchema>;
 
-const killedPhraseSchema = z.strictObject({ killed: z.string().optional() });
-
-/** How a condition's start and end read as events ("caught fire", "stopped burning"). */
-const conditionPhrasesSchema = z.strictObject({
-  killed: z.string().optional(),
-  started: z.string().optional(),
-  ended: z.string().optional(),
-});
-export type ConditionPhrases = z.infer<typeof conditionPhrasesSchema>;
-
 export const verbSchema = z.strictObject({
   name: z.string().trim().min(1),
-  appliesTo: appliesToRuleSchema,
+  /** The thing the verb is done with or to. Omitted for a bare-handed verb (`punch`). */
+  appliesTo: matcherSchema.optional(),
   target: z.enum(VERB_TARGETS).default("none"),
   canTargetSelf: z.boolean().default(false),
   reach: numberValueSchema.default(1),
@@ -93,30 +57,30 @@ export const verbSchema = z.strictObject({
 });
 export type Verb = z.infer<typeof verbSchema>;
 
-/**
- * What a component does while a thing has it, and how its start and end read. The state itself is
- * the component: an `add_condition` effect adds it for `defaultMinutes`. Any other component can be
- * added and removed the same way; it then lasts until removed and nothing announces it.
- */
-export const conditionSchema = z.strictObject({
-  /** The component's name. */
-  name: identifierSchema,
-  /** Null: lasts until something removes it. */
-  defaultMinutes: z.number().positive().nullable(),
-  everyMinute: z.array(effectSchema).default([]),
-  onEnd: z.array(effectSchema).default([]),
-  phrases: conditionPhrasesSchema.default({}),
-});
-export type ConditionDefinition = z.infer<typeof conditionSchema>;
-
-export const reactionSchema = z.strictObject({
-  stimulus: z.string().min(1),
-  /** Which receivers of the stimulus react. */
+const ruleParts = {
+  /** Which things the rule fires on. */
   if: matcherSchema,
   effects: z.array(effectSchema),
-  phrases: killedPhraseSchema.default({}),
-});
-export type Reaction = z.infer<typeof reactionSchema>;
+  /** How a death from this rule's damage reads ("burned to death"). */
+  killed: z.string().trim().min(1).optional(),
+};
+
+/**
+ * Effects on a trigger other than an agent's choice: every few sim-minutes on each matching thing,
+ * when a stimulus reaches a matching thing, or the moment a thing starts matching.
+ */
+export const ruleSchema = z.discriminatedUnion("trigger", [
+  z.strictObject({
+    trigger: z.literal("every"),
+    minutes: z.number().int().positive(),
+    ...ruleParts,
+  }),
+  z.strictObject({ trigger: z.literal("stimulus"), stimulus: z.string().min(1), ...ruleParts }),
+  z.strictObject({ trigger: z.literal("becomes"), ...ruleParts }),
+]);
+export type Rule = z.infer<typeof ruleSchema>;
+export type RuleTrigger = Rule["trigger"];
+export type RuleOfTrigger<Trigger extends RuleTrigger> = Extract<Rule, { trigger: Trigger }>;
 
 export const itemDefinitionSchema = z.strictObject({
   id: identifierSchema,
@@ -126,8 +90,6 @@ export const itemDefinitionSchema = z.strictObject({
   glyph: glyphSchema,
   /** Component name to its field values. */
   components: z.record(identifierSchema, componentValuesSchema).default({}),
-  /** Runs when the health field reaches 0; without it the entity is destroyed. */
-  onBroken: z.array(effectSchema).optional(),
 });
 export type ItemDefinition = z.infer<typeof itemDefinitionSchema>;
 
@@ -145,7 +107,7 @@ export const worldSettingsSchema = z.strictObject({
   shownWhenCarried: matcherSchema.optional(),
   /** A matching entity on a tile reads as lying on the floor or the ground. */
   lyingWhenOnTile: matcherSchema.optional(),
-  /** Validation warns when a verb or reaction could make or destroy a matching thing. */
+  /** Validation warns when a verb or rule could make or destroy a matching thing. */
   closedSupply: matcherSchema.optional(),
   /** The definition of every agent's body. */
   agentBody: identifierSchema,
@@ -169,8 +131,7 @@ export const itemFileSchema = z.strictObject({
   components: z.record(identifierSchema, componentDeclarationSchema),
   definitions: z.array(itemDefinitionSchema),
   verbs: z.array(verbSchema),
-  conditions: z.array(conditionSchema).default([]),
-  reactions: z.array(reactionSchema).default([]),
+  rules: z.array(ruleSchema).default([]),
 });
 
 export type ItemFile = z.infer<typeof itemFileSchema>;
