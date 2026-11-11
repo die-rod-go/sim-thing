@@ -8,6 +8,7 @@ import {
   listTileEntitiesAt,
 } from "../items/entity-store";
 import { describeEntityCondition } from "../items/stock";
+import { listConditionWords } from "../status/conditions";
 import { listItemlessVerbs, listVerbsForBody, listVerbsForEntity } from "../items/verb-offers";
 import { describeItemCounts } from "./action-phrases";
 import {
@@ -39,6 +40,15 @@ function groupKey(state: WorldState, agentId: string, entity: Entity): string {
     : `entity:${entity.id}`;
 }
 
+/** "closed, on fire": what shows of its state, then its visible conditions. */
+function describeSeenState(state: WorldState, entity: Entity): string | null {
+  const parts = [
+    describeEntityCondition(state, entity),
+    ...listConditionWords(state.items, entity.state.conditions, true),
+  ].filter((part): part is string => part !== null);
+  return parts.length > 0 ? parts.join(", ") : null;
+}
+
 function listVerbNames(state: WorldState, agentId: string, entity: Entity): string[] {
   return [...new Set(listVerbsForEntity(state, agentId, entity).map((verb) => verb.name))];
 }
@@ -65,7 +75,7 @@ function describeGroundWords(state: WorldState, entity: Entity): string | null {
 
 function describeEntityDetails(state: WorldState, agentId: string, entity: Entity): string | null {
   const details = [
-    describeEntityCondition(state, entity),
+    describeSeenState(state, entity),
     describeGroundWords(state, entity),
     describeContents(state, listReachableContents(state, agentId, entity)),
   ].filter((detail): detail is string => detail !== null);

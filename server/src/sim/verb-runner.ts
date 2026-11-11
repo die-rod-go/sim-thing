@@ -194,6 +194,8 @@ export function startVerbNow(
     run,
     text: request.text ?? "",
     minutes: request.minutes,
+    sourceAgentId: agentId,
+    reactionDepth: 0,
   };
   const blocker =
     findAimedBlocker(state, use.verb, run) ??
@@ -318,9 +320,16 @@ export function finishRunningVerb(context: TickContext, agentId: string): void {
   const finishing = hasChosenEffects(verb)
     ? { ...run, chosenEntityIds: listStillChosen(state, run, verb) }
     : run;
+  const checkRun: EffectRun = {
+    context,
+    verb,
+    run: finishing,
+    text: "",
+    sourceAgentId: agentId,
+    reactionDepth: 0,
+  };
   const blocker =
-    findFinishBlocker(state, run, verb) ??
-    findEffectsBlocker({ context, verb, run: finishing, text: "" }, effectsAt(verb, "finish"));
+    findFinishBlocker(state, run, verb) ?? findEffectsBlocker(checkRun, effectsAt(verb, "finish"));
   if (blocker !== null) {
     failRun(context, run, blocker);
     return;
@@ -338,6 +347,8 @@ export function finishRunningVerb(context: TickContext, agentId: string): void {
     verb,
     run: finishing,
     text: "",
+    sourceAgentId: agentId,
+    reactionDepth: 0,
     isAttackAnnounced: verb.hitRoll !== undefined,
     isHit,
   };

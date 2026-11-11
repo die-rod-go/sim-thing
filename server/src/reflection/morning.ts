@@ -10,6 +10,8 @@ const MORNING_TEMPLATE = "morning";
 
 export interface MorningPassInput {
   agent: Agent;
+  /** Words for the agent's conditions ("bleeding"), shown with its status. */
+  conditionWords?: readonly string[];
   /** Last night's summary, mood entry and insights; see `selectLatestNightReflections`. */
   recentReflections: readonly Memory[];
   callStructured: StructuredCaller;
@@ -28,7 +30,7 @@ export function buildMorningPrompt(input: MorningPassInput): string {
     selfImage: agent.personality.selfImage,
     mood: agent.mood,
     body: describeStats(agent.body),
-    status: describeStatus(agent),
+    status: describeStatus(agent, input.conditionWords),
     goals: describeGoals(agent.goals),
     reflections: describeReflections(input.recentReflections, "Nothing in particular."),
     simTime: input.timeText,

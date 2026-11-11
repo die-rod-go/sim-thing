@@ -165,6 +165,7 @@ export function VillageView({
             agents={state.agents}
             entities={state.entities}
             itemDefinitions={state.itemDefinitions}
+            conditionDefinitions={state.conditionDefinitions}
             speechBubbles={state.speechBubbles}
             thoughtsByAgent={thoughtsByAgent}
             timeSettings={state.timeSettings}

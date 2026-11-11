@@ -110,8 +110,8 @@ function draftsForParticipants(
   perceptions: readonly EventPerception[],
   context: FilingContext,
 ): MemoryDraft[] {
-  // The dead remember nothing more, not even dying.
-  if (event.kind === "died") return [];
+  // The dead remember nothing more, not even dying; a thing remembers nothing at all.
+  if (event.kind === "died" || event.isActorThing === true) return [];
   const tags = eventTags(event, context, true);
   const actorDraft: MemoryDraft = isSpeech(event)
     ? {

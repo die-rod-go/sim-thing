@@ -31,7 +31,8 @@ const ticksPerHour = 60 / config.clock.minutesPerTick;
 /**
  * Runs all seed agents with the fake LLM responder and checks the brief's done-when conditions:
  * no crash, no awake agent left without an action or decision for over a sim-hour, every decided
- * act traceable to a stored LLM call, and every agent's buckets within their cap.
+ * act traceable to a stored LLM call, every agent's buckets within their cap, and no reaction
+ * chain cut off at the depth cap. Any thrown error ends the run with that error.
  */
 export async function runSoak(options: SoakOptions): Promise<SoakReport> {
   const personalityChanges: Omit<PersonalityChange, "id">[] = [];
@@ -61,6 +62,7 @@ export async function runSoak(options: SoakOptions): Promise<SoakReport> {
     // Prompts are large; keep only what the checks need so long runs stay small.
     sim.records.length = 0;
     eventCount += result.events.length;
+    problems.push(...result.reactionCapHits);
     for (const event of result.events) {
       const isDecided = DECIDED_EVENT_KINDS.includes(event.kind);
       if (isDecided && !callTicksByAgent.get(event.actorId)?.has(event.tick)) {

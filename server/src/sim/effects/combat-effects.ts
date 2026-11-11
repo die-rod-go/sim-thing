@@ -9,7 +9,7 @@ import { applyDamage } from "../damage";
 import { broadcastEvent } from "../event-broadcast";
 import { createEvent } from "../event-factory";
 import { findAgent, markAgentChanged, markEntityChanged, replaceAgent } from "../world-access";
-import { lowerDurability } from "./breaking";
+import { announceUnverbedBreaking, lowerDurability } from "./breaking";
 import {
   findEffectAgentId,
   findEffectEntity,
@@ -24,27 +24,37 @@ function rollDamageAmount(effectRun: EffectRun, effect: EffectOfType<"damage">):
   const { state } = effectRun.context;
   const range = resolveRange(effect.amount, findUsedDefinition(effectRun));
   const amount = pickWithinRange(range, state.random.next());
-  if (!effect.scaledByStrength) return amount;
-  return scaleByStrength(amount, findAgent(state, effectRun.run.agentId).body.strength);
+  const { run } = effectRun;
+  if (!effect.scaledByStrength || run === null) return amount;
+  return scaleByStrength(amount, findAgent(state, run.agentId).body.strength);
 }
 
-/** The death this damage would cause: the verb's killed phrase, `{actor}` filled in later. */
+/**
+ * The death this damage would cause: the verb's killed phrase, or the condition's or reaction's;
+ * `{actor}` is filled in later.
+ */
 function describeKilling(effectRun: EffectRun): string {
   const { run, verb } = effectRun;
+  if (verb === null || run === null) return effectRun.killed ?? "";
   return describeVerbPhrase(verb, "killed", { item: run.usedName, target: run.aimName });
 }
 
-/** Damage that no attack event already shows (a verb hurting its own user) is seen as `hurt`. */
-function isShownByAttack(effectRun: EffectRun, agentId: string): boolean {
-  const { aim } = effectRun.run;
+/**
+ * Damage that no attack event already shows (a verb hurting its own user) is seen as `hurt`. A
+ * condition's or reaction's damage makes none: its start and end events show it, not every minute.
+ */
+function isHurtShown(effectRun: EffectRun, agentId: string): boolean {
+  const { run } = effectRun;
+  if (run === null) return true;
+  const { aim } = run;
   return effectRun.isAttackAnnounced === true && aim?.kind === "agent" && aim.agentId === agentId;
 }
 
 function hurtAgent(effectRun: EffectRun, agentId: string, amount: number): void {
-  const { context, run } = effectRun;
+  const { context } = effectRun;
   const { state, result } = context;
   if (isDead(findAgent(state, agentId))) return;
-  if (!isShownByAttack(effectRun, agentId)) {
+  if (!isHurtShown(effectRun, agentId)) {
     const hurt = findAgent(state, agentId);
     const description = config.combat.hurtDescription;
     broadcastEvent(state, createEvent(state, hurt, { kind: "hurt", description }), result);
@@ -52,7 +62,7 @@ function hurtAgent(effectRun: EffectRun, agentId: string, amount: number): void 
   applyDamage(context, agentId, {
     amount,
     killed: describeKilling(effectRun),
-    sourceAgentId: run.agentId,
+    sourceAgentId: effectRun.sourceAgentId,
   });
 }
 
@@ -111,6 +121,7 @@ export const transformEffect: EffectHandler<"transform"> = {
     const { state, result } = effectRun.context;
     const definition = state.items.definitionsById.get(effect.into);
     if (!definition) throw new Error(`Unknown item "${effect.into}" to transform into`);
+    announceUnverbedBreaking(effectRun, entity.id);
     replaceEntity(state, {
       ...entity,
       definitionId: definition.id,

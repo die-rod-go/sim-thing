@@ -201,6 +201,14 @@ export type VerbPhrases = z.infer<typeof phrasesSchema>;
 
 const killedPhraseSchema = z.strictObject({ killed: z.string().optional() });
 
+/** How a condition's start and end read as events ("caught fire", "stopped burning"). */
+const conditionPhrasesSchema = z.strictObject({
+  killed: z.string().optional(),
+  started: z.string().optional(),
+  ended: z.string().optional(),
+});
+export type ConditionPhrases = z.infer<typeof conditionPhrasesSchema>;
+
 export const verbSchema = z.strictObject({
   name: z.string().trim().min(1),
   appliesTo: appliesToRuleSchema,
@@ -236,7 +244,7 @@ export const conditionSchema = z.strictObject({
   defaultMinutes: z.number().positive().nullable(),
   everyMinute: z.array(effectSchema).default([]),
   onEnd: z.array(effectSchema).default([]),
-  phrases: killedPhraseSchema.default({}),
+  phrases: conditionPhrasesSchema.default({}),
 });
 export type ConditionDefinition = z.infer<typeof conditionSchema>;
 

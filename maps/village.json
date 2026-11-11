@@ -1097,7 +1097,7 @@
    "imagewidth": 128,
    "imageheight": 64,
    "columns": 8,
-   "tilecount": 25,
+   "tilecount": 27,
    "tilewidth": 16,
    "tileheight": 16,
    "margin": 0,
@@ -1369,6 +1369,28 @@
     },
     {
      "id": 24,
+     "type": "jar",
+     "properties": [
+      {
+       "name": "collides",
+       "type": "bool",
+       "value": false
+      }
+     ]
+    },
+    {
+     "id": 25,
+     "type": "shards",
+     "properties": [
+      {
+       "name": "collides",
+       "type": "bool",
+       "value": false
+      }
+     ]
+    },
+    {
+     "id": 26,
      "type": "chest",
      "properties": [
       {

@@ -45,6 +45,8 @@ export interface AwarenessEntry {
   healthAsSeen: string | null;
   /** What they carry that shows ("a knife"), when they're in sight. */
   visibleCarried: string[];
+  /** Their visible conditions' words ("bleeding", "on fire"), when they're in sight. */
+  visibleConditions: string[];
 }
 
 export interface AroundYou {
@@ -81,6 +83,8 @@ export interface DecisionContext {
   mood: string;
   needs: Needs;
   health: number;
+  /** Words for every condition the agent has ("bleeding", "poisoned"). */
+  conditionWords: string[];
   body: AgentBody;
   goals: Goal[];
   dailyPlan: string;

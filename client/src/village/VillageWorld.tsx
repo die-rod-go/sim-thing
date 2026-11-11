@@ -1,7 +1,14 @@
 import { useCallback, useLayoutEffect, useMemo, useRef, useState } from "react";
-import type { Agent, Entity, ItemDefinition, SimTimeSettings } from "@village/shared";
+import type {
+  Agent,
+  ConditionDefinition,
+  Entity,
+  ItemDefinition,
+  SimTimeSettings,
+} from "@village/shared";
 import { clientConfig } from "../client-config";
 import { buildAgentColors } from "../format/agent-colors";
+import { listVisibleConditions } from "../format/conditions";
 import type { SpeechBubble } from "../state/client-state";
 import { pickActivityCue, type ConversationLink } from "./activity-cues";
 import { retargetMotion, type AgentMotion } from "./agent-motion";
@@ -12,6 +19,7 @@ import { PerceptionOverlay, type PerceptionView } from "./perception-overlay";
 import { ConversationLinks, PlaceLabels } from "./screen-overlays";
 import { groupBubblesBySpeaker, SpeechBubbleStack, useLiveSpeechBubbles } from "./SpeechBubbles";
 import type { VisibleThought } from "./thought-bubbles";
+import { EntityConditionOverlays } from "./EntityConditionOverlays";
 import { EntitySprites } from "./EntitySprites";
 import { TileCanvas } from "./TileCanvas";
 import type { TiledMap } from "./tiled-map";
@@ -33,6 +41,7 @@ interface VillageWorldProps {
   agents: Agent[];
   entities: readonly Entity[];
   itemDefinitions: readonly ItemDefinition[];
+  conditionDefinitions: readonly ConditionDefinition[];
   speechBubbles: SpeechBubble[];
   thoughtsByAgent: ReadonlyMap<string, VisibleThought>;
   timeSettings: SimTimeSettings;
@@ -191,6 +200,11 @@ export function VillageWorld(props: VillageWorldProps) {
           definitions={props.itemDefinitions}
         />
         <div className="village-tint" style={{ background: props.daylightTint }} />
+        <EntityConditionOverlays
+          entities={props.entities}
+          definitions={props.conditionDefinitions}
+          tileSize={map.tileWidth}
+        />
         {props.perceptionView && (
           <PerceptionOverlay
             view={props.perceptionView}
@@ -214,6 +228,7 @@ export function VillageWorld(props: VillageWorldProps) {
             isSpeaking={bubblesBySpeaker.has(agent.id)}
             isMuted={props.mutedSpeakers.has(agent.id)}
             isDead={agent.death !== null}
+            visibleConditions={listVisibleConditions(agent.conditions, props.conditionDefinitions)}
             activityCue={pickActivityCue(agent.currentAction, activity)}
             markerRef={world.markers.register(agent.id)}
             onSelect={props.onSelectAgent}
@@ -238,6 +253,7 @@ export function VillageWorld(props: VillageWorldProps) {
         ))}
         <HoverCard
           agent={hoveredAgent}
+          conditionDefinitions={props.conditionDefinitions}
           color={hoveredAgent ? (agentColors.get(hoveredAgent.id) ?? "white") : "white"}
           timeSettings={props.timeSettings}
           cardRef={setHoverCardElement}

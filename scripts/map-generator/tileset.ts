@@ -28,6 +28,8 @@ export const TILE_NAMES = [
   "knife",
   "broken_knife",
   "bandage",
+  "jar",
+  "shards",
   "chest",
 ] as const;
 
@@ -235,6 +237,16 @@ const tilePainters: Record<TileName, (painter: Painter) => void> = {
   bandage: (painter) => {
     fillRect(painter, 4, 5, 8, 6, colors.linen);
     fillRect(painter, 6, 7, 4, 2, colors.blanket);
+  },
+  jar: (painter) => {
+    fillRect(painter, 5, 3, 6, 2, colors.crust);
+    fillRect(painter, 4, 5, 8, 9, colors.ovenBrick);
+    fillRect(painter, 6, 7, 2, 4, colors.crumb);
+  },
+  shards: (painter) => {
+    fillRect(painter, 3, 10, 3, 2, colors.ovenBrick);
+    fillRect(painter, 8, 8, 2, 3, colors.ovenBrick);
+    fillRect(painter, 11, 11, 3, 2, colors.ovenBrick);
   },
   chest: (painter) => {
     fillRect(painter, 1, 4, 14, 10, colors.wood);

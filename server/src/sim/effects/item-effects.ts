@@ -9,7 +9,13 @@ import {
 import { resolveNumber } from "../../items/verb-numbers";
 import type { TickResult, WorldState } from "../world-state";
 import { findAgent, markEntityChanged, markEntityRemoved } from "../world-access";
-import { findEffectEntity, findUsedDefinition, type EffectHandler } from "./effect-run";
+import { announceUnverbedBreaking } from "./breaking";
+import {
+  findEffectEntity,
+  findUsedDefinition,
+  requireVerbRun,
+  type EffectHandler,
+} from "./effect-run";
 
 function locateAtFeet(state: WorldState, agentId: string): EntityLocation {
   const agent = findAgent(state, agentId);
@@ -29,7 +35,7 @@ export const produceEffect: EffectHandler<"produce"> = {
       Math.round(resolveNumber(effect.count, findUsedDefinition(effectRun))),
     );
     for (let made = 0; made < count; made += 1) {
-      const location = locateWith(state, effectRun.run.agentId, effect.into);
+      const location = locateWith(state, requireVerbRun(effectRun, effect).agentId, effect.into);
       markEntityChanged(result, createEntity(state, effect.item, location).id);
     }
     return { made: { definitionId: effect.item, count } };
@@ -51,6 +57,7 @@ export const destroyEffect: EffectHandler<"destroy"> = {
   apply(effectRun, effect) {
     const entity = findEffectEntity(effectRun, effect);
     if (!entity) return {};
+    announceUnverbedBreaking(effectRun, entity.id);
     spillContents(effectRun.context.state, effectRun.context.result, entity);
     removeEntity(effectRun.context.state, entity.id);
     markEntityRemoved(effectRun.context.result, entity.id);

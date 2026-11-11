@@ -18,6 +18,8 @@ export type PersonalityChangeDraft = Omit<PersonalityChange, "id">;
 
 export interface WeeklyPassInput {
   agent: Agent;
+  /** Words for the agent's conditions ("bleeding"), shown with its status. */
+  conditionWords?: readonly string[];
   store: MemoryReader;
   callStructured: StructuredCaller;
   tick: number;
@@ -40,7 +42,7 @@ export function buildWeeklyPrompt(input: WeeklyPassInput): string {
     core: agent.personality.core,
     selfImage: agent.personality.selfImage,
     body: describeStats(agent.body),
-    status: describeStatus(agent),
+    status: describeStatus(agent, input.conditionWords),
     traits: describeTraitValues(agent.personality.traits),
     goals: describeGoalsWithKind(agent.goals),
     daySummaries: describeReflections(summaries, "No days recorded."),

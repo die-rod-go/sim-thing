@@ -45,20 +45,4 @@ describe("loading items.json", () => {
   it("refuses a malformed file", () => {
     expect(() => buildCheckedItemCatalog({ definitions: "none" }, [])).toThrow(/malformed/);
   });
-
-  it("refuses content this build can't run yet rather than ignoring it", () => {
-    const file = itemsJson as { verbs: unknown[] };
-    const withPunch = {
-      ...file,
-      verbs: [
-        ...file.verbs,
-        {
-          name: "shout",
-          appliesTo: { isUser: true },
-          effects: [{ type: "emit", on: "user", stimulus: "noise" }],
-        },
-      ],
-    };
-    expect(() => buildCheckedItemCatalog(withPunch, [])).toThrow(/The emit effect isn't built yet/);
-  });
 });

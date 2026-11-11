@@ -18,26 +18,29 @@ import {
 } from "../world-access";
 import {
   describeEffectEntity,
+  describeEffectOwner,
   findEffectEntity,
+  requireVerbRun,
   type EffectHandler,
   type EffectRun,
 } from "./effect-run";
 
 function requireEntity(effectRun: EffectRun, entity: Entity | undefined): Entity {
-  if (!entity) throw new Error(`"${effectRun.verb.name}" lost the thing it was used on`);
+  if (!entity) throw new Error(`${describeEffectOwner(effectRun)} lost the thing it was used on`);
   return entity;
 }
 
 /** Falls asleep in the bed; the sleep ends by its own rules (rested, hungry, nap over, woken). */
 export const sleepEffect: EffectHandler<"sleep"> = {
-  findBlocker(effectRun) {
+  findBlocker(effectRun, effect) {
     return findSleepBlocker(
-      findAgent(effectRun.context.state, effectRun.run.agentId),
+      findAgent(effectRun.context.state, requireVerbRun(effectRun, effect).agentId),
       effectRun.minutes,
     );
   },
   apply(effectRun, effect) {
-    const { context, run } = effectRun;
+    const { context } = effectRun;
+    const run = requireVerbRun(effectRun, effect);
     const { state, result } = context;
     const bed = requireEntity(effectRun, findEffectEntity(effectRun, effect));
     const bedName = describeEffectEntity(effectRun, bed);
@@ -83,7 +86,7 @@ function buildNoteMemory(state: WorldState, readerId: string, board: Entity, not
 export const readNotesEffect: EffectHandler<"read_notes"> = {
   apply(effectRun, effect) {
     const { state } = effectRun.context;
-    const readerId = effectRun.run.agentId;
+    const readerId = requireVerbRun(effectRun, effect).agentId;
     const board = requireEntity(effectRun, findEffectEntity(effectRun, effect));
     const notes = readNoticeBoard(board);
     if (notes.length === 0) {
@@ -123,7 +126,7 @@ export const postNoteEffect: EffectHandler<"post_note"> = {
     const { state, result } = effectRun.context;
     const board = requireEntity(effectRun, findEffectEntity(effectRun, effect));
     const boardName = describeEffectEntity(effectRun, board);
-    const author = findAgent(state, effectRun.run.agentId);
+    const author = findAgent(state, requireVerbRun(effectRun, effect).agentId);
     const posted = postNote(
       board,
       boardName,

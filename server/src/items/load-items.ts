@@ -37,19 +37,13 @@ export function listItemReferences(map: WorldMap, seedFile: SeedFile): ItemRefer
   ];
 }
 
-const UNBUILT_SUBJECTS: ReadonlySet<string> = new Set(["nearby"]);
-
 function findUnbuiltEffectProblem(effect: Effect): string | null {
-  if (!isEffectBuilt(effect.type)) return `The ${effect.type} effect isn't built yet.`;
-  if (effect.on !== undefined && UNBUILT_SUBJECTS.has(effect.on)) {
-    return `Effects on ${effect.on} aren't built yet.`;
-  }
-  return null;
+  return isEffectBuilt(effect.type) ? null : `The ${effect.type} effect isn't built yet.`;
 }
 
 /**
  * Parts of the format this build parses and validates but can't run yet: effects with no
- * implementation or aimed at what isn't built (`nearby`), conditions and reactions. Refused rather than ignored, so content never silently does
+ * implementation, wherever they sit. Refused rather than ignored, so content never silently does
  * nothing.
  */
 export function findUnbuiltFeatures(file: ItemFile): ItemProblem[] {
@@ -67,8 +61,14 @@ export function findUnbuiltFeatures(file: ItemFile): ItemProblem[] {
   file.definitions.forEach((definition, index) => {
     checkEffects(definition.onBroken ?? [], `definitions.${index} (${definition.id}).onBroken`);
   });
-  if (file.conditions.length > 0) add("conditions", "Conditions aren't built yet.");
-  if (file.reactions.length > 0) add("reactions", "Reactions aren't built yet.");
+  file.conditions.forEach((condition, index) => {
+    const path = `conditions.${index} (${condition.name})`;
+    checkEffects(condition.everyMinute, `${path}.everyMinute`);
+    checkEffects(condition.onEnd, `${path}.onEnd`);
+  });
+  file.reactions.forEach((reaction, index) => {
+    checkEffects(reaction.effects, `reactions.${index} (${reaction.stimulus}).effects`);
+  });
   return problems;
 }
 

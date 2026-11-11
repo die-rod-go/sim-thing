@@ -26,7 +26,7 @@ import {
   markEntityChanged,
 } from "../world-access";
 import type { WorldState } from "../world-state";
-import { findEffectEntity, type EffectHandler, type EffectRun } from "./effect-run";
+import { findEffectEntity, requireVerbRun, type EffectHandler, type EffectRun } from "./effect-run";
 import { sendStimulus } from "./stimulus";
 
 type MoveEffect = EffectOfType<"move">;
@@ -40,7 +40,7 @@ const NEIGHBOR_OFFSETS: readonly Position[] = [-1, 0, 1].flatMap((offsetY) =>
 /** Everything the effect moves: all the chosen things for `on: chosen`, otherwise one entity. */
 function listMovedEntities(effectRun: EffectRun, effect: MoveEffect): Entity[] {
   if (effect.on === "chosen") {
-    return (effectRun.run.chosenEntityIds ?? []).flatMap((entityId) => {
+    return (effectRun.run?.chosenEntityIds ?? []).flatMap((entityId) => {
       const entity = findEntityIfPresent(effectRun.context.state, entityId);
       return entity ? [entity] : [];
     });
@@ -54,7 +54,7 @@ function locateOnTile(state: WorldState, pos: Position): EntityLocation {
 }
 
 function findAimTile(state: WorldState, effectRun: EffectRun): Position | null {
-  const { aim } = effectRun.run;
+  const aim = effectRun.run?.aim;
   if (!aim) return null;
   if (aim.kind === "agent") return findAgent(state, aim.agentId).pos;
   const entity = findEntityIfPresent(state, aim.entityId);
@@ -76,7 +76,7 @@ function findLandingTile(state: WorldState, effectRun: EffectRun): Position | nu
 /** Where the effect moves things to; null when it can't (`to: item` on something that isn't a container). */
 function findDestination(effectRun: EffectRun, effect: MoveEffect): EntityLocation | null {
   const { state } = effectRun.context;
-  const { run } = effectRun;
+  const run = requireVerbRun(effectRun, effect);
   const user = findAgent(state, run.agentId);
   switch (effect.to) {
     case "user":
@@ -155,7 +155,7 @@ function announceMove(
   destination: EntityLocation,
 ): void {
   const { state, result } = effectRun.context;
-  const { run } = effectRun;
+  const run = requireVerbRun(effectRun, effect);
   const { kind, holderLocation } = classifyMove(effect, origin, destination);
   const [first] = moved;
   const counts: Record<string, number> = {};
