@@ -1,0 +1,392 @@
+{
+  "components": {
+    "durability": {
+      "description": "How much it takes to break. Damage and wear are divided by toughness; 1 is as tough as a person.",
+      "fields": { "toughness": { "type": "number" } }
+    },
+    "stock": {
+      "description": "Something that runs out and grows back, like a wheat field.",
+      "fields": {
+        "capacity": { "type": "number", "description": "The most it holds." },
+        "regrowPerDay": { "type": "number", "description": "How much grows back in a sim-day." }
+      }
+    },
+    "openable": {
+      "description": "A door.",
+      "fields": {
+        "startsOpen": { "type": "boolean" },
+        "blocksSightWhenClosed": { "type": "boolean" },
+        "muffleWhenClosed": { "type": "boolean" }
+      }
+    },
+    "blocking": {
+      "description": "Something in the way.",
+      "fields": {
+        "blocksMovement": { "type": "boolean" },
+        "blocksSight": { "type": "boolean" }
+      }
+    },
+    "container": {
+      "description": "Holds other items, like a chest or basket.",
+      "fields": { "capacity": { "type": "number" } }
+    },
+    "notes": {
+      "description": "A board people pin notes to.",
+      "fields": {
+        "maxNotes": { "type": "number", "description": "The oldest notes go once there are more." }
+      }
+    },
+    "bed": { "description": "Something to sleep in.", "fields": {} },
+    "weight": {
+      "description": "How heavy it is. Every carriable has one.",
+      "fields": { "kilograms": { "type": "number" } }
+    },
+    "food": {
+      "description": "Something to eat.",
+      "fields": { "hunger": { "type": "number", "description": "How much one fills you." } }
+    },
+    "drink": {
+      "description": "Something to drink.",
+      "fields": {
+        "fun": { "type": "number" },
+        "energy": { "type": "number" }
+      }
+    }
+  },
+  "properties": {
+    "flesh": { "description": "Living or once-living bodies.", "isVisible": false },
+    "flammable": { "description": "Catches fire.", "isVisible": false },
+    "metal": { "description": "Made of metal.", "isVisible": false }
+  },
+  "person": { "properties": ["flesh", "flammable"] },
+  "definitions": [
+    {
+      "id": "coin",
+      "name": "coin",
+      "plural": "coins",
+      "form": "carriable",
+      "sprite": { "tileset": "village", "tile": 20 },
+      "isVisibleWhenCarried": false,
+      "properties": ["metal"],
+      "components": { "weight": { "kilograms": 0.005 } }
+    },
+    {
+      "id": "bread",
+      "name": "bread",
+      "form": "carriable",
+      "sprite": { "tileset": "village", "tile": 16 },
+      "isVisibleWhenCarried": false,
+      "properties": ["flammable"],
+      "components": { "weight": { "kilograms": 0.4 }, "food": { "hunger": 0.5 } }
+    },
+    {
+      "id": "ale",
+      "name": "ale",
+      "form": "carriable",
+      "sprite": { "tileset": "village", "tile": 19 },
+      "isVisibleWhenCarried": false,
+      "properties": [],
+      "components": { "weight": { "kilograms": 0.5 }, "drink": { "fun": 0.3, "energy": -0.05 } }
+    },
+    {
+      "id": "wheat",
+      "name": "wheat",
+      "form": "carriable",
+      "sprite": { "tileset": "village", "tile": 17 },
+      "isVisibleWhenCarried": false,
+      "properties": ["flammable"],
+      "components": { "weight": { "kilograms": 1 } }
+    },
+    {
+      "id": "wood",
+      "name": "wood",
+      "form": "carriable",
+      "sprite": { "tileset": "village", "tile": 18 },
+      "isVisibleWhenCarried": true,
+      "properties": ["flammable"],
+      "components": { "weight": { "kilograms": 2 } }
+    },
+    {
+      "id": "bed",
+      "name": "bed",
+      "plural": "beds",
+      "form": "placeable",
+      "sprite": { "tileset": "village", "tile": 10 },
+      "properties": ["flammable"],
+      "components": { "bed": {}, "durability": { "toughness": 3 } }
+    },
+    {
+      "id": "notice_board",
+      "name": "notice board",
+      "plural": "notice boards",
+      "form": "placeable",
+      "sprite": { "tileset": "village", "tile": 15 },
+      "properties": ["flammable"],
+      "components": { "notes": { "maxNotes": 30 }, "durability": { "toughness": 3 } }
+    },
+    {
+      "id": "bench",
+      "name": "bench",
+      "plural": "benches",
+      "form": "placeable",
+      "sprite": { "tileset": "village", "tile": 14 },
+      "properties": ["flammable"],
+      "components": { "durability": { "toughness": 3 } }
+    },
+    {
+      "id": "wheat_field",
+      "name": "wheat field",
+      "plural": "wheat fields",
+      "form": "placeable",
+      "sprite": { "tileset": "village", "tile": 6 },
+      "properties": [],
+      "components": { "stock": { "capacity": 12, "regrowPerDay": 12 } }
+    },
+    {
+      "id": "trees",
+      "name": "trees",
+      "form": "placeable",
+      "sprite": { "tileset": "village", "tile": 7 },
+      "properties": ["flammable"],
+      "components": { "stock": { "capacity": 10, "regrowPerDay": 10 } }
+    },
+    {
+      "id": "oven",
+      "name": "oven",
+      "plural": "ovens",
+      "form": "placeable",
+      "sprite": { "tileset": "village", "tile": 11 },
+      "properties": [],
+      "components": {
+        "durability": { "toughness": 6 },
+        "blocking": { "blocksMovement": true, "blocksSight": false }
+      }
+    },
+    {
+      "id": "brew_kettle",
+      "name": "brew kettle",
+      "plural": "brew kettles",
+      "form": "placeable",
+      "sprite": { "tileset": "village", "tile": 12 },
+      "properties": ["metal"],
+      "components": {
+        "durability": { "toughness": 5 },
+        "blocking": { "blocksMovement": true, "blocksSight": false }
+      }
+    },
+    {
+      "id": "card_table",
+      "name": "card table",
+      "plural": "card tables",
+      "form": "placeable",
+      "sprite": { "tileset": "village", "tile": 13 },
+      "properties": ["flammable"],
+      "components": { "durability": { "toughness": 3 } }
+    },
+    {
+      "id": "door",
+      "name": "door",
+      "plural": "doors",
+      "form": "placeable",
+      "sprite": { "tileset": "village", "tile": 5 },
+      "properties": ["flammable"],
+      "components": {
+        "openable": { "startsOpen": true, "blocksSightWhenClosed": true, "muffleWhenClosed": true },
+        "durability": { "toughness": 5 }
+      }
+    }
+  ],
+  "verbs": [
+    {
+      "name": "eat",
+      "appliesTo": { "allOf": [{ "component": "food" }, { "location": "held" }] },
+      "minutes": 15,
+      "effects": [
+        { "type": "destroy", "on": "item", "when": "start" },
+        {
+          "type": "change_need",
+          "on": "user",
+          "need": "hunger",
+          "amount": { "from": "item.food.hunger" }
+        }
+      ],
+      "phrases": { "ongoing": "eating {item}", "done": "ate {item}", "attempt": "eat {item}" }
+    },
+    {
+      "name": "drink",
+      "appliesTo": { "allOf": [{ "component": "drink" }, { "location": "held" }] },
+      "minutes": 15,
+      "effects": [
+        { "type": "destroy", "on": "item", "when": "start" },
+        {
+          "type": "change_need",
+          "on": "user",
+          "need": "fun",
+          "amount": { "from": "item.drink.fun" }
+        },
+        {
+          "type": "change_need",
+          "on": "user",
+          "need": "energy",
+          "amount": { "from": "item.drink.energy" }
+        }
+      ],
+      "phrases": { "ongoing": "drinking {item}", "done": "drank {item}", "attempt": "drink {item}" }
+    },
+    {
+      "name": "harvest wheat",
+      "appliesTo": { "definition": "wheat_field" },
+      "minutes": 60,
+      "loudness": 4,
+      "effects": [
+        { "type": "take_stock", "on": "item", "amount": 3, "when": "start" },
+        { "type": "produce", "on": "user", "item": "wheat", "count": 3, "into": "user" },
+        { "type": "change_need", "on": "user", "need": "energy", "amount": -0.1 }
+      ],
+      "phrases": {
+        "ongoing": "harvesting wheat at the {item}",
+        "done": "harvested wheat",
+        "attempt": "harvest wheat at the {item}"
+      }
+    },
+    {
+      "name": "chop wood",
+      "appliesTo": { "definition": "trees" },
+      "minutes": 60,
+      "loudness": 15,
+      "effects": [
+        { "type": "take_stock", "on": "item", "amount": 2, "when": "start" },
+        { "type": "produce", "on": "user", "item": "wood", "count": 2, "into": "user" },
+        { "type": "change_need", "on": "user", "need": "energy", "amount": -0.15 }
+      ],
+      "phrases": {
+        "ongoing": "chopping wood at the {item}",
+        "done": "chopped wood",
+        "attempt": "chop wood at the {item}"
+      }
+    },
+    {
+      "name": "bake bread",
+      "appliesTo": { "definition": "oven" },
+      "minutes": 90,
+      "loudness": 3,
+      "inputs": { "wheat": 2, "wood": 1 },
+      "effects": [
+        { "type": "produce", "on": "user", "item": "bread", "count": 4, "into": "user" },
+        { "type": "change_need", "on": "user", "need": "energy", "amount": -0.05 }
+      ],
+      "phrases": {
+        "ongoing": "baking bread at the {item}",
+        "done": "baked bread",
+        "attempt": "bake bread at the {item}"
+      }
+    },
+    {
+      "name": "brew ale",
+      "appliesTo": { "definition": "brew_kettle" },
+      "minutes": 120,
+      "loudness": 3,
+      "inputs": { "wheat": 2, "wood": 1 },
+      "effects": [
+        { "type": "produce", "on": "user", "item": "ale", "count": 6, "into": "user" },
+        { "type": "change_need", "on": "user", "need": "energy", "amount": -0.05 }
+      ],
+      "phrases": {
+        "ongoing": "brewing ale at the {item}",
+        "done": "brewed ale",
+        "attempt": "brew ale at the {item}"
+      }
+    },
+    {
+      "name": "play cards",
+      "appliesTo": { "definition": "card_table" },
+      "minutes": 30,
+      "loudness": 6,
+      "effects": [
+        {
+          "type": "change_need",
+          "on": "user",
+          "need": "fun",
+          "amount": 0.2,
+          "perOtherUser": 0.1
+        }
+      ],
+      "phrases": {
+        "ongoing": "playing cards at the {item}",
+        "done": "played cards",
+        "attempt": "play cards at the {item}"
+      }
+    },
+    {
+      "name": "sit",
+      "appliesTo": { "definition": "bench" },
+      "minutes": 20,
+      "effects": [{ "type": "change_need", "on": "user", "need": "energy", "amount": 0.1 }],
+      "phrases": {
+        "ongoing": "sitting on the {item}",
+        "done": "sat on the {item}",
+        "attempt": "sit on the {item}"
+      }
+    },
+    {
+      "name": "sleep",
+      "appliesTo": { "component": "bed" },
+      "minutes": null,
+      "effects": [{ "type": "sleep", "on": "item", "when": "start" }],
+      "phrases": {
+        "ongoing": "sleeping in the {item}",
+        "done": "slept in the {item}",
+        "attempt": "sleep in the {item}"
+      }
+    },
+    {
+      "name": "read",
+      "appliesTo": { "component": "notes" },
+      "minutes": 5,
+      "effects": [{ "type": "read_notes", "on": "item", "when": "start" }],
+      "phrases": {
+        "ongoing": "reading the {item}",
+        "done": "read the {item}",
+        "attempt": "read the {item}"
+      }
+    },
+    {
+      "name": "post a note",
+      "appliesTo": { "component": "notes" },
+      "minutes": 5,
+      "takesText": true,
+      "effects": [{ "type": "post_note", "on": "item", "when": "start" }],
+      "phrases": {
+        "ongoing": "posting a note on the {item}",
+        "done": "posted a note",
+        "attempt": "post a note on the {item}"
+      }
+    },
+    {
+      "name": "open",
+      "appliesTo": { "component": "openable" },
+      "minutes": 1,
+      "loudness": 3,
+      "effects": [{ "type": "set_open", "on": "item", "isOpen": true, "when": "start" }],
+      "phrases": {
+        "ongoing": "opening the {item}",
+        "done": "opened the {item}",
+        "attempt": "open the {item}"
+      }
+    },
+    {
+      "name": "close",
+      "appliesTo": { "component": "openable" },
+      "minutes": 1,
+      "loudness": 3,
+      "effects": [{ "type": "set_open", "on": "item", "isOpen": false, "when": "start" }],
+      "phrases": {
+        "ongoing": "closing the {item}",
+        "done": "closed the {item}",
+        "attempt": "close the {item}"
+      }
+    }
+  ],
+  "conditions": [],
+  "reactions": []
+}
