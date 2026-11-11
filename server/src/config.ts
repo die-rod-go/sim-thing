@@ -513,7 +513,7 @@ export const config = {
       weekly: 3000,
       conversation_summary: 1000,
     },
-    dailyTokenBudget: 10_000_000,
+    dailyTokenBudget: 100_000_000,
     /** One first try plus one retry on invalid output or an API error. */
     attemptsPerCall: 2,
     /** How much of a failed HTTP response body is kept in the error message. */
