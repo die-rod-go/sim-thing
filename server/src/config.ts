@@ -521,11 +521,10 @@ export const config = {
     /** The offline `LLM_PROVIDER=fake` responder: seeded, and weights for the actions it picks. */
     fakeResponder: {
       seed: 7,
-      actionWeights: { walk_to: 3, interact: 4, wait: 2, give: 0.5, recall: 0.5 },
+      actionWeights: { walk_to: 3, interact: 4, say: 2, wait: 2, give: 0.5, recall: 0.5 },
       /** Verbs with a hit roll are picked this rarely, so soak runs see fights without a massacre. */
       attackWeight: 0.05,
       continueChance: 0.5,
-      sayChance: 0.3,
       omitVerbChance: 0.25,
       /** A carried item with this verb is eaten whenever the status line holds a hungry word. */
       eatVerb: "eat",

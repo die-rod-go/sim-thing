@@ -3,7 +3,7 @@ import { makeSampleLlmCall } from "../fixtures/sample-data";
 import { summarizeLlmCall } from "./thoughts";
 
 describe("summarizeLlmCall", () => {
-  it("leads a decision with its thought and lists what was said and done", () => {
+  it("leads a decision with its thought and lists what was said", () => {
     const call = {
       ...makeSampleLlmCall(1, "ada", 10),
       parsed: {
@@ -11,16 +11,31 @@ describe("summarizeLlmCall", () => {
         intention: "Sell Bob bread",
         say: "Bread, Bob?",
         volume: "whisper",
-        action: "give",
-        target: "Bob",
-        item: "bread",
-        amount: 1,
+        action: "say",
       },
     };
     const entry = summarizeLlmCall(call);
     expect(entry.headline).toBe("Bob looks hungry");
     expect(entry.parts).toEqual([
       { label: "whispered", text: "Bread, Bob?" },
+      { label: "intends", text: "Sell Bob bread" },
+    ]);
+  });
+
+  it("lists what was done and leaves out words not spoken by a say action", () => {
+    const call = {
+      ...makeSampleLlmCall(1, "ada", 10),
+      parsed: {
+        thought: "Bob looks hungry",
+        intention: "Sell Bob bread",
+        say: "Bread, Bob?",
+        action: "give",
+        target: "Bob",
+        item: "bread",
+        amount: 1,
+      },
+    };
+    expect(summarizeLlmCall(call).parts).toEqual([
       { label: "does", text: "give 1 bread to Bob" },
       { label: "intends", text: "Sell Bob bread" },
     ]);

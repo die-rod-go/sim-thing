@@ -18,7 +18,14 @@ import {
 import { describeStats, describeStatus, describeTraits } from "./words";
 
 const DECISION_TEMPLATE = "decision";
-const BASE_ACTIONS: readonly DecisionAction[] = ["walk_to", "interact", "give", "recall", "wait"];
+const BASE_ACTIONS: readonly DecisionAction[] = [
+  "walk_to",
+  "interact",
+  "give",
+  "say",
+  "recall",
+  "wait",
+];
 
 type RecalledMemories = Partial<Record<Bucket, RecalledMemory[]>>;
 

@@ -90,6 +90,9 @@ describe("buildDecisionReplySchema", () => {
     expect(
       schema.safeParse({ thought: "Hm.", intention: "think", action: "recall", query: "" }).success,
     ).toBe(false);
+    expect(schema.safeParse({ thought: "Hm.", intention: "greet", action: "say" }).success).toBe(
+      false,
+    );
   });
 
   it("lists every field as required in field order for strict mode", () => {

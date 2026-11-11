@@ -131,7 +131,8 @@ export interface Memory {
 
 export type Volume = "whisper" | "normal" | "shout";
 
-export type DecisionAction = "walk_to" | "interact" | "give" | "recall" | "wait" | "continue";
+export type DecisionAction =
+  "walk_to" | "interact" | "give" | "say" | "recall" | "wait" | "continue";
 
 export interface DecisionReply {
   thought: string;

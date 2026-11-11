@@ -46,6 +46,7 @@ Actions: {{actions}}
 - walk_to: go to a place you know, or to someone in sight. Needs target.
 - interact: use something here or something you carry, with one of the verbs listed beside it. For something here, set target to it; for something you carry, set item to it. Verbs done to someone or something (and those under "You can also", which need nothing carried) take a target: the person or thing, or yourself. Add verb if you know which one; add text for verbs that take words, like posting a note; add minutes for a nap.
 - give: hand things you carry, coins included, to someone within reach. Needs target (the person), item and amount.
+- say: speak aloud, then stay where you are for up to minutes to hear any answer. Needs say (your words); set volume to whisper, normal or shout (default normal). Only people in earshot hear you; the Around you section says who obviously would. Anything new you notice ends the wait early. Words are only spoken with this action.
 - recall: search your memory. Needs query (the people, places or things you want to remember). You decide again right after.
 - wait: stay where you are for up to minutes. Anything new you notice ends the wait early.
 - continue: keep doing what you are in the middle of. Only possible when you were interrupted mid-action.
@@ -53,7 +54,6 @@ Valid targets: {{targets}}
 Valid items: {{items}}
 
 Free extras that go along with any action:
-- say: words you speak aloud as the action starts. Only people in earshot hear them; the Around you section says who obviously would. Set volume to whisper, normal or shout (default normal). To just talk, say something and wait.
 - note: {"person", "text"} to write down something you want to remember about a person.
 - mood: your new mood in a few words, only if it changed.
 Leave out anything you don't use (null).

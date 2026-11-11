@@ -1,4 +1,10 @@
-import { findDefinitionByName, type Agent, type DecisionReply, type Verb } from "@village/shared";
+import {
+  findDefinitionByName,
+  type Agent,
+  type DecisionReply,
+  type Volume,
+  type Verb,
+} from "@village/shared";
 import { config } from "../config";
 import { formatMinutesAgo } from "../decision/around-you";
 import { buildDecisionPrompt } from "../decision/decision-prompt";
@@ -26,6 +32,7 @@ import { pushWorkingMemory } from "../memory/working-memory";
 import { isDead } from "../status/health";
 import { getAgentRuntime, type ChosenRequest } from "./agent-runtime";
 import { buildDecisionContext } from "./context-builder";
+import type { SpeechOrigin } from "./event-factory";
 import type { DecisionRequest } from "./tick-phases";
 import type { SimDependencies } from "./tick-context";
 import {
@@ -62,6 +69,12 @@ export type PlannedAction =
       chosen?: ChosenRequest;
     }
   | { kind: "give"; target: string; item: string; amount: number }
+  | {
+      kind: "say";
+      line: { words: string; volume: Volume };
+      origin: SpeechOrigin;
+      minutes: number;
+    }
   | { kind: "wait"; minutes: number }
   | { kind: "continue" }
   | { kind: "fail"; attempt: string; reason: string };
@@ -365,8 +378,21 @@ async function planInteract(
   return askWhichVerb(state, dependencies, agent, reply, first);
 }
 
-function planSimpleAction(reply: DecisionReply): PlannedAction {
+function planSay(decided: DecidedReply): PlannedAction {
+  const { reply, llmCallId } = decided;
+  return {
+    kind: "say",
+    line: { words: reply.say ?? "", volume: reply.volume ?? "normal" },
+    origin: { thought: reply.thought, llmCallId },
+    minutes: reply.minutes ?? config.decision.defaultWaitMinutes,
+  };
+}
+
+function planSimpleAction(decided: DecidedReply): PlannedAction {
+  const { reply } = decided;
   switch (reply.action) {
+    case "say":
+      return planSay(decided);
     case "walk_to":
       return { kind: "walk_to", target: reply.target ?? "" };
     case "give":
@@ -398,6 +424,7 @@ export async function runDecision(
   const replies = [first];
   let recallEntries: string[] = [];
   let finalReply = first.reply;
+  let finalCallId = first.llmCallId;
   if (finalReply.action === "recall") {
     recallEntries = runRecall(state, agent, finalReply.query ?? "", request.recallRolls.explicit);
     const workingMemory = recallEntries.reduce(
@@ -409,12 +436,13 @@ export async function runDecision(
       second.reply.action === "recall"
         ? { ...second.reply, action: "wait", minutes: config.decision.defaultWaitMinutes }
         : second.reply;
-    replies.push({ reply: finalReply, llmCallId: second.llmCallId });
+    finalCallId = second.llmCallId;
+    replies.push({ reply: finalReply, llmCallId: finalCallId });
   }
   const action =
     finalReply.action === "interact"
       ? await planInteract(state, dependencies, agent, finalReply)
-      : planSimpleAction(finalReply);
+      : planSimpleAction({ reply: finalReply, llmCallId: finalCallId });
   return {
     agentId: agent.id,
     isMidActionInterrupt: request.isMidActionInterrupt,

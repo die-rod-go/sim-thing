@@ -65,15 +65,6 @@ function applyFreeActs(context: TickContext, agentId: string, decided: DecidedRe
     state.memoryStore.add(memory);
     rememberBriefly(state, agentId, `I noted: ${memory.text}`);
   }
-  if (reply.say) {
-    const speech = createSpeechEvent(
-      state,
-      findAgent(state, agentId),
-      { words: reply.say, volume: reply.volume ?? "normal" },
-      { thought: reply.thought, llmCallId: decided.llmCallId },
-    );
-    broadcastEvent(state, speech, context.result);
-  }
 }
 
 function startWait(context: TickContext, agentId: string, minutes: number): void {
@@ -82,6 +73,18 @@ function startWait(context: TickContext, agentId: string, minutes: number): void
   const endsAtTick = context.state.tick + Math.max(1, Math.ceil(clamped / minutesPerTick));
   replaceAgent(context.state, { ...agent, currentAction: { kind: WAIT_ACTION, endsAtTick } });
   markAgentChanged(context.result, agentId);
+}
+
+/** Speaks, then stays to hear an answer; anything newly noticed ends the wait early. */
+function executeSay(
+  context: TickContext,
+  agentId: string,
+  action: Extract<PlannedAction, { kind: "say" }>,
+): void {
+  const { state } = context;
+  const speech = createSpeechEvent(state, findAgent(state, agentId), action.line, action.origin);
+  broadcastEvent(state, speech, context.result);
+  startWait(context, agentId, action.minutes);
 }
 
 function executeWalk(context: TickContext, agentId: string, targetName: string): void {
@@ -238,6 +241,8 @@ function executeAction(context: TickContext, agentId: string, action: PlannedAct
       return executeInteract(context, agentId, action);
     case "give":
       return executeGiveAction(context, agentId, action);
+    case "say":
+      return executeSay(context, agentId, action);
     case "wait":
       return startWait(context, agentId, action.minutes);
     case "fail":
@@ -248,7 +253,7 @@ function executeAction(context: TickContext, agentId: string, action: PlannedAct
 }
 
 /**
- * Applies one decision: free acts (and speech, on this tick), recall results into working memory,
+ * Applies one decision: free acts, recall results into working memory,
  * then the act itself. Choosing anything but `continue` stops the current action first.
  */
 export function applyDecisionPlan(context: TickContext, plan: DecisionPlan): void {

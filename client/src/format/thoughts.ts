@@ -57,6 +57,8 @@ function describeDecisionAction(fields: ReplyFields): string | null {
       const item = readText(fields, "item") ?? "?";
       return `give ${amount ?? ""}${amount === null ? "" : " "}${item} to ${target ?? "?"}`;
     }
+    case "say":
+      return null;
     case "recall":
       return `try to recall "${readText(fields, "query") ?? ""}"`;
     case "wait": {
@@ -79,7 +81,7 @@ function summarizeDecision(fields: ReplyFields): Pick<ThoughtEntry, "headline" |
   return {
     headline: readText(fields, "thought"),
     parts: [
-      ...part(saidLabel, readText(fields, "say")),
+      ...part(saidLabel, readText(fields, "action") === "say" ? readText(fields, "say") : null),
       ...part("does", describeDecisionAction(fields)),
       ...part("intends", readText(fields, "intention")),
       ...part("feels", readText(fields, "mood")),
