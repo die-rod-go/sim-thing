@@ -193,6 +193,10 @@ function handleClientMessage(raw: string): void {
       if (agent) broadcast(buildDetail(agent));
       return;
     }
+    case "load_item_file":
+    case "save_item_file":
+      process.stdout.write("The mock server has no item file; run the real sim to edit items.\n");
+      return;
     case "load_seed_file":
     case "save_seed_file":
       process.stdout.write(

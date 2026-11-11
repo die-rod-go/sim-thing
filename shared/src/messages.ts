@@ -12,7 +12,8 @@ import type {
   WorldEvent,
 } from "./types";
 import type { Entity } from "./items/entity";
-import type { ItemDefinition } from "./items/item-file";
+import type { ItemDefinition, ItemFile } from "./items/item-file";
+import type { ItemProblem, ItemReference } from "./items/item-problems";
 import {
   seedFileSchema,
   type SeedAgent,
@@ -39,6 +40,9 @@ export const clientMessageSchema = z.discriminatedUnion("type", [
     seedFile: seedFileSchema,
     shouldResetWorld: z.boolean(),
   }),
+  z.object({ type: z.literal("load_item_file") }),
+  /** Checked by the server's item editor, which reports schema errors as problems. */
+  z.object({ type: z.literal("save_item_file"), itemFile: z.unknown() }),
 ]);
 
 export type ClientMessage = z.infer<typeof clientMessageSchema>;
@@ -155,6 +159,24 @@ export interface SeedFileSavedMessage {
   problems: SeedProblem[];
 }
 
+/** Sent in reply to load_item_file: `items.json` as it is on disk, and what else uses it. */
+export interface ItemFileMessage {
+  type: "item_file";
+  /** Null when the file on disk could not be read or parsed; `loadError` says why. */
+  itemFile: ItemFile | null;
+  loadError: string | null;
+  /** Definitions the map and the seed inventories use, so deleting one shows as an error. */
+  references: ItemReference[];
+  currencyDefinitionId: string;
+}
+
+/** Sent in reply to save_item_file. Nothing is written when `problems` has an error. */
+export interface ItemFileSavedMessage {
+  type: "item_file_saved";
+  isSaved: boolean;
+  problems: ItemProblem[];
+}
+
 export type ServerMessage =
   | SnapshotMessage
   | TickMessage
@@ -169,7 +191,9 @@ export type ServerMessage =
   | MomentMessage
   | AgentDetailMessage
   | SeedFileMessage
-  | SeedFileSavedMessage;
+  | SeedFileSavedMessage
+  | ItemFileMessage
+  | ItemFileSavedMessage;
 
 export const SERVER_MESSAGE_TYPES = [
   "snapshot",
@@ -186,6 +210,8 @@ export const SERVER_MESSAGE_TYPES = [
   "agent_detail",
   "seed_file",
   "seed_file_saved",
+  "item_file",
+  "item_file_saved",
 ] as const satisfies readonly ServerMessage["type"][];
 
 const serverEnvelopeSchema = z.looseObject({ type: z.enum(SERVER_MESSAGE_TYPES) });
