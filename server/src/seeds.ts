@@ -102,6 +102,7 @@ function buildAgent(seed: SeedAgent, map: WorldMap): Agent {
     currentAction: null,
     workingMemory: [],
     awareness: {},
+    lastThought: null,
   };
 }
 

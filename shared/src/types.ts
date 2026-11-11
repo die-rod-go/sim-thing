@@ -71,6 +71,13 @@ export interface Agent {
   currentAction: CurrentAction | null;
   workingMemory: string[];
   awareness: Record<string, Awareness>;
+  /** The `thought` from the agent's latest decision, for the viewer; never shown to agents. */
+  lastThought: AgentThought | null;
+}
+
+export interface AgentThought {
+  text: string;
+  tick: number;
 }
 
 export type Bucket =
@@ -155,6 +162,15 @@ export interface WorldObject {
   state: ObjectState;
 }
 
+export interface EventSpeech {
+  words: string;
+  volume: Volume;
+  /** The speaker's `thought` from the decision that produced the words, for the viewer. */
+  thought?: string;
+  /** The `llm_calls` row of that decision. */
+  llmCallId?: number;
+}
+
 export type WorldEventKind =
   | "said"
   | "walk_started"
@@ -184,7 +200,7 @@ export interface WorldEvent {
   description: string;
   /** Sound reach in tiles; null when the event makes no sound. */
   loudness: number | null;
-  speech?: { words: string; volume: Volume };
+  speech?: EventSpeech;
   item?: string;
   amount?: number;
 }
@@ -230,3 +246,41 @@ export interface ClockState {
   /** Speed multiplier; 1 means the base ticks per second. */
   speed: number;
 }
+
+export type ReflectionPass = "morning" | "night" | "weekly";
+
+/** What a moment is about; `kind` says which fields are present. */
+export type MomentDetail =
+  | {
+      kind: "personality_changed";
+      field: PersonalityChange["field"];
+      oldValue: string;
+      newValue: string;
+      reason: string;
+    }
+  | { kind: "goal_added"; goal: Goal }
+  | { kind: "goal_removed"; goal: Goal }
+  | { kind: "goal_progressed"; goal: Goal; previousProgress: string }
+  | { kind: "daily_plan"; plan: string }
+  | {
+      kind: "reflection";
+      pass: ReflectionPass;
+      summary: string;
+      moodEntry: string | null;
+      insights: string[];
+    }
+  | { kind: "action_failed"; eventId: number; description: string };
+
+export type MomentKind = MomentDetail["kind"];
+
+/**
+ * A notable change in one agent's inner life or plans, for the viewer's highlights. `text` is a
+ * short line whose subject is the agent ("set a new goal: open a tavern").
+ */
+export type Moment = {
+  id: number;
+  tick: number;
+  agentId: string;
+  agentName: string;
+  text: string;
+} & MomentDetail;

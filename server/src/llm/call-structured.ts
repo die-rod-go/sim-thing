@@ -24,7 +24,8 @@ export interface StructuredCallRequest<Value> {
 export type LlmCallDraft = Omit<LlmCallRecord, "id">;
 
 export type StructuredCallResult<Value> =
-  { ok: true; value: Value; record: LlmCallDraft } | { ok: false; error: string };
+  | { ok: true; value: Value; record: LlmCallDraft; callId: number | null }
+  | { ok: false; error: string };
 
 export type StructuredCaller = <Value>(
   request: StructuredCallRequest<Value>,
@@ -161,14 +162,14 @@ export function createStructuredCaller(
       const outcome = await dependencies.limiter.run(() =>
         attemptCall(dependencies.client, request),
       );
-      dependencies.recordLlmCall(outcome.record);
+      const callId = dependencies.recordLlmCall(outcome.record);
       dependencies.budget.addTokens(outcome.record.promptTokens + outcome.record.completionTokens);
       if (outcome.ok) {
         logger.debug(`${request.kind} call for ${request.agentId} ok`, {
           attempt,
           latencyMs: outcome.record.latencyMs,
         });
-        return { ok: true, value: outcome.value, record: outcome.record };
+        return { ok: true, value: outcome.value, record: outcome.record, callId };
       }
       lastError = outcome.error;
       logger.warn(`${request.kind} call for ${request.agentId} failed (attempt ${attempt})`, {

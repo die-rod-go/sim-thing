@@ -1,7 +1,12 @@
 import { describe, expect, it } from "vitest";
 import type { AgentDetailMessage } from "@village/shared";
 import { clientConfig } from "../client-config";
-import { makeSampleAgent, makeSampleEvent, makeSampleSnapshot } from "../fixtures/sample-data";
+import {
+  makeSampleAgent,
+  makeSampleEvent,
+  makeSampleMoment,
+  makeSampleSnapshot,
+} from "../fixtures/sample-data";
 import { applyServerMessage, selectInspectedAgent } from "./apply-server-message";
 import { initialClientState, type ClientState } from "./client-state";
 
@@ -32,6 +37,30 @@ describe("applyServerMessage", () => {
     expect(state.agents.map((agent) => agent.id)).toEqual(["ada", "bob"]);
     expect(state.clock.tick).toBe(30);
     expect(state.speedOptions).toEqual([1, 4, 16]);
+  });
+
+  it("loads recent moments from a snapshot and appends broadcast ones", () => {
+    const first = makeSampleMoment(1, ada, 20);
+    const second = makeSampleMoment(2, bob, 31);
+    const loaded = applyServerMessage(initialClientState, {
+      ...makeSampleSnapshot([ada, bob]),
+      recentMoments: [first],
+    });
+    const state = applyServerMessage(loaded, { type: "moment", moment: second });
+    expect(state.moments.map((moment) => moment.id)).toEqual([1, 2]);
+  });
+
+  it("keeps only the newest moments", () => {
+    let state = loadedState();
+    const extra = 3;
+    for (let index = 1; index <= clientConfig.state.maxMoments + extra; index += 1) {
+      state = applyServerMessage(state, {
+        type: "moment",
+        moment: makeSampleMoment(index, ada, 30),
+      });
+    }
+    expect(state.moments).toHaveLength(clientConfig.state.maxMoments);
+    expect(state.moments[0]?.id).toBe(extra + 1);
   });
 
   it("advances the clock and stats on tick", () => {

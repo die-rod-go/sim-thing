@@ -68,3 +68,11 @@ CREATE TABLE IF NOT EXISTS personality_history (
   new_value TEXT NOT NULL,
   reason TEXT NOT NULL
 );
+
+CREATE TABLE IF NOT EXISTS moments (
+  id INTEGER PRIMARY KEY,
+  tick INTEGER NOT NULL,
+  agent_id TEXT NOT NULL,
+  kind TEXT NOT NULL,
+  data TEXT NOT NULL
+);

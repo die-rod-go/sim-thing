@@ -2,6 +2,7 @@ import type {
   Agent,
   AgentDetailMessage,
   ClockState,
+  Moment,
   SimStats,
   SimTimeSettings,
   Volume,
@@ -28,6 +29,8 @@ export interface ClientState {
   objects: WorldObject[];
   /** Oldest first, capped. */
   events: WorldEvent[];
+  /** Highlights for every agent, oldest first, capped. */
+  moments: Moment[];
   /** Most recent lines spoken, oldest first, capped per agent. */
   speechBubbles: SpeechBubble[];
   /** Why the sim paused itself; null when it is running or was paused by a user. */
@@ -49,6 +52,7 @@ export const initialClientState: ClientState = {
   agents: [],
   objects: [],
   events: [],
+  moments: [],
   speechBubbles: [],
   pausedReason: null,
   inspectedAgentId: null,

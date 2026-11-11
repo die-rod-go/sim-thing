@@ -1,4 +1,11 @@
-import type { Agent, LlmCallRecord, Memory, SnapshotMessage, WorldEvent } from "@village/shared";
+import type {
+  Agent,
+  LlmCallRecord,
+  Memory,
+  Moment,
+  SnapshotMessage,
+  WorldEvent,
+} from "@village/shared";
 
 /** Plausible sim data for tests and the dev-only mock server. */
 export function makeSampleAgent(id: string, name: string, x: number, y: number): Agent {
@@ -37,6 +44,7 @@ export function makeSampleAgent(id: string, name: string, x: number, y: number):
     currentAction: { kind: "walk_to", target: "square", endsAtTick: null },
     workingMemory: [],
     awareness: {},
+    lastThought: { text: `${name} wonders whether anyone wants bread today.`, tick: 28 },
   };
 }
 
@@ -56,6 +64,7 @@ export function makeSampleSnapshot(agents: Agent[]): SnapshotMessage {
     agents,
     objects: [],
     recentEvents: [],
+    recentMoments: [],
   };
 }
 
@@ -72,8 +81,52 @@ export function makeSampleEvent(id: number, actor: Agent, tick: number): WorldEv
     pos: actor.pos,
     description: `said "Fresh bread here!"`,
     loudness: 8,
-    speech: { words: "Fresh bread here!", volume: "normal" },
+    speech: {
+      words: "Fresh bread here!",
+      volume: "normal",
+      thought: "If I shout it, someone hungry will come over.",
+      llmCallId: id,
+    },
   };
+}
+
+/** One of a few plausible moments, picked by `id`. */
+export function makeSampleMoment(id: number, actor: Agent, tick: number): Moment {
+  const base = { id, tick, agentId: actor.id, agentName: actor.name };
+  const goalMoment: Moment = {
+    ...base,
+    kind: "goal_added",
+    text: "set a new goal: open a stall",
+    goal: { text: "Open a stall", why: "More buyers", progress: "", kind: "world" },
+  };
+  const others: Moment[] = [
+    {
+      ...base,
+      kind: "daily_plan",
+      text: "planned the day: bake early, sell at the square",
+      plan: "Bake early, sell at the square, rest by the well.",
+    },
+    {
+      ...base,
+      kind: "reflection",
+      text: "looked back on the day: a busy day of baking",
+      pass: "night",
+      summary: "A busy day of baking; Bob was short with me.",
+      moodEntry: "tired but proud",
+      insights: ["Bob is grumpy before noon"],
+    },
+    {
+      ...base,
+      kind: "personality_changed",
+      text: "openness rose from 0.6 to 0.65",
+      field: "openness",
+      oldValue: "0.6",
+      newValue: "0.65",
+      reason: "trying new recipes went well",
+    },
+  ];
+  const samples = [goalMoment, ...others];
+  return samples[id % samples.length] ?? goalMoment;
 }
 
 export function makeSampleMemory(id: string, agentId: string, tick: number): Memory {

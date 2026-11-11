@@ -45,6 +45,7 @@ const agent = {
   currentAction: null,
   workingMemory: [],
   awareness: {},
+  lastThought: null,
 };
 
 const seedAgent = {

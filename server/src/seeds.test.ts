@@ -31,6 +31,7 @@ describe("seeds", () => {
       currentAction: null,
       workingMemory: [],
       awareness: {},
+      lastThought: null,
     });
     expect(world.agents.find((agent) => agent.id === "ilsa")?.place).toBe("town square");
   });

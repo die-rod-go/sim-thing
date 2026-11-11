@@ -4,6 +4,7 @@ import type {
   ClockState,
   LlmCallRecord,
   Memory,
+  Moment,
   PersonalityChange,
   Position,
   SimStats,
@@ -51,6 +52,8 @@ export interface SnapshotMessage {
   agents: Agent[];
   objects: WorldObject[];
   recentEvents: WorldEvent[];
+  /** The latest moments, oldest first. */
+  recentMoments: Moment[];
 }
 
 export interface TickMessage {
@@ -106,6 +109,12 @@ export interface EventLoggedMessage {
   event: WorldEvent;
 }
 
+/** Broadcast for every agent whenever a moment happens. */
+export interface MomentMessage {
+  type: "moment";
+  moment: Moment;
+}
+
 /** Sent in reply to inspect_agent, and again whenever the inspected agent's data changes. */
 export interface AgentDetailMessage {
   type: "agent_detail";
@@ -147,6 +156,7 @@ export type ServerMessage =
   | InteractedMessage
   | StateChangedMessage
   | EventLoggedMessage
+  | MomentMessage
   | AgentDetailMessage
   | SeedFileMessage
   | SeedFileSavedMessage;
@@ -161,6 +171,7 @@ export const SERVER_MESSAGE_TYPES = [
   "interacted",
   "state_changed",
   "event_logged",
+  "moment",
   "agent_detail",
   "seed_file",
   "seed_file_saved",

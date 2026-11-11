@@ -13,7 +13,7 @@ export function makeFakeCaller(replies: FakeReply[]) {
     client,
     limiter: new ConcurrencyLimiter(1),
     budget: new TokenBudget(new InMemoryTokenUsageStore()),
-    recordLlmCall: () => undefined,
+    recordLlmCall: () => null,
     pause: async () => undefined,
   });
   return { client, callStructured };

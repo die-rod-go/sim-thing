@@ -33,6 +33,14 @@ describe("reflection hook", () => {
     expect(summaries.map((memory) => memory.text)).toContain(
       "I went about my work and talked with a few people.",
     );
+    expect(sim.results[0]?.moments).toContainEqual(
+      expect.objectContaining({
+        agentId: "mara",
+        kind: "reflection",
+        pass: "night",
+        summary: "I went about my work and talked with a few people.",
+      }),
+    );
 
     await sim.advance(6 * 60);
     const morning = sim.records.find((record) => record.kind === "morning");
@@ -41,6 +49,10 @@ describe("reflection hook", () => {
     expect(sim.agent("mara").dailyPlan).toBe(
       "Work in the morning, eat at midday, see who is around in the afternoon.",
     );
+    const planMoments = sim.results
+      .flatMap((result) => result.moments)
+      .filter((moment) => moment.kind === "daily_plan");
+    expect(planMoments).toHaveLength(1);
     expect(sim.state.reflectionSchedules.mara?.sleepStartedAtTick).toBeNull();
   });
 
@@ -64,5 +76,10 @@ describe("reflection hook", () => {
     expect(changes[0]).toMatchObject({ agentId: "mara", tick: weekly?.tick });
     expect(sim.state.reflectionSchedules.mara?.nightPassCount).toBeGreaterThanOrEqual(7);
     expect(changes[0]?.reason).toContain("This week");
+    const personalityMoments = sim.results
+      .flatMap((result) => result.moments)
+      .filter((moment) => moment.kind === "personality_changed");
+    expect(personalityMoments).toHaveLength(1);
+    expect(personalityMoments[0]).toMatchObject({ agentId: "mara", reason: changes[0]?.reason });
   });
 });

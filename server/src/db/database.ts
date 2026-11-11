@@ -31,6 +31,7 @@ export function wipeDatabase(database: Database): void {
     "events",
     "llm_calls",
     "personality_history",
+    "moments",
   ];
   database.transaction(() => {
     for (const table of tables) database.exec(`DELETE FROM ${table}`);

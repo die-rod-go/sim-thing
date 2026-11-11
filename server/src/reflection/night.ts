@@ -22,6 +22,12 @@ import {
 import { buildNightReplySchema } from "./reply-schemas";
 import type { NightReply } from "./reply-schemas";
 
+export interface NightReflection {
+  summary: string;
+  moodEntry: string;
+  insights: string[];
+}
+
 const NIGHT_TEMPLATE = "night";
 
 export interface NightPassInput {
@@ -44,6 +50,8 @@ export interface NightPassResult {
   deletedMemoryIds: string[];
   /** False when the LLM call failed; faded memories are still deleted. */
   succeeded: boolean;
+  /** What the agent wrote about the day; null when the call failed. */
+  reflection: NightReflection | null;
 }
 
 function collectPeopleNotes(input: NightPassInput, dayMemories: readonly Memory[]) {
@@ -145,7 +153,13 @@ export async function runNightPass(input: NightPassInput): Promise<NightPassResu
   });
   const fadedIds = deleteFadedMemories(store, agent.id);
   if (!result.ok) {
-    return { agent, addedMemories: [], deletedMemoryIds: fadedIds, succeeded: false };
+    return {
+      agent,
+      addedMemories: [],
+      deletedMemoryIds: fadedIds,
+      succeeded: false,
+      reflection: null,
+    };
   }
   const reflections = createReflections(input, result.value);
   const { added: notes, replacedIds } = rewritePeopleNotes(input, result.value);
@@ -156,5 +170,10 @@ export async function runNightPass(input: NightPassInput): Promise<NightPassResu
     addedMemories,
     deletedMemoryIds: [...fadedIds, ...replacedIds],
     succeeded: true,
+    reflection: {
+      summary: result.value.summary,
+      moodEntry: result.value.moodEntry,
+      insights: result.value.insights.map((insight) => insight.text),
+    },
   };
 }

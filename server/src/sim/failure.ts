@@ -1,6 +1,7 @@
 import { getAgentRuntime } from "./agent-runtime";
 import { broadcastEvent } from "./event-broadcast";
 import { createEvent } from "./event-factory";
+import { buildFailureMoment, recordMoments } from "./moments";
 import { findAgent, markAgentChanged, rememberBriefly, replaceAgent } from "./world-access";
 import type { TickResult, WorldState } from "./world-state";
 
@@ -29,7 +30,9 @@ export function failAction(
   runtime.interaction = null;
   const description = `tried to ${attempt} but ${continueSentence(reason)}`;
   runtime.lastFailure = `I ${description}`;
-  broadcastEvent(state, createEvent(state, agent, { kind: "action_failed", description }), result);
+  const event = createEvent(state, agent, { kind: "action_failed", description });
+  broadcastEvent(state, event, result);
+  recordMoments(state, result, [buildFailureMoment(event)]);
   // A repeated failure is skipped as a duplicate memory but should still be on the agent's mind.
   const workingMemory = findAgent(state, agentId).workingMemory;
   const isOnMind = workingMemory.some((entry) => entry.endsWith(runtime.lastFailure ?? ""));

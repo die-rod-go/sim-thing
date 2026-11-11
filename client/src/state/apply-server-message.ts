@@ -44,6 +44,7 @@ export function applyServerMessage(state: ClientState, message: ServerMessage): 
         agents: message.agents,
         objects: message.objects,
         events: keepNewest(message.recentEvents, clientConfig.state.maxFeedEvents),
+        moments: keepNewest(message.recentMoments, clientConfig.state.maxMoments),
         speechBubbles: [],
         pausedReason: message.clock.isPaused ? state.pausedReason : null,
         inspectedAgentId: isInspectedAgentKnown ? state.inspectedAgentId : null,
@@ -97,6 +98,11 @@ export function applyServerMessage(state: ClientState, message: ServerMessage): 
       return {
         ...state,
         events: keepNewest([...state.events, message.event], clientConfig.state.maxFeedEvents),
+      };
+    case "moment":
+      return {
+        ...state,
+        moments: keepNewest([...state.moments, message.moment], clientConfig.state.maxMoments),
       };
     case "agent_detail": {
       const agents = replaceAgent(state.agents, message.agent);

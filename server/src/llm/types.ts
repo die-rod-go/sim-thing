@@ -40,7 +40,8 @@ export interface TokenUsageStore {
 }
 
 /** Receives every LLM call attempt, so it can be stored in `llm_calls`. */
-export type LlmCallSink = (record: Omit<LlmCallRecord, "id">) => void;
+/** Stores one call and returns its `llm_calls` id, or null when the sink keeps no ids. */
+export type LlmCallSink = (record: Omit<LlmCallRecord, "id">) => number | null;
 
 export function toMessages(request: LlmRequest): LlmMessage[] {
   return "messages" in request ? request.messages : [{ role: "user", content: request.prompt }];

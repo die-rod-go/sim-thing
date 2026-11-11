@@ -1,4 +1,4 @@
-import type { LlmCallRecord, PersonalityChange, WorldEvent } from "@village/shared";
+import type { LlmCallRecord, Moment, PersonalityChange, WorldEvent } from "@village/shared";
 import type { TokenUsageStore } from "../llm/types";
 import type { Database } from "./database";
 
@@ -51,6 +51,20 @@ export function listRecentEvents(database: Database, limit: number): WorldEvent[
     data: string;
   }[];
   return rows.reverse().map((row) => JSON.parse(row.data) as WorldEvent);
+}
+
+export function appendMoment(database: Database, moment: Moment): void {
+  database
+    .prepare("INSERT INTO moments (id, tick, agent_id, kind, data) VALUES (?, ?, ?, ?, ?)")
+    .run(moment.id, moment.tick, moment.agentId, moment.kind, JSON.stringify(moment));
+}
+
+/** The latest `limit` moments, oldest first. */
+export function listRecentMoments(database: Database, limit: number): Moment[] {
+  const rows = database.prepare("SELECT data FROM moments ORDER BY id DESC LIMIT ?").all(limit) as {
+    data: string;
+  }[];
+  return rows.reverse().map((row) => JSON.parse(row.data) as Moment);
 }
 
 /** Stores one LLM call and returns its id. */

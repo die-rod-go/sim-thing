@@ -10,6 +10,7 @@ export const clientConfig = {
   state: {
     maxFeedEvents: 500,
     maxSpeechBubblesPerAgent: 3,
+    maxMoments: 200,
   },
 
   map: {
