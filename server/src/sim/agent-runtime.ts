@@ -15,11 +15,18 @@ const verbAimSchema = z.discriminatedUnion("kind", [
   z.object({ kind: z.literal("entity"), entityId: z.string() }),
 ]);
 
-/** What a verb is used with: an entity (held bread, the oven) or nothing (a bare-handed verb). */
+/**
+ * What a verb is used with: an entity (held bread, the oven), a dead agent's body (to take from)
+ * or nothing (a bare-handed verb).
+ */
 const usedThingSchema = z.discriminatedUnion("kind", [
   z.object({ kind: z.literal("entity"), entityId: z.string() }),
+  z.object({ kind: z.literal("body"), agentId: z.string() }),
   z.object({ kind: z.literal("user") }),
 ]);
+
+/** What the decision's `item` and `amount` name for a verb that moves things (`put`, `take`). */
+const chosenRequestSchema = z.object({ name: z.string(), amount: z.number().int().positive() });
 
 /** A verb to start once the agent gets where it is going. */
 const pendingVerbSchema = z.object({
@@ -29,6 +36,7 @@ const pendingVerbSchema = z.object({
   /** What it is used with, when that isn't the walk's destination (a held knife). */
   used: usedThingSchema.optional(),
   aim: verbAimSchema.optional(),
+  chosen: chosenRequestSchema.optional(),
 });
 
 const walkSchema = z.object({
@@ -46,6 +54,8 @@ const verbRunSchema = z.object({
   verb: z.string(),
   /** The entity used; null for a verb that needs no item. */
   usedEntityId: z.string().nullable(),
+  /** The dead agent whose body the verb is used on (taking from it). */
+  usedBodyId: z.string().optional(),
   /** Kept so the verb still reads and names it after a `start` effect used it up. */
   usedDefinitionId: z.string().nullable(),
   usedName: z.string(),
@@ -54,6 +64,8 @@ const verbRunSchema = z.object({
   aim: verbAimSchema.optional(),
   /** How the target reads in phrases ("Tobias", "the bakery door", "themselves"). */
   aimName: z.string().optional(),
+  /** The entities `on: chosen` refers to, oldest first: what the verb moves. */
+  chosenEntityIds: z.array(z.string()).optional(),
 });
 
 const pendingDecisionSchema = z.object({
@@ -106,6 +118,7 @@ export type AgentRuntime = z.infer<typeof agentRuntimeSchema>;
 export type Walk = z.infer<typeof walkSchema>;
 export type WalkDestination = z.infer<typeof walkDestinationSchema>;
 export type PendingVerb = z.infer<typeof pendingVerbSchema>;
+export type ChosenRequest = z.infer<typeof chosenRequestSchema>;
 export type VerbAim = z.infer<typeof verbAimSchema>;
 export type UsedThing = z.infer<typeof usedThingSchema>;
 export type VerbRun = z.infer<typeof verbRunSchema>;

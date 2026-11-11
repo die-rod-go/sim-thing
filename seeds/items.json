@@ -240,6 +240,15 @@
       "sprite": { "tileset": "village", "tile": 23 },
       "properties": ["flammable"],
       "components": { "healing": { "health": 0.15 }, "weight": { "kilograms": 0.05 } }
+    },
+    {
+      "id": "chest",
+      "name": "chest",
+      "plural": "chests",
+      "form": "placeable",
+      "sprite": { "tileset": "village", "tile": 24 },
+      "properties": ["flammable"],
+      "components": { "container": { "capacity": 20 } }
     }
   ],
   "verbs": [
@@ -505,6 +514,74 @@
         "ongoing": "bandaging {target} with a {item}",
         "done": "bandaged {target}",
         "attempt": "bandage {target} with a {item}"
+      }
+    },
+    {
+      "name": "drop",
+      "appliesTo": { "allOf": [{ "form": "carriable" }, { "location": "held" }] },
+      "effects": [{ "type": "move", "on": "chosen", "to": "ground" }],
+      "phrases": {
+        "ongoing": "dropping {item}",
+        "done": "dropped {item}",
+        "attempt": "drop {item}"
+      }
+    },
+    {
+      "name": "pick up",
+      "appliesTo": { "allOf": [{ "form": "carriable" }, { "location": "ground" }] },
+      "effects": [{ "type": "move", "on": "item", "to": "user" }],
+      "phrases": {
+        "ongoing": "picking up the {item}",
+        "done": "picked up the {item}",
+        "attempt": "pick up the {item}"
+      }
+    },
+    {
+      "name": "throw",
+      "appliesTo": {
+        "allOf": [{ "form": "carriable" }, { "component": "weight" }, { "location": "held" }]
+      },
+      "target": "agent_or_entity",
+      "reach": 6,
+      "minutes": 1,
+      "loudness": 4,
+      "hitRoll": { "baseHitChance": 0.6 },
+      "effects": [
+        {
+          "type": "damage",
+          "on": "target",
+          "amount": { "min": 0.02, "max": 0.05, "times": "item.weight.kilograms" },
+          "stimulus": "impact",
+          "scaledByStrength": true
+        },
+        { "type": "move", "on": "item", "to": "target_tile", "requiresHit": false }
+      ],
+      "phrases": {
+        "ongoing": "throwing a {item} at {target}",
+        "hit": "hit {target} with a thrown {item}",
+        "missed": "threw a {item} at {target} and missed",
+        "killed": "killed by a {item} thrown by {actor}",
+        "attempt": "throw a {item} at {target}"
+      }
+    },
+    {
+      "name": "put",
+      "appliesTo": { "component": "container" },
+      "effects": [{ "type": "move", "on": "chosen", "to": "item" }],
+      "phrases": {
+        "ongoing": "putting something in the {item}",
+        "done": "put something in the {item}",
+        "attempt": "put something in the {item}"
+      }
+    },
+    {
+      "name": "take",
+      "appliesTo": { "anyOf": [{ "component": "container" }, { "isDeadAgent": true }] },
+      "effects": [{ "type": "move", "on": "chosen", "to": "user" }],
+      "phrases": {
+        "ongoing": "taking something from {item}",
+        "done": "took something from {item}",
+        "attempt": "take something from {item}"
       }
     }
   ],

@@ -11,7 +11,7 @@
  "tilewidth": 16,
  "tileheight": 16,
  "nextlayerid": 7,
- "nextobjectid": 42,
+ "nextobjectid": 43,
  "layers": [
   {
    "id": 1,
@@ -592,6 +592,34 @@
     },
     {
      "id": 20,
+     "name": "tavern chest",
+     "type": "",
+     "rotation": 0,
+     "visible": true,
+     "x": 448,
+     "y": 272,
+     "width": 16,
+     "height": 16,
+     "properties": [
+      {
+       "name": "name",
+       "type": "string",
+       "value": "tavern chest"
+      },
+      {
+       "name": "definition",
+       "type": "string",
+       "value": "chest"
+      },
+      {
+       "name": "place",
+       "type": "string",
+       "value": "tavern"
+      }
+     ]
+    },
+    {
+     "id": 21,
      "name": "notice board",
      "type": "",
      "rotation": 0,
@@ -619,7 +647,7 @@
      ]
     },
     {
-     "id": 21,
+     "id": 22,
      "name": "bench",
      "type": "",
      "rotation": 0,
@@ -647,7 +675,7 @@
      ]
     },
     {
-     "id": 22,
+     "id": 23,
      "name": "wheat field",
      "type": "",
      "rotation": 0,
@@ -675,7 +703,7 @@
      ]
     },
     {
-     "id": 23,
+     "id": 24,
      "name": "trees",
      "type": "",
      "rotation": 0,
@@ -703,7 +731,7 @@
      ]
     },
     {
-     "id": 24,
+     "id": 25,
      "name": "rose cottage door",
      "type": "",
      "rotation": 0,
@@ -731,7 +759,7 @@
      ]
     },
     {
-     "id": 25,
+     "id": 26,
      "name": "ivy cottage door",
      "type": "",
      "rotation": 0,
@@ -759,7 +787,7 @@
      ]
     },
     {
-     "id": 26,
+     "id": 27,
      "name": "stone cottage door",
      "type": "",
      "rotation": 0,
@@ -787,7 +815,7 @@
      ]
     },
     {
-     "id": 27,
+     "id": 28,
      "name": "willow cottage door",
      "type": "",
      "rotation": 0,
@@ -815,7 +843,7 @@
      ]
     },
     {
-     "id": 28,
+     "id": 29,
      "name": "hill cottage door",
      "type": "",
      "rotation": 0,
@@ -843,7 +871,7 @@
      ]
     },
     {
-     "id": 29,
+     "id": 30,
      "name": "bakery door",
      "type": "",
      "rotation": 0,
@@ -871,7 +899,7 @@
      ]
     },
     {
-     "id": 30,
+     "id": 31,
      "name": "tavern front door",
      "type": "",
      "rotation": 0,
@@ -899,7 +927,7 @@
      ]
     },
     {
-     "id": 31,
+     "id": 32,
      "name": "tavern back door",
      "type": "",
      "rotation": 0,
@@ -939,7 +967,7 @@
    "visible": true,
    "objects": [
     {
-     "id": 32,
+     "id": 33,
      "name": "rose cottage",
      "type": "",
      "rotation": 0,
@@ -951,7 +979,7 @@
      "point": true
     },
     {
-     "id": 33,
+     "id": 34,
      "name": "ivy cottage",
      "type": "",
      "rotation": 0,
@@ -963,7 +991,7 @@
      "point": true
     },
     {
-     "id": 34,
+     "id": 35,
      "name": "stone cottage",
      "type": "",
      "rotation": 0,
@@ -975,7 +1003,7 @@
      "point": true
     },
     {
-     "id": 35,
+     "id": 36,
      "name": "willow cottage",
      "type": "",
      "rotation": 0,
@@ -987,7 +1015,7 @@
      "point": true
     },
     {
-     "id": 36,
+     "id": 37,
      "name": "hill cottage",
      "type": "",
      "rotation": 0,
@@ -999,7 +1027,7 @@
      "point": true
     },
     {
-     "id": 37,
+     "id": 38,
      "name": "bakery",
      "type": "",
      "rotation": 0,
@@ -1011,7 +1039,7 @@
      "point": true
     },
     {
-     "id": 38,
+     "id": 39,
      "name": "tavern",
      "type": "",
      "rotation": 0,
@@ -1023,7 +1051,7 @@
      "point": true
     },
     {
-     "id": 39,
+     "id": 40,
      "name": "town square",
      "type": "",
      "rotation": 0,
@@ -1035,7 +1063,7 @@
      "point": true
     },
     {
-     "id": 40,
+     "id": 41,
      "name": "farm",
      "type": "",
      "rotation": 0,
@@ -1047,7 +1075,7 @@
      "point": true
     },
     {
-     "id": 41,
+     "id": 42,
      "name": "woodlot",
      "type": "",
      "rotation": 0,
@@ -1067,9 +1095,9 @@
    "name": "village",
    "image": "tileset.png",
    "imagewidth": 128,
-   "imageheight": 48,
+   "imageheight": 64,
    "columns": 8,
-   "tilecount": 21,
+   "tilecount": 25,
    "tilewidth": 16,
    "tileheight": 16,
    "margin": 0,
@@ -1298,6 +1326,50 @@
     {
      "id": 20,
      "type": "coin",
+     "properties": [
+      {
+       "name": "collides",
+       "type": "bool",
+       "value": false
+      }
+     ]
+    },
+    {
+     "id": 21,
+     "type": "knife",
+     "properties": [
+      {
+       "name": "collides",
+       "type": "bool",
+       "value": false
+      }
+     ]
+    },
+    {
+     "id": 22,
+     "type": "broken_knife",
+     "properties": [
+      {
+       "name": "collides",
+       "type": "bool",
+       "value": false
+      }
+     ]
+    },
+    {
+     "id": 23,
+     "type": "bandage",
+     "properties": [
+      {
+       "name": "collides",
+       "type": "bool",
+       "value": false
+      }
+     ]
+    },
+    {
+     "id": 24,
+     "type": "chest",
      "properties": [
       {
        "name": "collides",

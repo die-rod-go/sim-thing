@@ -66,6 +66,10 @@ export const config = {
     interruptCooldownTicks: 10,
     /** "Around you" lists agents perceived within this many sim-minutes. */
     awarenessPromptWindowMinutes: 60,
+    /** How an item on the ground reads in Here, indoors and out ("a knife (pick up; on the floor)"). */
+    groundWords: { indoor: "on the floor", outdoor: "on the ground" },
+    /** How what a container or body holds reads, once within reach of a verb that takes from it. */
+    contentsWords: { holding: "holding {items}", empty: "empty" },
     /** Sound fills cached per source tile, door state and reach; the cache clears when full. */
     soundCacheMaxEntries: 512,
   },
@@ -303,6 +307,21 @@ export const config = {
     selfTargetWords: { others: "themselves", own: "myself" },
     /** How `{target}` reads in the target's own memory ("Tobias hit me"). */
     targetOwnWord: "me",
+    /** What a thrown thing receives where it lands, hit or miss. */
+    landingStimulus: "impact",
+    /**
+     * How moving things reads, by the event it makes. `{items}` is what moved ("2 bread"),
+     * `{holder}` the container or body, `{target}` what it was thrown at.
+     */
+    movePhrases: {
+      dropped: "dropped {items}",
+      picked_up: "picked up {items}",
+      put: "put {items} in {holder}",
+      took: "took {items} from {holder}",
+      threw: "threw {items} at {target}",
+    },
+    /** Why nothing can be taken from a living agent: only they can hand it over. */
+    livingHolderReason: "{name} is alive, and only they can hand over what they carry",
   },
 
   doors: {
@@ -421,6 +440,8 @@ export const config = {
       omitVerbChance: 0.25,
       /** A carried item with this verb is eaten whenever the status line holds a hungry word. */
       eatVerb: "eat",
+      /** Verbs that move what `item` names, and where that comes from: carried, or inside the thing. */
+      itemChoosingVerbs: { put: "carried", take: "inside" } as Record<string, "carried" | "inside">,
       hungryWords: ["starving", "very hungry", "quite hungry"],
       waitMinutes: { min: 5, max: 30 },
       lines: [

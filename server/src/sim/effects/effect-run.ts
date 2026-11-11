@@ -26,6 +26,8 @@ export interface EffectRun {
   selfEntityId?: string;
   /** The hit roll's `attacked` or `missed` event already showed what happens to the target. */
   isAttackAnnounced?: boolean;
+  /** Whether the verb's hit roll hit; absent for a verb without one, which counts as a hit. */
+  isHit?: boolean;
 }
 
 export interface EffectOutcome {
@@ -33,6 +35,8 @@ export interface EffectOutcome {
   made?: { definitionId: string; count: number };
   /** The effect broadcast its own start event (fell asleep, posted a note). */
   isStartAnnounced?: boolean;
+  /** The effect broadcast its own finish event (dropped a knife, took 5 coins). */
+  isFinishAnnounced?: boolean;
 }
 
 export interface EffectHandler<Type extends EffectType> {
@@ -56,10 +60,10 @@ export type EffectSubjectRef =
   { kind: "agent"; agentId: string } | { kind: "entity"; entityId: string };
 
 /**
- * What the effect's `on` refers to in this run: the user, the thing used, the verb's target, or
- * `self` (the entity breaking, for `onBroken`). Null when there is none, such as `item` in a
- * bare-handed verb. `chosen` and `nearby` come with the phases that need them; the server refuses
- * an `items.json` that uses them before then.
+ * What the effect's `on` refers to in this run: the user, the thing used (an entity, or a body),
+ * the verb's target, the first thing `chosen`, or `self` (the entity breaking, for `onBroken`).
+ * Null when there is none, such as `item` in a bare-handed verb. `nearby` comes with the phase
+ * that needs it; the server refuses an `items.json` that uses it before then.
  */
 export function findEffectSubject(effectRun: EffectRun, effect: Effect): EffectSubjectRef | null {
   const { run, selfEntityId } = effectRun;
@@ -67,7 +71,12 @@ export function findEffectSubject(effectRun: EffectRun, effect: Effect): EffectS
     case "user":
       return { kind: "agent", agentId: run.agentId };
     case "item":
+      if (run.usedBodyId !== undefined) return { kind: "agent", agentId: run.usedBodyId };
       return run.usedEntityId === null ? null : { kind: "entity", entityId: run.usedEntityId };
+    case "chosen": {
+      const [firstId] = run.chosenEntityIds ?? [];
+      return firstId === undefined ? null : { kind: "entity", entityId: firstId };
+    }
     case "target":
       return run.aim ?? null;
     case "self":

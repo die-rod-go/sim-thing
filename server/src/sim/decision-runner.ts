@@ -4,7 +4,7 @@ import { formatMinutesAgo } from "../decision/around-you";
 import { buildDecisionPrompt } from "../decision/decision-prompt";
 import { buildInteractPrompt, buildInteractReplySchema } from "../decision/interact-prompt";
 import { buildDecisionReplySchema } from "../decision/reply-schema";
-import { normalizeDisplayName } from "../decision/resolve-name";
+import { normalizeDisplayName, resolveName } from "../decision/resolve-name";
 import {
   describeEntityName,
   findEntity,
@@ -13,14 +13,27 @@ import {
   listHeldOfDefinition,
   listTileEntitiesAt,
 } from "../items/entity-store";
-import { findVerbByName, listItemlessVerbs, listVerbsForEntity } from "../items/verb-offers";
+import {
+  findVerbByName,
+  listItemlessVerbs,
+  listVerbsForBody,
+  listVerbsForEntity,
+} from "../items/verb-offers";
 import { searchMemories } from "../memory/recall";
 import { extractTags } from "../memory/tags";
 import { pushWorkingMemory } from "../memory/working-memory";
+import { isDead } from "../status/health";
+import { getAgentRuntime, type ChosenRequest } from "./agent-runtime";
 import { buildDecisionContext } from "./context-builder";
 import type { DecisionRequest } from "./tick-phases";
 import type { SimDependencies } from "./tick-context";
-import { findAgent, formatWorkingMemoryEntry, listKnownNames } from "./world-access";
+import {
+  describeAgentAsSeen,
+  findAgent,
+  formatWorkingMemoryEntry,
+  listKnownNames,
+  listOthersAsSeen,
+} from "./world-access";
 import type { WorldState } from "./world-state";
 
 /**
@@ -30,6 +43,7 @@ import type { WorldState } from "./world-state";
 export type PlannedUse =
   | { kind: "held"; definitionId: string; name: string }
   | { kind: "entity"; entityId: string; name: string }
+  | { kind: "body"; agentId: string; name: string }
   | { kind: "user" };
 
 /** The physical act a decision settled on, with names already resolved where that needs the LLM. */
@@ -43,6 +57,8 @@ export type PlannedAction =
       minutes?: number;
       /** What an aimed verb is aimed at, as the reply named it ("Tobias", "yourself"). */
       targetName?: string;
+      /** What a verb that moves things moves, as the reply's `item` and `amount` named it. */
+      chosen?: ChosenRequest;
     }
   | { kind: "give"; target: string; item: string; amount: number }
   | { kind: "wait"; minutes: number }
@@ -148,12 +164,26 @@ function findHeldCandidate(state: WorldState, agent: Agent, itemName: string): U
   };
 }
 
+/** A body in sight ("Mara's body"), offering what a dead agent's rule gives it (`take`). */
+function findBodyCandidate(state: WorldState, agent: Agent, name: string): UseCandidate | null {
+  const visibleIds = new Set(getAgentRuntime(state, agent.id).visibleAgentIds);
+  const bodies = state.agents
+    .filter((other) => visibleIds.has(other.id) && isDead(other))
+    .map((other) => ({ id: other.id, name: describeAgentAsSeen(other) }));
+  const bodyId = resolveName(name, bodies);
+  if (bodyId === null) return null;
+  return {
+    use: { kind: "body", agentId: bodyId, name: describeAgentAsSeen(findAgent(state, bodyId)) },
+    verbs: listVerbsForBody(state),
+  };
+}
+
 function findNearbyCandidate(state: WorldState, agent: Agent, name: string): UseCandidate | null {
   const wanted = normalizeDisplayName(name);
   const entity = listTileEntitiesAt(state, agent.place).find(
     (candidate) => normalizeDisplayName(describeEntityName(state, candidate)) === wanted,
   );
-  if (!entity) return null;
+  if (!entity) return findBodyCandidate(state, agent, name);
   return {
     use: { kind: "entity", entityId: entity.id, name: describeEntityName(state, entity) },
     verbs: listVerbsForEntity(state, agent.id, entity),
@@ -214,9 +244,21 @@ function aimInteract(
 }
 
 function describeUseName(state: WorldState, use: UseCandidate["use"]): string {
-  return use.kind === "held"
-    ? use.name
-    : describeEntityName(state, findEntity(state, use.entityId));
+  return use.kind === "entity"
+    ? describeEntityName(state, findEntity(state, use.entityId))
+    : use.name;
+}
+
+/** The reply's `item` and `amount`, for a verb that moves what they name. */
+function describeChosen(reply: DecisionReply): { chosen?: ChosenRequest } {
+  return reply.item ? { chosen: { name: reply.item, amount: reply.amount ?? 1 } } : {};
+}
+
+/** Why nothing can be done with a living agent named as the thing to use. */
+function findLivingHolderReason(state: WorldState, agent: Agent, name: string): string | null {
+  const otherId = resolveName(name, listOthersAsSeen(state, agent.id));
+  if (otherId === null || isDead(findAgent(state, otherId))) return null;
+  return config.verbs.livingHolderReason.split("{name}").join(findAgent(state, otherId).name);
 }
 
 async function askWhichVerb(
@@ -250,6 +292,7 @@ async function askWhichVerb(
     verb: answer.value.verb,
     text: answer.value.text ?? reply.text,
     minutes: answer.value.minutes ?? reply.minutes,
+    ...describeChosen(reply),
   };
   const verb = findVerbByName(candidate.verbs, answer.value.verb);
   return verb ? aimInteract(verb, reply, action) : action;
@@ -267,7 +310,7 @@ async function planInteract(
 ): Promise<PlannedAction> {
   const verbName = reply.verb ?? "";
   const candidates = listUseCandidates(state, agent, reply);
-  const details = { text: reply.text, minutes: reply.minutes };
+  const details = { text: reply.text, minutes: reply.minutes, ...describeChosen(reply) };
   for (const candidate of candidates) {
     const verb = findVerbByName(candidate.verbs, verbName);
     if (verb) {
@@ -284,6 +327,16 @@ async function planInteract(
       ...details,
     } as const;
     return aimInteract(itemless, reply, action);
+  }
+  const livingHolderReason = reply.target
+    ? findLivingHolderReason(state, agent, reply.target)
+    : null;
+  if (livingHolderReason !== null) {
+    return {
+      kind: "fail",
+      attempt: `${verbName} from ${reply.target}`,
+      reason: livingHolderReason,
+    };
   }
   const [first] = reply.item || reply.target ? candidates : [];
   const name = reply.item ?? reply.target ?? verbName;

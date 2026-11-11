@@ -1,14 +1,6 @@
-import {
-  findDefinition,
-  listPossibleLocations,
-  type Agent,
-  type Effect,
-  type Entity,
-  type Verb,
-} from "@village/shared";
+import { findDefinition, type Agent, type Effect, type Verb } from "@village/shared";
 import { config } from "../config";
 import {
-  describeEntityName,
   findEntityIfPresent,
   listHeldOfDefinition,
   removeEntity,
@@ -16,12 +8,6 @@ import {
 } from "../items/entity-store";
 import { addEntityUser, removeEntityUser } from "../items/entity-users";
 import { resolveNumber } from "../items/verb-numbers";
-import {
-  findVerbByName,
-  listItemlessVerbs,
-  listVerbsForEntity,
-  listVerbsForSubject,
-} from "../items/verb-offers";
 import { isDead } from "../status/health";
 import { describeAttempt, describeItemCounts, describeOngoingVerb } from "./action-phrases";
 import {
@@ -39,6 +25,8 @@ import { failAction } from "./failure";
 import type { TickContext } from "./tick-context";
 import { computeVerbReach, describeAimName, findAimProblem, isAimInReach } from "./verb-aim";
 import { describeMissingTools, describeShortfall } from "./verb-checks";
+import { chooseEntities, hasChosenEffects, listStillChosen } from "./verb-chosen";
+import { findRunVerb, resolveUse, type ResolvedUse } from "./verb-use";
 import {
   announceHitRoll,
   computeLoudness,
@@ -59,43 +47,6 @@ import type { WorldState } from "./world-state";
 export type { UsedThing } from "./agent-runtime";
 
 const { minutesPerTick } = config.clock;
-
-interface ResolvedUse {
-  verb: Verb;
-  entity: Entity | null;
-  name: string;
-}
-
-function describeUnknownVerb(state: WorldState, entity: Entity | null, verbName: string): string {
-  if (entity === null) return `I don't know how to '${verbName}'`;
-  const name = describeEntityName(state, entity);
-  return entity.location.kind === "inventory"
-    ? `I can't '${verbName}' ${name}`
-    : `The ${name} doesn't do '${verbName}'`;
-}
-
-function resolveUse(
-  state: WorldState,
-  agentId: string,
-  used: UsedThing,
-  verbName: string,
-): ResolvedUse | { failure: string; name: string } {
-  if (used.kind === "user") {
-    const verb = findVerbByName(listItemlessVerbs(state), verbName);
-    return verb
-      ? { verb, entity: null, name: "" }
-      : { failure: `I don't know how to '${verbName}'`, name: "" };
-  }
-  const entity = findEntityIfPresent(state, used.entityId);
-  if (!entity) return { failure: "it was gone", name: "it" };
-  const name = describeEntityName(state, entity);
-  const isHeldByOther = entity.location.kind === "inventory" && entity.location.agentId !== agentId;
-  if (isHeldByOther) return { failure: "someone got to it first", name };
-  const verb = findVerbByName(listVerbsForEntity(state, agentId, entity), verbName);
-  return verb
-    ? { verb, entity, name }
-    : { failure: describeUnknownVerb(state, entity, verbName), name };
-}
 
 /** Inputs are used up oldest first, never the thing the verb is used with. */
 function consumeInputs(
@@ -148,6 +99,7 @@ function buildRun(
     usedDefinitionId: use.entity?.definitionId ?? null,
     usedName: use.name,
     startedAtTick: state.tick,
+    ...(use.bodyId === undefined ? {} : { usedBodyId: use.bodyId }),
   };
   return aim ? { ...run, aim, aimName: describeAimName(state, agentId, aim) } : run;
 }
@@ -221,11 +173,21 @@ export function startVerbNow(
     failAction(state, result, agentId, attempt, use.failure);
     return;
   }
-  const run = buildRun(state, agentId, use, request.aim);
+  const builtRun = buildRun(state, agentId, use, request.aim);
   const attempt = describeAttempt(state.items, use.verb.name, {
     item: use.name,
-    target: run.aimName,
+    target: builtRun.aimName,
   });
+  const chosen = hasChosenEffects(use.verb)
+    ? chooseEntities(state, builtRun, use.verb, request.chosen)
+    : { entityIds: [] };
+  if ("failure" in chosen) {
+    failAction(state, result, agentId, attempt, chosen.failure);
+    return;
+  }
+  const run = hasChosenEffects(use.verb)
+    ? { ...builtRun, chosenEntityIds: chosen.entityIds }
+    : builtRun;
   const effectRun: EffectRun = {
     context,
     verb: use.verb,
@@ -237,10 +199,7 @@ export function startVerbNow(
     findAimedBlocker(state, use.verb, run) ??
     describeMissingTools(state, agentId, use.verb, run.usedEntityId) ??
     describeShortfall(state, agentId, use.verb) ??
-    effectsAt(use.verb, "start")
-      .map((effect) => findEffectBlocker(effectRun, effect))
-      .find((reason) => reason !== null) ??
-    null;
+    findEffectsBlocker(effectRun, use.verb.effects);
   if (blocker !== null) {
     failAction(state, result, agentId, attempt, blocker);
     return;
@@ -249,6 +208,15 @@ export function startVerbNow(
   consumeInputs(context, agentId, use.verb, run.usedEntityId);
   const outcomes = effectsAt(use.verb, "start").map((effect) => applyEffect(effectRun, effect));
   if (!outcomes.some((outcome) => outcome.isStartAnnounced)) announceStart(context, run, use.verb);
+}
+
+/** The first reason any of the effects can't run now: a full chest, an empty field. */
+function findEffectsBlocker(effectRun: EffectRun, effects: readonly Effect[]): string | null {
+  return (
+    effects
+      .map((effect) => findEffectBlocker(effectRun, effect))
+      .find((reason) => reason !== null) ?? null
+  );
 }
 
 function sumMade(outcomes: EffectOutcome[]): Record<string, number> {
@@ -270,19 +238,6 @@ function endRun(context: TickContext, agentId: string, run: VerbRun | null): Age
   return stopped;
 }
 
-/**
- * The running verb, found again by name among the verbs that apply to what was used, so two
- * same-named verbs (the general `eat` and a poisoned one) stay apart.
- */
-function findRunVerb(state: WorldState, run: VerbRun): Verb | undefined {
-  if (run.usedDefinitionId === null) return findVerbByName(listItemlessVerbs(state), run.verb);
-  const definition = findDefinition(state.items, run.usedDefinitionId);
-  const candidates = listPossibleLocations(definition.form).flatMap((location) =>
-    listVerbsForSubject(state, { kind: "entity", definition, location }),
-  );
-  return findVerbByName(candidates, run.verb);
-}
-
 /** Someone else took what the verb was used with while it ran (both reached for the knife). */
 function isTakenByOther(state: WorldState, run: VerbRun): boolean {
   const used = run.usedEntityId === null ? undefined : findEntityIfPresent(state, run.usedEntityId);
@@ -299,6 +254,8 @@ function isUsedUpAtStart(verb: Verb): boolean {
 /** Why an aimed verb can't finish: the thing used is no longer held, or the target is gone. */
 function findFinishBlocker(state: WorldState, run: VerbRun, verb: Verb): string | null {
   if (isTakenByOther(state, run)) return "someone got to it first";
+  const isChosenGone = hasChosenEffects(verb) && listStillChosen(state, run, verb).length === 0;
+  if (isChosenGone) return "someone got to it first";
   if (verb.target === "none") return null;
   const isUsedGone =
     run.usedEntityId !== null && findEntityIfPresent(state, run.usedEntityId) === undefined;
@@ -358,7 +315,12 @@ export function finishRunningVerb(context: TickContext, agentId: string): void {
     endRun(context, agentId, run);
     return;
   }
-  const blocker = findFinishBlocker(state, run, verb);
+  const finishing = hasChosenEffects(verb)
+    ? { ...run, chosenEntityIds: listStillChosen(state, run, verb) }
+    : run;
+  const blocker =
+    findFinishBlocker(state, run, verb) ??
+    findEffectsBlocker({ context, verb, run: finishing, text: "" }, effectsAt(verb, "finish"));
   if (blocker !== null) {
     failRun(context, run, blocker);
     return;
@@ -374,16 +336,18 @@ export function finishRunningVerb(context: TickContext, agentId: string): void {
   const effectRun: EffectRun = {
     context,
     verb,
-    run,
+    run: finishing,
     text: "",
     isAttackAnnounced: verb.hitRoll !== undefined,
+    isHit,
   };
   const outcomes = effectsAt(verb, "finish")
     .filter((effect) => isEffectRunning(verb, effect, isHit))
     .map((effect) => applyEffect(effectRun, effect));
   if (isDead(findAgent(state, agentId))) return;
   endRun(context, agentId, run);
-  if (verb.hitRoll === undefined) announceFinish(context, run, outcomes);
+  const isAnnounced = outcomes.some((outcome) => outcome.isFinishAnnounced);
+  if (verb.hitRoll === undefined && !isAnnounced) announceFinish(context, run, outcomes);
 }
 
 /**

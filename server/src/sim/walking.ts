@@ -25,7 +25,12 @@ import { broadcastEvent } from "./event-broadcast";
 import { createEvent } from "./event-factory";
 import { failAction } from "./failure";
 import type { TickContext } from "./tick-context";
-import { findVerbByName, listItemlessVerbs, listVerbsForEntity } from "../items/verb-offers";
+import {
+  findVerbByName,
+  listItemlessVerbs,
+  listVerbsForBody,
+  listVerbsForEntity,
+} from "../items/verb-offers";
 import { isDead } from "../status/health";
 import { computeVerbReach, describeAimName, findAimProblem, isAimInReach } from "./verb-aim";
 import { startVerbNow } from "./verb-runner";
@@ -229,7 +234,7 @@ function pursueAim(context: TickContext, agentId: string): boolean {
 }
 
 function findUsedDefinitionId(state: WorldState, used: UsedThing): string | null {
-  if (used.kind === "user") return null;
+  if (used.kind !== "entity") return null;
   return findEntityIfPresent(state, used.entityId)?.definitionId ?? null;
 }
 
@@ -239,6 +244,7 @@ function findPendingVerb(
   pending: PendingVerb,
 ): Verb | undefined {
   const used = pending.used;
+  if (used?.kind === "body") return findVerbByName(listVerbsForBody(state), pending.verb);
   if (!used || used.kind === "user") return findVerbByName(listItemlessVerbs(state), pending.verb);
   const entity = findEntityIfPresent(state, used.entityId);
   return entity

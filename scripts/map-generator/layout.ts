@@ -145,6 +145,7 @@ export function buildVillageLayout(): VillageLayout {
     { name: "brew kettle", definitionId: "brew_kettle", place: "tavern", x: 36, y: 12 },
     { name: "card table", definitionId: "card_table", place: "tavern", x: 31, y: 14 },
     { name: "spare bed", definitionId: "bed", place: "tavern", x: 36, y: 18 },
+    { name: "tavern chest", definitionId: "chest", place: "tavern", x: 28, y: 17 },
     { name: "notice board", definitionId: "notice_board", place: "town square", x: 18, y: 12 },
     { name: "bench", definitionId: "bench", place: "town square", x: 16, y: 16 },
     { name: "wheat field", definitionId: "wheat_field", place: "farm", x: 8, y: 24 },

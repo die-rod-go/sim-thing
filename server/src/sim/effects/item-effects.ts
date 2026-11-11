@@ -1,7 +1,13 @@
-import type { EntityLocation } from "@village/shared";
-import { createEntity, moveEntity, removeEntity } from "../../items/entity-store";
+import type { Entity, EntityLocation } from "@village/shared";
+import { listContents } from "../../items/containers";
+import {
+  createEntity,
+  moveEntity,
+  removeEntity,
+  resolveEntityPosition,
+} from "../../items/entity-store";
 import { resolveNumber } from "../../items/verb-numbers";
-import type { WorldState } from "../world-state";
+import type { TickResult, WorldState } from "../world-state";
 import { findAgent, markEntityChanged, markEntityRemoved } from "../world-access";
 import { findEffectEntity, findUsedDefinition, type EffectHandler } from "./effect-run";
 
@@ -30,28 +36,26 @@ export const produceEffect: EffectHandler<"produce"> = {
   },
 };
 
+/** What a destroyed container held falls where it stood, so nothing is lost with it. */
+function spillContents(state: WorldState, result: TickResult, container: Entity): void {
+  const position = resolveEntityPosition(state, container);
+  if (!position) return;
+  for (const entity of listContents(state, container.id)) {
+    moveEntity(state, entity.id, { kind: "tile", place: position.place, pos: { ...position.pos } });
+    markEntityChanged(result, entity.id);
+  }
+}
+
 /** Removes the entity for good (eating the bread, using up a bandage, a door smashed apart). */
 export const destroyEffect: EffectHandler<"destroy"> = {
   apply(effectRun, effect) {
     const entity = findEffectEntity(effectRun, effect);
     if (!entity) return {};
+    spillContents(effectRun.context.state, effectRun.context.result, entity);
     removeEntity(effectRun.context.state, entity.id);
     markEntityRemoved(effectRun.context.result, entity.id);
     return {};
   },
 };
 
-/** Moves the entity into the user's hands or onto the ground at their feet. */
-export const moveEffect: EffectHandler<"move"> = {
-  apply(effectRun, effect) {
-    const entity = findEffectEntity(effectRun, effect);
-    if (!entity) return {};
-    if (effect.to !== "user" && effect.to !== "ground") {
-      throw new Error(`"${effectRun.verb.name}": move to ${effect.to} isn't built yet`);
-    }
-    const { state, result } = effectRun.context;
-    moveEntity(state, entity.id, locateWith(state, effectRun.run.agentId, effect.to));
-    markEntityChanged(result, entity.id);
-    return {};
-  },
-};
+export { moveEffect } from "./move-effect";

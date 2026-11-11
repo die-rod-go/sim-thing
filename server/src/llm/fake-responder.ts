@@ -128,6 +128,23 @@ function withoutVerbs(uses: Map<string, string[]>, excluded: ReadonlySet<string>
   );
 }
 
+/**
+ * What a verb that moves things (`put`, `take`) moves: something carried, or something the enum
+ * offers that isn't carried (inside a container or body in reach). Null for other verbs.
+ */
+function pickChosenItem(
+  random: SeededRandom,
+  choices: DecisionChoices,
+  verb: string,
+): string | null {
+  const source = config.llm.fakeResponder.itemChoosingVerbs[verb];
+  if (source === undefined) return null;
+  const carried = [...choices.heldItems.keys()];
+  const options =
+    source === "carried" ? carried : choices.items.filter((name) => !carried.includes(name));
+  return options.length > 0 ? random.pick(options) : null;
+}
+
 /** Fills `target` for something here or `item` for something carried, and a verb it offers. */
 function buildInteractFields(
   random: SeededRandom,
@@ -148,7 +165,11 @@ function buildInteractFields(
   if (usable.length === 0) return null;
   const chosen = random.pick(usable);
   const verb = random.next() < tuning.omitVerbChance ? null : random.pick(chosen.verbs);
-  return { fields: { [chosen.field]: chosen.name, verb }, usedName: chosen.name };
+  const item =
+    verb === null || chosen.field !== "target" ? null : pickChosenItem(random, choices, verb);
+  const fields =
+    item === null ? { [chosen.field]: chosen.name, verb } : { target: chosen.name, verb, item };
+  return { fields, usedName: chosen.name };
 }
 
 /** A hit-roll verb aimed at someone in sight: with something carried, or bare-handed. */

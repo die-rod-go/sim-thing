@@ -5,7 +5,13 @@ import {
   findEntityIfPresent,
   resolveEntityPosition,
 } from "../items/entity-store";
-import { findVerbByName, listItemlessVerbs, listVerbsForEntity } from "../items/verb-offers";
+import {
+  findVerbByName,
+  listItemlessVerbs,
+  listVerbsForBody,
+  listVerbsForEntity,
+} from "../items/verb-offers";
+import { isDead } from "../status/health";
 import { describeAttempt } from "./action-phrases";
 import type { PendingVerb, UsedThing, VerbAim, WalkDestination } from "./agent-runtime";
 import { failAction } from "./failure";
@@ -13,7 +19,7 @@ import type { TickContext } from "./tick-context";
 import { computeVerbReach, findAimProblem, isAimInReach, resolveAim } from "./verb-aim";
 import { startVerbNow } from "./verb-runner";
 import { startWalk } from "./walking";
-import { findAgent } from "./world-access";
+import { describeAgentAsSeen, findAgent } from "./world-access";
 import type { WorldState } from "./world-state";
 
 interface UsedVerb {
@@ -34,6 +40,13 @@ function findUsedVerb(
     const verb = findVerbByName(listItemlessVerbs(state), verbName);
     return verb ? { verb, usedName: "", usedEntityId: null, usedDefinitionId: null } : null;
   }
+  if (used.kind === "body") {
+    const body = findAgent(state, used.agentId);
+    const verb = isDead(body) ? findVerbByName(listVerbsForBody(state), verbName) : undefined;
+    return verb
+      ? { verb, usedName: describeAgentAsSeen(body), usedEntityId: null, usedDefinitionId: null }
+      : null;
+  }
   const entity = findEntityIfPresent(state, used.entityId);
   if (!entity) return null;
   const verb = findVerbByName(listVerbsForEntity(state, agentId, entity), verbName);
@@ -50,6 +63,28 @@ function describeAimDestination(aim: VerbAim): WalkDestination {
   return aim.kind === "agent"
     ? { kind: "agent", agentId: aim.agentId }
     : { kind: "entity", entityId: aim.entityId };
+}
+
+/** A body is used where it lies: at once if in reach, after a walk to it otherwise. */
+function startOrWalkToBody(
+  context: TickContext,
+  agentId: string,
+  found: UsedVerb,
+  request: PendingVerb,
+  bodyId: string,
+): void {
+  const { state } = context;
+  const used: UsedThing = { kind: "body", agentId: bodyId };
+  const reach = computeVerbReach(state, found.verb, null);
+  const distance = computeChebyshevDistance(
+    findAgent(state, agentId).pos,
+    findAgent(state, bodyId).pos,
+  );
+  if (distance <= reach) {
+    startVerbNow(context, agentId, used, request);
+    return;
+  }
+  startWalk(context, agentId, { kind: "agent", agentId: bodyId }, { ...request, used });
 }
 
 /** A verb with no target is used where its thing is: at once if in reach, after a walk otherwise. */
@@ -100,6 +135,10 @@ export function startOrApproachVerb(
     return;
   }
   const { verb } = found;
+  if (used.kind === "body" && verb.target === "none") {
+    startOrWalkToBody(context, agentId, found, request, used.agentId);
+    return;
+  }
   if (verb.target === "none") {
     startOrWalkToUsed(context, agentId, found, request);
     return;

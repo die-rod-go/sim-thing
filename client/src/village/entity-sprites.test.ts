@@ -26,4 +26,17 @@ describe("listPlacedSprites", () => {
       { entityId: "entity-1", tile: 11, tileX: 3, tileY: 12 },
     ]);
   });
+
+  it("draws items on the ground over the placed object on the same tile", () => {
+    const knife: ItemDefinition = { ...oven, id: "knife", name: "knife", form: "carriable" };
+    const tile = { kind: "tile", place: "tavern", pos: { x: 31, y: 14 } } as const;
+    const entities: Entity[] = [
+      { ...entityAt("entity-1", tile), definitionId: "knife" },
+      entityAt("entity-2", tile),
+    ];
+    expect(listPlacedSprites(entities, [oven, knife]).map((sprite) => sprite.entityId)).toEqual([
+      "entity-2",
+      "entity-1",
+    ]);
+  });
 });

@@ -11,17 +11,28 @@ export interface PlacedSprite {
 
 /**
  * Every entity standing on a tile (placed objects and items on the ground), drawn from its
- * definition's sprite. Carried and contained entities aren't on the map.
+ * definition's sprite. Carried and contained entities aren't on the map. Placed objects come
+ * first, so a knife dropped by the card table is drawn on top of it.
  */
 export function listPlacedSprites(
   entities: readonly Entity[],
   definitions: readonly ItemDefinition[],
 ): PlacedSprite[] {
   const definitionsById = new Map(definitions.map((definition) => [definition.id, definition]));
-  return entities.flatMap((entity) => {
+  const onTiles = entities.flatMap((entity) => {
     const definition = definitionsById.get(entity.definitionId);
     if (entity.location.kind !== "tile" || !definition) return [];
     const { pos } = entity.location;
-    return [{ entityId: entity.id, tile: definition.sprite.tile, tileX: pos.x, tileY: pos.y }];
+    const sprite = {
+      entityId: entity.id,
+      tile: definition.sprite.tile,
+      tileX: pos.x,
+      tileY: pos.y,
+    };
+    return [{ sprite, isPlaced: definition.form === "placeable" }];
   });
+  return [
+    ...onTiles.filter((entry) => entry.isPlaced),
+    ...onTiles.filter((entry) => !entry.isPlaced),
+  ].map((entry) => entry.sprite);
 }

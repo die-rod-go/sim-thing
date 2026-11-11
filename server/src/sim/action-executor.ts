@@ -13,7 +13,7 @@ import { pushWorkingMemory } from "../memory/working-memory";
 import { isDead } from "../status/health";
 import { WAIT_ACTION, describeAttempt } from "./action-phrases";
 import { stopCurrentAction } from "./action-stopping";
-import { getAgentRuntime } from "./agent-runtime";
+import { getAgentRuntime, type UsedThing } from "./agent-runtime";
 import type { DecidedReply, DecisionPlan, PlannedAction, PlannedUse } from "./decision-runner";
 import { broadcastEvent } from "./event-broadcast";
 import { createEvent, createSpeechEvent } from "./event-factory";
@@ -136,6 +136,12 @@ function findHeldToUse(
   return usable?.id ?? null;
 }
 
+function toUsedThing(use: Exclude<PlannedUse, { kind: "held" }>): UsedThing {
+  if (use.kind === "user") return use;
+  if (use.kind === "body") return { kind: "body", agentId: use.agentId };
+  return { kind: "entity", entityId: use.entityId };
+}
+
 /**
  * Applies interact. A held item is named by definition, so the oldest one that still offers the
  * verb is used; the rest is checked by `startOrApproachVerb`.
@@ -146,7 +152,12 @@ function executeInteract(
   action: Extract<PlannedAction, { kind: "interact" }>,
 ): void {
   const { state, result } = context;
-  const request = { verb: action.verb, text: action.text, minutes: action.minutes };
+  const request = {
+    verb: action.verb,
+    text: action.text,
+    minutes: action.minutes,
+    ...(action.chosen ? { chosen: action.chosen } : {}),
+  };
   const { use } = action;
   if (use.kind === "held") {
     const entityId = findHeldToUse(state, agentId, use, action.verb);
@@ -159,7 +170,7 @@ function executeInteract(
     startOrApproachVerb(context, agentId, used, request, action.targetName);
     return;
   }
-  const used = use.kind === "user" ? use : ({ kind: "entity", entityId: use.entityId } as const);
+  const used = toUsedThing(use);
   startOrApproachVerb(context, agentId, used, request, action.targetName);
 }
 

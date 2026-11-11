@@ -14,12 +14,12 @@ import { describeDoing } from "./action-phrases";
 import { getAgentRuntime } from "./agent-runtime";
 import {
   buildBelongings,
-  groupEntitiesForPrompt,
+  buildHere,
   listAimOnlyTargets,
   listItemlessVerbNames,
   listVisibleCarried,
-  listNearbyEntities,
   listNearbyEntityNames,
+  listNearbyThingNames,
   listValidItems,
 } from "./prompt-entities";
 import {
@@ -123,7 +123,7 @@ export function buildDecisionContext(
       .map(toPerceiver),
   );
   const aroundYouEntries = buildAwarenessEntries(state, agent);
-  const nearbyEntities = groupEntitiesForPrompt(state, agentId, listNearbyEntities(state, agent));
+  const nearbyEntities = buildHere(state, agent);
   const conversation = currentConversation(state.conversationLog, agentId, state.tick);
   const conversationText = conversation.map((line) => line.words).join(" ");
   const action = agent.currentAction;
@@ -158,7 +158,7 @@ export function buildDecisionContext(
       state,
       agent,
       aroundYouEntries,
-      listNearbyEntityNames(state, agent),
+      listNearbyThingNames(state, agent),
       conversationText,
     ),
     knownPlaces: state.map.places.map((place) => place.name),

@@ -25,6 +25,10 @@ export const TILE_NAMES = [
   "wood",
   "ale",
   "coin",
+  "knife",
+  "broken_knife",
+  "bandage",
+  "chest",
 ] as const;
 
 export type TileName = (typeof TILE_NAMES)[number];
@@ -83,6 +87,8 @@ const colors = {
   froth: [246, 240, 220, 255],
   gold: [232, 192, 64, 255],
   goldDark: [176, 132, 32, 255],
+  blade: [200, 204, 212, 255],
+  linen: [240, 236, 224, 255],
 } satisfies Record<string, Rgba>;
 
 function fillRect(
@@ -215,6 +221,25 @@ const tilePainters: Record<TileName, (painter: Painter) => void> = {
     fillRect(painter, 5, 4, 6, 8, colors.gold);
     fillRect(painter, 4, 5, 8, 6, colors.gold);
     fillRect(painter, 7, 6, 2, 4, colors.goldDark);
+  },
+  knife: (painter) => {
+    fillRect(painter, 3, 7, 7, 2, colors.blade);
+    fillRect(painter, 10, 6, 1, 4, colors.iron);
+    fillRect(painter, 11, 7, 3, 2, colors.woodDark);
+  },
+  broken_knife: (painter) => {
+    fillRect(painter, 7, 7, 3, 2, colors.blade);
+    fillRect(painter, 10, 6, 1, 4, colors.iron);
+    fillRect(painter, 11, 7, 3, 2, colors.woodDark);
+  },
+  bandage: (painter) => {
+    fillRect(painter, 4, 5, 8, 6, colors.linen);
+    fillRect(painter, 6, 7, 4, 2, colors.blanket);
+  },
+  chest: (painter) => {
+    fillRect(painter, 1, 4, 14, 10, colors.wood);
+    fillRect(painter, 1, 4, 14, 3, colors.woodDark);
+    fillRect(painter, 7, 6, 2, 3, colors.gold);
   },
   notice_board: (painter) => {
     fillRect(painter, 7, 11, 2, 5, colors.woodDark);

@@ -46,6 +46,14 @@ export function listItemlessVerbs(world: EntityWorld): Verb[] {
   return listVerbsForSubject(world, { kind: "user", properties: world.items.personProperties });
 }
 
+/** Verbs a dead agent's body offers, like `take`. */
+export function listVerbsForBody(world: EntityWorld): Verb[] {
+  return listVerbsForSubject(world, {
+    kind: "dead_agent",
+    properties: world.items.personProperties,
+  });
+}
+
 export function findVerbByName(verbs: readonly Verb[], name: string): Verb | undefined {
   const wanted = normalizeVerbName(name);
   return verbs.find((verb) => normalizeVerbName(verb.name) === wanted);
