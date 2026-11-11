@@ -48,6 +48,8 @@ export const clientConfig = {
     thoughtMaxAgeTicks: 30,
     /** localStorage key for whose thoughts are shown; this viewer's choice survives a reload. */
     thoughtModeStorageKey: "village.thoughtMode",
+    /** localStorage key for the agents whose speech bubbles this viewer has muted. */
+    mutedSpeakersStorageKey: "village.mutedSpeakers",
 
     /** Pointer rest time before an agent's hover card appears, and where it sits. */
     hoverCardDelayMs: 350,

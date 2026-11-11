@@ -168,6 +168,31 @@
   overflow: visible;
 }
 
+/* Sits right against the figure so the pointer can cross onto it without leaving the marker's hover. */
+.agent-mute {
+  position: absolute;
+  top: calc(var(--figure-size) / -2);
+  left: calc(var(--figure-size) / 2);
+  display: none;
+  padding: 1px 3px;
+  font-size: 11px;
+  line-height: 1;
+  background: rgb(20 22 28 / 80%);
+  border: 1px solid var(--border);
+  border-radius: 4px;
+  cursor: pointer;
+  pointer-events: auto;
+}
+
+.agent-marker:hover .agent-mute,
+.agent-marker.is-muted .agent-mute {
+  display: block;
+}
+
+.agent-marker.is-muted:not(:hover) .agent-mute {
+  opacity: 0.6;
+}
+
 .agent-head {
   stroke: rgb(0 0 0 / 80%);
   stroke-width: 1;

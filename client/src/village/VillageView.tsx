@@ -12,6 +12,12 @@ import { computeDaylightTint, computeHourOfDay } from "./daylight";
 import { parseThoughtMode, selectVisibleThoughts, type ThoughtMode } from "./thought-bubbles";
 import { useCameraInput } from "./use-camera-input";
 import { useCameraRig } from "./use-camera-rig";
+import {
+  parseMutedSpeakers,
+  serializeMutedSpeakers,
+  toggleMutedSpeaker,
+  type MutedSpeakers,
+} from "./muted-speakers";
 import { useDirector } from "./use-director";
 import { useVillageMap } from "./use-village-map";
 import { VillageWorld } from "./VillageWorld";
@@ -31,6 +37,7 @@ interface VillageViewProps {
 }
 
 const NO_HIGHLIGHTS: readonly string[] = [];
+const NO_MUTED_SPEAKERS: MutedSpeakers = new Set();
 
 function useElementSize(elementRef: RefObject<HTMLElement | null>): Size {
   const [size, setSize] = useState<Size>({ width: 0, height: 0 });
@@ -105,6 +112,14 @@ export function VillageView({
     "selected",
     parseThoughtMode,
   );
+  const [mutedSpeakers, setMutedSpeakers] = useStoredState(
+    clientConfig.village.mutedSpeakersStorageKey,
+    NO_MUTED_SPEAKERS,
+    parseMutedSpeakers,
+    serializeMutedSpeakers,
+  );
+  const toggleMute = (agentId: string) =>
+    setMutedSpeakers(toggleMutedSpeaker(mutedSpeakers, agentId));
   const canFollow = state.inspectedAgentId !== null;
   useCameraInput(containerRef, controls, canFollow);
   const conversations = useConversations(state);
@@ -159,7 +174,9 @@ export function VillageView({
             isPlaceLabelsOn={isPlaceLabelsOn}
             moveDurationMs={moveDurationMs}
             camera={controls}
+            mutedSpeakers={mutedSpeakers}
             onSelectAgent={onSelectAgent}
+            onToggleMute={toggleMute}
           />
         )}
       </div>

@@ -7,6 +7,7 @@ import { pickActivityCue, type ConversationLink } from "./activity-cues";
 import { retargetMotion, type AgentMotion } from "./agent-motion";
 import { AgentMarker } from "./AgentMarker";
 import { HoverCard } from "./HoverCard";
+import type { MutedSpeakers } from "./muted-speakers";
 import { PerceptionOverlay, type PerceptionView } from "./perception-overlay";
 import { ConversationLinks, PlaceLabels } from "./screen-overlays";
 import { groupBubblesBySpeaker, SpeechBubbleStack, useLiveSpeechBubbles } from "./SpeechBubbles";
@@ -40,7 +41,9 @@ interface VillageWorldProps {
   isPlaceLabelsOn: boolean;
   moveDurationMs: number;
   camera: CameraControls;
+  mutedSpeakers: MutedSpeakers;
   onSelectAgent: (agentId: string) => void;
+  onToggleMute: (agentId: string) => void;
 }
 
 const NO_BUBBLES: readonly SpeechBubble[] = [];
@@ -114,9 +117,10 @@ export function VillageWorld(props: VillageWorldProps) {
   const world = useWorldElements();
   const bubbleKeys = useBubbleKeys();
   const { liveBubbles, expireBubble } = useLiveSpeechBubbles(props.speechBubbles);
+  const shownBubbles = liveBubbles.filter((bubble) => !props.mutedSpeakers.has(bubble.agentId));
   const agentColors = useMemo(() => buildAgentColors(agents), [agents]);
   const agentNames = new Map(agents.map((agent) => [agent.id, agent.name]));
-  const bubblesBySpeaker = groupBubblesBySpeaker(liveBubbles);
+  const bubblesBySpeaker = groupBubblesBySpeaker(shownBubbles);
   const highlighted = new Set(props.highlightedAgentIds);
   const visiblePlaces = props.isPlaceLabelsOn ? map.places : [];
 
@@ -199,10 +203,12 @@ export function VillageWorld(props: VillageWorldProps) {
             isSelected={agent.id === inspectedAgentId}
             isHighlighted={highlighted.has(agent.id)}
             isSpeaking={bubblesBySpeaker.has(agent.id)}
+            isMuted={props.mutedSpeakers.has(agent.id)}
             activityCue={pickActivityCue(agent.currentAction, activity)}
             markerRef={world.markers.register(agent.id)}
             onSelect={props.onSelectAgent}
             onZoomTo={(agentId) => camera.focus({ kind: "agent", agentId })}
+            onToggleMute={props.onToggleMute}
             onHoverStart={startHover}
             onHoverEnd={endHover}
           />

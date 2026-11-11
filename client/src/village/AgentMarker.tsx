@@ -17,10 +17,12 @@ interface AgentMarkerProps {
   isSelected: boolean;
   isHighlighted: boolean;
   isSpeaking: boolean;
+  isMuted: boolean;
   activityCue: ActivityCue;
   markerRef: (element: HTMLElement | null) => void;
   onSelect: (agentId: string) => void;
   onZoomTo: (agentId: string) => void;
+  onToggleMute: (agentId: string) => void;
   onHoverStart: (agentId: string) => void;
   onHoverEnd: (agentId: string) => void;
 }
@@ -45,7 +47,8 @@ function ActivityCueBadge({ cue }: { cue: ActivityCue }) {
 
 /**
  * One agent on the map, centered on 0,0 in screen pixels: its figure (scaled by the frame loop
- * through `--figure-scale`), name label, activity cue and selection, highlight and speaking rings.
+ * through `--figure-scale`), name label, activity cue, mute toggle and selection, highlight and
+ * speaking rings.
  */
 export function AgentMarker({
   agentId,
@@ -54,10 +57,12 @@ export function AgentMarker({
   isSelected,
   isHighlighted,
   isSpeaking,
+  isMuted,
   activityCue,
   markerRef,
   onSelect,
   onZoomTo,
+  onToggleMute,
   onHoverStart,
   onHoverEnd,
 }: AgentMarkerProps) {
@@ -66,6 +71,7 @@ export function AgentMarker({
   if (isSelected) classNames.push("is-selected");
   if (isHighlighted) classNames.push("is-highlighted");
   if (isSpeaking) classNames.push("is-speaking");
+  if (isMuted) classNames.push("is-muted");
   return (
     <div
       className={classNames.join(" ")}
@@ -105,6 +111,16 @@ export function AgentMarker({
             className="agent-head"
           />
         </svg>
+      </button>
+      <button
+        type="button"
+        className="agent-mute"
+        aria-pressed={isMuted}
+        aria-label={isMuted ? `Show ${name}'s speech bubbles` : `Hide ${name}'s speech bubbles`}
+        title={isMuted ? "Show speech bubbles" : "Hide speech bubbles"}
+        onClick={() => onToggleMute(agentId)}
+      >
+        {isMuted ? "🔇" : "🔊"}
       </button>
       <ActivityCueBadge cue={activityCue} />
       <span className="agent-label">{name}</span>
