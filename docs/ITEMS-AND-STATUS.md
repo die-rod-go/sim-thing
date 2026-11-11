@@ -1,7 +1,7 @@
 # Items, verbs and status: design
 
 Status: **agreed design**. Nothing here is built yet. Decisions taken in review are listed at the
-end, with the questions still open.
+end.
 
 ## Goal
 
@@ -123,7 +123,8 @@ interface Entity {
   definitionId: string;
   location:
     | { kind: "inventory"; agentId: string } // carried, by a living or dead agent
-    | { kind: "tile"; place: string; pos: Position }; // placed objects and items on the ground
+    | { kind: "tile"; place: string; pos: Position } // placed objects and items on the ground
+    | { kind: "inside"; containerId: string }; // in a chest, basket or other container
   state: {
     durability?: number;
     stock?: number;
@@ -145,7 +146,8 @@ interface ActiveCondition {
   location is that agent. Prompts and the UI still group identical, stateless entities, so the
   agent sees "3 bread, a knife (worn), a burning torch".
 - **Coins stay a number** on the agent. They're a closed currency, not things with state, so
-  `give` and `take` handle them as they do now.
+  `give` handles them as it does now and `take` can take them from a body. Containers hold items,
+  not coins.
 - `WorldObject` and `ObjectKind` go away. Tiled objects name a definition id instead of a kind and
   load as `tile` entities. Doors, beds, ovens, the wheat field, trees, the card table and the notice
   board become definitions.
@@ -160,6 +162,7 @@ interface ActiveCondition {
 | `stock`      | `capacity`, `regrowPerDay`                                | Wheat field, trees                                          |
 | `openable`   | `startsOpen`, `blocksSightWhenClosed`, `muffleWhenClosed` | Doors. A destroyed door counts as open for sight and sound  |
 | `blocking`   | `blocksMovement`, `blocksSight`                           | Placeables that are in the way                              |
+| `container`  | `capacity`                                                | Chests, baskets: holds items that `put` and `take` move     |
 | `notes`      | `maxNotes`                                                | Notice board                                                |
 | `bed`        | —                                                         | Something you can `sleep` in                                |
 
@@ -184,8 +187,11 @@ A verb lives on a definition. Where it can be used depends on where it lives:
 - on a **placeable** object: used next to it (bake bread at the oven, open the door)
 - on the **person** definition: innate, needs no item (`punch`)
 - **built in**, for everything of a kind: every carriable gets `drop`, `pick up` and `throw`; every
-  agent (living or dead) can be the target of `take` from its inventory; every `openable` gets
-  `open` and `close`.
+  `container` gets `put` and `take`; a dead agent can be the target of `take`; every `openable`
+  gets `open` and `close`.
+
+Nobody can `take` from a living agent. Goods leave a living agent only through their own `give`,
+so theft is not possible, even from someone asleep.
 
 | Verb field      | Meaning                                                                                     |
 | --------------- | ------------------------------------------------------------------------------------------- |
@@ -385,6 +391,11 @@ hitChance = clamp(baseHitChance + (attacker.agility - defender.agility) * combat
 Shown in the prompt next to needs ("Body and spirits: hurt and bleeding, quite hungry, rested").
 Visible conditions on others show in "Around you" ("Tobias, bleeding").
 
+Others' health shows there too, as words, once it drops below `health.visibleToOthersBelow`
+(default 0.9): "Tobias, looks badly wounded and bleeding". The observer words ("looks bruised",
+"looks hurt", "looks badly wounded", "looks near death") are in config beside the agent's own
+health words. Seeing it never gives a decision by itself.
+
 ### UI: the "Needs" section becomes "Status"
 
 Health bar first (red as it drops), then the four need bars, then condition chips (`bleeding 12m`,
@@ -440,6 +451,9 @@ The reply stays flat. The `interact` action keeps its name; its `interaction` fi
 - **Belongings** list verbs inline, so most acts need no second call: "You carry: 3 bread (eat,
   throw), a knife (attack someone, throw)". The second interact call stays for objects with many
   verbs or missing details.
+- **Innate verbs** (`punch`) are listed in every decision prompt, after belongings ("You can also:
+  punch someone"). Which verbs get listed is one choice in the prompt builder, so it's easy to
+  change later.
 - **Here** and **Around you** show items on the ground, visible conditions and visible carried
   items ("Tobias, carrying a knife", "a broken jar on the floor", "the door (on fire)"). A carried
   item is visible to others only if its definition sets `isVisibleWhenCarried` (a knife yes, coins
@@ -450,7 +464,7 @@ The reply stays flat. The `interact` action keeps its name; its `interaction` fi
 
 ## Perception, events and memory
 
-- Sight sees entities on tiles as it sees objects now. What a dead agent holds isn't visible.
+- Sight sees entities on tiles as it sees objects now. What a dead agent holds, and what is inside a container, isn't visible until someone takes it out.
 - New `WorldEventKind`s: `attacked`, `missed`, `hurt`, `died`, `dropped`, `picked_up`, `threw`,
   `took`, `broke`, `caught_fire`, `stopped_burning`, `condition_started`, `condition_ended`. Each is
   filed through the existing `broadcast(event)` path. Fast repeats (a fire burning for 30 minutes)
@@ -553,6 +567,7 @@ Unit tests cover the code-driven core, named by behavior:
 - conditions running per minute, extending rather than stacking, and ending
 - reactions, `unless`, ordering, chains and the depth cap
 - death: the cause, cancelled actions, dropped in-flight decisions, and taking from a body
+- `take` and `put` with containers, and refusing to take from a living agent
 - grouping entities in prompts, `give` choosing the oldest, and two agents grabbing the same item
 - `items.json` validation and the server refusing bad references
 
@@ -567,7 +582,7 @@ Each phase ends with `make check` and `make test` passing and its own commits.
    `BRIEF.md` updated. Behavior unchanged; existing tests prove it.
 3. **Verbs and effects:** the effect runner, targets, reach, `requires`, hit rolls, strength
    scaling. Content: knife `attack`, `punch`, bandage.
-4. **Ground items:** `drop`, `pick up`, `throw`, `take` from bodies, ground items in perception and
+4. **Ground items:** `drop`, `pick up`, `throw`, `take` from bodies, containers with `put` and `take`, ground items in perception and
    on the map.
 5. **Conditions and reactions:** bleeding, burning, wet, poisoned, fragile breaking, fire spread,
    depth cap, condition overlays.
@@ -585,8 +600,9 @@ Each phase ends with `make check` and `make test` passing and its own commits.
 7. No kill switch for violence.
 8. Dodging comes only from the hit roll; there is no active dodge or guard stance.
 9. An attack on a sleeping target always hits.
-
-## Still open
-
-- **Knife supply:** who starts with one, or how knives are made. To be decided before phase 3
-  content.
+10. Innate verbs like `punch` are listed in every decision prompt.
+11. Nobody can take from a living agent; `take` works only on containers and dead agents.
+12. Others see an agent's health as words once it drops below a threshold.
+13. No damage resistance by property and no armor; only `toughness` reduces damage.
+14. Bodies stay where they fell for good; no carrying, burying or decay for now.
+15. Where knives come from is left out of this design.
