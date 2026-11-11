@@ -34,6 +34,8 @@ These join the glossary in `AGENTS.md`. One concept, one name.
 | property        | A plain tag on a definition (`flammable`, `fragile`, `sharp`). Reactions match on these        |
 | component       | A structured part with fields (`durability`, `stock`, `openable`)                              |
 | verb            | Something an agent can do with or to something (`attack`, `eat`, `bake bread`, `throw`)        |
+| definition verb | A verb listed on one item definition; only entities of that definition offer it                |
+| shared verb     | A verb listed once with an `appliesTo` rule; offered by everything the rule matches            |
 | effect          | One step a verb, condition or reaction performs (`damage`, `heal`, `emit`, `produce`)          |
 | stimulus        | A named physical cause sent by an effect (`fire`, `water`, `impact`, `cut`)                    |
 | reaction        | A rule: when a stimulus reaches something with a property or condition, run effects            |
@@ -55,7 +57,7 @@ record, which now holds the stats too.
 
 ### Where things live
 
-- `seeds/items.json`: item definitions, properties, conditions and reactions. This is **content**,
+- `seeds/items.json`: item definitions, shared verbs, properties, conditions and reactions. This is **content**,
   like `seeds/agents.json`, and the item editor edits it. Validated by a zod schema in `shared/`.
 - `server/src/config.ts`: global tunables only (health regen, starvation timing, hit-chance
   spread, strength scaling, default thrown damage, reaction depth cap, reach, health words).
@@ -162,12 +164,15 @@ interface ActiveCondition {
 | `stock`      | `capacity`, `regrowPerDay`                                | Wheat field, trees                                          |
 | `openable`   | `startsOpen`, `blocksSightWhenClosed`, `muffleWhenClosed` | Doors. A destroyed door counts as open for sight and sound  |
 | `blocking`   | `blocksMovement`, `blocksSight`                           | Placeables that are in the way                              |
-| `container`  | `capacity`                                                | Chests, baskets: holds items that `put` and `take` move     |
+| `container`  | `capacity`                                                | Chests, baskets: entities that hold items                   |
 | `notes`      | `maxNotes`                                                | Notice board                                                |
-| `bed`        | —                                                         | Something you can `sleep` in                                |
+| `bed`        | —                                                         | Marks something you can sleep in                            |
 
 An entity without `durability` can't be damaged (the wheat field). Adding a component type is a
 code change (it needs an implementation). Using one is data.
+
+Components hold data only. They never own verbs. A verb that works on everything with a component
+is a shared verb whose `appliesTo` rule names that component (see Verbs).
 
 ### Properties
 
@@ -181,17 +186,68 @@ holds the innate verbs.
 
 ## Verbs
 
-A verb lives on a definition. Where it can be used depends on where it lives:
+There are two kinds of verb. Both have the same fields and effects (the table below). They differ
+only in how the sim decides which things offer them.
 
-- on a **carriable** item: used while held, anywhere (eat bread, attack with a knife)
-- on a **placeable** object: used next to it (bake bread at the oven, open the door)
+### Definition verbs
+
+Listed in one item definition's `verbs`. Only entities of that definition offer them.
+
+- on a **carriable** definition: used while held, anywhere (eat bread, attack with a knife)
+- on a **placeable** definition: used next to it (bake bread at the oven)
 - on the **person** definition: innate, needs no item (`punch`)
-- **built in**, for everything of a kind: every carriable gets `drop`, `pick up` and `throw`; every
-  `container` gets `put` and `take`; a dead agent can be the target of `take`; every `openable`
-  gets `open` and `close`.
 
-Nobody can `take` from a living agent. Goods leave a living agent only through their own `give`,
-so theft is not possible, even from someone asleep.
+### Shared verbs
+
+Listed once in `items.json` under `sharedVerbs`, each with an `appliesTo` rule. A shared verb
+belongs to no definition and no component. The sim offers it on every entity or agent its rule
+matches, and that matched thing is what `on: "item"` refers to in its effects.
+
+```jsonc
+{
+  "name": "take",
+  "target": "none",
+  "reach": 1,
+  "appliesTo": { "anyOf": [{ "component": "container" }, { "isDeadAgent": true }] },
+  "effects": [{ "type": "move", "on": "chosen", "to": "user" }],
+}
+```
+
+`appliesTo` terms, combined with `anyOf` and `allOf`:
+
+| Term          | Matches                                                 |
+| ------------- | ------------------------------------------------------- |
+| `component`   | Entities that have that component                       |
+| `form`        | `carriable` or `placeable` entities                     |
+| `property`    | Entities or agents that have that property              |
+| `location`    | `held` (in the user's inventory), `ground`, or `placed` |
+| `isDeadAgent` | Dead agents                                             |
+
+The terms are code; which shared verbs use them is data. So making a future component work with
+`take` means adding it to `take`'s rule, with no change to the verb or its code.
+
+Starting shared verbs:
+
+| Verb                  | `appliesTo`                              |
+| --------------------- | ---------------------------------------- |
+| `drop`, `throw`       | `form: carriable` and `location: held`   |
+| `pick up`             | `form: carriable` and `location: ground` |
+| `put`                 | `component: container`                   |
+| `take`                | `component: container`, or `isDeadAgent` |
+| `open`, `close`       | `component: openable`                    |
+| `sleep`               | `component: bed`                         |
+| `read`, `post a note` | `component: notes`                       |
+
+- A definition verb with the same name as a shared verb replaces it for that definition (a
+  fragile jar can have its own `throw`).
+- For `put` and `take`, the decision's `item` names the thing moved, and `on: "chosen"` refers to
+  it.
+
+Nobody can `take` from a living agent: `take`'s rule matches only containers and dead agents.
+Goods leave a living agent only through their own `give`, so theft is not possible, even from
+someone asleep.
+
+### Verb fields
 
 | Verb field      | Meaning                                                                                     |
 | --------------- | ------------------------------------------------------------------------------------------- |
@@ -207,6 +263,7 @@ so theft is not possible, even from someone asleep.
 | `hitRoll`       | Present on attacks; see Combat                                                              |
 | `effects`       | The ordered list of effects to run                                                          |
 | `phrases`       | `ongoing`, `done`, `attempt`, and for attacks `hit`, `missed` and `killed` templates        |
+| `appliesTo`     | Shared verbs only: the rule for which entities and agents offer it                          |
 
 ### Effects
 
@@ -217,7 +274,9 @@ comes from:
 - `on`: who or what the effect applies to:
   - `target`: what the verb was aimed at
   - `user`: the agent doing it
-  - `item`: the entity the verb lives on (the held knife, the oven). Nothing for innate verbs
+  - `item`: the thing offering the verb: the held knife or the oven for a definition verb, the
+    matched chest or body for a shared verb. Nothing for innate verbs
+  - `chosen`: the thing the decision's `item` names, for verbs that move something (`put`, `take`)
   - `self`: whatever carries the condition or reaction running the effect
   - `nearby`: every agent and entity within `radius` of the target, or of `self` in a condition
 - `chance`: 0–1, rolled with the seeded generator
@@ -441,7 +500,7 @@ The reply stays flat. The `interact` action keeps its name; its `interaction` fi
 | Take Mara's coins    | `interact`, `target: "Mara's body"`, `verb: "take"`, `item: "coins"`, `amount: 5` |
 
 - `item` means "the thing in your hands for this act", as it already does for `give`, except for
-  `take`, where it's the thing taken. It becomes an enum of held items plus `coins`, as `target`
+  `put` and `take`, where it's the thing moved. It becomes an enum of held items plus `coins`, as `target`
   already is. `target` gains ground items, bodies and `yourself`.
 - A target out of reach makes the agent walk there first, as `interact` does now. A moving target
   is followed for up to `combat.chaseTicks`, then the act fails ("Tobias got away").
@@ -536,13 +595,14 @@ through the same atomic write and validation path. Changes apply on `make reset`
 └──────────────┴───────────────────────────────────────────────────────────┘
 ```
 
-- Tabs for **Items**, **Conditions**, **Reactions** and **Properties** (with descriptions and
+- Tabs for **Items**, **Shared verbs** (each with an `appliesTo` rule builder and a live list of
+  what it currently matches), **Conditions**, **Reactions** and **Properties** (with descriptions and
   "where used").
 - Effect rows show only the fields that effect type takes; `chance`, `when` and `requiresHit` sit
   behind a "more" toggle.
 - Stimulus fields offer every stimulus already used in the file, or a new name.
 - Live validation: unknown conditions or items in effects, verbs whose target kind doesn't fit the
-  form, reactions on properties nothing has, `on: item` in an innate verb, a definition still used
+  form, reactions on properties nothing has, `appliesTo` rules that match nothing, `on: item` in an innate verb, a definition still used
   by the map or seeds being deleted.
 - A preview line shows how the item appears in a prompt.
 - The item editor only defines items. It never places objects on the map (that stays in Tiled and
@@ -567,6 +627,7 @@ Unit tests cover the code-driven core, named by behavior:
 - conditions running per minute, extending rather than stacking, and ending
 - reactions, `unless`, ordering, chains and the depth cap
 - death: the cause, cancelled actions, dropped in-flight decisions, and taking from a body
+- `appliesTo` matching each term, `anyOf`/`allOf`, and a definition verb replacing a shared one
 - `take` and `put` with containers, and refusing to take from a living agent
 - grouping entities in prompts, `give` choosing the oldest, and two agents grabbing the same item
 - `items.json` validation and the server refusing bad references
