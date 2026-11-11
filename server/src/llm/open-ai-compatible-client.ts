@@ -81,22 +81,26 @@ export class OpenAiCompatibleClient implements LlmClient {
 
   private buildRequestBody(request: LlmRequest): Record<string, unknown> {
     const isStrictSchema = this.settings.isStructuredOutputEnabled && request.jsonSchema;
+    // Without a strict schema, send no response_format: some providers (Anthropic's endpoint)
+    // reject json_object, and every prompt already asks for a bare JSON object.
     const responseFormat = isStrictSchema
       ? {
-          type: "json_schema",
-          json_schema: {
-            name: request.schemaName ?? "reply",
-            strict: true,
-            schema: request.jsonSchema,
+          response_format: {
+            type: "json_schema",
+            json_schema: {
+              name: request.schemaName ?? "reply",
+              strict: true,
+              schema: request.jsonSchema,
+            },
           },
         }
-      : { type: "json_object" };
+      : {};
     return {
       model: this.model,
       messages: toMessages(request),
       max_tokens: request.maxTokens,
       ...(request.temperature === undefined ? {} : { temperature: request.temperature }),
-      response_format: responseFormat,
+      ...responseFormat,
     };
   }
 }

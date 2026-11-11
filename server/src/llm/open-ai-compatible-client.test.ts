@@ -75,11 +75,11 @@ describe("OpenAiCompatibleClient", () => {
     expect(sentBody(fetchStub)).not.toHaveProperty("temperature");
   });
 
-  it("falls back to json_object mode when structured output is off", async () => {
+  it("sends no response format when structured output is off", async () => {
     const fetchStub = stubFetch(completion);
     const client = new OpenAiCompatibleClient({ ...settings, isStructuredOutputEnabled: false });
     await client.complete({ prompt: "hi", jsonSchema: replySchema, maxTokens: 50, temperature: 0 });
-    expect(sentBody(fetchStub).response_format).toEqual({ type: "json_object" });
+    expect(sentBody(fetchStub)).not.toHaveProperty("response_format");
   });
 
   it("estimates tokens from length when usage is missing", async () => {
