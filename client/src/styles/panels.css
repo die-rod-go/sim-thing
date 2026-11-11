@@ -195,49 +195,7 @@ pre {
   color: var(--level-4);
 }
 
-/* Roster */
-
-.roster {
-  display: flex;
-  flex-direction: column;
-  max-height: 200px;
-  overflow-y: auto;
-  padding: 4px;
-  border-bottom: 1px solid var(--border);
-}
-
-.roster-row {
-  display: grid;
-  grid-template-columns: 12px 72px 1fr auto;
-  align-items: center;
-  gap: 6px;
-  padding: 3px 6px;
-  border: 1px solid transparent;
-  background: transparent;
-  text-align: left;
-}
-
-.roster-name {
-  font-weight: 600;
-}
-
-.roster-activity {
-  overflow: hidden;
-  white-space: nowrap;
-  text-overflow: ellipsis;
-}
-
-.roster-alerts {
-  display: flex;
-  gap: 6px;
-  font-size: 11px;
-}
-
 /* Character sheet */
-
-.sheet-header {
-  padding-bottom: 8px;
-}
 
 .sheet-title {
   display: flex;
@@ -255,40 +213,8 @@ pre {
   text-transform: capitalize;
 }
 
-.sheet-status {
-  margin: 4px 0 0;
-  line-height: 1.5;
-}
-
 .mood {
   color: var(--warning);
-}
-
-.sheet-intention {
-  margin: 6px 0 0;
-  padding: 4px 8px;
-  border-left: 3px solid var(--accent);
-  background: var(--surface-raised);
-}
-
-.sheet-intention::before {
-  content: "Intends to ";
-  color: var(--text-muted);
-}
-
-.sheet-tabs {
-  display: flex;
-  border-bottom: 1px solid var(--border);
-  margin: 0 -12px;
-  padding: 0 8px;
-}
-
-.sheet-tabs .tab {
-  flex: none;
-  padding: 5px 7px;
-  font-size: 11px;
-  text-transform: uppercase;
-  letter-spacing: 0.05em;
 }
 
 .need-grid {
@@ -383,21 +309,6 @@ pre {
   line-height: 1.5;
 }
 
-.quote-list {
-  list-style: none;
-  margin: 0;
-  padding: 0;
-}
-
-.quote-list li {
-  padding: 2px 0;
-}
-
-.quote-list .line-words {
-  margin-left: 6px;
-  color: var(--speech);
-}
-
 .self-image {
   font-style: italic;
 }
@@ -430,56 +341,6 @@ pre {
 .change-reason {
   color: var(--text-muted);
   font-style: italic;
-}
-
-/* Thoughts */
-
-.thoughts .small-toggle {
-  margin: 8px 0;
-}
-
-.thought {
-  padding: 6px 0 8px;
-  border-bottom: 1px solid var(--border);
-}
-
-.thought-meta {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  font-size: 11px;
-  color: var(--text-muted);
-}
-
-.thought-headline {
-  margin: 4px 0;
-  line-height: 1.45;
-  font-style: italic;
-}
-
-.thought-parts {
-  display: grid;
-  gap: 1px;
-  margin: 0;
-}
-
-.thought-part {
-  display: grid;
-  grid-template-columns: 78px 1fr;
-  gap: 6px;
-}
-
-.thought-part dt {
-  color: var(--text-muted);
-  text-align: right;
-}
-
-.thought-part dd {
-  margin: 0;
-}
-
-.thought-part dd.is-speech {
-  color: var(--speech);
 }
 
 /* Relations */
@@ -572,91 +433,6 @@ pre {
   color: var(--accent);
 }
 
-/* Conversations */
-
-.thread {
-  margin-bottom: 10px;
-  border: 1px solid var(--border);
-  border-radius: 4px;
-  background: var(--surface-raised);
-}
-
-.thread.is-ongoing {
-  border-color: var(--accent);
-}
-
-.thread-header {
-  display: flex;
-  flex-wrap: wrap;
-  align-items: center;
-  gap: 4px 10px;
-  padding: 5px 8px;
-  border-bottom: 1px solid var(--border);
-}
-
-.thread-place {
-  font-weight: 700;
-  text-transform: capitalize;
-}
-
-.thread-speakers {
-  display: flex;
-  align-items: center;
-  gap: 4px;
-}
-
-.thread-when {
-  margin-left: auto;
-  font-size: 11px;
-}
-
-.live-badge {
-  margin-right: 6px;
-  padding: 0 5px;
-  border-radius: 3px;
-  background: var(--accent);
-  color: var(--background);
-  font-weight: 700;
-  text-transform: uppercase;
-}
-
-.thread-lines {
-  list-style: none;
-  margin: 0;
-  padding: 4px 8px 6px;
-}
-
-.thread-line {
-  display: grid;
-  grid-template-columns: 40px 76px 1fr;
-  gap: 6px;
-  padding: 2px 0;
-  line-height: 1.4;
-}
-
-.line-speaker {
-  text-align: right;
-}
-
-.line-volume {
-  display: block;
-  font-size: 10px;
-  color: var(--text-muted);
-}
-
-.thread-line .line-words {
-  color: var(--speech);
-}
-
-.thread-stage {
-  display: grid;
-  grid-template-columns: 40px 1fr;
-  gap: 6px;
-  padding: 2px 0;
-  color: var(--text-muted);
-  font-style: italic;
-}
-
 /* Prompts */
 
 .llm-call {
@@ -727,33 +503,6 @@ pre {
   gap: 6px;
   align-items: center;
   margin-bottom: 8px;
-}
-
-.feed-hour-label {
-  position: sticky;
-  top: -10px;
-  margin: 8px 0 2px;
-  padding: 2px 0;
-  background: var(--surface);
-  font-size: 11px;
-  font-weight: 600;
-  letter-spacing: 0.05em;
-  color: var(--text-muted);
-  border-bottom: 1px solid var(--border);
-}
-
-.feed-list {
-  list-style: none;
-  margin: 0;
-  padding: 0;
-}
-
-.feed-item {
-  display: grid;
-  grid-template-columns: 40px 14px 1fr;
-  gap: 6px;
-  padding: 2px 0;
-  line-height: 1.4;
 }
 
 .feed-glyph {

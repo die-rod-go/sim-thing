@@ -79,3 +79,11 @@ export function groupEventsByHour(
   }
   return groups;
 }
+
+export const CATEGORY_GLYPHS: Record<EventCategory, string> = {
+  speech: "“",
+  action: "⚒",
+  exchange: "⇄",
+  movement: "→",
+  sleep: "☾",
+};
