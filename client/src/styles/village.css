@@ -295,13 +295,13 @@
   font-size: 11px;
   font-style: italic;
   color: #d8d8e8;
-  background: #3a3a52;
+  background: color-mix(in srgb, var(--speaker-color) var(--speaker-tint), #3a3a52);
 }
 
 .speech-bubble-normal {
   padding: 3px 7px;
   color: #111111;
-  background: #f4f4f4;
+  background: color-mix(in srgb, var(--speaker-color) var(--speaker-tint), #f4f4f4);
 }
 
 .speech-bubble-shout {
@@ -309,7 +309,7 @@
   font-size: 14px;
   font-weight: bold;
   color: #3a0000;
-  background: #ffd23f;
+  background: color-mix(in srgb, var(--speaker-color) var(--speaker-tint), #ffd23f);
 }
 
 .speech-leader-line {

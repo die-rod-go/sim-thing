@@ -1,4 +1,4 @@
-import { useCallback, useState } from "react";
+import { useCallback, useState, type CSSProperties } from "react";
 import { clientConfig } from "../client-config";
 import type { SpeechBubble } from "../state/client-state";
 import type { VisibleThought } from "./thought-bubbles";
@@ -32,6 +32,7 @@ export function groupBubblesBySpeaker(bubbles: SpeechBubble[]): Map<string, Spee
 
 interface SpeechBubbleStackProps {
   speakerName: string;
+  speakerColor: string;
   bubbles: readonly SpeechBubble[];
   thought: VisibleThought | null;
   bubbleKeys: (bubble: SpeechBubble) => number;
@@ -46,6 +47,7 @@ interface SpeechBubbleStackProps {
  */
 export function SpeechBubbleStack({
   speakerName,
+  speakerColor,
   bubbles,
   thought,
   bubbleKeys,
@@ -60,10 +62,19 @@ export function SpeechBubbleStack({
     speechBubbleFadeMs,
     speechBubbleLeaderLineWidth,
     speechBubbleLeaderLineAlpha,
+    speechBubbleSpeakerTint,
     thoughtBubbleWrapWidth,
   } = clientConfig.village;
+  const speakerTintStyle = {
+    "--speaker-color": speakerColor,
+    "--speaker-tint": `${speechBubbleSpeakerTint * 100}%`,
+  } as CSSProperties;
   return (
-    <div className="speech-stack" ref={stackRef} style={{ gap: speechBubbleGap }}>
+    <div
+      className="speech-stack"
+      ref={stackRef}
+      style={{ gap: speechBubbleGap, ...speakerTintStyle }}
+    >
       {thought && (
         <div
           className="thought-bubble"

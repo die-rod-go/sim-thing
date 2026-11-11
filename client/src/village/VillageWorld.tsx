@@ -217,6 +217,7 @@ export function VillageWorld(props: VillageWorldProps) {
           <SpeechBubbleStack
             key={agentId}
             speakerName={agentNames.get(agentId) ?? agentId}
+            speakerColor={agentColors.get(agentId) ?? "white"}
             bubbles={bubblesBySpeaker.get(agentId) ?? NO_BUBBLES}
             thought={props.thoughtsByAgent.get(agentId) ?? null}
             bubbleKeys={bubbleKeys}

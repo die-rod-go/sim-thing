@@ -30,6 +30,8 @@ export const clientConfig = {
     speechBubbleGap: 4,
     speechBubbleLeaderLineWidth: 1,
     speechBubbleLeaderLineAlpha: 0.6,
+    /** How much of the speaker's color is mixed into a speech bubble's background, 0–1. */
+    speechBubbleSpeakerTint: 0.18,
     /** Space between the top of a figure and the bottom of its bubble stack. */
     speechBubbleOffsetAboveFigure: 14,
     /** In map pixels, scaled with the figure. */
