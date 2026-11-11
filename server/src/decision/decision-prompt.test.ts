@@ -55,11 +55,25 @@ function manyMemories(count: number, text: string): RecalledMemory[] {
 describe("buildDecisionPrompt", () => {
   it("renders needs as words not numbers", () => {
     expect(describeNeeds({ hunger: 0.4, energy: 0.9, social: 0.45, fun: 0.6 })).toBe(
-      "quite hungry, rested, a bit lonely, fairly entertained",
+      "You are quite hungry, rested, a bit lonely and fairly entertained.",
     );
     const prompt = buildDecisionPrompt(buildContext());
     expect(prompt).toContain("quite hungry");
     expect(prompt).not.toMatch(/0\.4\b/);
+  });
+
+  it("puts pressing needs first, lowest first, each with how it feels", () => {
+    expect(describeNeeds({ hunger: 0.25, energy: 0.05, social: 0.9, fun: 0.45 })).toBe(
+      "You are exhausted: you can barely keep your eyes open and need to sleep now. " +
+        "You are very hungry: your stomach aches and you need to eat soon. " +
+        "Otherwise you are socially fulfilled and a bit bored.",
+    );
+  });
+
+  it("shows needs next to the time in the Now section", () => {
+    const prompt = buildDecisionPrompt(buildContext());
+    const nowSection = prompt.slice(prompt.indexOf("## Now"), prompt.indexOf("## Where you are"));
+    expect(nowSection).toContain("quite hungry");
   });
 
   it("renders traits as words", () => {

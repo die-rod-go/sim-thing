@@ -8,7 +8,7 @@ How you see yourself: {{selfImage}}
 
 ## How you feel
 Mood when you went to sleep: {{mood}}
-Body and spirits: {{needs}}
+{{needs}}
 
 ## Goals
 {{goals}}

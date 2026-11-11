@@ -8,7 +8,6 @@ How you see yourself: {{selfImage}}
 
 ## How you feel
 Mood: {{mood}}
-Body and spirits: {{needs}}
 
 ## Goals and plan
 {{goals}}
@@ -16,6 +15,7 @@ Today's plan: {{dailyPlan}}
 
 ## Now
 It is {{simTime}}.
+{{needs}}
 You were: {{intention}}
 {{currentAction}}
 {{lastFailure}}

@@ -27,6 +27,13 @@ export interface ObjectKindConfig {
   stock?: { capacity: number; regrowPerDay: number };
 }
 
+export interface NeedWord {
+  below: number;
+  text: string;
+  /** What a pressing need feels like; only the low levels have one. */
+  urge?: string;
+}
+
 export const config = {
   seed: 20261110,
 
@@ -97,37 +104,48 @@ export const config = {
     /** Per tick in a crowd: extroverts gain social, introverts lose energy; scaled by |extraversion|. */
     crowdSocialGainPerTick: 0.002,
     crowdEnergyCostPerTick: 0.001,
-    /** Prompt words for need levels, checked in order: the first whose `below` exceeds the value wins. */
+    /**
+     * Prompt words for need levels, checked in order: the first whose `below` exceeds the value wins.
+     * A level with an `urge` is pressing: it is put first in the prompt as its own sentence.
+     */
     words: {
       hunger: [
-        { below: 0.1, text: "starving" },
-        { below: 0.3, text: "very hungry" },
+        { below: 0.1, text: "starving", urge: "you feel weak and shaky and need food now" },
+        { below: 0.3, text: "very hungry", urge: "your stomach aches and you need to eat soon" },
         { below: 0.5, text: "quite hungry" },
         { below: 0.7, text: "a little peckish" },
         { below: Infinity, text: "well fed" },
       ],
       energy: [
-        { below: 0.1, text: "exhausted" },
-        { below: 0.3, text: "very tired" },
+        {
+          below: 0.1,
+          text: "exhausted",
+          urge: "you can barely keep your eyes open and need to sleep now",
+        },
+        { below: 0.3, text: "very tired", urge: "your body is heavy and you need sleep soon" },
         { below: 0.5, text: "tired" },
         { below: 0.7, text: "a bit tired" },
         { below: Infinity, text: "rested" },
       ],
       social: [
-        { below: 0.1, text: "desperately lonely" },
-        { below: 0.3, text: "lonely" },
+        { below: 0.1, text: "desperately lonely", urge: "you ache for real company" },
+        { below: 0.3, text: "lonely", urge: "you want someone to really talk to" },
         { below: 0.5, text: "a bit lonely" },
         { below: 0.7, text: "content with company" },
         { below: Infinity, text: "socially fulfilled" },
       ],
       fun: [
-        { below: 0.1, text: "miserably bored" },
-        { below: 0.3, text: "bored" },
+        {
+          below: 0.1,
+          text: "miserably bored",
+          urge: "you badly need something enjoyable to do",
+        },
+        { below: 0.3, text: "bored", urge: "you want something enjoyable to do" },
         { below: 0.5, text: "a bit bored" },
         { below: 0.7, text: "fairly entertained" },
         { below: Infinity, text: "having a good time" },
       ],
-    } satisfies Record<NeedName, { below: number; text: string }[]>,
+    } satisfies Record<NeedName, NeedWord[]>,
   },
 
   traits: {
