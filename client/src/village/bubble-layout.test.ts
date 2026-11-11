@@ -39,6 +39,35 @@ describe("layOutBubbleStacks", () => {
     expect(placements.get("ada")).toEqual({ centerX: 100 - 20 - 2 - 20, bottom: 40 });
   });
 
+  it("finishes when sliding lands a rounding error inside a neighbor's edge", () => {
+    const stacks: BubbleStackBox[] = [
+      {
+        agentId: "ada",
+        anchorX: 466.59254256240223,
+        anchorBottom: 301.32688981947666,
+        width: 170,
+        height: 22,
+      },
+      {
+        agentId: "bob",
+        anchorX: 519.7236284457678,
+        anchorBottom: 318.8136916974122,
+        width: 176,
+        height: 55,
+      },
+      {
+        agentId: "cy",
+        anchorX: 403.54182230575844,
+        anchorBottom: 336.0795770527373,
+        width: 121,
+        height: 48,
+      },
+    ];
+    const spacing = { gap: 6, maxSideShiftFraction: 0.25, sameColumnTolerance: 4 };
+    const placements = layOutBubbleStacks(stacks, spacing);
+    expect(placements.size).toBe(3);
+  });
+
   it("lifts a stack whose speaker shares a column with the one it would cover", () => {
     const placements = layOutBubbleStacks(
       [makeStack("ada", 100, 40), makeStack("bob", 100, 50)],

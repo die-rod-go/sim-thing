@@ -84,12 +84,17 @@ function findSideSlot(
   if (Math.abs(nearest.anchorX - stack.anchorX) < spacing.sameColumnTolerance) return null;
   const slidesRight = stack.anchorX > nearest.anchorX;
   let centerX = stack.anchorX;
+  // Boxes already slid past are dropped rather than retested: rounding in the edge arithmetic can
+  // leave the stack a hair inside one, and retesting it would repeat the same slide forever.
+  let unclearedBoxes = placedBoxes;
   while (overlapping.length > 0) {
     centerX = slidesRight
       ? Math.max(...overlapping.map((placed) => placed.right)) + spacing.gap + halfWidth
       : Math.min(...overlapping.map((placed) => placed.left)) - spacing.gap - halfWidth;
     if (Math.abs(centerX - stack.anchorX) > stack.width * spacing.maxSideShiftFraction) return null;
-    overlapping = findOverlapping(stack, centerX, bottom, placedBoxes, spacing.gap);
+    const clearedBoxes = new Set(overlapping);
+    unclearedBoxes = unclearedBoxes.filter((placed) => !clearedBoxes.has(placed));
+    overlapping = findOverlapping(stack, centerX, bottom, unclearedBoxes, spacing.gap);
   }
   return centerX;
 }
