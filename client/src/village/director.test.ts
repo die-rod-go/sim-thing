@@ -18,6 +18,8 @@ function line(eventId: number, tick: number, speakerId: string): SpokenLine {
     speakerName: speakerId,
     words: "hello",
     volume: "normal",
+    thought: null,
+    llmCallId: null,
   };
 }
 
