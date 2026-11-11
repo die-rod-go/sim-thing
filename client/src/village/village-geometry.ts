@@ -42,18 +42,6 @@ export function computeRegionOutlineEdges(tileIndexes: number[], mapWidth: numbe
   return edges;
 }
 
-/** Largest zoom that fits the map in the view; whole numbers when at least 1x fits. */
-export function computeFitZoom(
-  viewWidth: number,
-  viewHeight: number,
-  mapPixelWidth: number,
-  mapPixelHeight: number,
-): number {
-  const exactZoom = Math.min(viewWidth / mapPixelWidth, viewHeight / mapPixelHeight);
-  if (!Number.isFinite(exactZoom) || exactZoom <= 0) return 1;
-  return exactZoom >= 1 ? Math.floor(exactZoom) : exactZoom;
-}
-
 const AGENT_PALETTE = [
   0xe6194b, 0x3cb44b, 0xffe119, 0x4363d8, 0xf58231, 0x911eb4, 0x46f0f0, 0xf032e6, 0xbcf60c,
   0xfabebe,

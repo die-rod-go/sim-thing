@@ -1,19 +1,25 @@
-import { useLayoutEffect, useMemo, useState } from "react";
+import { useCallback, useLayoutEffect, useMemo, useRef, useState } from "react";
 import type { Agent } from "@village/shared";
+import { clientConfig } from "../client-config";
 import { buildAgentColors } from "../format/agent-colors";
 import type { SpeechBubble } from "../state/client-state";
+import { pickActivityCue, type ConversationLink } from "./activity-cues";
 import { retargetMotion, type AgentMotion } from "./agent-motion";
 import { AgentMarker } from "./AgentMarker";
 import { PerceptionOverlay, type PerceptionView } from "./perception-overlay";
+import { ConversationLinks, PlaceLabels } from "./screen-overlays";
 import { groupBubblesBySpeaker, SpeechBubbleStack, useLiveSpeechBubbles } from "./SpeechBubbles";
 import { TileCanvas } from "./TileCanvas";
 import type { TiledMap } from "./tiled-map";
+import type { CameraControls } from "./use-camera-rig";
 import { tileCenter } from "./village-geometry";
 import {
+  computeAgentPositions,
   layOutWorld,
+  useAnimationFrames,
   useElementRegistry,
-  useWorldAnimation,
   type WorldElements,
+  type WorldScene,
 } from "./world-layout";
 
 interface VillageWorldProps {
@@ -22,8 +28,13 @@ interface VillageWorldProps {
   agents: Agent[];
   speechBubbles: SpeechBubble[];
   inspectedAgentId: string | null;
+  highlightedAgentIds: readonly string[];
   perceptionView: PerceptionView;
+  conversationLinks: readonly ConversationLink[];
+  daylightTint: string;
+  isPlaceLabelsOn: boolean;
   moveDurationMs: number;
+  camera: CameraControls;
   onSelectAgent: (agentId: string) => void;
 }
 
@@ -42,78 +53,138 @@ function useBubbleKeys(): (bubble: SpeechBubble) => number {
   return keyer;
 }
 
-/** The map at native pixel size: tiles, debug overlay, agents and their speech bubbles. */
-export function VillageWorld({
-  map,
-  tilesetImage,
-  agents,
-  speechBubbles,
-  inspectedAgentId,
-  perceptionView,
-  moveDurationMs,
-  onSelectAgent,
-}: VillageWorldProps) {
+function useWorldElements(): WorldElements {
   const markers = useElementRegistry();
   const bubbleStacks = useElementRegistry();
   const leaderLines = useElementRegistry();
+  const placeLabels = useElementRegistry();
+  const linkLines = useElementRegistry<SVGLineElement>();
+  const mapLayer = useRef<HTMLDivElement | null>(null);
   const [motions] = useState(() => new Map<string, AgentMotion>());
-  const world = useMemo<WorldElements>(
-    () => ({ motions, markers, bubbleStacks, leaderLines }),
-    [motions, markers, bubbleStacks, leaderLines],
+  return useMemo(
+    () => ({ motions, mapLayer, markers, bubbleStacks, leaderLines, placeLabels, linkLines }),
+    [motions, markers, bubbleStacks, leaderLines, placeLabels, linkLines],
   );
-  const bubbleKeys = useBubbleKeys();
-  const { liveBubbles, expireBubble } = useLiveSpeechBubbles(speechBubbles);
-  const agentColors = useMemo(() => buildAgentColors(agents), [agents]);
-  const agentNames = new Map(agents.map((agent) => [agent.id, agent.name]));
+}
 
+/** Keeps each agent's glide pointed at its current tile. */
+function useAgentMotions(
+  world: WorldElements,
+  agents: Agent[],
+  tileSize: number,
+  durationMs: number,
+) {
   useLayoutEffect(() => {
     const nowMs = performance.now();
     const presentIds = new Set(agents.map((agent) => agent.id));
-    for (const agentId of motions.keys()) {
-      if (!presentIds.has(agentId)) motions.delete(agentId);
+    for (const agentId of world.motions.keys()) {
+      if (!presentIds.has(agentId)) world.motions.delete(agentId);
     }
     for (const agent of agents) {
-      const target = tileCenter(agent.pos, map.tileWidth);
-      motions.set(agent.id, retargetMotion(motions.get(agent.id), target, nowMs, moveDurationMs));
+      const target = tileCenter(agent.pos, tileSize);
+      const motion = world.motions.get(agent.id);
+      world.motions.set(agent.id, retargetMotion(motion, target, nowMs, durationMs));
     }
-  }, [agents, map.tileWidth, moveDurationMs, motions]);
+  }, [world, agents, tileSize, durationMs]);
+}
 
-  useLayoutEffect(() => layOutWorld(world, performance.now()));
-  useWorldAnimation(world);
+/**
+ * The village: a camera-scaled map layer (tiles, tint, debug overlay) under a screen-space layer
+ * (conversation links, place names, agents, speech bubbles) that the frame loop keeps aligned.
+ */
+export function VillageWorld(props: VillageWorldProps) {
+  const { map, agents, inspectedAgentId, camera } = props;
+  const world = useWorldElements();
+  const bubbleKeys = useBubbleKeys();
+  const { liveBubbles, expireBubble } = useLiveSpeechBubbles(props.speechBubbles);
+  const agentColors = useMemo(() => buildAgentColors(agents), [agents]);
+  const agentNames = new Map(agents.map((agent) => [agent.id, agent.name]));
+  const bubblesBySpeaker = groupBubblesBySpeaker(liveBubbles);
+  const highlighted = new Set(props.highlightedAgentIds);
+  const visiblePlaces = props.isPlaceLabelsOn ? map.places : [];
 
+  const mapPixelWidth = map.width * map.tileWidth;
+  const mapPixelHeight = map.height * map.tileHeight;
+  const sceneRef = useRef<WorldScene>({ places: [], links: [] });
+  const followedAgentIdRef = useRef(inspectedAgentId);
+
+  useAgentMotions(world, agents, map.tileWidth, props.moveDurationMs);
+
+  const renderFrame = useCallback(
+    (nowMs: number) => {
+      const positions = computeAgentPositions(world.motions, nowMs);
+      const controller = camera.advanceFrame(
+        positions,
+        map.tileWidth,
+        followedAgentIdRef.current,
+        nowMs,
+      );
+      if (!controller.current) return;
+      layOutWorld(world, sceneRef.current, {
+        camera: controller.current,
+        view: camera.viewSizeRef.current,
+        positions,
+      });
+    },
+    [world, camera, map.tileWidth],
+  );
+  useLayoutEffect(() => {
+    camera.mapSizeRef.current = { width: mapPixelWidth, height: mapPixelHeight };
+    sceneRef.current = { places: visiblePlaces, links: props.conversationLinks };
+    followedAgentIdRef.current = inspectedAgentId;
+    renderFrame(performance.now());
+  });
+  useAnimationFrames(renderFrame);
+
+  const { activity } = clientConfig.village;
   return (
     <>
-      <TileCanvas map={map} tilesetImage={tilesetImage} />
-      {perceptionView && (
-        <PerceptionOverlay
-          view={perceptionView}
-          mapWidthTiles={map.width}
-          mapHeightTiles={map.height}
-          tileSize={map.tileWidth}
-        />
-      )}
-      {agents.map((agent) => (
-        <AgentMarker
-          key={agent.id}
-          agentId={agent.id}
-          name={agent.name}
-          color={agentColors.get(agent.id) ?? "white"}
-          isSelected={agent.id === inspectedAgentId}
-          markerRef={markers.register(agent.id)}
-          onSelect={onSelectAgent}
-        />
-      ))}
-      {[...groupBubblesBySpeaker(liveBubbles)].map(([agentId, bubbles]) => (
-        <SpeechBubbleStack
-          key={agentId}
-          speakerName={agentNames.get(agentId) ?? agentId}
-          bubbles={bubbles}
-          bubbleKeys={bubbleKeys}
-          stackRef={bubbleStacks.register(agentId)}
-          leaderLineRef={leaderLines.register(agentId)}
-          onExpire={expireBubble}
-        />
-      ))}
+      <div
+        className="village-world"
+        ref={world.mapLayer}
+        style={{ width: mapPixelWidth, height: mapPixelHeight }}
+      >
+        <TileCanvas map={map} tilesetImage={props.tilesetImage} />
+        <div className="village-tint" style={{ background: props.daylightTint }} />
+        {props.perceptionView && (
+          <PerceptionOverlay
+            view={props.perceptionView}
+            mapWidthTiles={map.width}
+            mapHeightTiles={map.height}
+            tileSize={map.tileWidth}
+          />
+        )}
+      </div>
+      <div className="village-screen">
+        <ConversationLinks links={props.conversationLinks} lineRegistry={world.linkLines} />
+        <PlaceLabels places={visiblePlaces} labelRegistry={world.placeLabels} />
+        {agents.map((agent) => (
+          <AgentMarker
+            key={agent.id}
+            agentId={agent.id}
+            name={agent.name}
+            color={agentColors.get(agent.id) ?? "white"}
+            isSelected={agent.id === inspectedAgentId}
+            isHighlighted={highlighted.has(agent.id)}
+            isSpeaking={bubblesBySpeaker.has(agent.id)}
+            activityCue={pickActivityCue(agent.currentAction, activity)}
+            markerRef={world.markers.register(agent.id)}
+            onSelect={props.onSelectAgent}
+            onZoomTo={(agentId) => camera.focus({ kind: "agent", agentId })}
+          />
+        ))}
+        {[...bubblesBySpeaker].map(([agentId, bubbles]) => (
+          <SpeechBubbleStack
+            key={agentId}
+            speakerName={agentNames.get(agentId) ?? agentId}
+            bubbles={bubbles}
+            bubbleKeys={bubbleKeys}
+            stackRef={world.bubbleStacks.register(agentId)}
+            leaderLineRef={world.leaderLines.register(agentId)}
+            onExpire={expireBubble}
+          />
+        ))}
+      </div>
     </>
   );
 }

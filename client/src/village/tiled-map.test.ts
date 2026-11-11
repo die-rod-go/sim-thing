@@ -1,6 +1,8 @@
 import { describe, expect, it } from "vitest";
 import { findTileSourceRect, parseTiledMap } from "./tiled-map";
 
+const PLACES = "places";
+
 function makeMapData(layerNames: string[]) {
   return {
     width: 2,
@@ -10,6 +12,11 @@ function makeMapData(layerNames: string[]) {
     layers: [
       ...layerNames.map((name) => ({ type: "tilelayer", name, data: [1, 0] })),
       { type: "objectgroup", name: "objects" },
+      {
+        type: "objectgroup",
+        name: PLACES,
+        objects: [{ name: "bakery", x: 16, y: 32, width: 48, height: 64 }, { name: "" }],
+      },
     ],
     tilesets: [{ firstgid: 1, name: "village", columns: 8, margin: 0, spacing: 0 }],
   };
@@ -17,19 +24,26 @@ function makeMapData(layerNames: string[]) {
 
 describe("parseTiledMap", () => {
   it("keeps tile layers and names missing ones", () => {
-    expect(() => parseTiledMap(makeMapData(["ground"]), ["ground", "walls"])).toThrow(/walls/);
-    const map = parseTiledMap(makeMapData(["ground"]), ["ground"]);
+    expect(() => parseTiledMap(makeMapData(["ground"]), ["ground", "walls"], PLACES)).toThrow(
+      /walls/,
+    );
+    const map = parseTiledMap(makeMapData(["ground"]), ["ground"], PLACES);
     expect(map.tileLayers.map((layer) => layer.name)).toEqual(["ground"]);
     expect(map.tileLayers[0]?.gids).toEqual([1, 0]);
   });
 
+  it("reads named place rectangles from the places layer", () => {
+    const map = parseTiledMap(makeMapData(["ground"]), ["ground"], PLACES);
+    expect(map.places).toEqual([{ name: "bakery", x: 16, y: 32, width: 48, height: 64 }]);
+  });
+
   it("rejects a map file that is not JSON map data", () => {
-    expect(() => parseTiledMap("<html>", ["ground"])).toThrow(/missing/);
+    expect(() => parseTiledMap("<html>", ["ground"], PLACES)).toThrow(/missing/);
   });
 });
 
 describe("findTileSourceRect", () => {
-  const map = parseTiledMap(makeMapData(["ground"]), ["ground"]);
+  const map = parseTiledMap(makeMapData(["ground"]), ["ground"], PLACES);
 
   it("skips empty cells", () => {
     expect(findTileSourceRect(map, 0)).toBeNull();

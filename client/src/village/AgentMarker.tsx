@@ -1,6 +1,8 @@
+import type { CSSProperties } from "react";
 import { clientConfig } from "../client-config";
+import type { ActivityCue } from "./activity-cues";
+import { FIGURE_SIZE } from "./world-layout";
 
-const FIGURE_SIZE = 12;
 const FIGURE_CENTER = FIGURE_SIZE / 2;
 const HEAD_RADIUS = 3;
 const BODY_TOP = 5;
@@ -13,33 +15,71 @@ interface AgentMarkerProps {
   name: string;
   color: string;
   isSelected: boolean;
+  isHighlighted: boolean;
+  isSpeaking: boolean;
+  activityCue: ActivityCue;
   markerRef: (element: HTMLElement | null) => void;
   onSelect: (agentId: string) => void;
+  onZoomTo: (agentId: string) => void;
 }
 
-/** One agent on the map: a colored figure, a name label and a selection ring, centered on 0,0. */
+function ActivityCueBadge({ cue }: { cue: ActivityCue }) {
+  if (cue === null) return null;
+  if (cue.kind === "sleep") {
+    return (
+      <span className="agent-cue agent-cue-sleep" aria-label="asleep">
+        <span>z</span>
+        <span>z</span>
+        <span>Z</span>
+      </span>
+    );
+  }
+  return (
+    <span className="agent-cue" aria-hidden="true">
+      {cue.glyph}
+    </span>
+  );
+}
+
+/**
+ * One agent on the map, centered on 0,0 in screen pixels: its figure (scaled by the frame loop
+ * through `--figure-scale`), name label, activity cue and selection, highlight and speaking rings.
+ */
 export function AgentMarker({
   agentId,
   name,
   color,
   isSelected,
+  isHighlighted,
+  isSpeaking,
+  activityCue,
   markerRef,
   onSelect,
+  onZoomTo,
 }: AgentMarkerProps) {
   const ringDiameter = clientConfig.village.selectionRingRadius * 2;
+  const classNames = ["agent-marker"];
+  if (isSelected) classNames.push("is-selected");
+  if (isHighlighted) classNames.push("is-highlighted");
+  if (isSpeaking) classNames.push("is-speaking");
   return (
-    <div className="agent-marker" ref={markerRef}>
-      {isSelected && (
-        <div className="agent-ring" style={{ width: ringDiameter, height: ringDiameter }} />
-      )}
+    <div
+      className={classNames.join(" ")}
+      ref={markerRef}
+      style={{ "--ring-diameter": `${ringDiameter}px` } as CSSProperties}
+    >
+      {isSpeaking && <div className="agent-ring agent-ring-speaking" />}
+      {isHighlighted && <div className="agent-ring agent-ring-highlight" />}
+      {isSelected && <div className="agent-ring agent-ring-selected" />}
       <button
         type="button"
         className="agent-figure"
-        title={name}
+        title={`${name} (double-click to zoom in)`}
         aria-label={`Inspect ${name}`}
         onClick={() => onSelect(agentId)}
+        onDoubleClick={() => onZoomTo(agentId)}
       >
-        <svg width={FIGURE_SIZE} height={FIGURE_SIZE} viewBox={`0 0 ${FIGURE_SIZE} ${FIGURE_SIZE}`}>
+        <svg viewBox={`0 0 ${FIGURE_SIZE} ${FIGURE_SIZE}`}>
           <rect
             x={FIGURE_CENTER - BODY_WIDTH / 2}
             y={BODY_TOP}
@@ -57,6 +97,7 @@ export function AgentMarker({
           />
         </svg>
       </button>
+      <ActivityCueBadge cue={activityCue} />
       <span className="agent-label">{name}</span>
     </div>
   );
