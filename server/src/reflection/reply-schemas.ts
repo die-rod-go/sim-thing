@@ -17,7 +17,8 @@ const TRAIT_ENUM: readonly [TraitName, ...TraitName[]] = [FIRST_TRAIT, ...OTHER_
 
 const requiredText = () => z.string().trim().min(1);
 
-function jsonArray(items: JsonSchema, limits: { minItems?: number; maxItems?: number } = {}) {
+/** Strict structured output (Anthropic) rejects `maxItems` and any `minItems` above 1. */
+function jsonArray(items: JsonSchema, limits: { minItems?: 0 | 1 } = {}) {
   return { type: "array", items, ...limits };
 }
 
@@ -65,10 +66,7 @@ export function buildNightReplySchema(): ReplySchemas<NightReply> {
     jsonSchema: strictJsonObject({
       summary: { type: "string" },
       moodEntry: { type: "string" },
-      insights: jsonArray(strictJsonObject({ text: { type: "string" } }), {
-        minItems: 1,
-        maxItems: maxInsights,
-      }),
+      insights: jsonArray(strictJsonObject({ text: { type: "string" } }), { minItems: 1 }),
       peopleNotes: jsonArray(
         strictJsonObject({ person: { type: "string" }, text: { type: "string" } }),
       ),
