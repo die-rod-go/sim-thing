@@ -23,6 +23,7 @@ function buildContext(overrides: Partial<DecisionContext> = {}): DecisionContext
     mood: "busy but content",
     needs: { hunger: 0.4, energy: 0.9, social: 0.45, fun: 0.6 },
     health: 1,
+    conditionWords: [],
     body: { sleepRecoveryPerHour: 0.15, strength: 0.7, agility: 0.3 },
     goals: [
       { text: "Bake every day", why: "people rely on me", progress: "on track", kind: "world" },
@@ -76,6 +77,15 @@ describe("buildDecisionPrompt", () => {
         "You are very hungry: your stomach aches and you need to eat soon. " +
         "Otherwise you are bruised, socially fulfilled and a bit bored.",
     );
+  });
+
+  it("lists the agent's own conditions next to its health", () => {
+    const needs = { hunger: 0.4, energy: 0.9, social: 0.9, fun: 0.9 };
+    expect(describeStatus({ health: 0.5, needs }, ["bleeding"])).toMatch(
+      /^You are hurt, bleeding, quite hungry, rested/,
+    );
+    const prompt = buildDecisionPrompt(buildContext({ conditionWords: ["poisoned"] }));
+    expect(prompt).toContain("unhurt, poisoned, quite hungry");
   });
 
   it("puts a serious wound first like a pressing need", () => {
@@ -190,6 +200,7 @@ describe("describeAroundYou", () => {
           isDead: false,
           healthAsSeen: null,
           visibleCarried: [],
+          visibleConditions: [],
         },
         {
           agentId: "clara",
@@ -202,6 +213,7 @@ describe("describeAroundYou", () => {
           isDead: false,
           healthAsSeen: null,
           visibleCarried: [],
+          visibleConditions: [],
         },
         {
           agentId: "dave",
@@ -214,6 +226,7 @@ describe("describeAroundYou", () => {
           isDead: false,
           healthAsSeen: null,
           visibleCarried: [],
+          visibleConditions: [],
         },
         {
           agentId: "ed",
@@ -226,6 +239,7 @@ describe("describeAroundYou", () => {
           isDead: false,
           healthAsSeen: null,
           visibleCarried: [],
+          visibleConditions: [],
         },
         {
           agentId: "fay",
@@ -238,6 +252,7 @@ describe("describeAroundYou", () => {
           isDead: false,
           healthAsSeen: null,
           visibleCarried: [],
+          visibleConditions: [],
         },
       ],
       normalHearerIds: ["bob", "clara"],
@@ -265,6 +280,7 @@ describe("describeAroundYou", () => {
           isDead: false,
           healthAsSeen: "looks hurt",
           visibleCarried: [],
+          visibleConditions: [],
         },
         {
           ...base,
@@ -274,6 +290,7 @@ describe("describeAroundYou", () => {
           isDead: true,
           healthAsSeen: null,
           visibleCarried: [],
+          visibleConditions: [],
         },
       ],
       normalHearerIds: ["bob", "mara"],
@@ -283,6 +300,42 @@ describe("describeAroundYou", () => {
       ["In sight, would hear you: Bob, looks hurt (sitting).", "Also in sight: Mara's body."].join(
         "\n",
       ),
+    );
+  });
+
+  it("shows the visible conditions of others and of bodies", () => {
+    const base = { via: "saw" as const, place: "bakery", minutesAgo: 0, isInSight: true };
+    const text = describeAroundYou({
+      entries: [
+        {
+          ...base,
+          agentId: "tobias",
+          name: "Tobias",
+          doing: "",
+          isDead: false,
+          healthAsSeen: "looks hurt",
+          visibleCarried: [],
+          visibleConditions: ["bleeding"],
+        },
+        {
+          ...base,
+          agentId: "mara",
+          name: "Mara",
+          doing: "lying dead",
+          isDead: true,
+          healthAsSeen: null,
+          visibleCarried: [],
+          visibleConditions: ["on fire"],
+        },
+      ],
+      normalHearerIds: ["tobias"],
+      whisperHearerIds: [],
+    });
+    expect(text).toBe(
+      [
+        "In sight, would hear you: Tobias, looks hurt, bleeding.",
+        "Also in sight: Mara's body, on fire.",
+      ].join("\n"),
     );
   });
 

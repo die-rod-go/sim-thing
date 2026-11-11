@@ -10,6 +10,13 @@ export interface StatusView {
   needs: Needs;
 }
 
+const NO_CONDITIONS: readonly string[] = [];
+
+/** A condition reads like a satisfied need: listed among the rest, never pressing by itself. */
+function describeCondition(text: string): NeedWord {
+  return { below: Infinity, text };
+}
+
 function findNeedWord(needName: NeedName, value: number): NeedWord {
   const levels = config.needs.words[needName];
   const level = levels.find((candidate) => value < candidate.below) ?? levels[levels.length - 1];
@@ -22,15 +29,19 @@ function joinWithAnd(phrases: string[]): string {
 }
 
 /**
- * Health and needs as words, never numbers. Pressing ones come first, lowest first, each as its
- * own sentence, so they can't get lost among the satisfied ones:
+ * Health, conditions and needs as words, never numbers. Pressing ones come first, lowest first,
+ * each as its own sentence, so they can't get lost among the satisfied ones:
  * "You are exhausted: you can barely keep your eyes open and need to sleep now. Otherwise you
- * are unhurt, well fed, socially fulfilled and a bit bored."
+ * are hurt, bleeding, well fed, socially fulfilled and a bit bored."
  */
-export function describeStatus(status: StatusView): string {
+export function describeStatus(
+  status: StatusView,
+  conditionWords: readonly string[] = NO_CONDITIONS,
+): string {
   const { needs } = status;
   const needWords = [
     { value: status.health, word: findHealthWord(status.health) },
+    ...conditionWords.map((text) => ({ value: status.health, word: describeCondition(text) })),
     ...NEED_NAMES.map((needName) => ({
       value: needs[needName],
       word: findNeedWord(needName, needs[needName]),

@@ -16,14 +16,16 @@ export function formatMinutesAgo(minutesAgo: number): string {
 }
 
 /**
- * "Tobias, looks hurt, carrying a knife (chopping wood)", or "Mara's body" for someone lying dead
- * in sight.
+ * "Tobias, looks hurt, bleeding, carrying a knife (chopping wood)", or "Mara's body" for someone
+ * lying dead in sight ("Mara's body, on fire").
  */
 function describeInSight(entry: AwarenessEntry): string {
-  if (entry.isDead) return describeBodyName(entry.name);
+  if (entry.isDead) return [describeBodyName(entry.name), ...entry.visibleConditions].join(", ");
   const carrying =
     entry.visibleCarried.length > 0 ? `carrying ${entry.visibleCarried.join(" and ")}` : null;
-  const name = [entry.name, entry.healthAsSeen, carrying].filter(Boolean).join(", ");
+  const name = [entry.name, entry.healthAsSeen, ...entry.visibleConditions, carrying]
+    .filter(Boolean)
+    .join(", ");
   return entry.doing ? `${name} (${entry.doing})` : name;
 }
 

@@ -1,5 +1,6 @@
 import type { CSSProperties } from "react";
 import { clientConfig } from "../client-config";
+import type { VisibleCondition } from "../format/conditions";
 import type { ActivityCue } from "./activity-cues";
 import { FIGURE_SIZE } from "./world-layout";
 
@@ -20,6 +21,8 @@ interface AgentMarkerProps {
   isMuted: boolean;
   /** Drawn lying down and greyed out. */
   isDead: boolean;
+  /** Drawn over the figure (flames for `burning`). */
+  visibleConditions: readonly VisibleCondition[];
   activityCue: ActivityCue;
   markerRef: (element: HTMLElement | null) => void;
   onSelect: (agentId: string) => void;
@@ -61,6 +64,7 @@ export function AgentMarker({
   isSpeaking,
   isMuted,
   isDead,
+  visibleConditions,
   activityCue,
   markerRef,
   onSelect,
@@ -126,6 +130,14 @@ export function AgentMarker({
       >
         {isMuted ? "🔇" : "🔊"}
       </button>
+      {visibleConditions.map((condition) => (
+        <span
+          key={condition.name}
+          className={`condition-overlay condition-${condition.name}`}
+          title={condition.words}
+          aria-label={condition.words}
+        />
+      ))}
       <ActivityCueBadge cue={activityCue} />
       <span className="agent-label">{name}</span>
     </div>

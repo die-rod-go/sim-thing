@@ -232,6 +232,8 @@ export function startVerbNow(
     run,
     text: request.text ?? "",
     minutes: request.minutes,
+    sourceAgentId: agentId,
+    reactionDepth: 0,
   };
   const blocker =
     findAimedBlocker(state, use.verb, run) ??
@@ -376,6 +378,8 @@ export function finishRunningVerb(context: TickContext, agentId: string): void {
     verb,
     run,
     text: "",
+    sourceAgentId: agentId,
+    reactionDepth: 0,
     isAttackAnnounced: verb.hitRoll !== undefined,
   };
   const outcomes = effectsAt(verb, "finish")

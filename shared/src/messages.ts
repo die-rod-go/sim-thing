@@ -12,7 +12,7 @@ import type {
   WorldEvent,
 } from "./types";
 import type { Entity } from "./items/entity";
-import type { ItemDefinition, ItemFile } from "./items/item-file";
+import type { ConditionDefinition, ItemDefinition, ItemFile } from "./items/item-file";
 import type { ItemProblem, ItemReference } from "./items/item-problems";
 import {
   seedFileSchema,
@@ -58,6 +58,8 @@ export interface SnapshotMessage {
   entities: Entity[];
   /** Every item definition, so the client can draw entities from their sprites and name them. */
   itemDefinitions: ItemDefinition[];
+  /** Every condition definition, so the client can name conditions and draw the visible ones. */
+  conditionDefinitions: ConditionDefinition[];
   recentEvents: WorldEvent[];
   /** The latest moments, oldest first. */
   recentMoments: Moment[];

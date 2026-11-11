@@ -1,8 +1,15 @@
 import type { Effect, EffectOfType, EffectType } from "@village/shared";
+import {
+  addConditionEffect,
+  emitEffect,
+  makeSoundEffect,
+  removeConditionEffect,
+} from "./condition-effects";
 import { damageEffect, healEffect, transformEffect, wearEffect } from "./combat-effects";
 import type { EffectHandler, EffectOutcome, EffectRegistry, EffectRun } from "./effect-run";
 import { destroyEffect, moveEffect, produceEffect } from "./item-effects";
 import { changeNeedEffect } from "./need-effects";
+import { listNearbySubjects } from "./nearby";
 import { setOpenEffect, takeStockEffect } from "./object-effects";
 import { postNoteEffect, readNotesEffect, sleepEffect } from "./special-effects";
 
@@ -25,6 +32,10 @@ export const EFFECT_REGISTRY: EffectRegistry = {
   sleep: sleepEffect,
   read_notes: readNotesEffect,
   post_note: postNoteEffect,
+  add_condition: addConditionEffect,
+  remove_condition: removeConditionEffect,
+  emit: emitEffect,
+  make_sound: makeSoundEffect,
 };
 
 export function isEffectBuilt(type: EffectType): boolean {
@@ -42,10 +53,22 @@ export function findEffectBlocker(effectRun: EffectRun, effect: Effect): string 
   return handler.findBlocker?.(effectRun, effect as EffectOfType<EffectType>) ?? null;
 }
 
-/** Runs one effect, after its `chance` roll on the seeded generator. */
-export function applyEffect(effectRun: EffectRun, effect: Effect): EffectOutcome {
+function applyOnce(effectRun: EffectRun, effect: Effect): EffectOutcome {
   const { random } = effectRun.context.state;
   if (effect.chance !== undefined && random.next() >= effect.chance) return {};
   const handler = findHandler(effect.type) as EffectHandler<EffectType>;
   return handler.apply(effectRun, effect as EffectOfType<EffectType>);
+}
+
+/**
+ * Runs one effect, after its `chance` roll on the seeded generator. `on: nearby` runs it on each
+ * agent and entity in `radius`, each with its own roll, as that subject's `self`.
+ */
+export function applyEffect(effectRun: EffectRun, effect: Effect): EffectOutcome {
+  if (effect.on !== "nearby") return applyOnce(effectRun, effect);
+  const nearbyEffect: Effect = { ...effect, on: "self" };
+  for (const subject of listNearbySubjects(effectRun, effect.radius ?? 0)) {
+    applyOnce({ ...effectRun, self: subject }, nearbyEffect);
+  }
+  return {};
 }

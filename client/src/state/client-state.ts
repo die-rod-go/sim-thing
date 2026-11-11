@@ -2,6 +2,7 @@ import type {
   Agent,
   AgentDetailMessage,
   ClockState,
+  ConditionDefinition,
   Entity,
   ItemDefinition,
   Moment,
@@ -30,6 +31,7 @@ export interface ClientState {
   /** Every item and object: placed, on the ground, carried or inside something. */
   entities: Entity[];
   itemDefinitions: ItemDefinition[];
+  conditionDefinitions: ConditionDefinition[];
   /** Oldest first, capped. */
   events: WorldEvent[];
   /** Highlights for every agent, oldest first, capped. */
@@ -55,6 +57,7 @@ export const initialClientState: ClientState = {
   agents: [],
   entities: [],
   itemDefinitions: [],
+  conditionDefinitions: [],
   events: [],
   moments: [],
   speechBubbles: [],

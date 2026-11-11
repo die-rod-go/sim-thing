@@ -40,6 +40,7 @@ function describeHeardActivity(event: WorldEvent): string {
 /** Awareness of the actor for each perceiver who heard the event without seeing it. */
 export function awarenessFromPerceptions(perceivedEvent: PerceivedEvent): PerceiverAwareness[] {
   const { event, perceptions } = perceivedEvent;
+  if (event.isActorThing === true) return [];
   return perceptions
     .filter((perception) => perception.agentId !== event.actorId)
     .flatMap((perception) => {

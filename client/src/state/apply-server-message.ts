@@ -44,6 +44,7 @@ export function applyServerMessage(state: ClientState, message: ServerMessage): 
         agents: message.agents,
         entities: message.entities,
         itemDefinitions: message.itemDefinitions,
+        conditionDefinitions: message.conditionDefinitions,
         events: keepNewest(message.recentEvents, clientConfig.state.maxFeedEvents),
         moments: keepNewest(message.recentMoments, clientConfig.state.maxMoments),
         speechBubbles: [],

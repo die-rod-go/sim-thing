@@ -40,7 +40,7 @@ function buildTemplateValues(context: DecisionContext, memories: RecalledMemorie
     selfImage: personality.selfImage,
     mood: context.mood,
     body: describeStats(context.body),
-    status: describeStatus(context),
+    status: describeStatus(context, context.conditionWords),
     goals: describeGoals(context.goals),
     dailyPlan: context.dailyPlan || "none yet",
     simTime: context.simTime,

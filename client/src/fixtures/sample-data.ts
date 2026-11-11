@@ -66,6 +66,7 @@ export function makeSampleSnapshot(agents: Agent[]): SnapshotMessage {
     agents,
     entities: [],
     itemDefinitions: [],
+    conditionDefinitions: [],
     recentEvents: [],
     recentMoments: [],
   };

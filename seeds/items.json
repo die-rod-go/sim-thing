@@ -21,10 +21,7 @@
     },
     "blocking": {
       "description": "Something in the way.",
-      "fields": {
-        "blocksMovement": { "type": "boolean" },
-        "blocksSight": { "type": "boolean" }
-      }
+      "fields": { "blocksMovement": { "type": "boolean" }, "blocksSight": { "type": "boolean" } }
     },
     "container": {
       "description": "Holds other items, like a chest or basket.",
@@ -47,10 +44,7 @@
     },
     "drink": {
       "description": "Something to drink.",
-      "fields": {
-        "fun": { "type": "number" },
-        "energy": { "type": "number" }
-      }
+      "fields": { "fun": { "type": "number" }, "energy": { "type": "number" } }
     },
     "weapon": {
       "description": "Something to fight with.",
@@ -69,7 +63,11 @@
     "flesh": { "description": "Living or once-living bodies.", "isVisible": false },
     "flammable": { "description": "Catches fire.", "isVisible": false },
     "metal": { "description": "Made of metal.", "isVisible": false },
-    "sharp": { "description": "Has an edge or a point.", "isVisible": false }
+    "sharp": { "description": "Has an edge or a point.", "isVisible": false },
+    "fragile": {
+      "description": "Shatters when something hits it or it hits something.",
+      "isVisible": true
+    }
   },
   "person": { "properties": ["flesh", "flammable"] },
   "definitions": [
@@ -240,6 +238,26 @@
       "sprite": { "tileset": "village", "tile": 23 },
       "properties": ["flammable"],
       "components": { "healing": { "health": 0.15 }, "weight": { "kilograms": 0.05 } }
+    },
+    {
+      "id": "jar",
+      "name": "jar",
+      "plural": "jars",
+      "form": "carriable",
+      "sprite": { "tileset": "village", "tile": 24 },
+      "properties": ["fragile"],
+      "components": { "durability": { "toughness": 0.5 }, "weight": { "kilograms": 0.8 } },
+      "onBroken": [
+        { "type": "make_sound", "on": "self", "loudness": 10 },
+        { "type": "transform", "on": "self", "into": "shards" }
+      ]
+    },
+    {
+      "id": "shards",
+      "name": "shards of pottery",
+      "form": "carriable",
+      "sprite": { "tileset": "village", "tile": 25 },
+      "components": { "weight": { "kilograms": 0.8 } }
     }
   ],
   "verbs": [
@@ -349,13 +367,7 @@
       "minutes": 30,
       "loudness": 6,
       "effects": [
-        {
-          "type": "change_need",
-          "on": "user",
-          "need": "fun",
-          "amount": 0.2,
-          "perOtherUser": 0.1
-        }
+        { "type": "change_need", "on": "user", "need": "fun", "amount": 0.2, "perOtherUser": 0.1 }
       ],
       "phrases": {
         "ongoing": "playing cards at the {item}",
@@ -499,6 +511,7 @@
       "minutes": 5,
       "effects": [
         { "type": "heal", "on": "target", "amount": { "from": "item.healing.health" } },
+        { "type": "remove_condition", "on": "target", "condition": "bleeding" },
         { "type": "destroy", "on": "item" }
       ],
       "phrases": {
@@ -508,6 +521,89 @@
       }
     }
   ],
-  "conditions": [],
-  "reactions": []
+  "conditions": [
+    {
+      "name": "bleeding",
+      "words": "bleeding",
+      "isVisible": true,
+      "defaultMinutes": 20,
+      "everyMinute": [{ "type": "damage", "on": "self", "amount": { "min": 0.01, "max": 0.01 } }],
+      "phrases": {
+        "killed": "bled to death",
+        "started": "started bleeding",
+        "ended": "stopped bleeding"
+      }
+    },
+    {
+      "name": "burning",
+      "words": "on fire",
+      "isVisible": true,
+      "defaultMinutes": 30,
+      "everyMinute": [
+        { "type": "damage", "on": "self", "amount": { "min": 0.01, "max": 0.01 } },
+        { "type": "emit", "on": "nearby", "radius": 1, "stimulus": "fire", "chance": 0.05 }
+      ],
+      "phrases": {
+        "killed": "burned to death",
+        "started": "caught fire",
+        "ended": "stopped burning"
+      }
+    },
+    {
+      "name": "wet",
+      "words": "wet",
+      "isVisible": true,
+      "defaultMinutes": 60,
+      "phrases": { "started": "got wet", "ended": "dried off" }
+    },
+    {
+      "name": "poisoned",
+      "words": "poisoned",
+      "isVisible": false,
+      "defaultMinutes": null,
+      "everyMinute": [{ "type": "damage", "on": "self", "amount": { "min": 0.003, "max": 0.003 } }],
+      "phrases": {
+        "killed": "died of poison",
+        "started": "was poisoned",
+        "ended": "got over the poison"
+      }
+    }
+  ],
+  "reactions": [
+    {
+      "stimulus": "fire",
+      "property": "flammable",
+      "unless": "wet",
+      "effects": [{ "type": "add_condition", "on": "self", "condition": "burning" }]
+    },
+    {
+      "stimulus": "fire",
+      "condition": "wet",
+      "effects": [{ "type": "remove_condition", "on": "self", "condition": "wet" }]
+    },
+    {
+      "stimulus": "impact",
+      "property": "fragile",
+      "condition": "burning",
+      "effects": [{ "type": "emit", "on": "nearby", "radius": 1, "stimulus": "fire" }]
+    },
+    {
+      "stimulus": "impact",
+      "property": "fragile",
+      "effects": [
+        { "type": "make_sound", "on": "self", "loudness": 10 },
+        { "type": "transform", "on": "self", "into": "shards" }
+      ]
+    },
+    {
+      "stimulus": "water",
+      "condition": "burning",
+      "effects": [{ "type": "remove_condition", "on": "self", "condition": "burning" }]
+    },
+    {
+      "stimulus": "cut",
+      "property": "flesh",
+      "effects": [{ "type": "add_condition", "on": "self", "condition": "bleeding", "chance": 0.4 }]
+    }
+  ]
 }

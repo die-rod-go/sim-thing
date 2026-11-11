@@ -11,7 +11,7 @@ import {
 } from "./effect-run";
 
 function countOthersUsingSameThing(effectRun: EffectRun, agentId: string): number {
-  const { usedEntityId } = effectRun.run;
+  const usedEntityId = effectRun.run?.usedEntityId ?? null;
   if (usedEntityId === null) return 0;
   const used = findEntityIfPresent(effectRun.context.state, usedEntityId);
   return used ? countOtherUsers(used, agentId) : 0;

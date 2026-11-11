@@ -506,3 +506,69 @@
   font-style: italic;
   color: #c9c0f2;
 }
+
+/* Visible conditions: flames for burning, a tint for the rest. Drawn over agents and things. */
+.condition-overlay {
+  position: absolute;
+  pointer-events: none;
+}
+
+.agent-marker .condition-overlay {
+  width: var(--figure-size);
+  height: var(--figure-size);
+  transform: translate(-50%, -50%);
+  border-radius: 50%;
+}
+
+.tile-condition {
+  border-radius: 3px;
+}
+
+.condition-burning {
+  background: radial-gradient(
+    ellipse at 50% 85%,
+    rgba(255, 236, 140, 0.95) 0%,
+    rgba(255, 140, 30, 0.85) 35%,
+    rgba(220, 50, 20, 0.5) 60%,
+    rgba(220, 50, 20, 0) 75%
+  );
+  animation: condition-flicker 0.6s ease-in-out infinite alternate;
+  mix-blend-mode: screen;
+}
+
+.condition-wet {
+  background: rgba(90, 150, 230, 0.35);
+}
+
+.condition-bleeding {
+  box-shadow: 0 0 0 1px rgba(200, 20, 30, 0.9);
+}
+
+@keyframes condition-flicker {
+  from {
+    opacity: 0.75;
+    transform: translate(-50%, -50%) scaleY(0.92);
+  }
+  to {
+    opacity: 1;
+    transform: translate(-50%, -55%) scaleY(1.08);
+  }
+}
+
+.tile-condition.condition-burning {
+  animation-name: tile-condition-flicker;
+}
+
+@keyframes tile-condition-flicker {
+  from {
+    opacity: 0.75;
+  }
+  to {
+    opacity: 1;
+  }
+}
+
+.hover-card-conditions {
+  color: var(--text-muted);
+  font-style: italic;
+}

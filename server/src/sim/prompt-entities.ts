@@ -8,6 +8,7 @@ import {
   listTileEntitiesAt,
 } from "../items/entity-store";
 import { describeEntityCondition } from "../items/stock";
+import { listConditionWords } from "../status/conditions";
 import { listItemlessVerbs, listVerbsForEntity } from "../items/verb-offers";
 import type { WorldState } from "./world-state";
 
@@ -27,6 +28,15 @@ function isStateless(entity: Entity): boolean {
 
 function groupKey(entity: Entity): string {
   return isStateless(entity) ? `definition:${entity.definitionId}` : `entity:${entity.id}`;
+}
+
+/** "closed, on fire": what shows of its state, then its visible conditions. */
+function describeSeenState(state: WorldState, entity: Entity): string | null {
+  const parts = [
+    describeEntityCondition(state, entity),
+    ...listConditionWords(state.items, entity.state.conditions, true),
+  ].filter((part): part is string => part !== null);
+  return parts.length > 0 ? parts.join(", ") : null;
 }
 
 function listVerbNames(state: WorldState, agentId: string, entity: Entity): string[] {
@@ -55,7 +65,7 @@ export function groupEntitiesForPrompt(
       {
         text,
         verbs: listVerbNames(state, agentId, first),
-        condition: describeEntityCondition(state, first),
+        condition: describeSeenState(state, first),
       },
     ];
   });

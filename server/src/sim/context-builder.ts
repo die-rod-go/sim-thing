@@ -9,6 +9,7 @@ import type {
 import { currentConversation } from "../memory/conversation";
 import { buildCue, recallForDecision } from "../memory/recall";
 import { findObviousListeners } from "../perception/listeners";
+import { listConditionWords } from "../status/conditions";
 import { describeHealthAsSeen, isDead } from "../status/health";
 import { describeDoing } from "./action-phrases";
 import { getAgentRuntime } from "./agent-runtime";
@@ -56,6 +57,7 @@ function buildAwarenessEntries(state: WorldState, agent: Agent): AwarenessEntry[
         isDead: isInSight && isDead(other),
         healthAsSeen: isInSight && !isDead(other) ? describeHealthAsSeen(other.health) : null,
         visibleCarried: isInSight && !isDead(other) ? listVisibleCarried(state, other) : [],
+        visibleConditions: isInSight ? listConditionWords(state.items, other.conditions, true) : [],
       },
     ];
   });
@@ -134,6 +136,7 @@ export function buildDecisionContext(
     mood: agent.mood,
     needs: agent.needs,
     health: agent.health,
+    conditionWords: listConditionWords(state.items, agent.conditions, false),
     body: agent.body,
     goals: agent.goals,
     dailyPlan: agent.dailyPlan,

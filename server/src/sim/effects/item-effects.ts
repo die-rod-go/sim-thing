@@ -3,7 +3,14 @@ import { createEntity, moveEntity, removeEntity } from "../../items/entity-store
 import { resolveNumber } from "../../items/verb-numbers";
 import type { WorldState } from "../world-state";
 import { findAgent, markEntityChanged, markEntityRemoved } from "../world-access";
-import { findEffectEntity, findUsedDefinition, type EffectHandler } from "./effect-run";
+import { announceUnverbedBreaking } from "./breaking";
+import {
+  describeEffectOwner,
+  findEffectEntity,
+  findUsedDefinition,
+  requireVerbRun,
+  type EffectHandler,
+} from "./effect-run";
 
 function locateAtFeet(state: WorldState, agentId: string): EntityLocation {
   const agent = findAgent(state, agentId);
@@ -23,7 +30,7 @@ export const produceEffect: EffectHandler<"produce"> = {
       Math.round(resolveNumber(effect.count, findUsedDefinition(effectRun))),
     );
     for (let made = 0; made < count; made += 1) {
-      const location = locateWith(state, effectRun.run.agentId, effect.into);
+      const location = locateWith(state, requireVerbRun(effectRun, effect).agentId, effect.into);
       markEntityChanged(result, createEntity(state, effect.item, location).id);
     }
     return { made: { definitionId: effect.item, count } };
@@ -35,6 +42,7 @@ export const destroyEffect: EffectHandler<"destroy"> = {
   apply(effectRun, effect) {
     const entity = findEffectEntity(effectRun, effect);
     if (!entity) return {};
+    announceUnverbedBreaking(effectRun, entity.id);
     removeEntity(effectRun.context.state, entity.id);
     markEntityRemoved(effectRun.context.result, entity.id);
     return {};
@@ -47,10 +55,11 @@ export const moveEffect: EffectHandler<"move"> = {
     const entity = findEffectEntity(effectRun, effect);
     if (!entity) return {};
     if (effect.to !== "user" && effect.to !== "ground") {
-      throw new Error(`"${effectRun.verb.name}": move to ${effect.to} isn't built yet`);
+      throw new Error(`${describeEffectOwner(effectRun)}: move to ${effect.to} isn't built yet`);
     }
     const { state, result } = effectRun.context;
-    moveEntity(state, entity.id, locateWith(state, effectRun.run.agentId, effect.to));
+    const userId = requireVerbRun(effectRun, effect).agentId;
+    moveEntity(state, entity.id, locateWith(state, userId, effect.to));
     markEntityChanged(result, entity.id);
     return {};
   },

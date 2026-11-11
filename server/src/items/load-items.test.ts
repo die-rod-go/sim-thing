@@ -55,10 +55,12 @@ describe("loading items.json", () => {
         {
           name: "shout",
           appliesTo: { isUser: true },
-          effects: [{ type: "emit", on: "user", stimulus: "noise" }],
+          effects: [{ type: "destroy", on: "chosen" }],
         },
       ],
     };
-    expect(() => buildCheckedItemCatalog(withPunch, [])).toThrow(/The emit effect isn't built yet/);
+    expect(() => buildCheckedItemCatalog(withPunch, [])).toThrow(
+      /Effects on chosen aren't built yet/,
+    );
   });
 });

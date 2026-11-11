@@ -31,6 +31,11 @@ const CATEGORY_BY_KIND: Record<WorldEventKind, EventCategory> = {
   missed: "action",
   hurt: "action",
   broke: "action",
+  caught_fire: "action",
+  stopped_burning: "action",
+  condition_started: "action",
+  condition_ended: "action",
+  sound: "action",
 };
 
 export function categorizeEvent(event: WorldEvent): EventCategory {

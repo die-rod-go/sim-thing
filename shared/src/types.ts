@@ -1,3 +1,5 @@
+import type { ActiveCondition } from "./items/entity";
+
 export interface Position {
   x: number;
   y: number;
@@ -62,13 +64,6 @@ export interface AgentBody extends Record<StatName, number> {
   sleepRecoveryPerHour: number;
 }
 
-/** A timed state on an agent (bleeding, burning); kept empty until conditions are built. */
-export interface AgentCondition {
-  name: string;
-  /** Tick it runs out; null for one that lasts until something ends it. */
-  endsAtTick: number | null;
-}
-
 export interface AgentDeath {
   tick: number;
   /** For the viewer only: "starved", "stabbed by Tobias". Agents learn causes only by witnessing. */
@@ -90,7 +85,7 @@ export interface Agent {
   health: number;
   /** Set when hunger reaches 0, cleared when it rises; starvation damage starts after a grace period. */
   starvingSinceTick: number | null;
-  conditions: AgentCondition[];
+  conditions: ActiveCondition[];
   /** Null while alive. */
   death: AgentDeath | null;
   mood: string;
@@ -186,7 +181,12 @@ export type WorldEventKind =
   | "attacked"
   | "missed"
   | "hurt"
-  | "broke";
+  | "broke"
+  | "caught_fire"
+  | "stopped_burning"
+  | "condition_started"
+  | "condition_ended"
+  | "sound";
 
 /**
  * One thing that happened in the world. `description` is a past-tense verb phrase whose subject is
@@ -215,6 +215,8 @@ export interface WorldEvent {
   actorDescription?: string;
   /** The description as the target agent files it ("hit me with a knife"). */
   targetDescription?: string;
+  /** The actor is a thing ("the door", "Mara's body"), not an agent who acts or remembers. */
+  isActorThing?: boolean;
 }
 
 export type LlmCallKind =

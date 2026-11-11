@@ -9,6 +9,7 @@ import { PhrasesEditor } from "./verb-parts";
 import { Checkbox, Choice, InlineField, ItemProblemList, SuggestingInput } from "./widgets";
 
 const KILLED_PHRASE_KEYS = ["killed"] as const;
+const CONDITION_PHRASE_KEYS = ["started", "ended", "killed"] as const;
 const NOTHING = "";
 
 interface PanelProps {
@@ -74,7 +75,7 @@ export function ConditionPanel({ file, index, problems, stimuli, onEdit }: Panel
         />
         <PhrasesEditor
           phrases={condition.phrases}
-          keys={KILLED_PHRASE_KEYS}
+          keys={CONDITION_PHRASE_KEYS}
           onChange={(phrases) => update({ phrases })}
         />
       </section>

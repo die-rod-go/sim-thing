@@ -13,19 +13,34 @@ import { isDead } from "../../status/health";
 import type { TickContext } from "../tick-context";
 import { findAgent } from "../world-access";
 
-/** One verb's effects being run: the tick, the verb, and what the decision supplied. */
+/**
+ * One list of effects being run: a verb's, or a condition's or reaction's. A verb's run knows
+ * its user, item and target; a condition or reaction only knows `self`.
+ */
 export interface EffectRun {
   context: TickContext;
-  verb: Verb;
-  run: VerbRun;
+  /** Null for a condition's or a reaction's effects. */
+  verb: Verb | null;
+  run: VerbRun | null;
   /** Words from the decision, for verbs that take text (posting a note). */
   text: string;
   /** Minutes the decision chose, for a nap. */
   minutes?: number;
-  /** The entity `on: self` refers to: the one breaking, while its `onBroken` effects run. */
-  selfEntityId?: string;
+  /**
+   * What `on: self` refers to: whatever carries the condition or reaction, or the entity breaking
+   * while its `onBroken` effects run.
+   */
+  self?: EffectSubjectRef;
+  /** The agent behind it: the verb's user, or whoever caused the condition or the chain. */
+  sourceAgentId: string | null;
+  /** How a death from a condition's or reaction's damage reads; verbs use their own phrase. */
+  killed?: string;
+  /** How many reactions deep this run is: 0 for a verb or a condition. */
+  reactionDepth: number;
   /** The hit roll's `attacked` or `missed` event already showed what happens to the target. */
   isAttackAnnounced?: boolean;
+  /** These are `onBroken` effects, after the `broke` event was seen. */
+  isBreakAnnounced?: boolean;
 }
 
 export interface EffectOutcome {
@@ -45,7 +60,7 @@ export type EffectRegistry = { [Type in EffectType]?: EffectHandler<Type> };
 
 /** The definition of the thing used, still known after a `start` effect used it up. */
 export function findUsedDefinition(effectRun: EffectRun): ItemDefinition | null {
-  const { usedDefinitionId } = effectRun.run;
+  const usedDefinitionId = effectRun.run?.usedDefinitionId ?? null;
   return usedDefinitionId === null
     ? null
     : findDefinition(effectRun.context.state.items, usedDefinitionId);
@@ -55,25 +70,43 @@ export function findUsedDefinition(effectRun: EffectRun): ItemDefinition | null 
 export type EffectSubjectRef =
   { kind: "agent"; agentId: string } | { kind: "entity"; entityId: string };
 
+/** Names what runs the effects, for errors. */
+export function describeEffectOwner(effectRun: EffectRun): string {
+  return effectRun.verb === null ? "a condition or reaction" : `"${effectRun.verb.name}"`;
+}
+
+/** The verb run behind effects that only make sense in a verb (sleeping, producing for the user). */
+export function requireVerbRun(effectRun: EffectRun, effect: Effect): VerbRun {
+  if (effectRun.run === null) {
+    throw new Error(
+      `The ${effect.type} effect only works in verbs, not in ${describeEffectOwner(effectRun)}`,
+    );
+  }
+  return effectRun.run;
+}
+
 /**
  * What the effect's `on` refers to in this run: the user, the thing used, the verb's target, or
- * `self` (the entity breaking, for `onBroken`). Null when there is none, such as `item` in a
- * bare-handed verb. `chosen` and `nearby` come with the phases that need them; the server refuses
- * an `items.json` that uses them before then.
+ * `self`. Null when there is none, such as `item` in a bare-handed verb. `nearby` is expanded into
+ * one run per subject before an effect gets here.
  */
 export function findEffectSubject(effectRun: EffectRun, effect: Effect): EffectSubjectRef | null {
-  const { run, selfEntityId } = effectRun;
+  const { run, self } = effectRun;
   switch (effect.on ?? "self") {
     case "user":
-      return { kind: "agent", agentId: run.agentId };
-    case "item":
-      return run.usedEntityId === null ? null : { kind: "entity", entityId: run.usedEntityId };
+      return run === null ? null : { kind: "agent", agentId: run.agentId };
+    case "item": {
+      const usedEntityId = run?.usedEntityId ?? null;
+      return usedEntityId === null ? null : { kind: "entity", entityId: usedEntityId };
+    }
     case "target":
-      return run.aim ?? null;
+      return run?.aim ?? null;
     case "self":
-      return selfEntityId === undefined ? null : { kind: "entity", entityId: selfEntityId };
+      return self ?? null;
     default:
-      throw new Error(`"${effectRun.verb.name}": ${effect.type} on ${effect.on} isn't built yet`);
+      throw new Error(
+        `${describeEffectOwner(effectRun)}: ${effect.type} on ${effect.on} isn't built yet`,
+      );
   }
 }
 

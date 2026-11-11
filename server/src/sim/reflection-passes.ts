@@ -1,5 +1,6 @@
 import { formatSimTime, type PersonalityChange } from "@village/shared";
 import { config } from "../config";
+import { listConditionWords } from "../status/conditions";
 import type { StructuredCaller } from "../llm/call-structured";
 import { createLogger } from "../logger";
 import { runMorningPass } from "../reflection/morning";
@@ -57,6 +58,10 @@ function setSchedule(state: WorldState, agentId: string, schedule: ReflectionSch
  * weekly after every seventh night), all agents in parallel, and the clock waits for them.
  * Pending passes live only within one tick, so nothing extra needs saving.
  */
+function describeOwnConditions(state: WorldState, agentId: string): string[] {
+  return listConditionWords(state.items, findAgent(state, agentId).conditions, false);
+}
+
 export function createReflectionHook(dependencies: ReflectionPassDependencies): ReflectionHook {
   const morningDue = new Set<string>();
   const nightDueOnSleep = new Set<string>();
@@ -64,6 +69,7 @@ export function createReflectionHook(dependencies: ReflectionPassDependencies): 
   async function runMorning(state: WorldState, agentId: string, result: TickResult) {
     const agent = await runMorningPass({
       agent: findAgent(state, agentId),
+      conditionWords: describeOwnConditions(state, agentId),
       recentReflections: selectLatestNightReflections(state.memoryStore, agentId),
       callStructured: dependencies.callStructured,
       tick: state.tick,
@@ -80,6 +86,7 @@ export function createReflectionHook(dependencies: ReflectionPassDependencies): 
   async function runWeekly(state: WorldState, agentId: string, result: TickResult) {
     const weekly = await runWeeklyPass({
       agent: findAgent(state, agentId),
+      conditionWords: describeOwnConditions(state, agentId),
       store: state.memoryStore,
       callStructured: dependencies.callStructured,
       tick: state.tick,
@@ -101,6 +108,7 @@ export function createReflectionHook(dependencies: ReflectionPassDependencies): 
   async function runNight(state: WorldState, agentId: string, result: TickResult) {
     const night = await runNightPass({
       agent: findAgent(state, agentId),
+      conditionWords: describeOwnConditions(state, agentId),
       store: state.memoryStore,
       idGenerator: state.memoryIds,
       callStructured: dependencies.callStructured,

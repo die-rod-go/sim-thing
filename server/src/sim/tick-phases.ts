@@ -13,6 +13,7 @@ import {
 import { findEntity, replaceEntity } from "../items/entity-store";
 import { countWholeStock, regrowStocks } from "../items/stock";
 import { wakeAgent } from "./action-stopping";
+import { advanceConditions } from "./conditions";
 import { applyDamage } from "./damage";
 import { WAIT_ACTION, WALK_ACTION, describeDoing } from "./action-phrases";
 import { getAgentRuntime, requestDecision } from "./agent-runtime";
@@ -34,7 +35,8 @@ import {
 const { minutesPerTick } = config.clock;
 
 /**
- * Phase 1: stocks regrow; for the living, needs decay (slower asleep), sleepers recover, crowds
+ * Phase 1: stocks regrow; conditions run their minutes or run out (reactions resolve as their
+ * stimuli arrive); for the living, needs decay (slower asleep), sleepers recover, crowds
  * affect the awake, health regenerates, and starvation does damage after its grace period.
  */
 export function applyMechanics(context: TickContext): Map<string, Needs> {
@@ -47,6 +49,7 @@ export function applyMechanics(context: TickContext): Map<string, Needs> {
       markEntityChanged(context.result, regrown.id);
     }
   }
+  advanceConditions(context);
   const world = buildPerceptionWorld(state);
   const needsBefore = new Map<string, Needs>();
   for (const agentId of listLivingAgents(state).map((agent) => agent.id)) {

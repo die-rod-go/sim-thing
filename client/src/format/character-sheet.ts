@@ -2,7 +2,7 @@ import {
   describeCount,
   formatSimTime,
   toSimTime,
-  type AgentCondition,
+  type ActiveCondition,
   type AgentDeath,
   type CurrentAction,
   type Entity,
@@ -40,7 +40,7 @@ export function describeDeath(death: AgentDeath, timeSettings: SimTimeSettings):
 
 /** "bleeding 12m", or just "burning" for a condition with no set end. */
 export function describeCondition(
-  condition: AgentCondition,
+  condition: ActiveCondition,
   currentTick: number,
   timeSettings: SimTimeSettings,
 ): string {

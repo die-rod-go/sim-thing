@@ -1,10 +1,17 @@
-import { NEED_NAMES, type Agent, type SimTimeSettings } from "@village/shared";
+import {
+  NEED_NAMES,
+  type Agent,
+  type ConditionDefinition,
+  type SimTimeSettings,
+} from "@village/shared";
 import { describeActivity, describeDeath, describeNeed } from "../format/character-sheet";
+import { listVisibleConditions } from "../format/conditions";
 
 const PERCENT = 100;
 
 interface HoverCardProps {
   agent: Agent | null;
+  conditionDefinitions: readonly ConditionDefinition[];
   color: string;
   timeSettings: SimTimeSettings;
   cardRef: (element: HTMLElement | null) => void;
@@ -32,8 +39,15 @@ function NeedBars({ agent }: { agent: Agent }) {
 }
 
 /** A quick look at the agent under the pointer; the frame loop places it beside the figure. */
-export function HoverCard({ agent, color, timeSettings, cardRef }: HoverCardProps) {
+export function HoverCard({
+  agent,
+  conditionDefinitions,
+  color,
+  timeSettings,
+  cardRef,
+}: HoverCardProps) {
   if (!agent) return null;
+  const visibleConditions = listVisibleConditions(agent.conditions, conditionDefinitions);
   return (
     <div className="agent-hover-card" ref={cardRef} style={{ borderTopColor: color }}>
       <div className="hover-card-title">
@@ -50,6 +64,11 @@ export function HoverCard({ agent, color, timeSettings, cardRef }: HoverCardProp
           {agent.intention && <div className="hover-card-intention">→ {agent.intention}</div>}
           <NeedBars agent={agent} />
         </>
+      )}
+      {visibleConditions.length > 0 && (
+        <div className="hover-card-conditions">
+          {visibleConditions.map((condition) => condition.words).join(", ")}
+        </div>
       )}
       {agent.lastThought && <div className="hover-card-thought">“{agent.lastThought.text}”</div>}
     </div>
