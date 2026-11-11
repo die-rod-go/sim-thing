@@ -138,6 +138,16 @@ function summarizeReply(
         headline: readText(fields, "dailyPlan"),
         parts: part("feels", readText(fields, "mood")),
       };
+    case "daytime":
+      return {
+        headline: null,
+        parts: [
+          ...readRecords(fields, "insights").flatMap((insight) =>
+            part("realized", readText(insight, "text")),
+          ),
+          ...part("feels", readText(fields, "mood")),
+        ],
+      };
     case "night":
       return summarizeNight(fields);
     case "weekly":

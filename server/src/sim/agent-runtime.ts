@@ -107,6 +107,8 @@ export const simRuntimeSchema = z.object({
       lastNightPassTick: z.number().int().nullable(),
       nightPassCount: z.number().int().nonnegative(),
       sleepStartedAtTick: z.number().int().nullable(),
+      /** Absent in saves made before the daytime pass existed. */
+      lastReflectionTick: z.number().int().nullable().default(null),
     }),
   ),
   /** Absent in saves made before moments existed. */

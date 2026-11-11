@@ -56,6 +56,26 @@ describe("reflection hook", () => {
     expect(sim.state.reflectionSchedules.mara?.sleepStartedAtTick).toBeNull();
   });
 
+  it("an awake agent thinks things over every two hours and keeps the thought in mind", async () => {
+    const fake = createFakeResponder();
+    const sim = createTestSim({
+      agentIds: ["mara"],
+      reflection: () => undefined,
+      responder: (request, callIndex) =>
+        request.schemaName === "decision_reply"
+          ? decisionReply({ action: "wait", minutes: 60, say: "Is anyone about?" })
+          : fake(request, callIndex),
+    });
+    await sim.advance(2 * 60 + 1);
+    const daytimeRecords = sim.records.filter((record) => record.kind === "daytime");
+    expect(daytimeRecords).toHaveLength(1);
+    expect(daytimeRecords[0]?.prompt).toContain("Is anyone about?");
+    expect(sim.agent("mara").workingMemory).toContainEqual(
+      expect.stringContaining("I thought: The work goes better when I keep at it."),
+    );
+    expect(sim.state.reflectionSchedules.mara?.lastReflectionTick).toBe(daytimeRecords[0]?.tick);
+  });
+
   it("runs the weekly pass after the seventh night and records personality changes", async () => {
     const changes: Omit<PersonalityChange, "id">[] = [];
     const sim = createTestSim({
@@ -67,6 +87,7 @@ describe("reflection hook", () => {
       lastNightPassTick: null,
       nightPassCount: 6,
       sleepStartedAtTick: null,
+      lastReflectionTick: null,
     };
     const ticksTo2am = 20 * 60;
     await sim.advance(ticksTo2am + 1);

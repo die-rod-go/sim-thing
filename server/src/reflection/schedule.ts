@@ -7,6 +7,8 @@ export interface ReflectionSchedule {
   nightPassCount: number;
   /** Set while the agent sleeps; null while awake. */
   sleepStartedAtTick: number | null;
+  /** When the agent last reflected or woke; the daytime pass counts from here. Null before either. */
+  lastReflectionTick: number | null;
 }
 
 export interface NightPassCheck {
@@ -14,7 +16,12 @@ export interface NightPassCheck {
 }
 
 export function createReflectionSchedule(): ReflectionSchedule {
-  return { lastNightPassTick: null, nightPassCount: 0, sleepStartedAtTick: null };
+  return {
+    lastNightPassTick: null,
+    nightPassCount: 0,
+    sleepStartedAtTick: null,
+    lastReflectionTick: null,
+  };
 }
 
 function hoursSince(fromTick: number, toTick: number): number {
@@ -25,12 +32,32 @@ export function recordSleepStart(schedule: ReflectionSchedule, tick: number): Re
   return { ...schedule, sleepStartedAtTick: tick };
 }
 
-export function recordWake(schedule: ReflectionSchedule): ReflectionSchedule {
-  return { ...schedule, sleepStartedAtTick: null };
+export function recordWake(schedule: ReflectionSchedule, tick: number): ReflectionSchedule {
+  return { ...schedule, sleepStartedAtTick: null, lastReflectionTick: tick };
 }
 
 export function recordNightPass(schedule: ReflectionSchedule, tick: number): ReflectionSchedule {
-  return { ...schedule, lastNightPassTick: tick, nightPassCount: schedule.nightPassCount + 1 };
+  return {
+    ...schedule,
+    lastNightPassTick: tick,
+    nightPassCount: schedule.nightPassCount + 1,
+    lastReflectionTick: tick,
+  };
+}
+
+export function recordDaytimePass(schedule: ReflectionSchedule, tick: number): ReflectionSchedule {
+  return { ...schedule, lastReflectionTick: tick };
+}
+
+/** Where the daytime pass's memories start: the last reflection or waking, else the sim start. */
+export function findDaytimeWindowStart(schedule: ReflectionSchedule): number {
+  return schedule.lastReflectionTick ?? 0;
+}
+
+/** Due for an awake agent `daytimeEveryHours` after its last reflection or waking. */
+export function isDaytimePassDue(schedule: ReflectionSchedule, tick: number): boolean {
+  if (schedule.sleepStartedAtTick !== null) return false;
+  return hoursSince(findDaytimeWindowStart(schedule), tick) >= config.reflection.daytimeEveryHours;
 }
 
 /** Check before `recordWake`: true when the sleep that just ended lasted `morningMinSleepHours`. */

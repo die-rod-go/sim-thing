@@ -225,7 +225,7 @@ export interface WorldEvent {
 }
 
 export type LlmCallKind =
-  "decision" | "interact" | "morning" | "night" | "weekly" | "conversation_summary";
+  "decision" | "interact" | "morning" | "daytime" | "night" | "weekly" | "conversation_summary";
 
 /** The prompt is plain text; lines starting with "## " open a section the prompt viewer can collapse. */
 export interface LlmCallRecord {

@@ -106,6 +106,7 @@ const PARTS_SHOWN_AS_EVENTS: ReadonlySet<string> = new Set([
 
 const REFLECTION_KINDS: ReadonlySet<ActivityThought["thoughtKind"]> = new Set([
   "morning",
+  "daytime",
   "night",
   "weekly",
 ]);

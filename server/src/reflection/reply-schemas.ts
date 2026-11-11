@@ -39,6 +39,30 @@ export function buildMorningReplySchema(): ReplySchemas<MorningReply> {
   };
 }
 
+export interface DaytimeReply {
+  insights: { text: string }[];
+  mood?: string;
+}
+
+export function buildDaytimeReplySchema(): ReplySchemas<DaytimeReply> {
+  const { maxInsights } = config.reflection;
+  const replyObject = z.object({
+    insights: z
+      .array(z.object({ text: requiredText() }))
+      .optional()
+      .transform((insights) => (insights ?? []).slice(0, maxInsights)),
+    mood: requiredText().optional(),
+  });
+  return {
+    schema: z.preprocess(dropEmptyFields, replyObject),
+    jsonSchema: strictJsonObject({
+      insights: jsonArray(strictJsonObject({ text: { type: "string" } })),
+      mood: nullableJsonString("Your mood now in a few words, or null."),
+    }),
+    schemaName: "daytime_reply",
+  };
+}
+
 export interface NightReply {
   summary: string;
   moodEntry: string;

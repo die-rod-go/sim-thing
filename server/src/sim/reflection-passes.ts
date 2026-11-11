@@ -3,14 +3,18 @@ import { config } from "../config";
 import { listConditionWords } from "../status/conditions";
 import type { StructuredCaller } from "../llm/call-structured";
 import { createLogger } from "../logger";
+import { runDaytimePass } from "../reflection/daytime";
 import { runMorningPass } from "../reflection/morning";
 import { runNightPass } from "../reflection/night";
 import { selectLatestNightReflections } from "../reflection/reflection-memories";
 import {
   createReflectionSchedule,
+  findDaytimeWindowStart,
+  isDaytimePassDue,
   isMorningPassDue,
   isNightPassDue,
   isWeeklyPassDue,
+  recordDaytimePass,
   recordNightPass,
   recordSleepStart,
   recordWake,
@@ -30,6 +34,7 @@ import {
   listKnownNames,
   listLivingAgents,
   markAgentChanged,
+  rememberBriefly,
   replaceAgent,
 } from "./world-access";
 import type { TickResult, WorldState } from "./world-state";
@@ -55,7 +60,8 @@ function setSchedule(state: WorldState, agentId: string, schedule: ReflectionSch
 /**
  * Connects the reflection passes to the tick. Sleep callbacks only note what is due; `afterTick`
  * runs the due passes (morning after a long sleep; night on falling asleep or at the forced hour;
- * weekly after every seventh night), all agents in parallel, and the clock waits for them.
+ * weekly after every seventh night; daytime every few awake hours), all agents in parallel, and
+ * the clock waits for them.
  * Pending passes live only within one tick, so nothing extra needs saving.
  */
 function describeOwnConditions(state: WorldState, agentId: string): string[] {
@@ -132,11 +138,34 @@ export function createReflectionHook(dependencies: ReflectionPassDependencies): 
     if (isWeeklyPassDue(schedule)) await runWeekly(state, agentId, result);
   }
 
+  async function runDaytime(state: WorldState, agentId: string, result: TickResult) {
+    const daytime = await runDaytimePass({
+      agent: findAgent(state, agentId),
+      conditionWords: describeOwnConditions(state, agentId),
+      store: state.memoryStore,
+      idGenerator: state.memoryIds,
+      callStructured: dependencies.callStructured,
+      tick: state.tick,
+      sinceTick: findDaytimeWindowStart(getSchedule(state, agentId)),
+      knownNames: listKnownNames(state),
+    });
+    setSchedule(state, agentId, recordDaytimePass(getSchedule(state, agentId), state.tick));
+    const current = findAgent(state, agentId);
+    if (daytime.agent.mood === current.mood && daytime.insights.length === 0) return;
+    replaceAgent(state, { ...current, mood: daytime.agent.mood });
+    for (const insight of daytime.insights)
+      rememberBriefly(state, agentId, `I thought: ${insight}`);
+    markAgentChanged(result, agentId);
+  }
+
   async function runDuePasses(state: WorldState, agentId: string, result: TickResult) {
     if (morningDue.delete(agentId)) await runMorning(state, agentId, result);
     const isStartingSleep = nightDueOnSleep.delete(agentId);
     if (isNightPassDue(getSchedule(state, agentId), state.tick, { isStartingSleep })) {
       await runNight(state, agentId, result);
+    }
+    if (isDaytimePassDue(getSchedule(state, agentId), state.tick)) {
+      await runDaytime(state, agentId, result);
     }
   }
 
@@ -148,7 +177,7 @@ export function createReflectionHook(dependencies: ReflectionPassDependencies): 
     onWoke(state, agentId, tick) {
       const schedule = getSchedule(state, agentId);
       if (isMorningPassDue(schedule, tick)) morningDue.add(agentId);
-      setSchedule(state, agentId, recordWake(schedule));
+      setSchedule(state, agentId, recordWake(schedule, tick));
     },
     async afterTick(state, result) {
       await Promise.all(

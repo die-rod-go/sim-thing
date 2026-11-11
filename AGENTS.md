@@ -115,7 +115,7 @@ need one, ask first.
 | awareness       | The structured record of when each other agent was last perceived                     |
 | earshot         | Whether the sound simulation lets a listener hear a sound                             |
 | needs           | Hunger, energy, social, fun (0–1, 1 = satisfied)                                      |
-| reflection      | The morning, night and weekly LLM passes                                              |
+| reflection      | The morning, daytime, night and weekly LLM passes                                     |
 | item definition | A template in `seeds/items.json`: name, form, properties, components                  |
 | entity          | One instance of a definition in the world, with its own id, location and state        |
 | form            | `placeable` (sits on a tile, like an oven) or `carriable` (fits in an inventory)      |

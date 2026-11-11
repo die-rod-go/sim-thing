@@ -28,5 +28,5 @@ It is {{simTime}}.
 Reply with only a JSON object, fields in this order:
 - summary: what happened today and what mattered to you, in one or two sentences (at most {{maxChars}} characters).
 - moodEntry: one line on how you feel tonight and why.
-- insights: 1 to {{maxInsights}} things you have come to think or understand from today, each {"text"}, one sentence each, in your own words.
+- insights: 1 to {{maxInsights}} things you have come to think or understand from today, each {"text"}, one sentence each, in your own words. Weigh what you saw for yourself against what you only heard or assumed: if you counted on someone or something today that you have never seen, say whether that still makes sense.
 - peopleNotes: rewritten notes about people, each {"person", "text"}, only for people whose note you want to change. Each text replaces your old notes about that person, so keep what still matters (debts, promises, secrets) and add what you learned. One or two sentences each. Use an empty list if nothing changed.

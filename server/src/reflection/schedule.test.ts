@@ -1,9 +1,12 @@
 import { describe, expect, it } from "vitest";
 import {
   createReflectionSchedule,
+  findDaytimeWindowStart,
+  isDaytimePassDue,
   isMorningPassDue,
   isNightPassDue,
   isWeeklyPassDue,
+  recordDaytimePass,
   recordNightPass,
   recordSleepStart,
   recordWake,
@@ -25,7 +28,9 @@ describe("reflection schedule", () => {
   it("no morning pass after a short nap", () => {
     const asleep = recordSleepStart(createReflectionSchedule(), 100);
     expect(isMorningPassDue(asleep, 100 + 2 * TICKS_PER_HOUR)).toBe(false);
-    expect(isMorningPassDue(recordWake(asleep), 100 + 8 * TICKS_PER_HOUR)).toBe(false);
+    expect(
+      isMorningPassDue(recordWake(asleep, 100 + 2 * TICKS_PER_HOUR), 100 + 8 * TICKS_PER_HOUR),
+    ).toBe(false);
   });
 
   it("night pass runs when starting sleep but not twice within 16 hours", () => {
@@ -45,6 +50,30 @@ describe("reflection schedule", () => {
     expect(isNightPassDue(asleep, TWO_AM_TICK, NOT_STARTING_SLEEP)).toBe(false);
     const reflectedEarlier = recordNightPass(awake, TWO_AM_TICK - 2 * TICKS_PER_HOUR);
     expect(isNightPassDue(reflectedEarlier, TWO_AM_TICK, NOT_STARTING_SLEEP)).toBe(false);
+  });
+
+  it("daytime pass is due two awake hours after the last one", () => {
+    const fresh = createReflectionSchedule();
+    expect(isDaytimePassDue(fresh, 2 * TICKS_PER_HOUR - 1)).toBe(false);
+    expect(isDaytimePassDue(fresh, 2 * TICKS_PER_HOUR)).toBe(true);
+    const afterPass = recordDaytimePass(fresh, 2 * TICKS_PER_HOUR);
+    expect(isDaytimePassDue(afterPass, 3 * TICKS_PER_HOUR)).toBe(false);
+    expect(isDaytimePassDue(afterPass, 4 * TICKS_PER_HOUR)).toBe(true);
+  });
+
+  it("no daytime pass while asleep", () => {
+    const asleep = recordSleepStart(createReflectionSchedule(), 100);
+    expect(isDaytimePassDue(asleep, 100 + 6 * TICKS_PER_HOUR)).toBe(false);
+  });
+
+  it("waking and the night pass restart the daytime count", () => {
+    const wakeTick = 30 * TICKS_PER_HOUR;
+    const woken = recordWake(recordSleepStart(createReflectionSchedule(), 0), wakeTick);
+    expect(findDaytimeWindowStart(woken)).toBe(wakeTick);
+    expect(isDaytimePassDue(woken, wakeTick + TICKS_PER_HOUR)).toBe(false);
+    expect(isDaytimePassDue(woken, wakeTick + 2 * TICKS_PER_HOUR)).toBe(true);
+    const afterNight = recordNightPass(createReflectionSchedule(), TWO_AM_TICK);
+    expect(isDaytimePassDue(afterNight, TWO_AM_TICK + TICKS_PER_HOUR)).toBe(false);
   });
 
   it("weekly pass follows every seventh night pass", () => {

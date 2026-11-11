@@ -52,19 +52,35 @@ function compareOldestFirst(first: Memory, second: Memory): number {
   return first.tick - second.tick || first.id.localeCompare(second.id);
 }
 
+function selectStrongestInTimeOrder(memories: Memory[], limit: number): Memory[] {
+  return memories.sort(compareStrongestThenNewest).slice(0, limit).sort(compareOldestFirst);
+}
+
 /** The agent's memories from the last `nightMemoryWindowHours`, capped strongest/newest first, in time order. */
 export function selectDayMemories(memories: MemoryReader, agentId: string, tick: number): Memory[] {
-  return memories
+  const dayMemories = memories
     .listByAgent(agentId)
     .filter(
       (memory) =>
         !BUCKETS_OUTSIDE_THE_DAY.includes(memory.bucket) &&
         simHoursBetween(memory.tick, tick, config.clock.minutesPerTick) <=
           config.reflection.nightMemoryWindowHours,
-    )
-    .sort(compareStrongestThenNewest)
-    .slice(0, config.reflection.nightMemoriesShown)
-    .sort(compareOldestFirst);
+    );
+  return selectStrongestInTimeOrder(dayMemories, config.reflection.nightMemoriesShown);
+}
+
+/** The agent's memories filed after `sinceTick`, capped strongest/newest first, in time order. */
+export function selectMemoriesSince(
+  memories: MemoryReader,
+  agentId: string,
+  sinceTick: number,
+): Memory[] {
+  const recentMemories = memories
+    .listByAgent(agentId)
+    .filter(
+      (memory) => !BUCKETS_OUTSIDE_THE_DAY.includes(memory.bucket) && memory.tick > sinceTick,
+    );
+  return selectStrongestInTimeOrder(recentMemories, config.reflection.daytimeMemoriesShown);
 }
 
 /** Names from `candidateNames` tagged in the agent's own actions and conversations. */

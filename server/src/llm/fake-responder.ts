@@ -329,6 +329,10 @@ function buildBuiltInAnswers(hitRollVerbs: ReadonlySet<string>): Record<string, 
       dailyPlan: "Work in the morning, eat at midday, see who is around in the afternoon.",
       mood: "ready for the day",
     }),
+    daytime_reply: () => ({
+      insights: [{ text: "The work goes better when I keep at it." }],
+      mood: null,
+    }),
     night_reply: () => ({
       summary: "I went about my work and talked with a few people.",
       moodEntry: "tired but settled",

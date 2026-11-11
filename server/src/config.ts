@@ -449,6 +449,7 @@ export const config = {
       decision: 1500,
       interact: 500,
       morning: 1500,
+      daytime: 1500,
       night: 3000,
       weekly: 3000,
       conversation_summary: 1000,
@@ -491,6 +492,12 @@ export const config = {
     nightCooldownHours: 16,
     nightForcedHour: 2,
     maxInsights: 3,
+    /** An awake agent thinks things over (the daytime pass) this many sim-hours after its last reflection. */
+    daytimeEveryHours: 2,
+    /** At most this many memories since the last reflection (strongest, then newest) reach the daytime prompt. */
+    daytimeMemoriesShown: 25,
+    /** The daytime prompt shows this many of the agent's newest insights, so it builds on them. */
+    daytimeEarlierInsightsShown: 4,
     weeklyEveryNights: 7,
     daySummariesShownWeekly: 7,
     /** The night pass shows the agent's memories from this many sim-hours back. */
