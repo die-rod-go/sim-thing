@@ -1,6 +1,7 @@
 import { describe, expect, it } from "vitest";
 import { config } from "../config";
 import { countHeld } from "../items/entity-store";
+import { createFakeResponder } from "../llm/fake-responder";
 import { SimLoop } from "./loop";
 import { ManualScheduler } from "./manual-scheduler";
 import { createDecisionStrategy } from "./tick-pipeline";
@@ -116,6 +117,30 @@ describe("decision loop", () => {
     expect(sim.results[0]?.events[0]?.description).toBe("started baking bread at the oven");
     await sim.advance(90);
     expect(countHeld(sim.state, "mara", "bread")).toBe(6);
+  });
+
+  it("interact uses a carried item named as item, oldest first", async () => {
+    const sim = createTestSim({
+      agentIds: ["mara"],
+      responder: scriptByAgent({
+        Mara: (_request, callIndex) =>
+          callIndex === 0
+            ? decisionReply({ action: "interact", item: "bread", verb: "eat" })
+            : undefined,
+      }),
+    });
+    const breadBefore = countHeld(sim.state, "mara", "bread");
+    await sim.advance();
+    expect(sim.agent("mara").currentAction).toMatchObject({ verb: "eat", target: "bread" });
+    expect(countHeld(sim.state, "mara", "bread")).toBe(breadBefore - 1);
+  });
+
+  it("the fake responder eats something carried when hungry", async () => {
+    const sim = createTestSim({ agentIds: ["mara"], responder: createFakeResponder() });
+    const mara = sim.agent("mara");
+    sim.state.agents[0] = { ...mara, needs: { ...mara.needs, hunger: 0.2 } };
+    await sim.advance();
+    expect(sim.agent("mara").currentAction).toMatchObject({ verb: "eat" });
   });
 
   it("interact walks to the object first, then starts", async () => {

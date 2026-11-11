@@ -1,4 +1,11 @@
-import { describeCount, findDefinition, type Agent, type Entity, type Verb } from "@village/shared";
+import {
+  describeCount,
+  findDefinition,
+  listPossibleLocations,
+  type Agent,
+  type Entity,
+  type Verb,
+} from "@village/shared";
 import { config } from "../config";
 import {
   countHeld,
@@ -10,7 +17,12 @@ import {
 } from "../items/entity-store";
 import { addEntityUser, removeEntityUser } from "../items/entity-users";
 import { resolveNumber } from "../items/verb-numbers";
-import { findVerbByName, listItemlessVerbs, listVerbsForEntity } from "../items/verb-offers";
+import {
+  findVerbByName,
+  listItemlessVerbs,
+  listVerbsForEntity,
+  listVerbsForSubject,
+} from "../items/verb-offers";
 import { describeAttempt, describeItemCounts, describeOngoingVerb } from "./action-phrases";
 import { getAgentRuntime, type PendingVerb, type VerbRun } from "./agent-runtime";
 import { applyEffect, findEffectBlocker } from "./effects/effect-registry";
@@ -244,13 +256,38 @@ function endRun(context: TickContext, agentId: string, run: VerbRun | null): Age
   return stopped;
 }
 
+/**
+ * The running verb, found again by name among the verbs that apply to what was used, so two
+ * same-named verbs (the general `eat` and a poisoned one) stay apart.
+ */
+function findRunVerb(state: WorldState, run: VerbRun): Verb | undefined {
+  if (run.usedDefinitionId === null) return findVerbByName(listItemlessVerbs(state), run.verb);
+  const definition = findDefinition(state.items, run.usedDefinitionId);
+  const candidates = listPossibleLocations(definition.form).flatMap((location) =>
+    listVerbsForSubject(state, { kind: "entity", definition, location }),
+  );
+  return findVerbByName(candidates, run.verb);
+}
+
+/** Someone else took what the verb was used with while it ran (both reached for the knife). */
+function isTakenByOther(state: WorldState, run: VerbRun): boolean {
+  const used = run.usedEntityId === null ? undefined : findEntityIfPresent(state, run.usedEntityId);
+  return used?.location.kind === "inventory" && used.location.agentId !== run.agentId;
+}
+
 /** Finishes the agent's verb: its `finish` effects run, then an `action_finished` event. */
 export function finishRunningVerb(context: TickContext, agentId: string): void {
   const { state, result } = context;
   const run = getAgentRuntime(state, agentId).verbRun;
-  const verb = run ? findVerbByName(state.items.verbs, run.verb) : undefined;
+  const verb = run ? findRunVerb(state, run) : undefined;
   if (!run || !verb) {
     endRun(context, agentId, run);
+    return;
+  }
+  if (isTakenByOther(state, run)) {
+    endRun(context, agentId, run);
+    const attempt = describeAttempt(state.items, run.verb, run.usedName);
+    failAction(state, result, agentId, attempt, "someone got to it first");
     return;
   }
   const effectRun: EffectRun = { context, verb, run, text: "" };
