@@ -30,7 +30,7 @@ export const config = {
     minutesPerTick: 1,
     startHour: 6,
     /** Ticks per real second at 1x; 0.8 makes a sim-day take 30 real minutes. */
-    baseTicksPerSecond: 0.8,
+    baseTicksPerSecond: 1.6,
     speedOptions: [1, 4, 16],
     saveEveryTicks: 60,
   },
@@ -379,7 +379,7 @@ export const config = {
       morning: 1500,
       night: 3000,
       weekly: 3000,
-      conversation_summary: 800,
+      conversation_summary: 1000,
     },
     dailyTokenBudget: 10_000_000,
     /** One first try plus one retry on invalid output or an API error. */
