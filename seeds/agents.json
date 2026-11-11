@@ -305,14 +305,21 @@
           "kind": "self"
         },
         {
-          "text": "Fall in love",
+          "text": "Get to know everyone in town.",
           "why": "",
           "progress": "",
-          "kind": "world"
+          "kind": "social"
+        },
+        {
+          "text": "Stop annoying Jess",
+          "why": "",
+          "progress": "",
+          "kind": "social"
         }
       ],
       "peopleNotes": {
-        "Jess": "Thinks she's very attractive"
+        "Jess": "Thinks she's very attractive",
+        "Hal": "Thinks he is into Jess"
       }
     }
   ]

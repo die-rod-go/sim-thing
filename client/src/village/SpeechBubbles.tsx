@@ -95,7 +95,7 @@ export function SpeechBubbleStack({
           }}
           onAnimationEnd={() => onExpire(bubble)}
         >
-          {speakerName}: {bubble.text}
+          {bubble.text}
         </div>
       ))}
       <div
