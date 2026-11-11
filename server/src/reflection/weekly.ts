@@ -18,7 +18,7 @@ export type PersonalityChangeDraft = Omit<PersonalityChange, "id">;
 
 export interface WeeklyPassInput {
   agent: Agent;
-  /** Words for the agent's conditions ("bleeding"), shown with its status. */
+  /** Words for the agent's conditions, shown with its status. */
   /** The agent's health, which the status line puts in words. */
   health: number;
   conditionWords?: readonly string[];

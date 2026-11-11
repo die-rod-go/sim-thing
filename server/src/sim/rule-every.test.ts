@@ -63,7 +63,7 @@ describe("counting every-rule firings", () => {
 });
 
 describe("every rules", () => {
-  it("runs a rule's effects once per sim-minute for as long as the thing matches", () => {
+  it("runs a rule's steps once per sim-minute for as long as the thing matches", () => {
     const sim = setUpRules();
     addComponent(contextOf(sim), TOBIAS, "bleeding", { minutes: 20 });
     runTicks(sim, 25);
@@ -109,13 +109,13 @@ describe("every rules", () => {
           trigger: "every",
           minutes: 1,
           if: { has: "wet" },
-          effects: [{ type: "remove_condition", condition: "wet" }],
+          steps: [{ step: "remove", component: "wet" }],
         },
         {
           trigger: "every",
           minutes: 1,
           if: { has: "wet" },
-          effects: [{ type: "damage", amount: { min: 0.1, max: 0.1 } }],
+          steps: [{ step: "damage", field: "health.current", amount: { min: 0.1, max: 0.1 } }],
         },
       ],
     });
@@ -133,7 +133,7 @@ describe("every rules", () => {
           trigger: "every",
           minutes: 1,
           if: { has: "ticking" },
-          effects: [{ type: "announce", text: "ticked" }],
+          steps: [{ step: "announce", text: "ticked" }],
         },
       ],
     });
@@ -168,7 +168,7 @@ describe("every rules", () => {
           trigger: "becomes",
           if: { allOf: [{ not: { has: "wet" } }, { has: "flesh" }] },
           killed: "dried out",
-          effects: [{ type: "damage", amount: { min: 1, max: 1 } }],
+          steps: [{ step: "damage", field: "health.current", amount: { min: 1, max: 1 } }],
         },
       ],
     });

@@ -1,81 +1,106 @@
-import { listDefinitionViews, matchesAppliesTo } from "./applies-to";
+import { listDefinitionViews } from "./applies-to";
 import { resolveComponents } from "./components";
-import { parseValuePath, type Effect } from "./effect-schema";
-import type { ItemDefinition, ItemFile, Verb } from "./item-file";
+import type { ItemDefinition, ItemFile, Rule, Verb } from "./item-file";
 import type { ProblemList } from "./item-problems";
+import type { Matcher } from "./matcher-schema";
 import { matchesThing } from "./matchers";
-
-function removesSomething(effect: Effect): boolean {
-  return effect.type === "destroy" || effect.type === "transform";
-}
+import type { Step } from "./step-schema";
+import { parseValuePath, type DefinitionValue } from "./value-schema";
 
 function listFieldValues(file: ItemFile, path: string): unknown[] {
-  const fieldPath = parseValuePath(path);
-  if (fieldPath === null) return [];
+  const parsed = parseValuePath(path);
+  if (parsed?.kind !== "field") return [];
   return file.definitions.map(
     (definition) =>
-      resolveComponents(file.components, definition, {})[fieldPath.component]?.[fieldPath.field],
+      resolveComponents(file.components, definition, {})[parsed.component]?.[parsed.field],
   );
 }
 
-function makesSupply(file: ItemFile, effect: Effect, suppliedId: string): boolean {
-  if (effect.type === "produce") return effect.item === suppliedId;
-  if (effect.type !== "transform") return false;
-  if (typeof effect.into === "string") return effect.into === suppliedId;
-  return listFieldValues(file, effect.into.from).includes(suppliedId);
+function makesDefinition(file: ItemFile, value: DefinitionValue, suppliedId: string): boolean {
+  if (typeof value === "string") return value === suppliedId;
+  return listFieldValues(file, value.from).includes(suppliedId);
 }
 
-function canVerbUse(verb: Verb, supplied: ItemFile, definition: ItemDefinition): boolean {
-  return listDefinitionViews(supplied, definition).some((view) => matchesAppliesTo(verb, view));
+function getSubject(owner: { verb: Verb } | { rule: Rule }, name: string): Matcher | null {
+  if ("rule" in owner) return name === "self" ? owner.rule.if : null;
+  const { verb } = owner;
+  if (name === "item") return verb.appliesTo ?? null;
+  if (name === "target") return verb.target ?? null;
+  for (const step of verb.steps) {
+    if ((step.step === "require" || step.step === "use_up") && step.as === name) return step.rule;
+  }
+  return null;
 }
 
-/** Whether an effect in a verb could remove the thing it was used on, chose or aimed at. */
-function couldRemoveInVerb(effect: Effect, isSuppliedUsed: boolean): boolean {
-  if (!removesSomething(effect)) return false;
-  return (
-    (effect.on === "item" && isSuppliedUsed) || effect.on === "chosen" || effect.on === "target"
-  );
+function isConservative(name: string): boolean {
+  return name === "nearby" || name === "user";
 }
 
-function checkVerbSupply(file: ItemFile, supplied: ItemDefinition, problems: ProblemList) {
-  file.verbs.forEach((verb, index) => {
-    const path = `verbs.${index} (${verb.name})`;
-    const isSuppliedUsed = canVerbUse(verb, file, supplied);
-    if (Object.hasOwn(verb.inputs, supplied.id)) {
-      problems.warning(`${path}.inputs`, `Uses up ${supplied.id}, so the supply isn't closed.`);
-    }
-    verb.effects.forEach((effect, effectIndex) => {
-      const effectPath = `${path}.effects.${effectIndex}`;
-      if (makesSupply(file, effect, supplied.id)) {
-        problems.warning(effectPath, `Makes ${supplied.id}, so the supply isn't closed.`);
-      } else if (couldRemoveInVerb(effect, isSuppliedUsed)) {
-        problems.warning(effectPath, `Could destroy ${supplied.id}, so the supply isn't closed.`);
-      }
-    });
-  });
+function couldMatchSupplied(
+  file: ItemFile,
+  supplied: ItemDefinition,
+  owner: { verb: Verb } | { rule: Rule },
+  name: string,
+): boolean {
+  if (isConservative(name)) return true;
+  const matcher = getSubject(owner, name);
+  if (matcher === null) return false;
+  if ("rule" in owner) {
+    const view = {
+      definitionId: supplied.id,
+      components: resolveComponents(file.components, supplied, {}),
+    };
+    return matchesThing(matcher, view);
+  }
+  return listDefinitionViews(file, supplied).some((view) => matchesThing(matcher, view));
 }
 
-function checkRuleSupply(file: ItemFile, supplied: ItemDefinition, problems: ProblemList) {
-  const view = {
-    definitionId: supplied.id,
-    components: resolveComponents(file.components, supplied, {}),
-  };
-  file.rules.forEach((rule, index) => {
-    const reachesSupply = matchesThing(rule.if, view);
-    rule.effects.forEach((effect, effectIndex) => {
-      const path = `rules.${index}.effects.${effectIndex}`;
-      if (makesSupply(file, effect, supplied.id)) {
-        problems.warning(path, `Makes ${supplied.id}, so the supply isn't closed.`);
-      } else if ((reachesSupply || effect.on === "nearby") && removesSomething(effect)) {
-        problems.warning(path, `Could destroy ${supplied.id}, so the supply isn't closed.`);
-      }
-    });
+type Owner = { verb: Verb } | { rule: Rule };
+
+function findSupplyProblem(
+  file: ItemFile,
+  supplied: ItemDefinition,
+  owner: Owner,
+  step: Step,
+): string | null {
+  if (step.step === "create" && makesDefinition(file, step.item, supplied.id)) {
+    return `Makes ${supplied.id}, so the supply isn't closed.`;
+  }
+  if (step.step === "transform" && makesDefinition(file, step.into, supplied.id)) {
+    return `Makes ${supplied.id}, so the supply isn't closed.`;
+  }
+  const isRemoving =
+    (step.step === "destroy" || step.step === "transform") &&
+    couldMatchSupplied(file, supplied, owner, step.on ?? "self");
+  if (isRemoving) return `Could destroy ${supplied.id}, so the supply isn't closed.`;
+  if (step.step === "use_up") {
+    const view = {
+      definitionId: supplied.id,
+      components: resolveComponents(file.components, supplied, {}),
+    };
+    if (matchesThing(step.rule, view)) return `Uses up ${supplied.id}, so the supply isn't closed.`;
+  }
+  return null;
+}
+
+function checkOwnerSupply(
+  file: ItemFile,
+  supplied: ItemDefinition,
+  owner: Owner,
+  steps: readonly Step[],
+  path: string,
+  problems: ProblemList,
+) {
+  steps.forEach((step, index) => {
+    const message = findSupplyProblem(file, supplied, owner, step);
+    if (message !== null) problems.warning(`${path}.steps.${index}`, message);
   });
 }
 
 /**
  * Warns about anything that could make or destroy a thing the world setting `closedSupply`
- * matches. Coins are a closed supply: they only change hands.
+ * matches: a `create` or `transform` into it, or a `destroy`, `use_up` or `transform` whose
+ * subject could be it. A closed supply only changes hands.
  */
 export function checkClosedSupply(file: ItemFile, problems: ProblemList): void {
   const matcher = file.world.closedSupply;
@@ -87,7 +112,18 @@ export function checkClosedSupply(file: ItemFile, problems: ProblemList): void {
     }),
   );
   for (const definition of supplied) {
-    checkVerbSupply(file, definition, problems);
-    checkRuleSupply(file, definition, problems);
+    file.verbs.forEach((verb, index) =>
+      checkOwnerSupply(
+        file,
+        definition,
+        { verb },
+        verb.steps,
+        `verbs.${index} (${verb.name})`,
+        problems,
+      ),
+    );
+    file.rules.forEach((rule, index) =>
+      checkOwnerSupply(file, definition, { rule }, rule.steps, `rules.${index}`, problems),
+    );
   }
 }

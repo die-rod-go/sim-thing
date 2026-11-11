@@ -40,7 +40,7 @@ describe("item editor pages", () => {
           trigger: "stimulus",
           stimulus: "fire",
           if: { has: "flammable" },
-          effects: [{ type: "announce", text: "caught fire" }],
+          steps: [{ step: "announce", text: "caught fire" }],
         },
       ],
     });

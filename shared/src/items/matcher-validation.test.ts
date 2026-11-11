@@ -2,11 +2,11 @@ import { describe, expect, it } from "vitest";
 import { buildFile, messagesFor, withRules } from "./validation-test-kit";
 
 function inAppliesTo(appliesTo: unknown) {
-  return messagesFor(buildFile({ verbs: [{ name: "tinker", appliesTo, effects: [] }] }));
+  return messagesFor(buildFile({ verbs: [{ name: "tinker", appliesTo, steps: [] }] }));
 }
 
 function inRuleIf(condition: unknown) {
-  return messagesFor(withRules({ trigger: "becomes", if: condition, effects: [] }));
+  return messagesFor(withRules({ trigger: "becomes", if: condition, steps: [] }));
 }
 
 const RULE_IF = "error: rules.0 (becomes).if";
@@ -43,8 +43,19 @@ describe("matcher names and fields", () => {
 describe("where in a matcher", () => {
   it("rejects where in a rule's if", () => {
     expect(inRuleIf({ where: "held" })).toContain(
-      `${RULE_IF}: \`where\` only works in a verb's appliesTo: there is no user here.`,
+      `${RULE_IF}: \`where\` only works in a verb's appliesTo and target: there is no user here.`,
     );
+  });
+
+  it("accepts where, including self, in a verb's target", () => {
+    const messages = messagesFor(
+      buildFile({
+        verbs: [
+          { name: "tinker", target: { allOf: [{ has: "lamp" }, { where: "self" }] }, steps: [] },
+        ],
+      }),
+    );
+    expect(messages).toEqual([]);
   });
 
   it("rejects where: self in appliesTo but accepts the other values", () => {
@@ -69,27 +80,25 @@ describe("matchers nothing can match", () => {
     expect(inRuleIf({ field: "health.current", atMost: 0 })).toEqual([]);
   });
 
-  it("doesn't warn about a component an effect could add", () => {
+  it("doesn't warn about a component a step could add", () => {
     const file = buildFile({
       verbs: [
         {
           name: "wet",
           appliesTo: { has: "food" },
-          effects: [{ type: "add_condition", on: "item", condition: "lamp" }],
+          steps: [{ step: "add", on: "item", component: "lamp" }],
         },
       ],
-      rules: [
-        { trigger: "becomes", if: { allOf: [{ has: "food" }, { has: "lamp" }] }, effects: [] },
-      ],
+      rules: [{ trigger: "becomes", if: { allOf: [{ has: "food" }, { has: "lamp" }] }, steps: [] }],
     });
     expect(messagesFor(file)).toEqual([]);
   });
 
-  it("doesn't warn about not-having a component every definition has but an effect removes", () => {
+  it("doesn't warn about not-having a component every definition has but a step removes", () => {
     const remover = {
       name: "dim",
       appliesTo: { has: "lamp" },
-      effects: [{ type: "remove_condition", on: "item", condition: "lamp" }],
+      steps: [{ step: "remove", on: "item", component: "lamp" }],
     };
     const file = buildFile({
       verbs: [
@@ -97,14 +106,14 @@ describe("matchers nothing can match", () => {
         {
           name: "tidy",
           appliesTo: { allOf: [{ has: "burning" }, { not: { has: "lamp" } }] },
-          effects: [],
+          steps: [],
         },
       ],
     });
     expect(messagesFor(file)).toEqual([]);
   });
 
-  it("warns about a component no definition has and no effect adds", () => {
+  it("warns about a component no definition has and no step adds", () => {
     const file = buildFile();
     const messages = messagesFor({
       ...file,

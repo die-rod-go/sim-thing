@@ -1,6 +1,7 @@
 import {
   describeCount,
   listComponentWords,
+  matchesThing,
   resolveEntityComponents,
   type Agent,
   type Entity,
@@ -14,14 +15,12 @@ import {
   listHeldEntities,
   listTileEntitiesAt,
 } from "../items/entity-store";
+import type { ThingRef } from "../items/things";
 import { isLyingWhenOnTile, isShownWhenCarried } from "../items/world-physics";
-import { listItemlessVerbs, listVerbsForBody, listVerbsForEntity } from "../items/verb-offers";
+import { listItemlessVerbs, listVerbsForEntity } from "../items/verb-offers";
 import { describeItemCounts } from "./action-phrases";
-import {
-  listReachableBodies,
-  listReachableContents,
-  listVisibleBodies,
-} from "./reachable-contents";
+import { listAllSeenInside, listVisibleBodies, listVisibleContents } from "./reachable-contents";
+import { viewThingFrom } from "./thing-where";
 import { describeAgentAsSeen } from "./world-access";
 import type { WorldState } from "./world-state";
 
@@ -36,26 +35,40 @@ function listSeenWords(state: WorldState, entity: Entity): string[] {
 
 /** Things with no label, no visible contents and the same words read as one line, counted. */
 function groupKey(state: WorldState, agentId: string, entity: Entity): string {
-  const hasContents = listReachableContents(state, agentId, entity) !== null;
+  const hasContents = listVisibleContents(state, agentId, entityThing(entity)).length > 0;
   return entity.label === null && !hasContents
     ? `definition:${entity.definitionId}:${listSeenWords(state, entity).join("|")}`
     : `entity:${entity.id}`;
 }
 
-/** "closed, on fire": what shows of its components. */
+/** What shows of the entity: the words of its visible components. */
 function describeSeenState(state: WorldState, entity: Entity): string | null {
   const words = listSeenWords(state, entity);
   return words.length > 0 ? words.join(", ") : null;
 }
 
-function listVerbNames(state: WorldState, agentId: string, entity: Entity): string[] {
-  return [...new Set(listVerbsForEntity(state, agentId, entity).map((verb) => verb.name))];
+function entityThing(entity: Entity): ThingRef {
+  return { kind: "entity", entityId: entity.id };
 }
 
-/** "holding 3 bread, 2 coins" or "empty"; null when the things can't be seen from here. */
-function describeContents(state: WorldState, contents: readonly Entity[] | null): string | null {
-  if (contents === null) return null;
-  if (contents.length === 0) return config.perception.contentsWords.empty;
+/** The verbs the contents offer, as things inside the holder ("take"). */
+function listContentsVerbs(state: WorldState, agentId: string, contents: readonly Entity[]) {
+  return contents.flatMap((content) => listVerbsForEntity(state, agentId, content));
+}
+
+/** What the entity offers: its own verbs, then those of what can be seen inside it. */
+function listVerbNames(state: WorldState, agentId: string, entity: Entity): string[] {
+  const contents = listVisibleContents(state, agentId, entityThing(entity));
+  const verbs = [
+    ...listVerbsForEntity(state, agentId, entity),
+    ...listContentsVerbs(state, agentId, contents),
+  ];
+  return [...new Set(verbs.map((verb) => verb.name))];
+}
+
+/** "holding 3 bread, 2 coins"; null when nothing can be seen inside. */
+function describeContents(state: WorldState, contents: readonly Entity[]): string | null {
+  if (contents.length === 0) return null;
   const counts: Record<string, number> = {};
   for (const entity of contents) {
     counts[entity.definitionId] = (counts[entity.definitionId] ?? 0) + 1;
@@ -76,7 +89,7 @@ function describeEntityDetails(state: WorldState, agentId: string, entity: Entit
   const details = [
     describeSeenState(state, entity),
     describeGroundWords(state, entity),
-    describeContents(state, listReachableContents(state, agentId, entity)),
+    describeContents(state, listVisibleContents(state, agentId, entityThing(entity))),
   ].filter((detail): detail is string => detail !== null);
   return details.length > 0 ? details.join(", ") : null;
 }
@@ -112,16 +125,14 @@ export function groupEntitiesForPrompt(
 
 /** Bodies in sight that offer something (`take`), with what they carry once within reach. */
 function groupBodiesForPrompt(state: WorldState, agent: Agent): PromptEntityGroup[] {
-  const reachable = listReachableBodies(state, agent.id);
   return listVisibleBodies(state, agent.id).flatMap((body) => {
-    const verbs = [...new Set(listVerbsForBody(state, body).map((verb) => verb.name))];
+    const contents = listVisibleContents(state, agent.id, { kind: "agent", agentId: body.id });
+    const verbs = [
+      ...new Set(listContentsVerbs(state, agent.id, contents).map((verb) => verb.name)),
+    ];
     if (verbs.length === 0) return [];
     return [
-      {
-        text: describeAgentAsSeen(body),
-        verbs,
-        condition: describeContents(state, reachable.get(body.id) ?? null),
-      },
+      { text: describeAgentAsSeen(body), verbs, condition: describeContents(state, contents) },
     ];
   });
 }
@@ -143,17 +154,8 @@ export function buildBelongings(state: WorldState, agent: Agent): PromptEntityGr
   return groupEntitiesForPrompt(state, agent.id, listHeldEntities(state, agent.id));
 }
 
-export function listItemlessVerbNames(state: WorldState, agent: Agent): string[] {
-  return [...new Set(listItemlessVerbs(state, agent).map((verb) => verb.name))];
-}
-
-/** Everything inside containers and bodies the agent is close enough to take from. */
-function listAllReachableContents(state: WorldState, agent: Agent): Entity[] {
-  const things = [...listHeldEntities(state, agent.id), ...listNearbyEntities(state, agent)];
-  return [
-    ...things.flatMap((entity) => listReachableContents(state, agent.id, entity) ?? []),
-    ...[...listReachableBodies(state, agent.id).values()].flat(),
-  ];
+export function listItemlessVerbNames(state: WorldState): string[] {
+  return [...new Set(listItemlessVerbs(state).map((verb) => verb.name))];
 }
 
 /** The names prompts use for nearby entities, each once: what `target` may name. */
@@ -168,8 +170,8 @@ export function listNearbyEntityNames(state: WorldState, agent: Agent): string[]
  * can see inside containers and bodies.
  */
 export function listNearbyThingNames(state: WorldState, agent: Agent): string[] {
-  const contents = listAllReachableContents(state, agent).map(
-    (entity) => getDefinition(state, entity).name,
+  const contents = listAllSeenInside(state, agent.id).map(
+    ({ entity }) => getDefinition(state, entity).name,
   );
   return [...new Set([...listNearbyEntityNames(state, agent), ...contents])];
 }
@@ -179,7 +181,7 @@ function listAvailableVerbs(state: WorldState, agent: Agent): Verb[] {
   const things = [...listHeldEntities(state, agent.id), ...listNearbyEntities(state, agent)];
   return [
     ...things.flatMap((entity) => listVerbsForEntity(state, agent.id, entity)),
-    ...listItemlessVerbs(state, agent),
+    ...listItemlessVerbs(state),
   ];
 }
 
@@ -198,19 +200,23 @@ function toValidItems(state: WorldState, entities: readonly Entity[]): ValidItem
 }
 
 /**
- * Targets only an aimed verb takes: "yourself" when a verb can be aimed at oneself, and what the
- * agent carries when a verb can be aimed at a thing.
+ * Targets only an aimed verb takes: "yourself" when some verb's target fits the user's own body,
+ * and the carried things some verb's target fits.
  */
 export function listAimOnlyTargets(state: WorldState, agent: Agent): string[] {
-  const verbs = listAvailableVerbs(state, agent);
-  const canAimAtSelf = verbs.some((verb) => verb.canTargetSelf && verb.target !== "none");
-  const canAimAtThings = verbs.some(
-    (verb) => verb.target === "entity" || verb.target === "agent_or_entity",
+  const matchers = listAvailableVerbs(state, agent).flatMap((verb) =>
+    verb.target === undefined ? [] : [verb.target],
   );
-  const carried = canAimAtThings
-    ? toValidItems(state, listHeldEntities(state, agent.id)).map((item) => item.name)
-    : [];
-  return [...(canAimAtSelf ? [config.verbs.selfTargetName] : []), ...carried];
+  const isSelfAimable = matchers.some((matcher) => {
+    const view = viewThingFrom(state, agent.id, { kind: "agent", agentId: agent.id });
+    return view !== null && matchesThing(matcher, view);
+  });
+  const aimable = listHeldEntities(state, agent.id).filter((entity) => {
+    const view = viewThingFrom(state, agent.id, entityThing(entity));
+    return view !== null && matchers.some((matcher) => matchesThing(matcher, view));
+  });
+  const carried = toValidItems(state, aimable).map((item) => item.name);
+  return [...(isSelfAimable ? [config.verbs.selfTargetName] : []), ...carried];
 }
 
 /** What others see the agent carrying: things whose definition shows when carried ("a knife"). */
@@ -228,6 +234,6 @@ export function listVisibleCarried(state: WorldState, agent: Agent): string[] {
 export function listValidItems(state: WorldState, agent: Agent): ValidItem[] {
   return toValidItems(state, [
     ...listHeldEntities(state, agent.id),
-    ...listAllReachableContents(state, agent),
+    ...listAllSeenInside(state, agent.id).map(({ entity }) => entity),
   ]);
 }

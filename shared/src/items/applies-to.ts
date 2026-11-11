@@ -1,6 +1,6 @@
 import { resolveComponents, type ResolvedComponents } from "./components";
-import type { Effect } from "./effect-schema";
 import type { ItemDefinition, ItemFile, Verb } from "./item-file";
+import type { Step } from "./step-schema";
 import type { ThingWhere } from "./matcher-schema";
 import { matchesThing, type ThingView } from "./matchers";
 
@@ -67,28 +67,30 @@ export function listAllVerbViews(file: ItemFile): ThingView[] {
   ];
 }
 
-/** Every effect in the file: the verbs' and the rules'. */
-export function listAllEffects(file: ItemFile): Effect[] {
+/** Every step in the file: the verbs' and the rules'. */
+export function listAllSteps(file: ItemFile): Step[] {
+  return [...file.verbs.flatMap((verb) => verb.steps), ...file.rules.flatMap((rule) => rule.steps)];
+}
+
+/** Components a step can add while the sim runs (a condition). */
+export function listAddableComponents(file: ItemFile): string[] {
   return [
-    ...file.verbs.flatMap((verb) => verb.effects),
-    ...file.rules.flatMap((rule) => rule.effects),
+    ...new Set(listAllSteps(file).flatMap((step) => (step.step === "add" ? [step.component] : []))),
   ];
 }
 
-/** Components an effect can add while the sim runs (a door's `closed`, `burning`). */
-export function listAddableComponents(file: ItemFile): string[] {
+/** Components a step can remove while the sim runs. */
+export function listRemovableComponents(file: ItemFile): string[] {
   return [
     ...new Set(
-      listAllEffects(file).flatMap((effect) =>
-        effect.type === "add_condition" ? [effect.condition] : [],
-      ),
+      listAllSteps(file).flatMap((step) => (step.step === "remove" ? [step.component] : [])),
     ),
   ];
 }
 
 /**
- * The views again, each also with every component effects can add: what a matcher could meet
- * once the sim has run a while (a door that was closed).
+ * The views again, each also with every component steps can add: what a matcher could meet
+ * once the sim has run a while (something that has been changed).
  */
 export function listViewsWithAddedComponents(
   file: ItemFile,

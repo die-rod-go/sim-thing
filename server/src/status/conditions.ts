@@ -25,7 +25,7 @@ export function hasComponentEnded(instance: ComponentInstance | null, tick: numb
 }
 
 /**
- * How the agent's body reads ("bleeding", "on fire"): every component's words to the agent
+ * How the agent's body reads: every component's words to the agent
  * itself, only the visible ones when others look.
  */
 export function listBodyWords(items: ThingCatalog, agent: Agent, isVisibleOnly: boolean): string[] {

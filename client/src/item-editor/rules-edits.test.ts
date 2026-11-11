@@ -18,9 +18,9 @@ describe("rules panel edits", () => {
 
   it("describes each trigger", () => {
     const rules = [
-      { trigger: "every", minutes: 60, if: { has: "food" }, effects: [] },
-      { trigger: "stimulus", stimulus: "fire", if: { has: "food" }, effects: [] },
-      { trigger: "becomes", if: { has: "food" }, effects: [] },
+      { trigger: "every", minutes: 60, if: { has: "food" }, steps: [] },
+      { trigger: "stimulus", stimulus: "fire", if: { has: "food" }, steps: [] },
+      { trigger: "becomes", if: { has: "food" }, steps: [] },
     ].map((rule) => ruleSchema.parse(rule));
     expect(rules.map(describeRuleTrigger)).toEqual([
       "every 60 minutes",
@@ -30,7 +30,7 @@ describe("rules panel edits", () => {
   });
 
   it("round-trips a rule through its JSON text", () => {
-    const rule = { trigger: "becomes", if: { has: "food" }, effects: [{ type: "destroy" }] };
+    const rule = { trigger: "becomes", if: { has: "food" }, steps: [{ step: "destroy" }] };
     const parsed = parseRuleText(JSON.stringify(rule));
     expect(parsed.error).toBeNull();
     expect(parsed.rule && parseRuleText(formatRuleText(parsed.rule)).rule).toEqual(parsed.rule);
@@ -38,7 +38,7 @@ describe("rules panel edits", () => {
 
   it("rejects text that is not JSON or not a rule, saying why", () => {
     expect(parseRuleText("{").rule).toBeNull();
-    const wrong = parseRuleText(JSON.stringify({ trigger: "every", if: {}, effects: [] }));
+    const wrong = parseRuleText(JSON.stringify({ trigger: "every", if: {}, steps: [] }));
     expect(wrong.rule).toBeNull();
     expect(wrong.error).toContain("minutes");
   });

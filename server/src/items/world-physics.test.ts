@@ -8,7 +8,8 @@ import {
   handOver,
   place,
 } from "../sim/combat-test-kit";
-import { advanceWalk, startWalk } from "../sim/walking";
+import { startWalk } from "../sim/walk-start";
+import { advanceWalk } from "../sim/walking";
 import { findEntityByLabel, type TestSim } from "../sim/test-sim";
 import { buildPerceptionWorld, buildWalkingGrid } from "../sim/world-access";
 import { findEntity } from "./entity-store";

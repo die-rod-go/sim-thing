@@ -1,168 +1,36 @@
-import { resolveEntityComponents, type ResolvedComponents, type Verb } from "@village/shared";
-import { computeChebyshevDistance } from "../economy/give";
-import {
-  describeEntityName,
-  findEntityIfPresent,
-  resolveEntityPosition,
-} from "../items/entity-store";
-import {
-  findVerbByName,
-  listItemlessVerbs,
-  listVerbsForBody,
-  listVerbsForEntity,
-} from "../items/verb-offers";
-import { isDead } from "../status/health";
-import { describeAttempt } from "./action-phrases";
-import type { PendingVerb, UsedThing, VerbAim, WalkDestination } from "./agent-runtime";
+import type { InteractRequest } from "./agent-runtime";
 import { failAction } from "./failure";
 import type { TickContext } from "./tick-context";
-import { computeVerbReach, findAimProblem, isAimInReach, resolveAim } from "./verb-aim";
-import { startVerbNow } from "./verb-runner";
-import { startWalk } from "./walking";
-import { describeAgentAsSeen, findAgent } from "./world-access";
-import type { WorldState } from "./world-state";
-
-interface UsedVerb {
-  verb: Verb;
-  usedName: string;
-  usedEntityId: string | null;
-  usedComponents: ResolvedComponents | null;
-}
-
-/** The verb as what is used offers it; null when it doesn't, which the verb runner reports. */
-function findUsedVerb(
-  state: WorldState,
-  agentId: string,
-  used: UsedThing,
-  verbName: string,
-): UsedVerb | null {
-  if (used.kind === "user") {
-    const verb = findVerbByName(listItemlessVerbs(state, findAgent(state, agentId)), verbName);
-    return verb ? { verb, usedName: "", usedEntityId: null, usedComponents: null } : null;
-  }
-  if (used.kind === "body") {
-    const body = findAgent(state, used.agentId);
-    const verb = isDead(body) ? findVerbByName(listVerbsForBody(state, body), verbName) : undefined;
-    return verb
-      ? { verb, usedName: describeAgentAsSeen(body), usedEntityId: null, usedComponents: null }
-      : null;
-  }
-  const entity = findEntityIfPresent(state, used.entityId);
-  if (!entity) return null;
-  const verb = findVerbByName(listVerbsForEntity(state, agentId, entity), verbName);
-  if (!verb) return null;
-  return {
-    verb,
-    usedName: describeEntityName(state, entity),
-    usedEntityId: entity.id,
-    usedComponents: resolveEntityComponents(state.items, entity),
-  };
-}
-
-function describeAimDestination(aim: VerbAim): WalkDestination {
-  return aim.kind === "agent"
-    ? { kind: "agent", agentId: aim.agentId }
-    : { kind: "entity", entityId: aim.entityId };
-}
-
-/** A body is used where it lies: at once if in reach, after a walk to it otherwise. */
-function startOrWalkToBody(
-  context: TickContext,
-  agentId: string,
-  found: UsedVerb,
-  request: PendingVerb,
-  bodyId: string,
-): void {
-  const { state } = context;
-  const used: UsedThing = { kind: "body", agentId: bodyId };
-  const reach = computeVerbReach(found.verb, null);
-  const distance = computeChebyshevDistance(
-    findAgent(state, agentId).pos,
-    findAgent(state, bodyId).pos,
-  );
-  if (distance <= reach) {
-    startVerbNow(context, agentId, used, request);
-    return;
-  }
-  startWalk(context, agentId, { kind: "agent", agentId: bodyId }, { ...request, used });
-}
-
-/** A verb with no target is used where its thing is: at once if in reach, after a walk otherwise. */
-function startOrWalkToUsed(
-  context: TickContext,
-  agentId: string,
-  found: UsedVerb,
-  request: PendingVerb,
-): void {
-  const { state } = context;
-  const entity =
-    found.usedEntityId === null ? undefined : findEntityIfPresent(state, found.usedEntityId);
-  const position = entity ? resolveEntityPosition(state, entity) : null;
-  const used: UsedThing =
-    found.usedEntityId === null
-      ? { kind: "user" }
-      : { kind: "entity", entityId: found.usedEntityId };
-  const reach = computeVerbReach(found.verb, found.usedComponents);
-  const agent = findAgent(state, agentId);
-  const isInReach =
-    !entity ||
-    !position ||
-    entity.location.kind !== "tile" ||
-    computeChebyshevDistance(agent.pos, position.pos) <= reach;
-  if (isInReach || !entity) {
-    startVerbNow(context, agentId, used, request);
-    return;
-  }
-  startWalk(context, agentId, { kind: "entity", entityId: entity.id }, request);
-}
+import { checkApproach } from "./verb-reach";
+import { describeStartAttempt, resolveInteract } from "./verb-resolve";
+import { startVerbRun } from "./verb-runner";
+import { startWalk } from "./walk-start";
 
 /**
- * Applies an interact once what is used is known: everything is checked again, since the reply
- * was asked for a few ticks ago. An aimed verb starts at once when its target is alive, in sight
- * and in reach; out of reach, the agent walks there first (following someone who moves).
+ * Applies an interact: what the reply named is resolved now, since the reply was asked for a few
+ * ticks ago. The verb starts at once when its item and target are in reach and the target in sight;
+ * otherwise the agent walks to the item, then the target (following someone who moves), and it is
+ * resolved again on the way.
  */
 export function startOrApproachVerb(
   context: TickContext,
   agentId: string,
-  used: UsedThing,
-  request: PendingVerb,
-  targetName: string | undefined,
+  request: InteractRequest,
 ): void {
   const { state, result } = context;
-  const found = findUsedVerb(state, agentId, used, request.verb);
-  if (!found) {
-    startVerbNow(context, agentId, used, request);
+  const resolution = resolveInteract(state, agentId, request);
+  if (resolution.kind === "failed") {
+    failAction(state, result, agentId, resolution.attempt, resolution.reason);
     return;
   }
-  const { verb } = found;
-  if (used.kind === "body" && verb.target === "none") {
-    startOrWalkToBody(context, agentId, found, request, used.agentId);
+  const approach = checkApproach(state, agentId, resolution);
+  if (approach.kind === "ready") {
+    startVerbRun(context, agentId, resolution.start);
     return;
   }
-  if (verb.target === "none") {
-    startOrWalkToUsed(context, agentId, found, request);
+  if (approach.isTargetOutOfSight) {
+    failAction(state, result, agentId, describeStartAttempt(state, resolution), approach.reason);
     return;
   }
-  const attempt = describeAttempt(state.items, verb.name, {
-    item: found.usedName,
-    target: targetName,
-  });
-  const resolution = resolveAim(state, agentId, verb, targetName ?? "", found.usedEntityId);
-  if ("failure" in resolution) {
-    failAction(state, result, agentId, attempt, resolution.failure);
-    return;
-  }
-  const { aim } = resolution;
-  const problem = findAimProblem(state, agentId, aim);
-  if (problem !== null) {
-    failAction(state, result, agentId, attempt, problem);
-    return;
-  }
-  const aimedRequest: PendingVerb = { ...request, used, aim };
-  const reach = computeVerbReach(verb, found.usedComponents);
-  if (isAimInReach(state, agentId, aim, reach)) {
-    startVerbNow(context, agentId, used, aimedRequest);
-    return;
-  }
-  startWalk(context, agentId, describeAimDestination(aim), aimedRequest);
+  startWalk(context, agentId, approach.destination, request);
 }

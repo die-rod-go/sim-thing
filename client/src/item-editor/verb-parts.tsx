@@ -1,88 +1,27 @@
-import type { ItemFile, Verb } from "@village/shared";
-import { NumberInput, TextInput } from "../characters/fields";
-import { withoutKey } from "./list-edits";
-import { Chips, InlineField } from "./widgets";
+import { VERB_TAKES, type Verb, type VerbTake } from "@village/shared";
+import { TextInput } from "../characters/fields";
+import { Checkbox, InlineField } from "./widgets";
 
-/** Items used up when the verb starts: definition id to count. */
-export function InputsEditor({
-  inputs,
-  file,
+/** What the decision supplies for this verb: how many, for how long, some text. */
+export function TakesEditor({
+  takes,
   onChange,
 }: {
-  inputs: Verb["inputs"];
-  file: ItemFile;
-  onChange: (inputs: Verb["inputs"]) => void;
+  takes: Verb["takes"];
+  onChange: (takes: VerbTake[]) => void;
 }) {
-  const remaining = file.definitions
-    .map((definition) => definition.id)
-    .filter((id) => !Object.hasOwn(inputs, id));
-  return (
-    <span className="chip-row">
-      {Object.entries(inputs).map(([definitionId, count]) => (
-        <span key={definitionId} className="chip">
-          {definitionId}
-          <NumberInput
-            value={count}
-            min={1}
-            onChange={(changed) => onChange({ ...inputs, [definitionId]: changed })}
-          />
-          <button
-            className="icon-button"
-            title={`Remove ${definitionId}`}
-            onClick={() => onChange(withoutKey(inputs, definitionId))}
-          >
-            ×
-          </button>
-        </span>
-      ))}
-      {remaining.length > 0 && (
-        <select
-          className="editor-input item-select"
-          value=""
-          onChange={(event) => onChange({ ...inputs, [event.target.value]: 1 })}
-        >
-          <option value="">+ add</option>
-          {remaining.map((id) => (
-            <option key={id} value={id}>
-              {id}
-            </option>
-          ))}
-        </select>
-      )}
-    </span>
-  );
-}
-
-/** Held items needed but not used up; the field is left out when both lists are empty. */
-export function ToolsEditor({
-  tools,
-  file,
-  onChange,
-}: {
-  tools: Verb["tools"];
-  file: ItemFile;
-  onChange: (tools: Verb["tools"]) => void;
-}) {
-  const definitions = tools?.definitions ?? [];
-  const components = tools?.components ?? [];
-  const update = (next: { definitions: string[]; components: string[] }) =>
-    onChange(next.definitions.length + next.components.length > 0 ? next : undefined);
   return (
     <>
-      <InlineField label="items">
-        <Chips
-          values={definitions}
-          options={file.definitions.map((definition) => definition.id)}
-          onChange={(changed) => update({ definitions: changed, components })}
+      {VERB_TAKES.map((take) => (
+        <Checkbox
+          key={take}
+          label={`takes ${take}`}
+          checked={takes.includes(take)}
+          onChange={(isChecked) =>
+            onChange(isChecked ? [...takes, take] : takes.filter((existing) => existing !== take))
+          }
         />
-      </InlineField>
-      <InlineField label="with components">
-        <Chips
-          values={components}
-          options={Object.keys(file.components)}
-          onChange={(changed) => update({ definitions, components: changed })}
-        />
-      </InlineField>
+      ))}
     </>
   );
 }

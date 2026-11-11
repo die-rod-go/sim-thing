@@ -3,20 +3,20 @@ import {
   checkComponentValues,
   checkUnusedComponents,
 } from "./component-validation";
-import type { EffectCheckContext } from "./effect-validation";
 import type { ItemFile } from "./item-file";
 import {
   ProblemList,
   type ItemProblem,
   type ItemReference,
   type ItemValidationOptions,
+  type ValidationContext,
 } from "./item-problems";
 import { checkRules } from "./rule-validation";
 import { checkClosedSupply } from "./supply-validation";
 import { checkVerbs } from "./verb-validation";
 import { checkWorldSettings } from "./world-validation";
 
-function checkDefinitions(context: EffectCheckContext) {
+function checkDefinitions(context: ValidationContext) {
   const { file, problems, definitionIds } = context;
   const seenIds = new Set<string>();
   const seenNames = new Set<string>();
@@ -31,7 +31,7 @@ function checkDefinitions(context: EffectCheckContext) {
   });
 }
 
-function checkReferences(references: readonly ItemReference[], context: EffectCheckContext) {
+function checkReferences(references: readonly ItemReference[], context: ValidationContext) {
   const { file, definitionIds, problems } = context;
   for (const reference of references) {
     if (!definitionIds.has(reference.definitionId)) {
@@ -50,7 +50,7 @@ function checkReferences(references: readonly ItemReference[], context: EffectCh
 
 /**
  * Everything wrong with an item file beyond its shape: unknown names, field values, the world
- * settings, verbs and rules and the numbers they read, overlapping verbs, missing phrases, the closed
+ * settings, verbs and rules with the steps and values they use, shadowed verbs, missing phrases, the closed
  * supply, and definitions the map or seeds use. Pure, so the item editor can run it live.
  */
 export function findItemFileProblems(
@@ -61,7 +61,7 @@ export function findItemFileProblems(
   const definitionsById = new Map(
     file.definitions.map((definition) => [definition.id, definition]),
   );
-  const context: EffectCheckContext = {
+  const context: ValidationContext = {
     file,
     definitionIds: new Set(definitionsById.keys()),
     problems,

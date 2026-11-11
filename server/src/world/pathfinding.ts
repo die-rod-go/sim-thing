@@ -31,8 +31,8 @@ function rebuildPath(grid: TileGrid, cameFrom: Map<number, number>, endIndex: nu
 }
 
 /**
- * A* on the 4-connected grid toward the nearest of several goal tiles. Walls block; doors are
- * plain floor in the grid, so they are passable whether open or closed. Returns the tiles to step
+ * A* on the 4-connected grid toward the nearest of several goal tiles. Walls block; gaps in
+ * walls are plain floor in the grid. Returns the tiles to step
  * through, excluding `from` and ending on a goal; [] if `from` is already a goal; null if no goal
  * can be reached.
  */

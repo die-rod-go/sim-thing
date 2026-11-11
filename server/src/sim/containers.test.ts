@@ -8,18 +8,17 @@ import {
   listContents,
   listHeldOfDefinition,
 } from "../items/entity-store";
-import { getAgentRuntime, type PendingVerb, type UsedThing } from "./agent-runtime";
+import { getAgentRuntime, type InteractRequest } from "./agent-runtime";
 import {
   aim,
   buildCombatSim,
-  contextOf,
   finish,
   handOver,
+  killAgent,
   lastFailure,
   memoryTexts,
   place,
 } from "./combat-test-kit";
-import { applyDamage } from "./damage";
 import { buildHere, listValidItems } from "./prompt-entities";
 import {
   decisionReply,
@@ -33,14 +32,9 @@ const NEXT_TO_CHEST = { x: 29, y: 17 };
 const FAR_FROM_CHEST = { x: 32, y: 13 };
 const NEXT_TO_MARA = { x: 30, y: 17 };
 const BELOW_CHEST = { x: 28, y: 18 };
-const LETHAL = 2;
 
 function chestOf(sim: TestSim): Entity {
   return findEntityByLabel(sim.state, "tavern chest");
-}
-
-function useChest(sim: TestSim): UsedThing {
-  return { kind: "entity", entityId: chestOf(sim).id };
 }
 
 function fillChest(sim: TestSim, definitionId: string, count: number): void {
@@ -49,8 +43,10 @@ function fillChest(sim: TestSim, definitionId: string, count: number): void {
   }
 }
 
-function act(sim: TestSim, agentId: string, used: UsedThing, request: PendingVerb): void {
-  aim(sim, agentId, used, request);
+const CHEST = "tavern chest";
+
+function act(sim: TestSim, agentId: string, request: InteractRequest): void {
+  aim(sim, agentId, request);
   finish(sim, agentId);
 }
 
@@ -78,7 +74,7 @@ describe("putting into and taking from containers", () => {
   it("puts as many held things as asked into the chest", () => {
     const sim = buildTavernSim();
     const breadBefore = countHeld(sim.state, "mara", "bread");
-    act(sim, "mara", useChest(sim), { verb: "put", chosen: { name: "bread", amount: 2 } });
+    act(sim, "mara", { verb: "put", itemName: "bread", targetName: CHEST, amount: 2 });
     expect(countHeld(sim.state, "mara", "bread")).toBe(breadBefore - 2);
     expect(listContents(sim.state, chestOf(sim).id)).toHaveLength(2);
     expect(memoryTexts(sim, "mara")).toContain("I put 2 bread in the tavern chest");
@@ -87,7 +83,7 @@ describe("putting into and taking from containers", () => {
   it("takes things out of the chest into the agent's hands", () => {
     const sim = buildTavernSim();
     fillChest(sim, "bandage", 3);
-    act(sim, "mara", useChest(sim), { verb: "take", chosen: { name: "bandages", amount: 2 } });
+    act(sim, "mara", { verb: "take", itemName: "bandages", targetName: CHEST, amount: 2 });
     expect(countHeld(sim.state, "mara", "bandage")).toBe(2);
     expect(listContents(sim.state, chestOf(sim).id)).toHaveLength(1);
     expect(memoryTexts(sim, "mara")).toContain("I took 2 bandages from the tavern chest");
@@ -97,27 +93,39 @@ describe("putting into and taking from containers", () => {
     const sim = buildTavernSim();
     const capacity = 20;
     fillChest(sim, "wood", capacity - 1);
-    act(sim, "mara", useChest(sim), { verb: "put", chosen: { name: "bread", amount: 2 } });
+    act(sim, "mara", { verb: "put", itemName: "bread", targetName: CHEST, amount: 2 });
     expect(lastFailure(sim, "mara")).toContain("only had room for 1 more");
     expect(listContents(sim.state, chestOf(sim).id)).toHaveLength(capacity - 1);
     fillChest(sim, "wood", 1);
-    act(sim, "mara", useChest(sim), { verb: "put", chosen: { name: "bread", amount: 1 } });
+    act(sim, "mara", { verb: "put", itemName: "bread", targetName: CHEST, amount: 1 });
     expect(lastFailure(sim, "mara")).toContain("was full");
   });
 
-  it("never puts a container inside itself or inside its own contents", () => {
+  it("never puts a container inside itself", () => {
     const sim = buildTavernSim();
     addBasket(sim);
-    const outer = handOver(sim, "mara", "basket");
-    const basketRequest = { verb: "put", chosen: { name: "basket", amount: 1 } };
-    act(sim, "mara", { kind: "entity", entityId: outer.id }, basketRequest);
-    expect(lastFailure(sim, "mara")).toContain("can't go inside itself");
-    const inner = createEntity(sim.state, "basket", { kind: "inside", holderId: outer.id });
-    act(sim, "mara", { kind: "entity", entityId: inner.id }, basketRequest);
-    expect(lastFailure(sim, "mara")).toContain("can't go inside itself");
-    expect(findEntity(sim.state, outer.id).location).toEqual({
+    const basket = handOver(sim, "mara", "basket");
+    act(sim, "mara", { verb: "put", itemName: "basket", targetName: "basket" });
+    expect(lastFailure(sim, "mara")).toContain("there was no basket here");
+    expect(findEntity(sim.state, basket.id).location).toEqual({
       kind: "inside",
       holderId: "mara",
+    });
+  });
+
+  it("puts a held container into the chest with what it holds", () => {
+    const sim = buildTavernSim();
+    addBasket(sim);
+    const basket = handOver(sim, "mara", "basket");
+    const bread = createEntity(sim.state, "bread", { kind: "inside", holderId: basket.id });
+    act(sim, "mara", { verb: "put", itemName: "basket", targetName: CHEST });
+    expect(findEntity(sim.state, basket.id).location).toEqual({
+      kind: "inside",
+      holderId: chestOf(sim).id,
+    });
+    expect(findEntity(sim.state, bread.id).location).toEqual({
+      kind: "inside",
+      holderId: basket.id,
     });
   });
 
@@ -125,36 +133,42 @@ describe("putting into and taking from containers", () => {
     const sim = buildTavernSim();
     fillChest(sim, "bandage", 1);
     sim.placeAgent("tobias", BELOW_CHEST);
-    const request = { verb: "take", chosen: { name: "bandage", amount: 1 } };
-    aim(sim, "mara", useChest(sim), request);
-    aim(sim, "tobias", useChest(sim), request);
-    finish(sim, "mara");
-    finish(sim, "tobias");
+    const request = { verb: "take", itemName: "bandage", targetName: CHEST };
+    act(sim, "mara", request);
+    act(sim, "tobias", request);
     expect(countHeld(sim.state, "mara", "bandage")).toBe(1);
     expect(countHeld(sim.state, "tobias", "bandage")).toBe(0);
-    expect(lastFailure(sim, "tobias")).toContain("someone got to it first");
+    expect(lastFailure(sim, "tobias")).toContain("there is no bandage here");
+  });
+
+  it("can't take from a chest it is too far from to see into", () => {
+    const sim = buildTavernSim();
+    fillChest(sim, "bandage", 1);
+    sim.placeAgent("mara", FAR_FROM_CHEST);
+    aim(sim, "mara", { verb: "take", itemName: "bandage", targetName: CHEST });
+    expect(lastFailure(sim, "mara")).toContain("I can't see what the tavern chest carries");
+    expect(countHeld(sim.state, "mara", "bandage")).toBe(0);
+  });
+
+  it("takes bullets out of a held gun", () => {
+    const sim = buildTavernSim();
+    const gun = handOver(sim, "mara", "gun");
+    createEntity(sim.state, "bullet", { kind: "inside", holderId: gun.id });
+    createEntity(sim.state, "bullet", { kind: "inside", holderId: gun.id });
+    act(sim, "mara", { verb: "take", itemName: "bullet", targetName: "gun", amount: 2 });
+    expect(countHeld(sim.state, "mara", "bullet")).toBe(2);
+    expect(listContents(sim.state, gun.id)).toHaveLength(0);
+    expect(memoryTexts(sim, "mara")).toContain("I took 2 bullets from the gun");
   });
 });
 
 describe("taking from bodies", () => {
   it("takes coins from a body, moving them as items", () => {
     const sim = buildTavernSim();
-    applyDamage(contextOf(sim), "tobias", {
-      amount: LETHAL,
-      killed: "killed",
-      sourceAgentId: null,
-    });
+    killAgent(sim, "tobias");
     const coinsOnBody = listHeldOfDefinition(sim.state, "tobias", "coin");
     const maraCoinsBefore = countHeld(sim.state, "mara", "coin");
-    act(
-      sim,
-      "mara",
-      { kind: "body", agentId: "tobias" },
-      {
-        verb: "take",
-        chosen: { name: "coins", amount: 5 },
-      },
-    );
+    act(sim, "mara", { verb: "take", itemName: "coins", targetName: "Tobias's body", amount: 5 });
     expect(countHeld(sim.state, "mara", "coin")).toBe(maraCoinsBefore + 5);
     expect(countHeld(sim.state, "tobias", "coin")).toBe(coinsOnBody.length - 5);
     const moved = coinsOnBody.slice(0, 5).map((coin) => findEntity(sim.state, coin.id).location);
@@ -179,11 +193,7 @@ describe("taking from bodies", () => {
       }),
     });
     place(sim, { mara: NEXT_TO_CHEST, tobias: NEXT_TO_MARA });
-    applyDamage(contextOf(sim), "tobias", {
-      amount: LETHAL,
-      killed: "killed",
-      sourceAgentId: null,
-    });
+    killAgent(sim, "tobias");
     const maraCoinsBefore = countHeld(sim.state, "mara", "coin");
     await sim.advance(3);
     expect(countHeld(sim.state, "mara", "coin")).toBe(maraCoinsBefore + 5);
@@ -192,16 +202,10 @@ describe("taking from bodies", () => {
   it("refuses to take anything from a living agent", () => {
     const sim = buildTavernSim();
     const tobiasCoins = countHeld(sim.state, "tobias", "coin");
-    act(
-      sim,
-      "mara",
-      { kind: "body", agentId: "tobias" },
-      {
-        verb: "take",
-        chosen: { name: "coin", amount: 5 },
-      },
+    act(sim, "mara", { verb: "take", itemName: "coin", targetName: "Tobias", amount: 5 });
+    expect(lastFailure(sim, "mara")).toBe(
+      "I tried to take coin from Tobias but I can't see what Tobias carries",
     );
-    expect(lastFailure(sim, "mara")).toContain("Tobias is alive");
     expect(countHeld(sim.state, "tobias", "coin")).toBe(tobiasCoins);
   });
 
@@ -224,7 +228,9 @@ describe("taking from bodies", () => {
     place(sim, { mara: NEXT_TO_CHEST, tobias: NEXT_TO_MARA });
     const tobiasCoins = countHeld(sim.state, "tobias", "coin");
     await sim.advance(3);
-    expect(memoryTexts(sim, "mara").some((text) => text.includes("Tobias is alive"))).toBe(true);
+    expect(
+      memoryTexts(sim, "mara").some((text) => text.includes("can't see what Tobias carries")),
+    ).toBe(true);
     expect(countHeld(sim.state, "tobias", "coin")).toBe(tobiasCoins);
   });
 });
@@ -251,11 +257,7 @@ describe("seeing what containers and bodies hold", () => {
 
   it("shows what a body carries to an agent standing over it", () => {
     const sim = buildTavernSim();
-    applyDamage(contextOf(sim), "tobias", {
-      amount: LETHAL,
-      killed: "killed",
-      sourceAgentId: null,
-    });
+    killAgent(sim, "tobias");
     getAgentRuntime(sim.state, "mara").visibleAgentIds = ["tobias"];
     const body = buildHere(sim.state, sim.agent("mara")).find(
       (group) => group.text === "Tobias's body",

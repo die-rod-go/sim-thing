@@ -3,16 +3,16 @@ import type { Rule } from "./item-file";
 import { buildRuleIndex } from "./rule-index";
 
 const rules: Rule[] = [
-  { trigger: "every", minutes: 5, if: { has: "regrows" }, effects: [] },
-  { trigger: "stimulus", stimulus: "fire", if: { has: "flammable" }, effects: [] },
-  { trigger: "becomes", if: { has: "burning" }, effects: [] },
-  { trigger: "stimulus", stimulus: "fire", if: { has: "wet" }, effects: [] },
+  { trigger: "every", minutes: 5, if: { has: "regrows" }, steps: [] },
+  { trigger: "stimulus", stimulus: "fire", if: { has: "flammable" }, steps: [] },
+  { trigger: "becomes", if: { has: "burning" }, steps: [] },
+  { trigger: "stimulus", stimulus: "fire", if: { has: "wet" }, steps: [] },
   {
     trigger: "becomes",
     if: { allOf: [{ field: "health.current", atMost: 0 }, { has: "burning" }] },
-    effects: [],
+    steps: [],
   },
-  { trigger: "every", minutes: 1, if: { has: "burning" }, effects: [] },
+  { trigger: "every", minutes: 1, if: { has: "burning" }, steps: [] },
 ];
 
 describe("the rule index", () => {

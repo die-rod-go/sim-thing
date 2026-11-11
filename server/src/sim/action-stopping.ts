@@ -7,24 +7,24 @@ import type { TickContext } from "./tick-context";
 import { cancelRunningVerb } from "./verb-runner";
 import { findAgent, markAgentChanged, replaceAgent } from "./world-access";
 
-/** Ends a sleep: the agent has no action and no longer uses the bed. Returns the bed's name, if any. */
-function leaveBed(context: TickContext, agentId: string): string | null {
+/** Ends a sleep: the agent has no action and no longer uses what it slept in. Returns that thing's name, if any. */
+function leaveSleepingPlace(context: TickContext, agentId: string): string | null {
   const { state, result } = context;
   const runtime = getAgentRuntime(state, agentId);
   const run = runtime.verbRun;
-  const bed = run?.usedEntityId ? findEntityIfPresent(state, run.usedEntityId) : undefined;
+  const sleepingPlace = run?.itemIds[0] ? findEntityIfPresent(state, run.itemIds[0]) : undefined;
   runtime.verbRun = null;
   replaceAgent(state, endSleep(findAgent(state, agentId)));
   markAgentChanged(result, agentId);
-  return bed && run ? run.usedName : null;
+  return sleepingPlace && run ? run.itemName : null;
 }
 
-/** Wakes a sleeping agent, frees the bed, broadcasts `woke` and tells the reflection hook. */
+/** Wakes a sleeping agent, frees what it slept in, broadcasts `woke` and tells the reflection hook. */
 export function wakeAgent(context: TickContext, agentId: string): void {
   const { state } = context;
   const startedAtTick = getAgentRuntime(state, agentId).verbRun?.startedAtTick ?? state.tick;
-  const bedName = leaveBed(context, agentId);
-  const description = bedName ? `woke up in the ${bedName}` : "woke up";
+  const placeName = leaveSleepingPlace(context, agentId);
+  const description = placeName ? `woke up in the ${placeName}` : "woke up";
   const awake = findAgent(state, agentId);
   broadcastEvent(state, createEvent(state, awake, { kind: "woke", description }), context.result);
   context.dependencies.reflectionHook.onWoke(
@@ -52,12 +52,12 @@ export function stopCurrentAction(context: TickContext, agentId: string): void {
 }
 
 /**
- * Ends whatever the agent was doing without a word, for an agent who just died: a sleeper's bed
- * and a verb's object (the card table) are left, nothing is broadcast.
+ * Ends whatever the agent was doing without a word, for an agent who just died: a sleeper's place
+ * and a verb's object are left, nothing is broadcast.
  */
 export function abandonCurrentAction(context: TickContext, agentId: string): void {
   const agent = findAgent(context.state, agentId);
-  if (isAsleep(agent)) leaveBed(context, agentId);
+  if (isAsleep(agent)) leaveSleepingPlace(context, agentId);
   else cancelRunningVerb(context, agentId);
   getAgentRuntime(context.state, agentId).walk = null;
 }

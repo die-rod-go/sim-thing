@@ -24,9 +24,9 @@ describe("entities in prompts", () => {
   it("groups identical stateless entities and lists their verbs inline", () => {
     const sim = buildSim();
     expect(buildBelongings(sim.state, sim.agent("mara"))).toEqual([
-      { text: "30 coins", verbs: ["drop", "throw"], condition: null },
-      { text: "3 bread", verbs: ["eat", "drop", "throw"], condition: null },
-      { text: "1 wood", verbs: ["drop", "throw"], condition: null },
+      { text: "30 coins", verbs: ["drop", "throw", "put"], condition: null },
+      { text: "3 bread", verbs: ["eat", "drop", "throw", "put"], condition: null },
+      { text: "1 wood", verbs: ["drop", "throw", "put"], condition: null },
     ]);
   });
 

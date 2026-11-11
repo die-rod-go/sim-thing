@@ -1,4 +1,8 @@
 import { describe, expect, it } from "vitest";
+import shippedItems from "../../../seeds/items.json";
+import { parseItemFile } from "./item-file";
+import { hasItemErrors } from "./item-problems";
+import { findItemFileProblems } from "./item-validation";
 import { buildTestItemFile } from "./test-item-file";
 import { attack, messagesFor, withVerbs } from "./validation-test-kit";
 
@@ -7,15 +11,45 @@ describe("item file validation", () => {
     expect(messagesFor(buildTestItemFile())).toEqual([]);
   });
 
+  it("finds no errors in the shipped items.json", () => {
+    const problems = findItemFileProblems(parseItemFile(shippedItems));
+    expect(problems.filter((problem) => problem.severity === "error")).toEqual([]);
+    expect(hasItemErrors(problems)).toBe(false);
+  });
+
   it("accepts an attack verb reading its weapon", () => {
     expect(messagesFor(withVerbs(attack))).toEqual([]);
   });
 
-  it("rejects two same-named verbs that match the same thing", () => {
+  it("warns when an earlier verb of the same name always applies first", () => {
     const messages = messagesFor(
-      withVerbs({ name: "eat", appliesTo: { has: "food" }, effects: [] }),
+      withVerbs({
+        name: "eat",
+        appliesTo: { allOf: [{ has: "food" }, { where: "held" }, { has: "holdable" }] },
+        steps: [],
+      }),
     );
-    expect(messages.some((message) => message.includes('Another "eat" verb'))).toBe(true);
+    expect(messages).toContain(
+      'warning: verbs.2 (eat): An earlier "eat" verb always applies first, so this one never runs; narrow its appliesTo with `not`.',
+    );
+  });
+
+  it("warns when two bare-handed verbs share a name", () => {
+    const messages = messagesFor(
+      withVerbs({ name: "wave", steps: [] }, { name: "wave", steps: [] }),
+    );
+    expect(messages.filter((message) => message.includes("never runs"))).toHaveLength(1);
+  });
+
+  it("warns only about the narrower of two same-named verbs", () => {
+    const messages = messagesFor(
+      withVerbs(
+        { name: "eat", appliesTo: { allOf: [{ has: "food" }, { where: "held" }] }, steps: [] },
+        { name: "eat", appliesTo: { has: "food" }, steps: [] },
+      ),
+    );
+    expect(messages.filter((message) => message.includes("never runs"))).toHaveLength(1);
+    expect(messages.some((message) => message.startsWith("warning: verbs.3"))).toBe(false);
   });
 
   it("allows same-named verbs once one appliesTo excludes the other's items", () => {
@@ -25,12 +59,12 @@ describe("item file validation", () => {
         {
           name: "throw",
           appliesTo: { allOf: [{ where: "held" }, { not: { definition: "knife" } }] },
-          effects: [],
+          steps: [],
         },
         {
           name: "throw",
           appliesTo: { allOf: [{ where: "held" }, { definition: "knife" }] },
-          effects: [],
+          steps: [],
         },
         ...base.verbs,
       ],
@@ -43,7 +77,7 @@ describe("item file validation", () => {
       withVerbs({
         name: "polish",
         appliesTo: { allOf: [{ definition: "oven" }, { where: "held" }] },
-        effects: [],
+        steps: [],
       }),
     );
     expect(messages).toContain("warning: verbs.2 (polish).appliesTo: appliesTo matches nothing.");
@@ -52,68 +86,63 @@ describe("item file validation", () => {
   it("rejects reading a component appliesTo doesn't guarantee", () => {
     const messages = messagesFor(
       withVerbs({
-        ...attack,
+        name: "hurt",
         appliesTo: { anyOf: [{ has: "weapon" }, { has: "food" }] },
-        target: "none",
-        effects: [{ type: "damage", on: "user", amount: { from: "item.weapon.damage" } }],
+        steps: [
+          {
+            step: "damage",
+            on: "user",
+            field: "health.current",
+            amount: { from: "item.weapon.damage" },
+          },
+        ],
+        phrases: { killed: "hurt" },
       }),
     );
     expect(messages.some((message) => message.includes("doesn't require the weapon"))).toBe(true);
   });
 
-  it("rejects reading a field with the wrong type", () => {
-    const messages = messagesFor(
-      withVerbs({ ...attack, hitRoll: { baseHitChance: { from: "item.weapon.damage" } } }),
+  it("rejects a verb with a roll_hit lacking hit and missed phrases", () => {
+    const messages = messagesFor(withVerbs({ ...attack, phrases: { killed: "dead" } }));
+    expect(messages).toContain(
+      "error: verbs.2 (attack).phrases: A verb with a roll_hit needs a `hit` phrase.",
     );
-    expect(messages.some((message) => message.includes("weapon.damage is a range"))).toBe(true);
-  });
-
-  it("rejects an aimed verb that isn't held or bare-handed", () => {
-    const messages = messagesFor(withVerbs({ ...attack, appliesTo: { has: "weapon" } }));
-    expect(messages.some((message) => message.includes("An aimed verb's appliesTo"))).toBe(true);
-  });
-
-  it("rejects on: item in a bare-handed verb", () => {
-    const messages = messagesFor(
-      withVerbs({
-        name: "punch",
-        effects: [{ type: "destroy", on: "item" }],
-      }),
+    expect(messages).toContain(
+      "error: verbs.2 (attack).phrases: A verb with a roll_hit needs a `missed` phrase.",
     );
-    expect(messages.some((message) => message.includes("there's no item"))).toBe(true);
   });
 
-  it("rejects a start effect that requires a hit", () => {
-    const messages = messagesFor(
-      withVerbs({
-        ...attack,
-        effects: [{ type: "destroy", on: "target", when: "start", requiresHit: true }],
-        phrases: { hit: "hit", missed: "missed" },
-      }),
-    );
-    expect(messages.some((message) => message.includes("can't require a hit"))).toBe(true);
-  });
-
-  it("rejects a damaging verb without a killed phrase", () => {
+  it("rejects a verb that could kill without a killed phrase", () => {
     const messages = messagesFor(
       withVerbs({ ...attack, phrases: { hit: "hit", missed: "missed" } }),
     );
     expect(messages.some((message) => message.includes("needs a `killed` phrase"))).toBe(true);
   });
 
-  it("rejects unknown components and items in effects", () => {
+  it("doesn't ask for a killed phrase when the target can't be a body", () => {
+    const messages = messagesFor(
+      withVerbs({
+        ...attack,
+        target: { definition: "oven" },
+        phrases: { hit: "hit", missed: "missed" },
+      }),
+    );
+    expect(messages.some((message) => message.includes("killed"))).toBe(false);
+  });
+
+  it("rejects unknown components and items in steps", () => {
     const messages = messagesFor(
       withVerbs({
         name: "curse",
         appliesTo: { definition: "oven" },
-        effects: [
-          { type: "add_condition", on: "user", condition: "cursed" },
-          { type: "produce", on: "user", item: "gold", count: 1, into: "user" },
+        steps: [
+          { step: "add", on: "user", component: "cursed" },
+          { step: "create", item: "gold", count: 1, into: "user" },
         ],
       }),
     );
-    expect(messages).toContain('error: verbs.2 (curse).effects.0: Unknown component "cursed".');
-    expect(messages).toContain('error: verbs.2 (curse).effects.1: Unknown item "gold".');
+    expect(messages).toContain('error: verbs.2 (curse).steps.0: Unknown component "cursed".');
+    expect(messages).toContain('error: verbs.2 (curse).steps.1.item: Unknown item "gold".');
   });
 
   it("rejects a field value of the wrong type or outside its literal bounds", () => {
@@ -204,7 +233,7 @@ describe("item file validation", () => {
       'error: world.sightBlockedBy: Unknown component "fog".',
     );
     expect(withWorld({ sightBlockedBy: { where: "held" } })).toContain(
-      "error: world.sightBlockedBy: `where` only works in a verb's appliesTo: there is no user here.",
+      "error: world.sightBlockedBy: `where` only works in a verb's appliesTo and target: there is no user here.",
     );
   });
 
@@ -213,11 +242,11 @@ describe("item file validation", () => {
       withVerbs({
         name: "mint",
         appliesTo: { definition: "oven" },
-        effects: [{ type: "produce", on: "user", item: "coin", count: 1, into: "user" }],
+        steps: [{ step: "create", item: "coin", count: 1, into: "user" }],
       }),
     );
     expect(messages).toContain(
-      "warning: verbs.2 (mint).effects.0: Makes coin, so the supply isn't closed.",
+      "warning: verbs.2 (mint).steps.0: Makes coin, so the supply isn't closed.",
     );
   });
 

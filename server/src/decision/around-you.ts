@@ -16,7 +16,7 @@ export function formatMinutesAgo(minutesAgo: number): string {
 }
 
 /**
- * "Tobias, looks hurt, bleeding, carrying a knife (chopping wood)", or "Mara's body" for someone
+ * "Tobias, looks hurt, carrying a knife (chopping wood)", or "Mara's body" for someone
  * lying dead in sight ("Mara's body, on fire").
  */
 function describeInSight(entry: AwarenessEntry): string {

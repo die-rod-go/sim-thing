@@ -82,16 +82,18 @@ export function buildTestItemFile(
       {
         name: "eat",
         appliesTo: { allOf: [{ has: "food" }, { where: "held" }] },
-        effects: [
-          { type: "destroy", on: "item", when: "start" },
-          { type: "change_need", on: "user", need: "hunger", amount: { from: "item.food.hunger" } },
+        steps: [
+          { step: "destroy", on: "item" },
+          { step: "change_need", on: "user", need: "hunger", amount: { from: "item.food.hunger" } },
         ],
       },
       {
         name: "bake bread",
         appliesTo: { definition: "oven" },
-        inputs: { bread: 1 },
-        effects: [{ type: "produce", on: "user", item: "bread", count: 2, into: "user" }],
+        steps: [
+          { step: "use_up", in: "user", rule: { definition: "bread" } },
+          { step: "create", item: "bread", count: 2, into: "user" },
+        ],
       },
     ],
     ...overrides,

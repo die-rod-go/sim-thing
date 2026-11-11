@@ -7,16 +7,23 @@ import {
 } from "@village/shared";
 import { config } from "../config";
 import { describeEntityName, findEntityIfPresent } from "../items/entity-store";
+import type { ThingRef } from "../items/things";
 import { findVerbByName } from "../items/verb-offers";
 import { describePlace } from "../memory/filing";
-import type { AgentRuntime } from "./agent-runtime";
+import { describeBodyName } from "../status/health";
+import type { AgentRuntime, VerbRun } from "./agent-runtime";
 import type { WorldState } from "./world-state";
 
 export const WALK_ACTION = "walk_to";
 export const WAIT_ACTION = "wait";
 export const INTERACT_ACTION = "interact";
 
-const PLACEHOLDERS = { item: "{item}", target: "{target}", verb: "{verb}" } as const;
+const PLACEHOLDERS = {
+  item: "{item}",
+  target: "{target}",
+  from: "{from}",
+  verb: "{verb}",
+} as const;
 
 export type PhraseKind = "ongoing" | "done" | "attempt" | "hit" | "missed" | "killed";
 
@@ -24,6 +31,8 @@ export type PhraseKind = "ongoing" | "done" | "attempt" | "hit" | "missed" | "ki
 export interface PhraseNames {
   item: string;
   target?: string;
+  /** What the item was taken from: "the chest", "Mara's body". */
+  from?: string;
 }
 
 /** A verb's phrase from `items.json`, or the default from config when it leaves one out. */
@@ -37,6 +46,8 @@ function fillPhrase(phrase: string, verbName: string, names: PhraseNames): strin
     .join(names.item)
     .split(PLACEHOLDERS.target)
     .join(names.target ?? "")
+    .split(PLACEHOLDERS.from)
+    .join(names.from ?? "")
     .split(PLACEHOLDERS.verb)
     .join(verbName)
     .replace(/ {2,}/g, " ")
@@ -85,6 +96,22 @@ export function describeItemCounts(items: ItemCatalog, counts: Record<string, nu
   return `${parts.slice(0, -1).join(", ")} and ${parts[parts.length - 1]}`;
 }
 
+/** What an item was taken from: "the chest", "Mara's body"; empty when it wasn't taken. */
+export function describeHolderName(state: WorldState, from: ThingRef | null): string {
+  if (from === null) return "";
+  if (from.kind === "agent") {
+    const holder = state.agents.find((agent) => agent.id === from.agentId);
+    return holder ? describeBodyName(holder.name) : "";
+  }
+  const entity = findEntityIfPresent(state, from.entityId);
+  return entity ? `the ${describeEntityName(state, entity)}` : "";
+}
+
+/** What the verb's item was taken from: "the chest", "Mara's body"; empty when it wasn't taken. */
+export function describeFromName(state: WorldState, verbRun: VerbRun): string {
+  return describeHolderName(state, verbRun.from);
+}
+
 function describeWalkTarget(state: WorldState, runtime: AgentRuntime): string | null {
   const destination = runtime.walk?.destination;
   if (!destination) return null;
@@ -99,7 +126,7 @@ function describeWalkTarget(state: WorldState, runtime: AgentRuntime): string | 
 
 /**
  * What an onlooker sees the agent doing, for awareness and prompts: "walking to the bakery",
- * "baking bread at the oven", "sleeping in the rose cottage bed".
+ * "baking bread at the oven", "sitting on the bench".
  */
 export function describeDoing(state: WorldState, agent: Agent, runtime: AgentRuntime): string {
   if (agent.death !== null) return config.death.doing;
@@ -111,8 +138,12 @@ export function describeDoing(state: WorldState, agent: Agent, runtime: AgentRun
   }
   if (action.kind === WAIT_ACTION) return "waiting around";
   if (action.verb !== undefined) {
-    const target = runtime.verbRun?.aimName;
-    return describeOngoingVerb(state.items, action.verb, { item: action.target ?? "", target });
+    const verbRun = runtime.verbRun;
+    return describeOngoingVerb(state.items, action.verb, {
+      item: verbRun?.itemName ?? action.target ?? "",
+      target: verbRun?.targetName ?? undefined,
+      from: verbRun === null ? undefined : describeFromName(state, verbRun),
+    });
   }
   return action.target ? `busy with the ${action.target}` : "busy";
 }

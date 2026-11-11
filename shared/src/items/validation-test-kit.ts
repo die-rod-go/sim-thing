@@ -11,7 +11,7 @@ export function messagesFor(
   );
 }
 
-/** The test file with the components rules and effects need, plus the given verbs and rules. */
+/** The test file with the components rules and steps need, plus the given verbs and rules. */
 export function buildFile(extras: { verbs?: unknown[]; rules?: unknown[] } = {}): ItemFile {
   const base = buildTestItemFile();
   return buildTestItemFile({
@@ -53,15 +53,17 @@ export function withRules(...rules: unknown[]): ItemFile {
 export const attack = {
   name: "attack",
   appliesTo: { allOf: [{ has: "weapon" }, { where: "held" }] },
-  target: "agent_or_entity",
-  hitRoll: { baseHitChance: { from: "item.weapon.hitChance" } },
-  effects: [
+  target: { field: "health.current", above: 0 },
+  steps: [
+    { step: "wait", minutes: 1, loudness: 6 },
+    { step: "roll_hit", chance: { from: "item.weapon.hitChance" } },
     {
-      type: "damage",
+      step: "damage",
       on: "target",
+      field: "health.current",
       amount: { from: "item.weapon.damage" },
-      stimulus: { from: "item.weapon.stimulus" },
     },
+    { step: "send", on: "target", stimulus: { from: "item.weapon.stimulus" } },
   ],
   phrases: { hit: "hit {target}", missed: "missed {target}", killed: "stabbed by {actor}" },
 };

@@ -51,7 +51,7 @@ function collectTiles(state: WorldState, isIncluded: (entity: Entity) => boolean
   return tiles;
 }
 
-/** Walls plus what the world settings let placed entities add: closed doors and the like. */
+/** Walls plus what the world settings let placed entities add. */
 export function buildPerceptionWorld(state: WorldState): PerceptionWorld {
   return {
     grid: state.map.grid,
@@ -62,7 +62,7 @@ export function buildPerceptionWorld(state: WorldState): PerceptionWorld {
 
 /**
  * The map's grid with tiles under movement-blocking entities walled off, for pathfinding. One a
- * walker can deal with in passing (a closed door it opens) stays walkable.
+ * walker can deal with in passing (one it clears on the way) stays walkable.
  */
 export function buildWalkingGrid(state: WorldState): TileGrid {
   const blocked = collectTiles(

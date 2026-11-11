@@ -2,6 +2,7 @@ import { describe, expect, it } from "vitest";
 import { addComponent } from "../items/thing-writes";
 import type { LlmRequest } from "../llm/types";
 import { contextOf, entityThing } from "./combat-test-kit";
+import { buildRunRecord } from "./verb-run-test-kit";
 import {
   createTestSim,
   decisionReply,
@@ -96,14 +97,7 @@ describe("talking and perception", () => {
       currentAction: { kind: "sleep", target: "rose cottage bed", verb: "sleep", endsAtTick: null },
     };
     const bed = findEntityByLabel(sim.state, "rose cottage bed");
-    sim.state.agentRuntimes.mara!.verbRun = {
-      agentId: "mara",
-      verb: "sleep",
-      usedEntityId: bed.id,
-      usedDefinitionId: bed.definitionId,
-      usedName: "rose cottage bed",
-      startedAtTick: 0,
-    };
+    sim.state.agentRuntimes.mara!.verbRun = buildRunRecord(sim, "mara", "sleep", bed);
     await sim.advance(3);
     const maraCalls = sim.records.filter((record) => record.agentId === "mara");
     expect(maraCalls.map((record) => record.tick)).toEqual([2]);

@@ -27,7 +27,7 @@ const MARA_KILLS: RuleCause = { killed: "stabbed by {actor}", sourceAgentId: "ma
 const WORN_RULE = {
   trigger: "becomes",
   if: { field: HEALTH, atMost: 1 },
-  effects: [{ type: "announce", text: "wore thin" }],
+  steps: [{ step: "announce", text: "wore thin" }],
 };
 
 function setUpWithWornRule(): TestSim {
@@ -115,7 +115,7 @@ describe("becomes rules", () => {
         {
           trigger: "becomes",
           if: { field: HEALTH, atMost: 0 },
-          effects: [{ type: "announce", text: "went quiet" }],
+          steps: [{ step: "announce", text: "went quiet" }],
         },
       ],
     });
@@ -141,11 +141,11 @@ describe("becomes rules", () => {
     extendItems(sim, {
       components: { hexed: {} },
       rules: [
-        { trigger: "becomes", if: { has: "hexed" }, effects: [{ type: "destroy" }] },
+        { trigger: "becomes", if: { has: "hexed" }, steps: [{ step: "destroy" }] },
         {
           trigger: "becomes",
           if: { has: "hexed" },
-          effects: [{ type: "announce", text: "was hexed" }],
+          steps: [{ step: "announce", text: "was hexed" }],
         },
       ],
     });
@@ -163,12 +163,12 @@ describe("becomes rules", () => {
         {
           trigger: "becomes",
           if: { has: "poisoned" },
-          effects: [{ type: "remove_condition", condition: "poisoned" }],
+          steps: [{ step: "remove", component: "poisoned" }],
         },
         {
           trigger: "becomes",
           if: { not: { has: "poisoned" } },
-          effects: [{ type: "add_condition", condition: "poisoned" }],
+          steps: [{ step: "add", component: "poisoned" }],
         },
       ],
     });

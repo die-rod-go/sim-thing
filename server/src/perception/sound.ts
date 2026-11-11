@@ -60,7 +60,7 @@ function fillSoundCosts(world: PerceptionWorld, source: Position, maxCost: numbe
   return costs;
 }
 
-/** Sound path costs from a source tile, cached by source tile, closed doors and reach. Read-only. */
+/** Sound path costs from a source tile, cached by source tile, muffled tiles and reach. Read-only. */
 export function computeSoundCosts(
   world: PerceptionWorld,
   source: Position,

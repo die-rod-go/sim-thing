@@ -17,7 +17,7 @@ export interface Entity {
   id: string;
   definitionId: string;
   /**
-   * The name a map gives a placed entity ("bakery door"), so several beds can be told apart. Null
+   * The name a map gives a placed entity ("tavern chest"), so several of one kind can be told apart. Null
    * for everything else, which goes by its definition's name.
    */
   label: string | null;

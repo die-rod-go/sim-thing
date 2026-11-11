@@ -12,8 +12,8 @@ function buildTavernRequest() {
   const prompt = [
     "You are Mara, the baker.",
     "You are at the tavern.",
-    "Here: tavern chest (put, take; holding 2 bandages)",
-    "You carry: 2 bread (eat, drop).",
+    "Here: tavern chest (take; holding 2 bandages)",
+    "You carry: 2 bread (eat, drop, put).",
   ].join("\n");
   return { prompt, jsonSchema, schemaName: "decision_reply", maxTokens: 500 };
 }
@@ -43,5 +43,6 @@ describe("the fake responder with containers", () => {
     const puts = (await collectInteractReplies()).filter((reply) => reply.verb === "put");
     expect(puts.length).toBeGreaterThan(0);
     expect(new Set(puts.map((reply) => reply.item))).toEqual(new Set(["bread"]));
+    expect(new Set(puts.map((reply) => reply.target))).toEqual(new Set(["tavern chest"]));
   });
 });

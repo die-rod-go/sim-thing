@@ -55,7 +55,7 @@ function MatcherTermValue({
   return null;
 }
 
-/** One node of an `appliesTo` matcher: a term, or a group whose parts are nodes too. */
+/** One node of a matcher: a term, or a group whose parts are nodes too. */
 function MatcherNode({
   matcher,
   file,
@@ -118,14 +118,16 @@ function MatcherNode({
   );
 }
 
-/** Builds an optional `appliesTo` matcher and lists, live, everything it matches. */
+/** Builds an optional matcher and lists, live, everything it matches. */
 export function RuleBuilder({
   matcher,
   file,
+  emptyLabel,
   onChange,
 }: {
   matcher: Matcher | undefined;
   file: ItemFile;
+  emptyLabel: string;
   onChange: (matcher: Matcher | undefined) => void;
 }) {
   const matches = matcher === undefined ? [] : listAppliesToMatches(file, matcher);
@@ -135,7 +137,7 @@ export function RuleBuilder({
   return (
     <div className="rule-builder">
       <Checkbox
-        label="bare-handed (no appliesTo)"
+        label={emptyLabel}
         checked={matcher === undefined}
         onChange={(isBareHanded) =>
           onChange(isBareHanded ? undefined : buildMatcherOfKind("definition", file))

@@ -22,13 +22,11 @@ import {
 export function ItemVerbs({
   definition,
   file,
-  stimuli,
   problems,
   onEdit,
 }: {
   definition: ItemDefinition;
   file: ItemFile;
-  stimuli: readonly string[];
   problems: readonly ItemProblem[];
   onEdit: (file: ItemFile) => void;
 }) {
@@ -70,7 +68,6 @@ export function ItemVerbs({
               <VerbEditor
                 verb={verb}
                 file={file}
-                stimuli={stimuli}
                 problems={verbProblems}
                 onChange={(changed) => onEdit(updateVerb(file, verbIndex, changed))}
               />

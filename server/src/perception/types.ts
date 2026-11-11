@@ -4,9 +4,9 @@ import type { TileGrid } from "../world/types";
 /** What perception needs to know about the world on one tick. */
 export interface PerceptionWorld {
   grid: TileGrid;
-  /** Tile indexes that block sight besides walls: closed doors and objects in the way. */
+  /** Tile indexes that block sight besides walls: what the world settings put in the way. */
   sightBlockingTiles: Set<number>;
-  /** Tile indexes that cost sound extra to pass: closed doors. */
+  /** Tile indexes that cost sound extra to pass: what the world settings muffle. */
   muffledTiles: Set<number>;
 }
 

@@ -37,7 +37,7 @@ export interface ConversationThread {
   entries: ThreadEntry[];
 }
 
-const STAGE_EVENT_KINDS: ReadonlySet<WorldEvent["kind"]> = new Set(["gave", "posted_note"]);
+const STAGE_EVENT_KINDS: ReadonlySet<WorldEvent["kind"]> = new Set(["gave"]);
 
 function toSpokenLine(event: WorldEvent, speech: NonNullable<WorldEvent["speech"]>): SpokenLine {
   return {

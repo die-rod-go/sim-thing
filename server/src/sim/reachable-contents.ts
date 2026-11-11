@@ -1,56 +1,64 @@
-import {
-  resolveEntityComponents,
-  type Agent,
-  type Entity,
-  type Position,
-  type ResolvedComponents,
-  type Verb,
-} from "@village/shared";
+import type { Agent, Entity } from "@village/shared";
+import { config } from "../config";
 import { computeChebyshevDistance } from "../economy/give";
-import { readContainerCapacity } from "../items/capacity";
 import {
+  findEntityIfPresent,
   isHeldBy,
   listContents,
   listHeldEntities,
-  resolveEntityPosition,
+  listTileEntitiesAt,
 } from "../items/entity-store";
-import { listVerbsForBody, listVerbsForEntity } from "../items/verb-offers";
+import { locateThing, readThingId, refThingById, type ThingRef } from "../items/things";
+import { hidesContents } from "../items/world-physics";
 import { isDead } from "../status/health";
 import { getAgentRuntime } from "./agent-runtime";
-import { computeVerbReach } from "./verb-aim";
-import { hasChosenEffects } from "./verb-chosen";
 import { findAgent } from "./world-access";
 import type { WorldState } from "./world-state";
 
-/** The longest reach among verbs that take from or put into the thing (`take`, `put`). */
-function findChoosingReach(verbs: readonly Verb[], used: ResolvedComponents | null): number | null {
-  const reaches = verbs.filter(hasChosenEffects).map((verb) => computeVerbReach(verb, used));
-  return reaches.length > 0 ? Math.max(...reaches) : null;
+/** Something found inside a holder the agent can see into. */
+export interface SeenInside {
+  entity: Entity;
+  holder: ThingRef;
 }
 
-function isWithin(from: Position, to: Position, reach: number | null): boolean {
-  return reach !== null && computeChebyshevDistance(from, to) <= reach;
+function isWithinContentsReach(state: WorldState, agentId: string, thing: ThingRef): boolean {
+  const position = locateThing(state, thing);
+  if (position === null) return false;
+  const distance = computeChebyshevDistance(findAgent(state, agentId).pos, position.pos);
+  return distance <= config.perception.contentsReachTiles;
 }
 
 /**
- * What a container holds, as the agent can see it: only when the agent carries it or stands within
- * reach of a verb that takes from it. Null for anything else.
+ * Whether the agent sees what is directly inside the thing: it is the agent's own body, or the
+ * agent holds it or stands close to it, and the world's `contentsHiddenBy` doesn't match it. Every
+ * holder on the way down must pass the same test.
  */
-export function listReachableContents(
-  state: WorldState,
-  agentId: string,
-  entity: Entity,
-): Entity[] | null {
-  if (readContainerCapacity(state, entity) === null) return null;
-  if (!isHeldBy(entity, agentId)) {
-    const position = resolveEntityPosition(state, entity);
-    const reach = findChoosingReach(
-      listVerbsForEntity(state, agentId, entity),
-      resolveEntityComponents(state.items, entity),
-    );
-    if (!position || !isWithin(findAgent(state, agentId).pos, position.pos, reach)) return null;
+export function canSeeInto(state: WorldState, agentId: string, thing: ThingRef): boolean {
+  if (thing.kind === "agent" && thing.agentId === agentId) return true;
+  if (hidesContents(state, thing)) return false;
+  if (thing.kind === "entity") {
+    const entity = findEntityIfPresent(state, thing.entityId);
+    if (!entity) return false;
+    if (isHeldBy(entity, agentId)) return true;
+    if (entity.location.kind === "inside") {
+      const outer = refThingById(entity.location.holderId);
+      if (!canSeeInto(state, agentId, outer)) return false;
+    }
   }
-  return listContents(state, entity.id);
+  return isWithinContentsReach(state, agentId, thing);
+}
+
+/** What is directly inside the thing, when the agent can see in; empty otherwise. */
+export function listVisibleContents(state: WorldState, agentId: string, thing: ThingRef): Entity[] {
+  return canSeeInto(state, agentId, thing) ? listContents(state, readThingId(thing)) : [];
+}
+
+/** Everything the agent can see inside the thing, nested holders included. */
+export function listSeenInside(state: WorldState, agentId: string, holder: ThingRef): SeenInside[] {
+  return listVisibleContents(state, agentId, holder).flatMap((entity) => [
+    { entity, holder },
+    ...listSeenInside(state, agentId, { kind: "entity", entityId: entity.id }),
+  ]);
 }
 
 /** Dead agents the agent can see. */
@@ -59,14 +67,31 @@ export function listVisibleBodies(state: WorldState, agentId: string): Agent[] {
   return state.agents.filter((other) => visibleIds.has(other.id) && isDead(other));
 }
 
-/** What each body within reach of a verb that takes from it carries, by the body's agent id. */
-export function listReachableBodies(state: WorldState, agentId: string): Map<string, Entity[]> {
-  const viewer = findAgent(state, agentId);
-  return new Map(
-    listVisibleBodies(state, agentId)
-      .filter((body) =>
-        isWithin(viewer.pos, body.pos, findChoosingReach(listVerbsForBody(state, body), null)),
-      )
-      .map((body) => [body.id, listHeldEntities(state, body.id)]),
-  );
+function listSeenHolders(state: WorldState, agentId: string): ThingRef[] {
+  const agent = findAgent(state, agentId);
+  return [...listHeldEntities(state, agentId), ...listTileEntitiesAt(state, agent.place)]
+    .map((entity): ThingRef => ({ kind: "entity", entityId: entity.id }))
+    .concat(
+      listVisibleBodies(state, agentId).map((body): ThingRef => ({
+        kind: "agent",
+        agentId: body.id,
+      })),
+    );
+}
+
+function computeDistanceTo(state: WorldState, agentId: string, thing: ThingRef): number {
+  const position = locateThing(state, thing);
+  if (position === null) return Number.POSITIVE_INFINITY;
+  return computeChebyshevDistance(findAgent(state, agentId).pos, position.pos);
+}
+
+/**
+ * Everything the agent can see inside things around it (held, here, bodies in sight), nearest
+ * holder first.
+ */
+export function listAllSeenInside(state: WorldState, agentId: string): SeenInside[] {
+  return listSeenHolders(state, agentId)
+    .map((holder) => ({ holder, distance: computeDistanceTo(state, agentId, holder) }))
+    .sort((first, second) => first.distance - second.distance)
+    .flatMap(({ holder }) => listSeenInside(state, agentId, holder));
 }

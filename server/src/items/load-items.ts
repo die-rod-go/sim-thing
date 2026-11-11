@@ -5,15 +5,15 @@ import {
   findItemFileProblems,
   hasItemErrors,
   itemFileSchema,
-  type Effect,
   type ItemCatalog,
   type ItemFile,
   type ItemProblem,
   type ItemReference,
   type SeedFile,
+  type Step,
 } from "@village/shared";
 import { createLogger } from "../logger";
-import { isEffectBuilt } from "../sim/effects/effect-registry";
+import { isStepBuilt } from "../sim/steps/step-registry";
 import type { WorldMap } from "../world/types";
 
 const logger = createLogger("items");
@@ -34,12 +34,12 @@ export function listItemReferences(map: WorldMap, seedFile: SeedFile): ItemRefer
   ];
 }
 
-function findUnbuiltEffectProblem(effect: Effect): string | null {
-  return isEffectBuilt(effect.type) ? null : `The ${effect.type} effect isn't built yet.`;
+function findUnbuiltStepProblem(step: Step): string | null {
+  return isStepBuilt(step.step) ? null : `The ${step.step} step isn't built yet.`;
 }
 
 /**
- * Parts of the format this build parses and validates but can't run yet: effects with no
+ * Parts of the format this build parses and validates but can't run yet: steps with no
  * implementation, wherever they sit. Refused rather than ignored, so content never silently does
  * nothing.
  */
@@ -47,16 +47,16 @@ export function findUnbuiltFeatures(file: ItemFile): ItemProblem[] {
   const problems: ItemProblem[] = [];
   const add = (path: string, message: string) =>
     problems.push({ severity: "error", path, message });
-  const checkEffects = (effects: readonly Effect[], path: string) =>
-    effects.forEach((effect, effectIndex) => {
-      const problem = findUnbuiltEffectProblem(effect);
-      if (problem !== null) add(`${path}.${effectIndex}`, problem);
+  const checkSteps = (steps: readonly Step[], path: string) =>
+    steps.forEach((step, stepIndex) => {
+      const problem = findUnbuiltStepProblem(step);
+      if (problem !== null) add(`${path}.${stepIndex}`, problem);
     });
   file.verbs.forEach((verb, index) => {
-    checkEffects(verb.effects, `verbs.${index} (${verb.name}).effects`);
+    checkSteps(verb.steps, `verbs.${index} (${verb.name}).steps`);
   });
   file.rules.forEach((rule, index) => {
-    checkEffects(rule.effects, `rules.${index} (${rule.trigger}).effects`);
+    checkSteps(rule.steps, `rules.${index} (${rule.trigger}).steps`);
   });
   return problems;
 }

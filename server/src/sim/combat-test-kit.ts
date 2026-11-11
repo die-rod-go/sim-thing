@@ -6,19 +6,16 @@ import {
   type FieldValue,
   type Position,
 } from "@village/shared";
-import { createEntity, locateInside } from "../items/entity-store";
+import { createEntity, describeEntityName, isHeldBy, locateInside } from "../items/entity-store";
 import { writeField } from "../items/thing-writes";
 import { readField, type ThingRef } from "../items/things";
 import { withAgentHealth } from "../status/health";
-import type { PendingVerb, UsedThing } from "./agent-runtime";
-import type { EffectRun } from "./effects/effect-run";
 import { createNoReflectionHook } from "./reflection-hook";
-import { sendStimulus } from "./rule-engine";
 import { createTestSim, scriptByAgent, type TestSim } from "./test-sim";
 import type { TickContext } from "./tick-context";
 import { startOrApproachVerb } from "./verb-approach";
-import { finishRunningVerb } from "./verb-runner";
-import { getAgentRuntime } from "./agent-runtime";
+import { resumeRunningVerb } from "./verb-runner";
+import { getAgentRuntime, type InteractRequest } from "./agent-runtime";
 import { replaceAgent } from "./world-access";
 import { createEmptyTickResult } from "./world-state";
 
@@ -56,18 +53,16 @@ export function place(sim: TestSim, positions: Record<string, Position>): void {
 }
 
 /** Applies an interact as a decision would, then returns the context it ran in. */
-export function aim(
-  sim: TestSim,
-  agentId: string,
-  used: UsedThing,
-  request: PendingVerb,
-  targetName?: string,
-): TickContext {
+export function aim(sim: TestSim, agentId: string, request: InteractRequest): TickContext {
   const context = contextOf(sim);
-  startOrApproachVerb(context, agentId, used, request, targetName);
+  startOrApproachVerb(context, agentId, request);
   return context;
 }
 
+/**
+ * Applies an interact with the entity as the reply would name it: a carried one as the `item`, a
+ * placed one as the `target`.
+ */
 export function aimWith(
   sim: TestSim,
   agentId: string,
@@ -75,12 +70,17 @@ export function aimWith(
   verb: string,
   targetName?: string,
 ): TickContext {
-  return aim(sim, agentId, { kind: "entity", entityId: entity.id }, { verb }, targetName);
+  const name = describeEntityName(sim.state, entity);
+  const isCarried = isHeldBy(entity, agentId);
+  const request: InteractRequest = isCarried
+    ? { verb, itemName: name, ...(targetName === undefined ? {} : { targetName }) }
+    : { verb, targetName: name };
+  return aim(sim, agentId, request);
 }
 
 export function finish(sim: TestSim, agentId: string): TickContext {
   const context = contextOf(sim);
-  finishRunningVerb(context, agentId);
+  resumeRunningVerb(context, agentId);
   return context;
 }
 
@@ -117,26 +117,6 @@ export function extendItems(sim: TestSim, extras: ItemExtras): void {
   sim.state.items = buildItemCatalog(parsed);
 }
 
-/** A run of rule effects as a verb's action would start one: Mara's by default. */
-export function buildRuleRun(
-  context: TickContext,
-  sourceAgentId: string | null = "mara",
-): EffectRun {
-  return { context, verb: null, run: null, text: "", sourceAgentId, depth: 0 };
-}
-
-/** Sends a stimulus as one of Mara's verbs would, returning the context it ran in. */
-export function stimulate(
-  sim: TestSim,
-  receiver: ThingRef,
-  stimulus: string,
-  sourceAgentId: string | null = "mara",
-): TickContext {
-  const context = contextOf(sim);
-  sendStimulus(buildRuleRun(context, sourceAgentId), receiver, stimulus);
-  return context;
-}
-
 export function entityThing(entity: Entity): ThingRef {
   return { kind: "entity", entityId: entity.id };
 }
@@ -153,6 +133,13 @@ export function readFieldOf(sim: TestSim, thing: ThingRef, path: string): FieldV
 /** Sets an agent's health directly, with no waking or death: a fixture, not an event. */
 export function setAgentHealth(sim: TestSim, agentId: string, health: number): void {
   replaceAgent(sim.state, withAgentHealth(sim.state.items, sim.agent(agentId), health));
+}
+
+/** Takes the agent's health to nothing the way a verb would, so the death rules fire too. */
+export function killAgent(sim: TestSim, agentId: string): void {
+  const agentThing: ThingRef = { kind: "agent", agentId };
+  const cause = { killed: "killed", sourceAgentId: null, depth: 0 };
+  writeField(contextOf(sim), agentThing, sim.state.items.world.agentHealth, 0, cause);
 }
 
 export function readHealth(sim: TestSim, agentId: string): number {

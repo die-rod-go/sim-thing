@@ -1,3 +1,4 @@
+import { fieldValueSchema } from "@village/shared";
 import { z } from "zod";
 import type { WorldState } from "./world-state";
 
@@ -9,63 +10,80 @@ const walkDestinationSchema = z.discriminatedUnion("kind", [
   z.object({ kind: z.literal("entity"), entityId: z.string() }),
 ]);
 
-/** What an aimed verb is aimed at: an agent (the user itself included) or an entity. */
-const verbAimSchema = z.discriminatedUnion("kind", [
-  z.object({ kind: z.literal("agent"), agentId: z.string() }),
-  z.object({ kind: z.literal("entity"), entityId: z.string() }),
-]);
-
 /**
- * What a verb is used with: an entity (held bread, the oven), a dead agent's body (to take from)
- * or nothing (a bare-handed verb).
+ * What a decision asked a verb to do, in the reply's own words. It is resolved to things each time
+ * the verb starts, so a walk that leads to one resolves it again on arrival.
  */
-const usedThingSchema = z.discriminatedUnion("kind", [
-  z.object({ kind: z.literal("entity"), entityId: z.string() }),
-  z.object({ kind: z.literal("body"), agentId: z.string() }),
-  z.object({ kind: z.literal("user") }),
-]);
-
-/** What the decision's `item` and `amount` name for a verb that moves things (`put`, `take`). */
-const chosenRequestSchema = z.object({ name: z.string(), amount: z.number().int().positive() });
-
-/** A verb to start once the agent gets where it is going. */
-const pendingVerbSchema = z.object({
+const interactRequestSchema = z.object({
   verb: z.string(),
+  /** The reply's `item`. */
+  itemName: z.string().optional(),
+  /** The reply's `target`. */
+  targetName: z.string().optional(),
+  amount: z.number().int().positive().optional(),
   text: z.string().optional(),
   minutes: z.number().optional(),
-  /** What it is used with, when that isn't the walk's destination (a held knife). */
-  used: usedThingSchema.optional(),
-  aim: verbAimSchema.optional(),
-  chosen: chosenRequestSchema.optional(),
 });
 
 const walkSchema = z.object({
   destination: walkDestinationSchema,
   remainingSteps: z.array(positionSchema),
-  /** Set when the walk leads to a verb that starts on arrival. */
-  pendingVerb: pendingVerbSchema.nullable(),
+  /** Set when the walk leads to a verb that starts once its item and target are in reach. */
+  pendingVerb: interactRequestSchema.nullable(),
   /** For a walk after an aimed verb's target: the tick the agent stops following and gives up. */
   giveUpAtTick: z.number().int().optional(),
 });
 
-/** A verb in progress: what is used, and what its `finish` effects need to know. */
+const thingRefSchema = z.discriminatedUnion("kind", [
+  z.object({ kind: z.literal("entity"), entityId: z.string() }),
+  z.object({ kind: z.literal("agent"), agentId: z.string() }),
+]);
+
+/** A thing as it was when last present, so a verb still reads it after a step destroyed it. */
+const thingSnapshotSchema = z.object({
+  definitionId: z.string(),
+  name: z.string(),
+  components: z.record(z.string(), z.record(z.string(), fieldValueSchema)),
+});
+
+/** What the decision supplied, read by steps as `choice.amount`, `choice.minutes`, `choice.text`. */
+const verbChoiceSchema = z.object({
+  amount: z.number().int().positive(),
+  minutes: z.number().optional(),
+  text: z.string().optional(),
+});
+
+/** A verb in progress, between its steps. */
 const verbRunSchema = z.object({
   agentId: z.string(),
-  verb: z.string(),
-  /** The entity used; null for a verb that needs no item. */
-  usedEntityId: z.string().nullable(),
-  /** The dead agent whose body the verb is used on (taking from it). */
-  usedBodyId: z.string().optional(),
-  /** Kept so the verb still reads and names it after a `start` effect used it up. */
-  usedDefinitionId: z.string().nullable(),
-  usedName: z.string(),
+  /** Index into `items.json` verbs, with the name to detect a changed file. */
+  verbIndex: z.number().int().nonnegative(),
+  verbName: z.string(),
+  /** The item and the rest of its stack, oldest first; empty for a bare-handed verb. */
+  itemIds: z.array(z.string()),
+  itemName: z.string(),
+  /** The thing the item was inside, when it was taken from something. */
+  from: thingRefSchema.nullable(),
+  target: thingRefSchema.nullable(),
+  targetName: z.string().nullable(),
+  choice: verbChoiceSchema,
+  /** The next step to run. */
+  stepIndex: z.number().int().nonnegative(),
+  /** Null until a `roll_hit` has run. */
+  isHit: z.boolean().nullable(),
+  /** Last known components of `item`, `target` and each `as` name. */
+  snapshots: z.record(z.string(), thingSnapshotSchema),
+  /** The entity each `as` name stands for. */
+  namedIds: z.record(z.string(), z.string()),
+  /** Where each item was when the verb started (its holder; null on a tile), to notice it was taken. */
+  itemHolderIds: z.record(z.string(), z.string().nullable()),
+  /** Entities this verb moved or destroyed, which needn't be where they were. */
+  touchedIds: z.array(z.string()),
+  /** What its steps made so far, by definition id, for "finished baking bread, making 4 bread". */
+  made: z.record(z.string(), z.number().int().nonnegative()),
+  /** Whether a `wait` has been reached, so `action_started` was announced. */
+  hasWaited: z.boolean(),
   startedAtTick: z.number().int(),
-  /** What the verb is aimed at; absent for a verb with no target. */
-  aim: verbAimSchema.optional(),
-  /** How the target reads in phrases ("Tobias", "the bakery door", "themselves"). */
-  aimName: z.string().optional(),
-  /** The entities `on: chosen` refers to, oldest first: what the verb moves. */
-  chosenEntityIds: z.array(z.string()).optional(),
 });
 
 const pendingDecisionSchema = z.object({
@@ -119,11 +137,10 @@ export type SimRuntime = z.infer<typeof simRuntimeSchema>;
 export type AgentRuntime = z.infer<typeof agentRuntimeSchema>;
 export type Walk = z.infer<typeof walkSchema>;
 export type WalkDestination = z.infer<typeof walkDestinationSchema>;
-export type PendingVerb = z.infer<typeof pendingVerbSchema>;
-export type ChosenRequest = z.infer<typeof chosenRequestSchema>;
-export type VerbAim = z.infer<typeof verbAimSchema>;
-export type UsedThing = z.infer<typeof usedThingSchema>;
+export type InteractRequest = z.infer<typeof interactRequestSchema>;
 export type VerbRun = z.infer<typeof verbRunSchema>;
+export type VerbChoice = z.infer<typeof verbChoiceSchema>;
+export type ThingSnapshot = z.infer<typeof thingSnapshotSchema>;
 export type PendingDecision = z.infer<typeof pendingDecisionSchema>;
 
 export function createAgentRuntime(startPlace: string): AgentRuntime {

@@ -41,8 +41,8 @@ describe("dropping and picking up", () => {
     finish(sim, "mara");
     expect(countHeld(sim.state, "mara", "bread")).toBe(breadBefore - 1);
     expect(tileOf(sim, bread.id)).toEqual(SQUARE);
-    expect(memoryTexts(sim, "mara")).toContain("I dropped 1 bread");
-    expect(memoryTexts(sim, "tobias").some((text) => text.includes("dropped 1 bread"))).toBe(true);
+    expect(memoryTexts(sim, "mara")).toContain("I dropped bread");
+    expect(memoryTexts(sim, "tobias").some((text) => text.includes("dropped bread"))).toBe(true);
   });
 
   it("picks up an item lying on the ground", () => {
@@ -55,7 +55,7 @@ describe("dropping and picking up", () => {
       kind: "inside",
       holderId: "mara",
     });
-    expect(memoryTexts(sim, "mara")).toContain("I picked up a knife");
+    expect(memoryTexts(sim, "mara")).toContain("I picked up knife");
   });
 
   it("gives a ground item to whoever reaches it first when two agents grab it", () => {
@@ -70,7 +70,7 @@ describe("dropping and picking up", () => {
       kind: "inside",
       holderId: "mara",
     });
-    expect(lastFailure(sim, "tobias")).toContain("someone got to it first");
+    expect(lastFailure(sim, "tobias")).toContain("there is no knife here");
   });
 });
 

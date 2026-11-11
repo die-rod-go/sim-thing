@@ -28,7 +28,7 @@ function describeEntityGroup(group: PromptEntityGroup): string {
   return details.length > 0 ? `${group.text} (${details.join("; ")})` : group.text;
 }
 
-/** "oven (bake bread), bakery door (open, close; open)" */
+/** "oven (bake bread), tavern chest (take; holding 2 coins)" */
 export function describeNearbyEntities(groups: PromptEntityGroup[]): string {
   if (groups.length === 0) return NOTHING;
   return groups.map(describeEntityGroup).join(", ");

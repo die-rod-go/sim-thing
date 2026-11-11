@@ -1,9 +1,11 @@
 import {
+  isEntityId,
   parseComponentPath,
   resolveThingComponents,
   type ComponentChanges,
   type FieldValue,
   type ResolvedComponents,
+  type ThingId,
   type ThingView,
   type WorldEvent,
 } from "@village/shared";
@@ -25,6 +27,18 @@ import {
  */
 
 export type ThingRef = { kind: "entity"; entityId: string } | { kind: "agent"; agentId: string };
+
+/** The thing a holder id names: an entity, or an agent's body. */
+export function refThingById(thingId: ThingId): ThingRef {
+  return isEntityId(thingId)
+    ? { kind: "entity", entityId: thingId }
+    : { kind: "agent", agentId: thingId };
+}
+
+/** The id the thing's contents are filed under: the entity's, or the agent's. */
+export function readThingId(thing: ThingRef): string {
+  return thing.kind === "agent" ? thing.agentId : thing.entityId;
+}
 
 function findAgentIfPresent(world: EntityWorld, agentId: string) {
   return world.agents.find((agent) => agent.id === agentId);
@@ -57,7 +71,7 @@ export function hasComponent(world: EntityWorld, thing: ThingRef, component: str
   return components !== null && Object.hasOwn(components, component);
 }
 
-/** A field by its component path ("health.current"); undefined when the thing lacks it. */
+/** A field by its component path ("component.field"); undefined when the thing lacks it. */
 export function readField(
   world: EntityWorld,
   thing: ThingRef,
@@ -120,7 +134,7 @@ export function listThingsWithin(
   });
 }
 
-/** "the bakery door", "Mara's body", or the agent's name. */
+/** "the tavern chest", "Mara's body", or the agent's name. */
 export function describeThingName(world: EntityWorld, thing: ThingRef): string {
   if (thing.kind === "agent") {
     const agent = findAgentIfPresent(world, thing.agentId);

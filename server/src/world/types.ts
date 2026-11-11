@@ -7,7 +7,7 @@ export interface TileGrid {
   isWall: boolean[];
 }
 
-/** A named rectangular area, in tiles. Indoor places are enclosed by walls with door gaps. */
+/** A named rectangular area, in tiles. Indoor places are enclosed by walls with gaps. */
 export interface PlaceArea {
   name: string;
   isIndoor: boolean;
@@ -17,7 +17,7 @@ export interface PlaceArea {
   height: number;
 }
 
-/** An object the map places: which item definition, and the name it goes by ("bakery door"). */
+/** An object the map places: which item definition, and the name it goes by ("tavern chest"). */
 export interface MapPlacement {
   label: string;
   definitionId: string;

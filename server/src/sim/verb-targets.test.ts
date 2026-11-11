@@ -50,7 +50,7 @@ describe("aiming a verb", () => {
 
   it("refuses to aim a verb at oneself when it can't be", () => {
     const sim = buildCombatSim(["mara"]);
-    aim(sim, "mara", { kind: "user" }, { verb: "punch" }, "yourself");
+    aim(sim, "mara", { verb: "punch", targetName: "yourself" });
     expect(lastFailure(sim, "mara")).toBe("I tried to punch yourself but I can't punch myself");
   });
 
@@ -69,7 +69,7 @@ describe("aiming a verb", () => {
   it("fails at finish when the target is out of sight", () => {
     const sim = buildCombatSim();
     place(sim, { mara: SQUARE, tobias: NEXT_TO_SQUARE });
-    aim(sim, "mara", { kind: "user" }, { verb: "punch" }, "Tobias");
+    aim(sim, "mara", { verb: "punch", targetName: "Tobias" });
     sim.placeAgent("tobias", FAR_OUT_OF_SIGHT);
     finish(sim, "mara");
     expect(lastFailure(sim, "mara")).toBe("I tried to punch Tobias but Tobias was already gone");
@@ -80,7 +80,7 @@ describe("aiming a verb", () => {
     const sim = buildCombatSim();
     place(sim, { mara: SQUARE, tobias: NEXT_TO_SQUARE });
     fixRolls(sim, 0);
-    aim(sim, "mara", { kind: "user" }, { verb: "punch" }, "Tobias");
+    aim(sim, "mara", { verb: "punch", targetName: "Tobias" });
     sim.placeAgent("tobias", FOUR_TILES_AWAY);
     const finished = finish(sim, "mara");
     expect(finished.result.events.at(-1)?.kind).toBe("missed");
@@ -90,7 +90,7 @@ describe("aiming a verb", () => {
   it("walks to a target out of reach, then strikes", () => {
     const sim = buildCombatSim();
     place(sim, { mara: SQUARE, tobias: FOUR_TILES_AWAY });
-    aim(sim, "mara", { kind: "user" }, { verb: "punch" }, "Tobias");
+    aim(sim, "mara", { verb: "punch", targetName: "Tobias" });
     expect(sim.agent("mara").currentAction?.kind).toBe("walk_to");
     walkTicks(sim, "mara", 4);
     expect(sim.agent("mara").currentAction?.verb).toBe("punch");
@@ -99,7 +99,7 @@ describe("aiming a verb", () => {
   it("gives up on a target who keeps moving away", () => {
     const sim = buildCombatSim();
     place(sim, { mara: SQUARE, tobias: FOUR_TILES_AWAY });
-    aim(sim, "mara", { kind: "user" }, { verb: "punch" }, "Tobias");
+    aim(sim, "mara", { verb: "punch", targetName: "Tobias" });
     const giveUpAtTick = getAgentRuntime(sim.state, "mara").walk?.giveUpAtTick ?? 0;
     for (let tick = sim.state.tick; tick <= giveUpAtTick; tick += 1) {
       const mara = sim.agent("mara");
@@ -111,47 +111,52 @@ describe("aiming a verb", () => {
   });
 });
 
-describe("verb fields and effect modifiers", () => {
+describe("verb steps and their modifiers", () => {
   it("needs its tools held", () => {
     const sim = buildCombatSim(["mara"]);
     addVerbs(sim, [
       {
         name: "whittle",
         appliesTo: { allOf: [{ definition: "wood" }, { where: "held" }] },
-        tools: { components: ["sharp"] },
-        effects: [{ type: "change_need", on: "user", need: "fun", amount: 0.1 }],
+        steps: [
+          { step: "require", in: "user", rule: { has: "sharp" } },
+          { step: "wait", minutes: 1 },
+          { step: "change_need", on: "user", need: "fun", amount: 0.1 },
+        ],
+        phrases: { attempt: "whittle the {item}" },
       },
     ]);
     const wood = handOver(sim, "mara", "wood");
     aimWith(sim, "mara", wood, "whittle");
     expect(lastFailure(sim, "mara")).toBe(
-      "I tried to whittle the wood but I need something sharp to do that",
+      "I tried to whittle the wood but I don't have what I need for that",
     );
     handOver(sim, "mara", "knife");
     aimWith(sim, "mara", wood, "whittle");
     expect(sim.agent("mara").currentAction?.verb).toBe("whittle");
   });
 
-  it("runs start effects at once, skips hit-only effects on a miss and rolls chance", () => {
+  it("runs steps above the wait at once, skips hit-only steps on a miss and rolls chance", () => {
     const sim = buildCombatSim();
     place(sim, { mara: SQUARE, tobias: NEXT_TO_SQUARE });
     addVerbs(sim, [
       {
         name: "shove",
-        target: "agent",
-        hitRoll: { baseHitChance: 0.5 },
-        effects: [
-          { type: "change_need", on: "user", need: "fun", amount: 0.1, when: "start" },
-          { type: "change_need", on: "target", need: "social", amount: -0.1 },
+        target: { allOf: [{ has: "alive" }, { not: { where: "self" } }] },
+        steps: [
+          { step: "change_need", on: "user", need: "fun", amount: 0.1 },
+          { step: "wait", minutes: 1 },
+          { step: "roll_hit", chance: 0.5 },
+          { step: "change_need", on: "target", need: "social", amount: -0.1 },
           {
-            type: "change_need",
+            step: "change_need",
             on: "user",
             need: "energy",
             amount: -0.1,
-            requiresHit: false,
+            evenOnMiss: true,
             chance: 0.5,
           },
-          { type: "change_need", on: "user", need: "hunger", amount: -0.1, requiresHit: false },
+          { step: "change_need", on: "user", need: "hunger", amount: -0.1, evenOnMiss: true },
         ],
         phrases: { hit: "shoved {target}", missed: "tried to shove {target}" },
       },
@@ -159,12 +164,61 @@ describe("verb fields and effect modifiers", () => {
     const before = { mara: sim.agent("mara").needs, tobias: sim.agent("tobias").needs };
     replaceAgent(sim.state, { ...sim.agent("mara"), needs: { ...before.mara, fun: 0.5 } });
     fixRolls(sim, ALWAYS_MISS);
-    aim(sim, "mara", { kind: "user" }, { verb: "shove" }, "Tobias");
+    aim(sim, "mara", { verb: "shove", targetName: "Tobias" });
     expect(sim.agent("mara").needs.fun).toBeCloseTo(0.6, 9);
     finish(sim, "mara");
     expect(sim.agent("tobias").needs.social).toBe(before.tobias.social);
     expect(sim.agent("mara").needs.energy).toBe(before.mara.energy);
     expect(sim.agent("mara").needs.hunger).toBeCloseTo(before.mara.hunger - 0.1, 9);
+  });
+});
+
+describe("resolving a target", () => {
+  it("fails a target the verb's matcher doesn't accept", () => {
+    const sim = buildCombatSim();
+    place(sim, { mara: SQUARE, tobias: NEXT_TO_SQUARE });
+    handOver(sim, "mara", "knife");
+    aim(sim, "mara", { verb: "attack", itemName: "knife", targetName: "yourself" });
+    expect(lastFailure(sim, "mara")).toBe(
+      "I tried to attack yourself with a knife but I can't attack myself",
+    );
+    setAgentHealth(sim, "tobias", 0);
+    aim(sim, "mara", { verb: "attack", itemName: "knife", targetName: "Tobias" });
+    expect(lastFailure(sim, "mara")).toContain("but I can't attack Tobias");
+    expect(readHealth(sim, "tobias")).toBe(0);
+  });
+
+  it("aims at oneself when no target is named and the verb fits the user's own body", () => {
+    const sim = buildCombatSim(["mara"]);
+    setAgentHealth(sim, "mara", 0.5);
+    handOver(sim, "mara", "bandage");
+    aim(sim, "mara", { verb: "use", itemName: "bandage" });
+    finish(sim, "mara");
+    expect(readHealth(sim, "mara")).toBeCloseTo(0.65, 9);
+  });
+
+  it("asks who to aim at when no target is named and the user's own body doesn't fit", () => {
+    const sim = buildCombatSim();
+    place(sim, { mara: SQUARE, tobias: NEXT_TO_SQUARE });
+    aim(sim, "mara", { verb: "punch" });
+    expect(lastFailure(sim, "mara")).toBe("I tried to punch but I didn't say who or what to punch");
+  });
+
+  it("uses the first verb of that name in file order that applies", () => {
+    const sim = buildCombatSim(["mara"]);
+    addVerbs(sim, [
+      {
+        name: "eat",
+        appliesTo: { allOf: [{ definition: "bread" }, { where: "held" }] },
+        steps: [{ step: "destroy", on: "item" }],
+        phrases: { done: "gobbled {item}" },
+      },
+    ]);
+    handOver(sim, "mara", "bread");
+    const fastEat = sim.state.items.verbs.length - 1;
+    expect(sim.state.items.verbs[fastEat]?.name).toBe("eat");
+    aim(sim, "mara", { verb: "eat", itemName: "bread" });
+    expect(sim.agent("mara").currentAction?.verb).toBe("eat");
   });
 });
 

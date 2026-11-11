@@ -4,6 +4,7 @@ import type { FakeReply } from "../llm/fake-llm-client";
 import { getAgentRuntime } from "./agent-runtime";
 import { applyDamage } from "./damage";
 import { readHealth, setAgentHealth } from "./combat-test-kit";
+import { buildRunRecord } from "./verb-run-test-kit";
 import { createNoReflectionHook } from "./reflection-hook";
 import {
   createTestSim,
@@ -88,14 +89,7 @@ describe("death", () => {
       ...sim.agent("mara"),
       currentAction: { kind: "interact", target: "card table", verb: "play cards", endsAtTick: 30 },
     });
-    getAgentRuntime(sim.state, "mara").verbRun = {
-      agentId: "mara",
-      verb: "play cards",
-      usedEntityId: table.id,
-      usedDefinitionId: table.definitionId,
-      usedName: "card table",
-      startedAtTick: 0,
-    };
+    getAgentRuntime(sim.state, "mara").verbRun = buildRunRecord(sim, "mara", "play cards", table);
     applyDamage(contextOf(sim), "mara", { amount: LETHAL, killed: "starved", sourceAgentId: null });
     expect(sim.agent("mara").currentAction).toBeNull();
     expect(getAgentRuntime(sim.state, "mara").verbRun).toBeNull();

@@ -17,7 +17,7 @@ import { getAgentRuntime, requestDecision } from "./agent-runtime";
 import { NO_RULE_CAUSE } from "./rule-cause";
 import { expireComponents, runEveryRules } from "./rule-timers";
 import type { TickContext } from "./tick-context";
-import { finishRunningVerb } from "./verb-runner";
+import { resumeRunningVerb } from "./verb-runner";
 import { advanceWalk } from "./walking";
 import {
   buildPerceptionWorld,
@@ -96,7 +96,7 @@ export function progressActions(context: TickContext): void {
     } else if (isAsleep(agent)) {
       if (findWakeReason(agent, state.tick) !== null) wakeAgent(context, agentId);
     } else if (action.verb !== undefined) {
-      if (hasEnded(action.endsAtTick, state.tick)) finishRunningVerb(context, agentId);
+      if (hasEnded(action.endsAtTick, state.tick)) resumeRunningVerb(context, agentId);
     } else if (action.kind !== WAIT_ACTION || hasEnded(action.endsAtTick, state.tick)) {
       // A wait that ran out, or an action this strategy can't continue (e.g. a stale walk).
       replaceAgent(state, { ...agent, currentAction: null });

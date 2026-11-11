@@ -25,7 +25,7 @@ function isFileSection(key: unknown): key is FileSection {
   return key === "definitions" || key === "verbs" || key === "rules";
 }
 
-/** "verbs.3 (eat).effects.0", matching the paths `findItemFileProblems` writes. */
+/** "verbs.3 (eat).steps.0", matching the paths `findItemFileProblems` writes. */
 export function formatIssuePath(file: ItemFile, path: readonly PropertyKey[]): string {
   const [section, index, ...rest] = path;
   if (!isFileSection(section) || typeof index !== "number") return path.map(String).join(".");

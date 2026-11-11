@@ -2,15 +2,7 @@ import { describe, expect, it } from "vitest";
 import { addComponent, removeComponent, replaceDefinition } from "../items/thing-writes";
 import { readThingChanges } from "../items/things";
 import { computeConditionEndTick } from "../status/conditions";
-import {
-  aimWith,
-  contextOf,
-  finish,
-  fixRolls,
-  handOver,
-  readHealth,
-  setAgentHealth,
-} from "./combat-test-kit";
+import { contextOf, fixRolls, handOver, readHealth, setAgentHealth } from "./combat-test-kit";
 import {
   ALWAYS,
   NEVER,
@@ -23,6 +15,7 @@ import {
   setUpRules,
 } from "./rule-test-kit";
 import type { RuleCause } from "./rule-cause";
+import { runVerb } from "./steps/step-test-kit";
 import type { TestSim } from "./test-sim";
 
 const MARA_CAUSE: RuleCause = { killed: "", sourceAgentId: "mara", depth: 0 };
@@ -119,8 +112,7 @@ describe("bleeding and bandages", () => {
   function stab(sim: TestSim, roll: number) {
     const knife = handOver(sim, "mara", "knife");
     fixRolls(sim, roll);
-    aimWith(sim, "mara", knife, "attack", "Tobias");
-    finish(sim, "mara");
+    runVerb(sim, "attack", { items: [knife], target: TOBIAS, targetName: "Tobias" });
   }
 
   it("starts bleeding from a cut that the chance lets through, caused by the attacker", () => {
@@ -141,8 +133,7 @@ describe("bleeding and bandages", () => {
     const sim = setUpRules();
     addComponent(contextOf(sim), TOBIAS, "bleeding", { minutes: 20 });
     const bandage = handOver(sim, "mara", "bandage");
-    aimWith(sim, "mara", bandage, "use", "Tobias");
-    finish(sim, "mara");
+    runVerb(sim, "use", { items: [bandage], target: TOBIAS, targetName: "Tobias" });
     expect(hasComponentNow(sim, TOBIAS, "bleeding")).toBe(false);
   });
 });

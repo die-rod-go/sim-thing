@@ -2,26 +2,20 @@ import { findDefinition, type Agent, type AgentThought, type DecisionReply } fro
 import { config } from "../config";
 import { normalizeDisplayName, resolveName } from "../decision/resolve-name";
 import { computeChebyshevDistance, executeGive } from "../economy/give";
-import {
-  describeEntityName,
-  listHeldOfDefinition,
-  listTileEntitiesAt,
-} from "../items/entity-store";
-import { findVerbByName, listVerbsForEntity } from "../items/verb-offers";
+import { describeEntityName, listTileEntitiesAt } from "../items/entity-store";
 import { filePersonNote } from "../memory/filing";
 import { pushWorkingMemory } from "../memory/working-memory";
 import { isDead } from "../status/health";
-import { WAIT_ACTION, describeAttempt } from "./action-phrases";
+import { WAIT_ACTION } from "./action-phrases";
 import { stopCurrentAction } from "./action-stopping";
-import { getAgentRuntime, type UsedThing } from "./agent-runtime";
-import type { DecidedReply, DecisionPlan, PlannedAction, PlannedUse } from "./decision-runner";
+import { getAgentRuntime } from "./agent-runtime";
+import type { DecidedReply, DecisionPlan, PlannedAction } from "./decision-runner";
 import { broadcastEvent } from "./event-broadcast";
 import { createEvent, createSpeechEvent } from "./event-factory";
 import { failAction } from "./failure";
 import type { TickContext } from "./tick-context";
 import { startOrApproachVerb } from "./verb-approach";
-import { startWalk } from "./walking";
-import type { WorldState } from "./world-state";
+import { startWalk } from "./walk-start";
 import {
   describeAgentAsSeen,
   findAgent,
@@ -123,57 +117,6 @@ function executeWalk(context: TickContext, agentId: string, targetName: string):
   failAction(state, result, agentId, `walk to ${targetName}`, "I don't know how to get there");
 }
 
-/** The oldest held item of the planned definition that still offers the verb, if any. */
-function findHeldToUse(
-  state: WorldState,
-  agentId: string,
-  use: Extract<PlannedUse, { kind: "held" }>,
-  verbName: string,
-): string | null {
-  const usable = listHeldOfDefinition(state, agentId, use.definitionId).find(
-    (entity) => findVerbByName(listVerbsForEntity(state, agentId, entity), verbName) !== undefined,
-  );
-  return usable?.id ?? null;
-}
-
-function toUsedThing(use: Exclude<PlannedUse, { kind: "held" }>): UsedThing {
-  if (use.kind === "user") return use;
-  if (use.kind === "body") return { kind: "body", agentId: use.agentId };
-  return { kind: "entity", entityId: use.entityId };
-}
-
-/**
- * Applies interact. A held item is named by definition, so the oldest one that still offers the
- * verb is used; the rest is checked by `startOrApproachVerb`.
- */
-function executeInteract(
-  context: TickContext,
-  agentId: string,
-  action: Extract<PlannedAction, { kind: "interact" }>,
-): void {
-  const { state, result } = context;
-  const request = {
-    verb: action.verb,
-    text: action.text,
-    minutes: action.minutes,
-    ...(action.chosen ? { chosen: action.chosen } : {}),
-  };
-  const { use } = action;
-  if (use.kind === "held") {
-    const entityId = findHeldToUse(state, agentId, use, action.verb);
-    if (entityId === null) {
-      const attempt = describeAttempt(state.items, action.verb, { item: use.name });
-      failAction(state, result, agentId, attempt, `I no longer had any ${use.name}`);
-      return;
-    }
-    const used = { kind: "entity", entityId } as const;
-    startOrApproachVerb(context, agentId, used, request, action.targetName);
-    return;
-  }
-  const used = toUsedThing(use);
-  startOrApproachVerb(context, agentId, used, request, action.targetName);
-}
-
 function executeGiveAction(
   context: TickContext,
   agentId: string,
@@ -235,13 +178,11 @@ function executeAction(context: TickContext, agentId: string, action: PlannedAct
     case "walk_to":
       return executeWalk(context, agentId, action.target);
     case "interact":
-      return executeInteract(context, agentId, action);
+      return startOrApproachVerb(context, agentId, action.request);
     case "give":
       return executeGiveAction(context, agentId, action);
     case "wait":
       return startWait(context, agentId, action.minutes);
-    case "fail":
-      return failAction(context.state, context.result, agentId, action.attempt, action.reason);
     case "continue":
       return;
   }

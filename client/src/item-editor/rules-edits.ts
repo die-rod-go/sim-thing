@@ -4,14 +4,14 @@ import { removeAt, replaceAt } from "./list-edits";
 
 export type ParsedRuleText = { rule: Rule; error: null } | { rule: null; error: string };
 
-/** A rule that fires once a stimulus reaches anything with the first component, no effects yet. */
+/** A rule that fires once a stimulus reaches anything with the first component, no steps yet. */
 export function buildNewRule(file: ItemFile, stimuli: readonly string[]): Rule {
   const component = Object.keys(file.components)[0];
   return ruleSchema.parse({
     trigger: "stimulus",
     stimulus: stimuli[0] ?? clientConfig.itemEditor.newStimulusName,
     if: component === undefined ? { allOf: [] } : { has: component },
-    effects: [],
+    steps: [],
   });
 }
 
@@ -39,9 +39,9 @@ export function describeRuleTrigger(rule: Rule): string {
   }
 }
 
-/** The matcher and how many effects the rule has, in one line. */
+/** The matcher and how many steps the rule has, in one line. */
 export function summarizeRule(rule: Rule): string {
-  return `if ${JSON.stringify(rule.if)}: ${rule.effects.length} effects`;
+  return `if ${JSON.stringify(rule.if)}: ${rule.steps.length} steps`;
 }
 
 /** The rule as editable JSON text. */

@@ -8,9 +8,10 @@ import {
   viewThing,
   type ThingRef,
 } from "../items/things";
-import { applyEffect } from "./effects/effect-registry";
-import { describeRunCause, type EffectRun } from "./effects/effect-run";
 import type { RuleCause } from "./rule-cause";
+import { applyStep } from "./steps/step-registry";
+import { describeRunCause } from "./steps/step-roles";
+import type { StepRun } from "./steps/step-run";
 import type { TickContext } from "./tick-context";
 
 const logger = createLogger("rules");
@@ -66,17 +67,21 @@ function isUnchanged(context: TickContext, collected: CollectedRule): boolean {
 }
 
 export function runRule(context: TickContext, thing: ThingRef, rule: Rule, cause: RuleCause): void {
-  const effectRun: EffectRun = {
+  const run: StepRun = {
     context,
-    verb: null,
-    run: null,
-    text: "",
+    verbRun: null,
     self: thing,
     sourceAgentId: cause.sourceAgentId,
-    killed: cause.killed,
+    killedPhrase: cause.killed,
     depth: cause.depth,
+    isInPassing: false,
   };
-  for (const effect of rule.effects) applyEffect(effectRun, effect);
+  for (const step of rule.steps) {
+    const outcome = applyStep(run, step);
+    if (outcome.kind === "refused") {
+      logger.warn(`a ${rule.trigger} rule's ${step.step} step was refused: ${outcome.reason}`);
+    }
+  }
 }
 
 /** Runs rules that were all judged at one moment, skipping any whose thing an earlier one changed. */
@@ -103,10 +108,10 @@ function collect(context: TickContext, thing: ThingRef, rules: readonly Rule[]):
 /**
  * A stimulus reaches the receiver and sets off every matching `stimulus` rule, with the receiver as
  * `self`. All are judged against the receiver as it was when the stimulus arrived, in file order,
- * so one rule's effects can't stop or start another for the same stimulus.
+ * so one rule's steps can't stop or start another for the same stimulus.
  */
-export function sendStimulus(effectRun: EffectRun, receiver: ThingRef, stimulus: string): void {
-  const { context } = effectRun;
+export function sendStimulus(run: StepRun, receiver: ThingRef, stimulus: string): void {
+  const { context } = run;
   const indexed = context.state.items.rules.stimulusByName.get(stimulus) ?? [];
   const collected = collect(
     context,
@@ -114,7 +119,7 @@ export function sendStimulus(effectRun: EffectRun, receiver: ThingRef, stimulus:
     indexed.map((entry) => entry.rule),
   );
   if (collected.length === 0) return;
-  const parent = describeRunCause(effectRun);
+  const parent = describeRunCause(run);
   const depth = parent.depth + 1;
   if (!isWithinDepthCap(context, depth, receiver, `the ${stimulus} stimulus`)) return;
   runCollectedRules(context, collected, parent, depth);

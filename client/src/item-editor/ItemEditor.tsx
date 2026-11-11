@@ -54,7 +54,6 @@ function TabPanel({
           key={index}
           verb={verb}
           file={file}
-          stimuli={stimuli}
           problems={selectEntryProblems(problems, file, "verbs", index)}
           onChange={(changed) => onEdit(updateVerb(file, index, changed))}
         />

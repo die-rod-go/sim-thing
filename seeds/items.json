@@ -333,11 +333,11 @@
     {
       "name": "eat",
       "appliesTo": { "allOf": [{ "has": "food" }, { "where": "held" }] },
-      "minutes": 15,
-      "effects": [
-        { "type": "destroy", "on": "item", "when": "start" },
+      "steps": [
+        { "step": "destroy", "on": "item" },
+        { "step": "wait", "minutes": 15 },
         {
-          "type": "change_need",
+          "step": "change_need",
           "on": "user",
           "need": "hunger",
           "amount": { "from": "item.food.hunger" }
@@ -348,17 +348,17 @@
     {
       "name": "drink",
       "appliesTo": { "allOf": [{ "has": "drink" }, { "where": "held" }] },
-      "minutes": 15,
-      "effects": [
-        { "type": "destroy", "on": "item", "when": "start" },
+      "steps": [
+        { "step": "destroy", "on": "item" },
+        { "step": "wait", "minutes": 15 },
         {
-          "type": "change_need",
+          "step": "change_need",
           "on": "user",
           "need": "fun",
           "amount": { "from": "item.drink.fun" }
         },
         {
-          "type": "change_need",
+          "step": "change_need",
           "on": "user",
           "need": "energy",
           "amount": { "from": "item.drink.energy" }
@@ -373,12 +373,17 @@
     {
       "name": "harvest wheat",
       "appliesTo": { "definition": "wheat_field" },
-      "minutes": 60,
-      "loudness": 4,
-      "effects": [
-        { "type": "take_stock", "on": "item", "amount": 3, "when": "start" },
-        { "type": "produce", "on": "user", "item": "wheat", "count": 3, "into": "user" },
-        { "type": "change_need", "on": "user", "need": "energy", "amount": -0.1 }
+      "steps": [
+        {
+          "step": "check",
+          "on": "item",
+          "if": { "field": "stock.amount", "atLeast": 3 },
+          "otherwise": "the {item} is empty"
+        },
+        { "step": "change", "on": "item", "field": "stock.amount", "by": -3 },
+        { "step": "wait", "minutes": 60, "loudness": 4 },
+        { "step": "create", "item": "wheat", "count": 3, "into": "user" },
+        { "step": "change_need", "on": "user", "need": "energy", "amount": -0.1 }
       ],
       "phrases": {
         "ongoing": "harvesting wheat at the {item}",
@@ -389,12 +394,17 @@
     {
       "name": "chop wood",
       "appliesTo": { "definition": "trees" },
-      "minutes": 60,
-      "loudness": 15,
-      "effects": [
-        { "type": "take_stock", "on": "item", "amount": 2, "when": "start" },
-        { "type": "produce", "on": "user", "item": "wood", "count": 2, "into": "user" },
-        { "type": "change_need", "on": "user", "need": "energy", "amount": -0.15 }
+      "steps": [
+        {
+          "step": "check",
+          "on": "item",
+          "if": { "field": "stock.amount", "atLeast": 2 },
+          "otherwise": "the {item} is empty"
+        },
+        { "step": "change", "on": "item", "field": "stock.amount", "by": -2 },
+        { "step": "wait", "minutes": 60, "loudness": 15 },
+        { "step": "create", "item": "wood", "count": 2, "into": "user" },
+        { "step": "change_need", "on": "user", "need": "energy", "amount": -0.15 }
       ],
       "phrases": {
         "ongoing": "chopping wood at the {item}",
@@ -405,12 +415,12 @@
     {
       "name": "bake bread",
       "appliesTo": { "definition": "oven" },
-      "minutes": 90,
-      "loudness": 3,
-      "inputs": { "wheat": 2, "wood": 1 },
-      "effects": [
-        { "type": "produce", "on": "user", "item": "bread", "count": 4, "into": "user" },
-        { "type": "change_need", "on": "user", "need": "energy", "amount": -0.05 }
+      "steps": [
+        { "step": "use_up", "in": "user", "rule": { "definition": "wheat" }, "count": 2 },
+        { "step": "use_up", "in": "user", "rule": { "definition": "wood" }, "count": 1 },
+        { "step": "wait", "minutes": 90, "loudness": 3 },
+        { "step": "create", "item": "bread", "count": 4, "into": "user" },
+        { "step": "change_need", "on": "user", "need": "energy", "amount": -0.05 }
       ],
       "phrases": {
         "ongoing": "baking bread at the {item}",
@@ -421,12 +431,12 @@
     {
       "name": "brew ale",
       "appliesTo": { "definition": "brew_kettle" },
-      "minutes": 120,
-      "loudness": 3,
-      "inputs": { "wheat": 2, "wood": 1 },
-      "effects": [
-        { "type": "produce", "on": "user", "item": "ale", "count": 6, "into": "user" },
-        { "type": "change_need", "on": "user", "need": "energy", "amount": -0.05 }
+      "steps": [
+        { "step": "use_up", "in": "user", "rule": { "definition": "wheat" }, "count": 2 },
+        { "step": "use_up", "in": "user", "rule": { "definition": "wood" }, "count": 1 },
+        { "step": "wait", "minutes": 120, "loudness": 3 },
+        { "step": "create", "item": "ale", "count": 6, "into": "user" },
+        { "step": "change_need", "on": "user", "need": "energy", "amount": -0.05 }
       ],
       "phrases": {
         "ongoing": "brewing ale at the {item}",
@@ -437,10 +447,9 @@
     {
       "name": "play cards",
       "appliesTo": { "definition": "card_table" },
-      "minutes": 30,
-      "loudness": 6,
-      "effects": [
-        { "type": "change_need", "on": "user", "need": "fun", "amount": 0.2, "perOtherUser": 0.1 }
+      "steps": [
+        { "step": "wait", "minutes": 30, "loudness": 6 },
+        { "step": "change_need", "on": "user", "need": "fun", "amount": 0.2, "perOtherUser": 0.1 }
       ],
       "phrases": {
         "ongoing": "playing cards at the {item}",
@@ -451,8 +460,10 @@
     {
       "name": "sit",
       "appliesTo": { "definition": "bench" },
-      "minutes": 20,
-      "effects": [{ "type": "change_need", "on": "user", "need": "energy", "amount": 0.1 }],
+      "steps": [
+        { "step": "wait", "minutes": 20 },
+        { "step": "change_need", "on": "user", "need": "energy", "amount": 0.1 }
+      ],
       "phrases": {
         "ongoing": "sitting on the {item}",
         "done": "sat on the {item}",
@@ -462,8 +473,8 @@
     {
       "name": "sleep",
       "appliesTo": { "has": "bed" },
-      "minutes": null,
-      "effects": [{ "type": "sleep", "on": "item", "when": "start" }],
+      "takes": ["minutes"],
+      "steps": [{ "step": "sleep", "minutes": { "from": "choice.minutes" } }],
       "phrases": {
         "ongoing": "sleeping in the {item}",
         "done": "slept in the {item}",
@@ -472,9 +483,11 @@
     },
     {
       "name": "read",
-      "appliesTo": { "has": "notice_board" },
-      "minutes": 5,
-      "effects": [{ "type": "read_notes", "on": "item", "when": "start" }],
+      "appliesTo": { "anyOf": [{ "has": "writing" }, { "has": "notice_board" }] },
+      "steps": [
+        { "step": "wait", "minutes": 5 },
+        { "step": "read", "on": "item", "field": "writing.text", "author": "writing.author" }
+      ],
       "phrases": {
         "ongoing": "reading the {item}",
         "done": "read the {item}",
@@ -483,10 +496,22 @@
     },
     {
       "name": "post a note",
-      "appliesTo": { "has": "notice_board" },
-      "minutes": 5,
-      "takesText": true,
-      "effects": [{ "type": "post_note", "on": "item", "when": "start" }],
+      "appliesTo": { "allOf": [{ "has": "notice_board" }, { "has": "capacity" }] },
+      "takes": ["text"],
+      "steps": [
+        { "step": "wait", "minutes": 5 },
+        {
+          "step": "create",
+          "item": "note",
+          "count": 1,
+          "into": "item",
+          "limit": { "from": "item.capacity.max" },
+          "fields": {
+            "writing.text": { "from": "choice.text" },
+            "writing.author": { "from": "user.name" }
+          }
+        }
+      ],
       "phrases": {
         "ongoing": "posting a note on the {item}",
         "done": "posted a note",
@@ -496,11 +521,10 @@
     {
       "name": "open",
       "appliesTo": { "allOf": [{ "has": "door" }, { "has": "closed" }] },
-      "minutes": 1,
-      "loudness": 3,
       "isDoneInPassing": true,
-      "effects": [
-        { "type": "remove_condition", "on": "item", "condition": "closed", "when": "start" }
+      "steps": [
+        { "step": "remove", "on": "item", "component": "closed" },
+        { "step": "wait", "minutes": 1, "loudness": 3 }
       ],
       "phrases": {
         "ongoing": "opening the {item}",
@@ -511,10 +535,9 @@
     {
       "name": "close",
       "appliesTo": { "allOf": [{ "has": "door" }, { "not": { "has": "closed" } }] },
-      "minutes": 1,
-      "loudness": 3,
-      "effects": [
-        { "type": "add_condition", "on": "item", "condition": "closed", "when": "start" }
+      "steps": [
+        { "step": "add", "on": "item", "component": "closed" },
+        { "step": "wait", "minutes": 1, "loudness": 3 }
       ],
       "phrases": {
         "ongoing": "closing the {item}",
@@ -525,20 +548,27 @@
     {
       "name": "attack",
       "appliesTo": { "allOf": [{ "has": "weapon" }, { "where": "held" }] },
-      "target": "agent_or_entity",
-      "reach": 1,
-      "minutes": 1,
-      "loudness": 6,
-      "hitRoll": { "baseHitChance": { "from": "item.weapon.hitChance" } },
-      "effects": [
+      "target": {
+        "allOf": [{ "field": "health.current", "above": 0 }, { "not": { "where": "self" } }]
+      },
+      "steps": [
+        { "step": "wait", "minutes": 1, "loudness": 6 },
+        { "step": "roll_hit", "chance": { "from": "item.weapon.hitChance" } },
         {
-          "type": "damage",
+          "step": "damage",
           "on": "target",
+          "field": "health.current",
           "amount": { "from": "item.weapon.damage" },
-          "stimulus": { "from": "item.weapon.stimulus" },
           "scaledByStrength": true
         },
-        { "type": "wear", "on": "item", "amount": 0.02, "requiresHit": false }
+        { "step": "send", "on": "target", "stimulus": { "from": "item.weapon.stimulus" } },
+        {
+          "step": "damage",
+          "on": "item",
+          "field": "health.current",
+          "amount": 0.02,
+          "evenOnMiss": true
+        }
       ],
       "phrases": {
         "ongoing": "attacking {target} with a {item}",
@@ -550,25 +580,24 @@
     },
     {
       "name": "punch",
-      "target": "agent",
-      "reach": 1,
-      "minutes": 1,
-      "loudness": 4,
-      "hitRoll": { "baseHitChance": 0.8 },
-      "effects": [
+      "target": { "allOf": [{ "has": "alive" }, { "not": { "where": "self" } }] },
+      "steps": [
+        { "step": "wait", "minutes": 1, "loudness": 4 },
+        { "step": "roll_hit", "chance": 0.8 },
         {
-          "type": "damage",
+          "step": "damage",
           "on": "target",
+          "field": "health.current",
           "amount": { "min": 0.05, "max": 0.12 },
-          "stimulus": "impact",
           "scaledByStrength": true
         },
+        { "step": "send", "on": "target", "stimulus": "impact" },
         {
-          "type": "change_need",
+          "step": "change_need",
           "on": "user",
           "need": "energy",
           "amount": -0.01,
-          "requiresHit": false
+          "evenOnMiss": true
         }
       ],
       "phrases": {
@@ -582,14 +611,17 @@
     {
       "name": "use",
       "appliesTo": { "allOf": [{ "has": "healing" }, { "where": "held" }] },
-      "target": "agent",
-      "canTargetSelf": true,
-      "reach": 1,
-      "minutes": 5,
-      "effects": [
-        { "type": "heal", "on": "target", "amount": { "from": "item.healing.health" } },
-        { "type": "remove_condition", "on": "target", "condition": "bleeding" },
-        { "type": "destroy", "on": "item" }
+      "target": { "has": "alive" },
+      "steps": [
+        { "step": "wait", "minutes": 5 },
+        {
+          "step": "change",
+          "on": "target",
+          "field": "health.current",
+          "by": { "from": "item.healing.health" }
+        },
+        { "step": "remove", "on": "target", "component": "bleeding" },
+        { "step": "destroy", "on": "item" }
       ],
       "phrases": {
         "ongoing": "bandaging {target} with a {item}",
@@ -600,7 +632,8 @@
     {
       "name": "drop",
       "appliesTo": { "allOf": [{ "has": "holdable" }, { "where": "held" }] },
-      "effects": [{ "type": "move", "on": "chosen", "to": "ground" }],
+      "takes": ["amount"],
+      "steps": [{ "step": "move", "on": "item", "at": "user" }],
       "phrases": {
         "ongoing": "dropping {item}",
         "done": "dropped {item}",
@@ -610,30 +643,32 @@
     {
       "name": "pick up",
       "appliesTo": { "allOf": [{ "has": "holdable" }, { "where": "here" }] },
-      "effects": [{ "type": "move", "on": "item", "to": "user" }],
+      "takes": ["amount"],
+      "steps": [{ "step": "move", "on": "item", "into": "user" }],
       "phrases": {
         "ongoing": "picking up the {item}",
-        "done": "picked up the {item}",
+        "done": "picked up {item}",
         "attempt": "pick up the {item}"
       }
     },
     {
       "name": "throw",
       "appliesTo": { "allOf": [{ "has": "holdable" }, { "where": "held" }] },
-      "target": "agent_or_entity",
+      "target": { "not": { "where": "self" } },
       "reach": 6,
-      "minutes": 1,
-      "loudness": 4,
-      "hitRoll": { "baseHitChance": 0.6 },
-      "effects": [
+      "steps": [
+        { "step": "wait", "minutes": 1, "loudness": 4 },
+        { "step": "roll_hit", "chance": 0.6 },
         {
-          "type": "damage",
+          "step": "damage",
           "on": "target",
+          "field": "health.current",
           "amount": { "min": 0.02, "max": 0.05, "times": "item.holdable.kilograms" },
-          "stimulus": "impact",
           "scaledByStrength": true
         },
-        { "type": "move", "on": "item", "to": "target_tile", "requiresHit": false }
+        { "step": "send", "on": "target", "stimulus": "impact" },
+        { "step": "move", "on": "item", "at": "target", "evenOnMiss": true },
+        { "step": "send", "on": "item", "stimulus": "impact", "evenOnMiss": true }
       ],
       "phrases": {
         "ongoing": "throwing a {item} at {target}",
@@ -645,22 +680,65 @@
     },
     {
       "name": "put",
-      "appliesTo": { "has": "capacity" },
-      "effects": [{ "type": "move", "on": "chosen", "to": "item" }],
+      "appliesTo": { "allOf": [{ "has": "holdable" }, { "where": "held" }] },
+      "target": { "has": "capacity" },
+      "takes": ["amount"],
+      "steps": [
+        {
+          "step": "move",
+          "on": "item",
+          "into": "target",
+          "limit": { "from": "target.capacity.max" }
+        }
+      ],
       "phrases": {
-        "ongoing": "putting something in the {item}",
-        "done": "put something in the {item}",
-        "attempt": "put something in the {item}"
+        "ongoing": "putting {item} in {target}",
+        "done": "put {item} in {target}",
+        "attempt": "put {item} in {target}"
       }
     },
     {
       "name": "take",
-      "appliesTo": { "anyOf": [{ "has": "capacity" }, { "definition": "person" }] },
-      "effects": [{ "type": "move", "on": "chosen", "to": "user" }],
+      "appliesTo": { "allOf": [{ "has": "holdable" }, { "where": "inside" }] },
+      "takes": ["amount"],
+      "steps": [{ "step": "move", "on": "item", "into": "user" }],
       "phrases": {
-        "ongoing": "taking something from {item}",
-        "done": "took something from {item}",
-        "attempt": "take something from {item}"
+        "ongoing": "taking {item} from {from}",
+        "done": "took {item} from {from}",
+        "attempt": "take {item} from {from}"
+      }
+    },
+    {
+      "name": "shoot",
+      "appliesTo": {
+        "allOf": [
+          { "has": "capacity" },
+          { "has": "firearm" },
+          { "has": "holdable" },
+          { "has": "range" },
+          { "where": "held" }
+        ]
+      },
+      "target": { "field": "health.current", "above": 0 },
+      "reach": { "from": "item.range.tiles" },
+      "steps": [
+        { "step": "use_up", "in": "item", "rule": { "has": "ammo" }, "count": 1 },
+        { "step": "wait", "minutes": 1, "loudness": 30 },
+        { "step": "roll_hit", "chance": { "from": "item.firearm.hitChance" } },
+        {
+          "step": "damage",
+          "on": "target",
+          "field": "health.current",
+          "amount": { "from": "item.firearm.damage" }
+        },
+        { "step": "send", "on": "target", "stimulus": "cut" }
+      ],
+      "phrases": {
+        "ongoing": "shooting at {target} with a {item}",
+        "hit": "shot {target} with a {item}",
+        "missed": "shot at {target} and missed",
+        "killed": "shot dead by {actor}",
+        "attempt": "shoot {target} with a {item}"
       }
     }
   ],
@@ -669,75 +747,73 @@
       "trigger": "stimulus",
       "stimulus": "fire",
       "if": { "allOf": [{ "has": "flammable" }, { "not": { "has": "wet" } }] },
-      "effects": [{ "type": "add_condition", "condition": "burning", "minutes": 30 }]
+      "steps": [{ "step": "add", "component": "burning", "minutes": 30 }]
     },
     {
       "trigger": "stimulus",
       "stimulus": "fire",
       "if": { "has": "wet" },
-      "effects": [{ "type": "remove_condition", "condition": "wet" }]
+      "steps": [{ "step": "remove", "component": "wet" }]
     },
     {
       "trigger": "stimulus",
       "stimulus": "water",
       "if": { "has": "burning" },
-      "effects": [{ "type": "remove_condition", "condition": "burning" }]
+      "steps": [{ "step": "remove", "component": "burning" }]
     },
     {
       "trigger": "every",
       "minutes": 1,
       "if": { "has": "burning" },
-      "killed": "burned to death",
-      "effects": [
-        { "type": "damage", "amount": { "min": 0.01, "max": 0.01 } },
-        { "type": "emit", "on": "nearby", "radius": 1, "stimulus": "fire", "chance": 0.05 }
-      ]
+      "steps": [
+        { "step": "damage", "field": "health.current", "amount": 0.01 },
+        { "step": "send", "on": "nearby", "radius": 1, "stimulus": "fire", "chance": 0.05 }
+      ],
+      "killed": "burned to death"
     },
     {
       "trigger": "stimulus",
       "stimulus": "cut",
       "if": { "has": "flesh" },
-      "effects": [
-        { "type": "add_condition", "condition": "bleeding", "minutes": 20, "chance": 0.4 }
-      ]
+      "steps": [{ "step": "add", "component": "bleeding", "minutes": 20, "chance": 0.4 }]
     },
     {
       "trigger": "every",
       "minutes": 1,
       "if": { "has": "bleeding" },
-      "killed": "bled to death",
-      "effects": [{ "type": "damage", "amount": { "min": 0.01, "max": 0.01 } }]
+      "steps": [{ "step": "damage", "field": "health.current", "amount": 0.01 }],
+      "killed": "bled to death"
     },
     {
       "trigger": "every",
       "minutes": 1,
       "if": { "has": "poisoned" },
-      "killed": "died of poison",
-      "effects": [{ "type": "damage", "amount": { "min": 0.003, "max": 0.003 } }]
+      "steps": [{ "step": "damage", "field": "health.current", "amount": 0.003 }],
+      "killed": "died of poison"
     },
     {
       "trigger": "stimulus",
       "stimulus": "impact",
       "if": { "allOf": [{ "has": "fragile" }, { "has": "burning" }] },
-      "effects": [{ "type": "emit", "on": "nearby", "radius": 1, "stimulus": "fire" }]
+      "steps": [{ "step": "send", "on": "nearby", "radius": 1, "stimulus": "fire" }]
     },
     {
       "trigger": "stimulus",
       "stimulus": "impact",
       "if": { "has": "fragile" },
-      "effects": [{ "type": "set", "field": "health.current", "to": 0 }]
+      "steps": [{ "step": "set", "field": "health.current", "to": 0 }]
     },
     {
       "trigger": "becomes",
       "if": { "allOf": [{ "field": "health.current", "atMost": 0 }, { "has": "breaks_loudly" }] },
-      "effects": [{ "type": "make_sound", "loudness": { "from": "self.breaks_loudly.loudness" } }]
+      "steps": [{ "step": "sound", "loudness": { "from": "self.breaks_loudly.loudness" } }]
     },
     {
       "trigger": "becomes",
       "if": { "allOf": [{ "field": "health.current", "atMost": 0 }, { "has": "breaks_into" }] },
-      "effects": [
-        { "type": "announce", "text": "broke" },
-        { "type": "transform", "into": { "from": "self.breaks_into.item" } }
+      "steps": [
+        { "step": "announce", "text": "broke" },
+        { "step": "transform", "into": { "from": "self.breaks_into.item" } }
       ]
     },
     {
@@ -749,60 +825,60 @@
           { "not": { "definition": "person" } }
         ]
       },
-      "effects": [{ "type": "announce", "text": "broke" }, { "type": "destroy" }]
+      "steps": [{ "step": "announce", "text": "broke" }, { "step": "destroy" }]
     },
     {
       "trigger": "every",
       "minutes": 60,
       "if": { "has": "regrows" },
-      "effects": [
-        { "type": "change", "field": "stock.amount", "by": { "from": "self.regrows.perHour" } }
+      "steps": [
+        { "step": "change", "field": "stock.amount", "by": { "from": "self.regrows.perHour" } }
       ]
     },
     {
       "trigger": "becomes",
       "if": { "allOf": [{ "has": "alive" }, { "field": "health.current", "atMost": 0 }] },
-      "effects": [{ "type": "remove_condition", "condition": "alive" }]
+      "steps": [{ "step": "remove", "component": "alive" }]
     },
     {
       "trigger": "becomes",
       "if": { "has": "burning" },
-      "effects": [{ "type": "announce", "text": "caught fire" }]
+      "steps": [{ "step": "announce", "text": "caught fire" }]
     },
     {
       "trigger": "becomes",
       "if": { "not": { "has": "burning" } },
-      "effects": [{ "type": "announce", "text": "stopped burning" }]
+      "steps": [{ "step": "announce", "text": "stopped burning" }]
     },
     {
       "trigger": "becomes",
       "if": { "has": "bleeding" },
-      "effects": [{ "type": "announce", "text": "started bleeding" }]
+      "steps": [{ "step": "announce", "text": "started bleeding" }]
     },
     {
       "trigger": "becomes",
       "if": { "not": { "has": "bleeding" } },
-      "effects": [{ "type": "announce", "text": "stopped bleeding" }]
+      "steps": [{ "step": "announce", "text": "stopped bleeding" }]
     },
     {
       "trigger": "becomes",
       "if": { "has": "wet" },
-      "effects": [{ "type": "announce", "text": "got wet" }]
+      "steps": [{ "step": "announce", "text": "got wet" }]
     },
     {
       "trigger": "becomes",
       "if": { "not": { "has": "wet" } },
-      "effects": [{ "type": "announce", "text": "dried off" }]
+      "steps": [{ "step": "announce", "text": "dried off" }]
     },
     {
       "trigger": "becomes",
       "if": { "has": "poisoned" },
-      "effects": [{ "type": "announce", "text": "was poisoned", "isPrivate": true }]
+      "steps": [{ "step": "announce", "text": "was poisoned", "isPrivate": true }]
     },
     {
       "trigger": "becomes",
       "if": { "not": { "has": "poisoned" } },
-      "effects": [{ "type": "announce", "text": "got over the poison", "isPrivate": true }]
+      "steps": [{ "step": "announce", "text": "got over the poison", "isPrivate": true }]
     }
   ]
 }

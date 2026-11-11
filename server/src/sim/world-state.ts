@@ -9,6 +9,7 @@ import type { SeededWorld } from "../seeds";
 import type { ReflectionSchedule } from "../reflection/schedule";
 import type { WorldMap } from "../world/types";
 import { createAgentRuntime, type AgentRuntime, type SimRuntime } from "./agent-runtime";
+import { dropStaleVerbRuns } from "./stale-verb-runs";
 
 /** All mutable sim state. The sim loop is its only writer. */
 export interface WorldState {
@@ -191,10 +192,12 @@ export function restoreWorldState(
   const memoryStore = new MemoryStore();
   memoryStore.addAll(saved.memories);
   const runtime = saved.runtime;
+  const agentRuntimes = runtime?.agentRuntimes ?? createAgentRuntimes(saved.agents);
+  const agents = dropStaleVerbRuns(saved.agents, agentRuntimes, items);
   return {
     state: {
       tick: saved.tick,
-      agents: saved.agents.map(withLastThought),
+      agents: agents.map(withLastThought),
       entities: saved.entities,
       nextEntityId: saved.nextEntityId,
       items,
@@ -205,7 +208,7 @@ export function restoreWorldState(
       memoryStore,
       memoryIds: new MemoryIdGenerator(runtime?.memoryIdCounter ?? 0),
       conversationLog: runtime?.conversationLog ?? createConversationLog(),
-      agentRuntimes: runtime?.agentRuntimes ?? createAgentRuntimes(saved.agents),
+      agentRuntimes,
       lastForgettingTick: runtime?.lastForgettingTick ?? saved.tick,
       reflectionSchedules: runtime?.reflectionSchedules ?? {},
     },

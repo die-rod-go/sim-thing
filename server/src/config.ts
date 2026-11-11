@@ -68,9 +68,11 @@ export const config = {
     awarenessPromptWindowMinutes: 60,
     /** How an item on the ground reads in Here, indoors and out ("a knife (pick up; on the floor)"). */
     groundWords: { indoor: "on the floor", outdoor: "on the ground" },
-    /** How what a container or body holds reads, once within reach of a verb that takes from it. */
-    contentsWords: { holding: "holding {items}", empty: "empty" },
-    /** Sound fills cached per source tile, door state and reach; the cache clears when full. */
+    /** How what a thing holds reads, once the agent can see inside it. */
+    contentsWords: { holding: "holding {items}" },
+    /** An agent sees what is directly inside a thing within this many tiles of it. */
+    contentsReachTiles: 1,
+    /** Sound fills cached per source tile, muffling state and reach; the cache clears when full. */
     soundCacheMaxEntries: 512,
   },
 
@@ -217,8 +219,8 @@ export const config = {
     maxDepth: 8,
   },
 
-  effects: {
-    /** The event a `make_sound` effect makes; its subject is the thing or agent the sound comes from. */
+  steps: {
+    /** The event a `sound` step makes; its subject is the thing or agent the sound comes from. */
     soundDescription: "made a loud noise",
   },
 
@@ -318,24 +320,26 @@ export const config = {
     selfTargetWords: { others: "themselves", own: "myself" },
     /** How `{target}` reads in the target's own memory ("Tobias hit me"). */
     targetOwnWord: "me",
-    /** What a thrown thing receives where it lands, hit or miss. */
-    landingStimulus: "impact",
-    /**
-     * How moving things reads, by the event it makes. `{items}` is what moved ("2 bread"),
-     * `{holder}` the container or body, `{target}` what it was thrown at.
-     */
-    movePhrases: {
-      dropped: "dropped {items}",
-      picked_up: "picked up {items}",
-      put: "put {items} in {holder}",
-      took: "took {items} from {holder}",
-      threw: "threw {items} at {target}",
-    },
-    /** Why nothing can be taken from a living agent: only they can hand it over. */
-    livingHolderReason: "{name} is alive, and only they can hand over what they carry",
+    /** The longest `choice.text` a verb gets (a note's words); longer text is cut. */
+    maxTextChars: 200,
   },
 
-  noticeBoard: { notesShownOnRead: 5, maxNoteChars: 200 },
+  reading: {
+    /** A `read` step reads the newest this many things inside what is read (notes on a board). */
+    thingsShownOnRead: 5,
+    /**
+     * The `seen` memory of one text read. `{thing}` is what bore it ("note"), `{holder}` what that
+     * was inside, `{author}` who wrote it, when the step names an author field.
+     */
+    memories: {
+      withAuthorAndHolder: 'I read a {thing} from {author} on the {holder}: "{text}"',
+      withAuthor: 'I read a {thing} from {author}: "{text}"',
+      withHolder: 'I read a {thing} on the {holder}: "{text}"',
+      plain: 'I read a {thing}: "{text}"',
+    },
+    /** Remembered briefly when there was no text to read. */
+    nothingToRead: "There was nothing to read on the {thing}",
+  },
 
   memory: {
     maxMemoryChars: 200,
@@ -446,7 +450,10 @@ export const config = {
       omitVerbChance: 0.25,
       /** A carried item with this verb is eaten whenever the status line holds a hungry word. */
       eatVerb: "eat",
-      /** Verbs that move what `item` names, and where that comes from: carried, or inside the thing. */
+      /**
+       * Verbs that move what `item` names, and where that comes from: carried (into a holder
+       * here that offers `take`), or inside the holder named as `target`.
+       */
       itemChoosingVerbs: { put: "carried", take: "inside" } as Record<string, "carried" | "inside">,
       hungryWords: ["starving", "very hungry", "quite hungry"],
       waitMinutes: { min: 5, max: 30 },

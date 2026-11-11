@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { effectSchema, type ItemFile } from "@village/shared";
+import type { ItemFile } from "@village/shared";
 import { buildTestItemFile } from "../../../shared/src/items/test-item-file";
 import { renameComponentField, setComponentFieldType } from "./declaration-edits";
 import {
@@ -8,13 +8,13 @@ import {
   buildNewDefinition,
   duplicateDefinition,
 } from "./definition-edits";
-import { buildEffect, EFFECT_FIELD_SPECS, setEffectField } from "./effect-fields";
 import { describeItemPreview } from "./item-preview";
 import { createUniqueName, moveWithin } from "./list-edits";
 import { findDraftProblems, selectEntryProblems } from "./problems";
 import { changeMatcherKind } from "./rule-edits";
 import { listComponentUses } from "./usage";
-import { switchNumberValueMode, switchRangeValueMode } from "./value-modes";
+import { parseStepsText } from "./step-edits";
+import { switchNumberValueMode } from "./value-modes";
 import {
   buildVerbForDefinition,
   countOtherDefinitionsMatched,
@@ -61,16 +61,15 @@ describe("item editor edits", () => {
     expect(listReadablePaths(file, undefined, "number")).toEqual([]);
   });
 
-  it("keeps a literal when a number switches to a component read and back", () => {
-    const times = switchNumberValueMode(3, "times", "item.weight.kilograms");
-    expect(times).toEqual({ value: 3, times: "item.weight.kilograms" });
-    expect(switchNumberValueMode(times, "literal", "")).toBe(3);
-    expect(
-      switchRangeValueMode({ min: 1, max: 2 }, "from", {
-        rangePath: "item.weapon.damage",
-        numberPath: "",
-      }),
-    ).toEqual({ from: "item.weapon.damage" });
+  it("keeps a literal and a factor when a number switches between literal, read and roll", () => {
+    const read = switchNumberValueMode(
+      { min: 3, max: 4, times: "item.holdable.kilograms" },
+      "from",
+      "item.weapon.damage",
+    );
+    expect(read).toEqual({ from: "item.weapon.damage", times: "item.holdable.kilograms" });
+    expect(switchNumberValueMode(3, "roll", "")).toEqual({ min: 3, max: 3 });
+    expect(switchNumberValueMode({ min: 3, max: 4 }, "literal", "")).toBe(3);
   });
 
   it("gives a new item a unique id and no components", () => {
@@ -88,28 +87,22 @@ describe("item editor edits", () => {
     expect(findDefinition(retyped, "knife").components.holdable).toEqual({ grams: false });
   });
 
-  it("builds effects that pass the schema and drops a field set to undefined", () => {
-    const file = buildTestItemFile();
-    const damage = buildEffect("damage", "verb", file, ["cut"]);
-    expect(damage).toMatchObject({ type: "damage", on: "user", amount: { min: 0, max: 0 } });
-    expect(setEffectField(damage, "on", undefined)).not.toHaveProperty("on");
-    expect(buildEffect("emit", "rule", file, [])).not.toHaveProperty("on");
-  });
-
-  it("knows every field each effect type takes", () => {
-    const modifiers = ["type", "on", "chance", "when", "requiresHit", "radius"];
-    for (const option of effectSchema.options) {
-      const keys = Object.keys(option.shape).filter((key) => !modifiers.includes(key));
-      const type = option.shape.type.value;
-      expect(EFFECT_FIELD_SPECS[type].map((spec) => spec.key).sort()).toEqual(keys.sort());
-    }
+  it("applies valid steps text and rejects invalid text saying why", () => {
+    expect(parseStepsText('[{"step":"destroy","on":"item"}]').steps).toHaveLength(1);
+    const unknown = parseStepsText('[{"step":"explode"}]');
+    expect(unknown.steps).toBeNull();
+    expect(unknown.error).toContain("0");
+    expect(parseStepsText("[").steps).toBeNull();
   });
 
   it("lists every stimulus the file uses", () => {
     const file = buildTestItemFile({
-      rules: [{ trigger: "stimulus", stimulus: "fire", if: { has: "metal" }, effects: [] }],
+      rules: [{ trigger: "stimulus", stimulus: "fire", if: { has: "metal" }, steps: [] }],
+      verbs: [
+        { name: "light", steps: [{ step: "send", on: "target", stimulus: "heat" }], phrases: {} },
+      ],
     });
-    expect(listStimuli(file)).toEqual(["fire"]);
+    expect(listStimuli(file)).toEqual(["fire", "heat"]);
   });
 
   it("previews an item as a prompt lists it", () => {
@@ -121,7 +114,7 @@ describe("item editor edits", () => {
   it("finds where a component is used, including in a rule's matcher", () => {
     const file = buildTestItemFile({
       rules: [
-        { trigger: "stimulus", stimulus: "fire", if: { allOf: [{ has: "metal" }] }, effects: [] },
+        { trigger: "stimulus", stimulus: "fire", if: { allOf: [{ has: "metal" }] }, steps: [] },
       ],
     });
     expect(listComponentUses(file, "metal")).toEqual([

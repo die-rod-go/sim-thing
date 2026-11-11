@@ -2,33 +2,30 @@ import { describe, expect, it } from "vitest";
 import { addComponent } from "../items/thing-writes";
 import { readNumberField, type ThingRef } from "../items/things";
 import { getAgentRuntime } from "./agent-runtime";
-import { buildRuleRun, contextOf, memoryTexts } from "./combat-test-kit";
-import { applyEffect } from "./effects/effect-registry";
+import { contextOf, memoryTexts } from "./combat-test-kit";
+import { runRuleSteps } from "./steps/step-test-kit";
 import { OPEN_GROUND, TOBIAS, placeThing, setUpRules } from "./rule-test-kit";
 import type { TestSim } from "./test-sim";
-import type { Effect } from "@village/shared";
 
-/** Applies an effect as a rule fired on `self` would. */
-function applyOn(sim: TestSim, self: ThingRef, effect: unknown) {
-  const context = contextOf(sim);
-  applyEffect({ ...buildRuleRun(context, null), self }, effect as Effect);
-  return context;
+/** Applies a step as a rule fired on `self` would. */
+function applyOn(sim: TestSim, self: ThingRef, step: unknown) {
+  return runRuleSteps(sim, self, [step]);
 }
 
 describe("set", () => {
   it("writes a literal into a field, clamped to the field's bounds", () => {
     const sim = setUpRules();
     const bench = placeThing(sim, "bench", OPEN_GROUND);
-    applyOn(sim, bench, { type: "set", field: "health.current", to: 1 });
+    applyOn(sim, bench, { step: "set", field: "health.current", to: 1 });
     expect(readNumberField(sim.state, bench, "health.current")).toBe(1);
-    applyOn(sim, bench, { type: "set", field: "health.current", to: 99 });
+    applyOn(sim, bench, { step: "set", field: "health.current", to: 99 });
     expect(readNumberField(sim.state, bench, "health.current")).toBe(3);
   });
 
   it("skips a thing that lacks the component", () => {
     const sim = setUpRules();
     const field = placeThing(sim, "wheat_field", OPEN_GROUND);
-    const context = applyOn(sim, field, { type: "set", field: "health.current", to: 0 });
+    const context = applyOn(sim, field, { step: "set", field: "health.current", to: 0 });
     expect(context.result.changedEntityIds).toEqual([]);
   });
 });
@@ -37,9 +34,9 @@ describe("change", () => {
   it("adds a number read from the thing's own component to a field", () => {
     const sim = setUpRules();
     const field = placeThing(sim, "wheat_field", OPEN_GROUND);
-    applyOn(sim, field, { type: "set", field: "stock.amount", to: 1 });
+    applyOn(sim, field, { step: "set", field: "stock.amount", to: 1 });
     applyOn(sim, field, {
-      type: "change",
+      step: "change",
       field: "stock.amount",
       by: { from: "self.regrows.perHour" },
     });
@@ -49,9 +46,9 @@ describe("change", () => {
   it("skips a thing without the field and clamps to the field's maximum", () => {
     const sim = setUpRules();
     const bench = placeThing(sim, "bench", OPEN_GROUND);
-    const unchanged = applyOn(sim, bench, { type: "change", field: "stock.amount", by: 1 });
+    const unchanged = applyOn(sim, bench, { step: "change", field: "stock.amount", by: 1 });
     expect(unchanged.result.changedEntityIds).toEqual([]);
-    applyOn(sim, bench, { type: "change", field: "health.current", by: 10 });
+    applyOn(sim, bench, { step: "change", field: "health.current", by: 10 });
     expect(readNumberField(sim.state, bench, "health.current")).toBe(3);
   });
 });
@@ -60,7 +57,7 @@ describe("announce", () => {
   it("makes an event whose subject is the thing, seen by those nearby", () => {
     const sim = setUpRules();
     const bench = placeThing(sim, "bench", OPEN_GROUND);
-    const context = applyOn(sim, bench, { type: "announce", text: "creaked" });
+    const context = applyOn(sim, bench, { step: "announce", text: "creaked" });
     expect(context.result.events).toHaveLength(1);
     expect(context.result.events[0]).toMatchObject({
       kind: "announced",
@@ -71,7 +68,7 @@ describe("announce", () => {
 
   it("is a living agent's own event: others see it, and the agent gets an urgent decision", () => {
     const sim = setUpRules();
-    const context = applyOn(sim, TOBIAS, { type: "announce", text: "caught fire" });
+    const context = applyOn(sim, TOBIAS, { step: "announce", text: "caught fire" });
     expect(context.result.events[0]).toMatchObject({
       actorId: "tobias",
       description: "caught fire",
@@ -86,7 +83,7 @@ describe("announce", () => {
     const sim = setUpRules();
     const marasMemories = memoryTexts(sim, "mara");
     const context = applyOn(sim, TOBIAS, {
-      type: "announce",
+      step: "announce",
       text: "was poisoned",
       isPrivate: true,
     });
@@ -103,7 +100,7 @@ describe("announce", () => {
   it("says nothing for a private announcement on an entity or a dead body", () => {
     const sim = setUpRules();
     const bench = placeThing(sim, "bench", OPEN_GROUND);
-    const onBench = applyOn(sim, bench, { type: "announce", text: "hummed", isPrivate: true });
+    const onBench = applyOn(sim, bench, { step: "announce", text: "hummed", isPrivate: true });
     expect(onBench.result.events).toEqual([]);
     sim.state.agents = sim.state.agents.map((agent) =>
       agent.id === "tobias"
@@ -111,7 +108,7 @@ describe("announce", () => {
         : agent,
     );
     const workingMemory = sim.agent("tobias").workingMemory;
-    const onBody = applyOn(sim, TOBIAS, { type: "announce", text: "hummed", isPrivate: true });
+    const onBody = applyOn(sim, TOBIAS, { step: "announce", text: "hummed", isPrivate: true });
     expect(onBody.result.events).toEqual([]);
     expect(sim.agent("tobias").workingMemory).toEqual(workingMemory);
   });

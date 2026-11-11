@@ -1,9 +1,11 @@
+import type { ItemFile } from "./item-file";
+
 export type ItemProblemSeverity = "error" | "warning";
 
 /** One thing wrong with `items.json`. Errors stop the server; warnings are shown in the editor. */
 export interface ItemProblem {
   severity: ItemProblemSeverity;
-  /** Where in the file: "verbs.3 (eat).effects.0", "definitions.2 (oven).components.stock". */
+  /** Where in the file: "verbs.3 (eat).steps.0", "definitions.2 (jar).components.size". */
   path: string;
   message: string;
 }
@@ -11,12 +13,19 @@ export interface ItemProblem {
 /** A definition id used outside `items.json`: by a map object or a seed inventory. */
 export interface ItemReference {
   definitionId: string;
-  /** "map object bakery door", "seed agent mara's inventory". */
+  /** "map object tavern chest", "seed agent mara's inventory". */
   usedBy: string;
 }
 
 export interface ItemValidationOptions {
   references?: readonly ItemReference[];
+}
+
+/** What every check needs: the file, its definition ids and where to report. */
+export interface ValidationContext {
+  file: ItemFile;
+  definitionIds: ReadonlySet<string>;
+  problems: ProblemList;
 }
 
 export class ProblemList {

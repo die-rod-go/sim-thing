@@ -163,7 +163,7 @@ export function isNestedIn(world: EntityWorld, entity: Entity, holderId: ThingId
   return false;
 }
 
-/** "bakery door" for a labelled map object, otherwise the definition's name ("bread"). */
+/** "tavern chest" for a labelled map object, otherwise the definition's name ("bread"). */
 export function describeEntityName(world: EntityWorld, entity: Entity): string {
   return entity.label ?? getDefinition(world, entity).name;
 }

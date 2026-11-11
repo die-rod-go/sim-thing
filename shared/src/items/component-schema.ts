@@ -13,7 +13,7 @@ export const identifierSchema = z
 
 export const componentPathSchema = z
   .string()
-  .regex(COMPONENT_PATH_PATTERN, 'A component path looks like "health.current".');
+  .regex(COMPONENT_PATH_PATTERN, 'A component path looks like "component.field".');
 
 export interface ComponentPath {
   component: string;

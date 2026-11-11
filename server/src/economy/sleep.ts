@@ -21,7 +21,7 @@ export function findSleepBlocker(agent: Agent, napMinutes?: number): string | nu
 }
 
 /**
- * Puts the agent to sleep in a bed, as the `sleep` effect does. Without `napMinutes` the sleep
+ * Puts the agent to sleep, as the `sleep` step does. Without `napMinutes` the sleep
  * lasts until a wake reason (or a sound loud enough). The action keeps the verb's name.
  */
 export function startSleep(

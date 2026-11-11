@@ -32,7 +32,7 @@ function joinWithAnd(phrases: string[]): string {
  * Health, conditions and needs as words, never numbers. Pressing ones come first, lowest first,
  * each as its own sentence, so they can't get lost among the satisfied ones:
  * "You are exhausted: you can barely keep your eyes open and need to sleep now. Otherwise you
- * are hurt, bleeding, well fed, socially fulfilled and a bit bored."
+ * are hurt, well fed, socially fulfilled and a bit bored."
  */
 export function describeStatus(
   status: StatusView,

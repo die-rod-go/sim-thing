@@ -6,17 +6,18 @@ import {
   componentValuesSchema,
   identifierSchema,
 } from "./component-schema";
-import { effectSchema, numberValueSchema } from "./effect-schema";
+import { stepSchema } from "./step-schema";
+import { numberValueSchema } from "./value-schema";
 import { matcherSchema } from "./matcher-schema";
 
 /*
  * The shape of `seeds/items.json`: the world settings, component declarations, item definitions,
- * verbs and rules. Cross-references (unknown names, what a verb's or rule's numbers depend on,
- * overlapping verbs) are checked by `findItemFileProblems`.
+ * verbs and rules. Cross-references (unknown names, what a step reads or works on) are checked by `findItemFileProblems`.
  */
 
-export const VERB_TARGETS = ["none", "agent", "entity", "agent_or_entity"] as const;
-export type VerbTarget = (typeof VERB_TARGETS)[number];
+/** Extras of the decision a verb uses, read as `choice.<name>`. */
+export const VERB_TAKES = ["amount", "minutes", "text"] as const;
+export type VerbTake = (typeof VERB_TAKES)[number];
 
 const phrasesSchema = z.strictObject({
   ongoing: z.string().optional(),
@@ -30,29 +31,16 @@ export type VerbPhrases = z.infer<typeof phrasesSchema>;
 
 export const verbSchema = z.strictObject({
   name: z.string().trim().min(1),
-  /** The thing the verb is done with or to. Omitted for a bare-handed verb (`punch`). */
+  /** The entity the verb is done with or to: the `item`. Omitted for a bare-handed verb (`punch`). */
   appliesTo: matcherSchema.optional(),
-  target: z.enum(VERB_TARGETS).default("none"),
-  canTargetSelf: z.boolean().default(false),
+  /** What it is aimed at: the `target`. Omitted for a verb with no target. */
+  target: matcherSchema.optional(),
+  /** Tiles from the user to the item and to the target. */
   reach: numberValueSchema.default(1),
-  /** Null: it ends by its own rules (sleep). */
-  minutes: numberValueSchema.nullable().default(1),
-  /** Sound reach in tiles while it runs; null if silent. */
-  loudness: numberValueSchema.nullable().default(null),
-  takesText: z.boolean().default(false),
-  /** A walker blocked by an entity this verb applies to does it on the way through (a door). */
+  takes: z.array(z.enum(VERB_TAKES)).default([]),
+  /** A walker blocked by an entity this verb applies to does it on the way through. */
   isDoneInPassing: z.boolean().default(false),
-  /** Items used up from the user's inventory when it starts, by definition id. */
-  inputs: z.record(identifierSchema, z.number().int().positive()).default({}),
-  /** Held items needed but not used up: every listed definition, and something with each component. */
-  tools: z
-    .strictObject({
-      definitions: z.array(identifierSchema).default([]),
-      components: z.array(identifierSchema).default([]),
-    })
-    .optional(),
-  hitRoll: z.strictObject({ baseHitChance: numberValueSchema }).optional(),
-  effects: z.array(effectSchema),
+  steps: z.array(stepSchema),
   phrases: phrasesSchema.default({}),
 });
 export type Verb = z.infer<typeof verbSchema>;
@@ -60,13 +48,13 @@ export type Verb = z.infer<typeof verbSchema>;
 const ruleParts = {
   /** Which things the rule fires on. */
   if: matcherSchema,
-  effects: z.array(effectSchema),
+  steps: z.array(stepSchema),
   /** How a death from this rule's damage reads ("burned to death"). */
   killed: z.string().trim().min(1).optional(),
 };
 
 /**
- * Effects on a trigger other than an agent's choice: every few sim-minutes on each matching thing,
+ * Steps on a trigger other than an agent's choice: every few sim-minutes on each matching thing,
  * when a stimulus reaches a matching thing, or the moment a thing starts matching.
  */
 export const ruleSchema = z.discriminatedUnion("trigger", [
@@ -81,7 +69,6 @@ export const ruleSchema = z.discriminatedUnion("trigger", [
 export type Rule = z.infer<typeof ruleSchema>;
 export type RuleTrigger = Rule["trigger"];
 export type RuleOfTrigger<Trigger extends RuleTrigger> = Extract<Rule, { trigger: Trigger }>;
-
 export const itemDefinitionSchema = z.strictObject({
   id: identifierSchema,
   name: z.string().trim().min(1),

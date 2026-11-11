@@ -3,7 +3,7 @@ import { config } from "../config";
 import { findEntityIfPresent } from "../items/entity-store";
 import { addComponent } from "../items/thing-writes";
 import { readThingChanges, type ThingRef } from "../items/things";
-import { contextOf, extendItems, setAgentHealth, stimulate } from "./combat-test-kit";
+import { contextOf, extendItems, setAgentHealth } from "./combat-test-kit";
 import {
   ALWAYS,
   NEXT_TO_OPEN_GROUND,
@@ -14,6 +14,7 @@ import {
   placeThing,
   setUpRules,
 } from "./rule-test-kit";
+import { stimulate } from "./steps/step-test-kit";
 import type { TestSim } from "./test-sim";
 
 function definitionOf(sim: TestSim, thing: ThingRef): string | undefined {
@@ -66,7 +67,7 @@ describe("stimulus rules", () => {
     expect(
       context.result.events.map((event) => [event.kind, event.description, event.loudness]),
     ).toEqual([
-      ["sound", config.effects.soundDescription, 10],
+      ["sound", config.steps.soundDescription, 10],
       ["announced", "broke", null],
     ]);
     expect(context.result.events[1]?.actorName).toBe("the jar");
@@ -80,13 +81,13 @@ describe("stimulus rules", () => {
           trigger: "stimulus",
           stimulus: "poke",
           if: { allOf: [{ has: "flesh" }, { not: { has: "poisoned" } }] },
-          effects: [{ type: "add_condition", condition: "poisoned" }],
+          steps: [{ step: "add", component: "poisoned" }],
         },
         {
           trigger: "stimulus",
           stimulus: "poke",
           if: { has: "poisoned" },
-          effects: [{ type: "add_condition", condition: "wet" }],
+          steps: [{ step: "add", component: "wet" }],
         },
       ],
     });
@@ -103,13 +104,13 @@ describe("stimulus rules", () => {
           trigger: "stimulus",
           stimulus: "poke",
           if: { has: "poisoned" },
-          effects: [{ type: "remove_condition", condition: "poisoned" }],
+          steps: [{ step: "remove", component: "poisoned" }],
         },
         {
           trigger: "stimulus",
           stimulus: "poke",
           if: { has: "poisoned" },
-          effects: [{ type: "add_condition", condition: "wet" }],
+          steps: [{ step: "add", component: "wet" }],
         },
       ],
     });
@@ -127,13 +128,13 @@ describe("stimulus rules", () => {
           trigger: "stimulus",
           stimulus: "smash",
           if: { has: "flammable" },
-          effects: [{ type: "destroy" }],
+          steps: [{ step: "destroy" }],
         },
         {
           trigger: "stimulus",
           stimulus: "smash",
           if: { has: "flammable" },
-          effects: [{ type: "add_condition", condition: "burning" }],
+          steps: [{ step: "add", component: "burning" }],
         },
       ],
     });
@@ -151,13 +152,13 @@ describe("stimulus rules", () => {
           trigger: "stimulus",
           stimulus: "smash",
           if: { has: "flammable" },
-          effects: [{ type: "transform", into: "shards" }],
+          steps: [{ step: "transform", into: "shards" }],
         },
         {
           trigger: "stimulus",
           stimulus: "smash",
           if: { has: "flammable" },
-          effects: [{ type: "add_condition", condition: "wet" }],
+          steps: [{ step: "add", component: "wet" }],
         },
       ],
     });
@@ -196,7 +197,7 @@ describe("stimulus rules", () => {
           trigger: "stimulus",
           stimulus: "echo",
           if: { has: "flesh" },
-          effects: [{ type: "emit", stimulus: "echo" }],
+          steps: [{ step: "send", stimulus: "echo" }],
         },
       ],
     });

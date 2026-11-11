@@ -85,7 +85,7 @@ export interface Agent {
   starvingSinceTick: number | null;
   /**
    * Where the agent's body differs from the `agentBody` definition: its health, and components
-   * added while the sim runs (bleeding, burning).
+   * added while the sim runs (conditions).
    */
   bodyChanges: ComponentChanges;
   /** Null while alive. */
@@ -169,18 +169,12 @@ export type WorldEventKind =
   | "action_finished"
   | "action_failed"
   | "gave"
-  | "posted_note"
   | "fell_asleep"
   | "woke"
   | "died"
   | "attacked"
   | "missed"
   | "hurt"
-  | "dropped"
-  | "picked_up"
-  | "threw"
-  | "put"
-  | "took"
   | "announced"
   | "sound";
 
@@ -211,7 +205,7 @@ export interface WorldEvent {
   actorDescription?: string;
   /** The description as the target agent files it ("hit me with a knife"). */
   targetDescription?: string;
-  /** The actor is a thing ("the door", "Mara's body"), not an agent who acts or remembers. */
+  /** The actor is a thing ("the chest", "Mara's body"), not an agent who acts or remembers. */
   isActorThing?: boolean;
 }
 

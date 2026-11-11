@@ -153,7 +153,7 @@ export function buildDecisionContext(
       whisperHearerIds: listeners.wouldHearWhisper,
     },
     belongings: buildBelongings(state, agent),
-    itemlessVerbs: listItemlessVerbNames(state, agent),
+    itemlessVerbs: listItemlessVerbNames(state),
     workingMemory: agent.workingMemory,
     conversation: conversation.map((line) => ({
       speakerName: line.speakerName,

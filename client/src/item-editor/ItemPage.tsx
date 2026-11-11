@@ -13,13 +13,11 @@ export function ItemPage({
   file,
   definitionIndex,
   problems,
-  stimuli,
   onEdit,
 }: {
   file: ItemFile;
   definitionIndex: number;
   problems: readonly ItemProblem[];
-  stimuli: readonly string[];
   onEdit: (file: ItemFile) => void;
 }) {
   const definition = file.definitions[definitionIndex];
@@ -64,7 +62,6 @@ export function ItemPage({
           key={definitionIndex}
           definition={definition}
           file={file}
-          stimuli={stimuli}
           problems={problems}
           onEdit={onEdit}
         />

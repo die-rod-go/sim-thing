@@ -1,5 +1,6 @@
-import { listMentionedComponents, listVerbReads, type ItemFile } from "@village/shared";
+import { listMentionedComponents, type ItemFile } from "@village/shared";
 import { describeRuleTrigger } from "./rules-edits";
+import { listStepComponents } from "./step-edits";
 
 /** Everything that uses a component: items that have it, verbs that name, read or need it, rules. */
 export function listComponentUses(file: ItemFile, component: string): string[] {
@@ -12,12 +13,16 @@ export function listComponentUses(file: ItemFile, component: string): string[] {
         (verb) =>
           (verb.appliesTo !== undefined &&
             listMentionedComponents(verb.appliesTo).includes(component)) ||
-          (verb.tools?.components ?? []).includes(component) ||
-          listVerbReads(verb).some((read) => read.component === component),
+          (verb.target !== undefined && listMentionedComponents(verb.target).includes(component)) ||
+          verb.steps.some((step) => listStepComponents(step).includes(component)),
       )
       .map((verb) => `verb ${verb.name}`),
     ...file.rules
-      .filter((rule) => listMentionedComponents(rule.if).includes(component))
+      .filter(
+        (rule) =>
+          listMentionedComponents(rule.if).includes(component) ||
+          rule.steps.some((step) => listStepComponents(step).includes(component)),
+      )
       .map((rule) => `rule ${describeRuleTrigger(rule)}`),
   ];
 }

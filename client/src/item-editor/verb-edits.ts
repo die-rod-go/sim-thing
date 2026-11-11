@@ -1,13 +1,11 @@
 import {
   describeThingView,
-  listAllEffects,
   listAllVerbViews,
   listDefinitionViews,
   listGuaranteedComponents,
   matchesAppliesTo,
   matchesThing,
   verbSchema,
-  type Effect,
   type FieldType,
   type ItemDefinition,
   type ItemFile,
@@ -15,6 +13,7 @@ import {
   type Verb,
 } from "@village/shared";
 import { clientConfig } from "../client-config";
+import { listAllSteps, listStepStimuli } from "./step-edits";
 import { createUniqueName, removeAt, replaceAt } from "./list-edits";
 
 /** Whether the verb applies to the definition anywhere it can be (held, here, inside). */
@@ -58,12 +57,12 @@ export function buildVerbForDefinition(file: ItemFile, definition: ItemDefinitio
   const appliesTo: Matcher = isHoldable
     ? { allOf: [{ definition: definition.id }, { where: "held" }] }
     : { definition: definition.id };
-  return verbSchema.parse({ name: createNewVerbName(file), appliesTo, effects: [] });
+  return verbSchema.parse({ name: createNewVerbName(file), appliesTo, steps: [] });
 }
 
 /** A bare-handed verb, ready to be given an `appliesTo` in the Verbs tab. */
 export function buildNewVerb(file: ItemFile): Verb {
-  return verbSchema.parse({ name: createNewVerbName(file), effects: [] });
+  return verbSchema.parse({ name: createNewVerbName(file), steps: [] });
 }
 
 function createNewVerbName(file: ItemFile): string {
@@ -106,15 +105,10 @@ export function listReadablePaths(
   );
 }
 
-function listEffectStimuli(effect: Effect): string[] {
-  if (effect.type !== "damage" && effect.type !== "emit") return [];
-  return typeof effect.stimulus === "string" ? [effect.stimulus] : [];
-}
-
-/** Every stimulus the file emits or reacts to, sorted, for stimulus pickers. */
+/** Every stimulus the file sends or reacts to, sorted, for stimulus pickers. */
 export function listStimuli(file: ItemFile): string[] {
   const stimuli = new Set([
-    ...listAllEffects(file).flatMap(listEffectStimuli),
+    ...listAllSteps(file).flatMap(listStepStimuli),
     ...file.rules.flatMap((rule) => (rule.trigger === "stimulus" ? [rule.stimulus] : [])),
   ]);
   stimuli.delete("");

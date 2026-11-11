@@ -23,10 +23,10 @@ export interface ValidItem {
  * each lists the verbs it offers.
  */
 export interface PromptEntityGroup {
-  /** "3 bread", "a knife", "bakery door". */
+  /** "3 bread", "a knife", "tavern chest". */
   text: string;
   verbs: string[];
-  /** What can be seen of its state, e.g. "empty" or "closed"; null when nothing shows. */
+  /** What can be seen of its state, the words of its visible components; null when nothing shows. */
   condition: string | null;
 }
 
@@ -45,7 +45,7 @@ export interface AwarenessEntry {
   healthAsSeen: string | null;
   /** What they carry that shows ("a knife"), when they're in sight. */
   visibleCarried: string[];
-  /** Their visible conditions' words ("bleeding", "on fire"), when they're in sight. */
+  /** The words of their visible conditions, when they're in sight. */
   visibleConditions: string[];
 }
 
@@ -83,7 +83,7 @@ export interface DecisionContext {
   mood: string;
   needs: Needs;
   health: number;
-  /** Words for every condition the agent has ("bleeding", "poisoned"). */
+  /** Words for every condition the agent has. */
   conditionWords: string[];
   body: AgentBody;
   goals: Goal[];

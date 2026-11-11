@@ -71,19 +71,19 @@ describe("where things can be met", () => {
   });
 });
 
-describe("components that effects add", () => {
+describe("components that steps add", () => {
   const withCondition = buildTestItemFile({
     components: { ...file.components, burning: {} },
     verbs: [
       {
         name: "light",
         appliesTo: { has: "holdable" },
-        effects: [{ type: "add_condition", on: "item", condition: "burning" }],
+        steps: [{ step: "add", on: "item", component: "burning" }],
       },
     ],
   });
 
-  it("lists the components add_condition effects name", () => {
+  it("lists the components add steps name", () => {
     expect(listAddableComponents(withCondition)).toEqual(["burning"]);
     expect(listAddableComponents(file)).toEqual([]);
   });
