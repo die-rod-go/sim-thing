@@ -9,8 +9,8 @@ export function toCssColor(color: number): string {
 }
 
 /**
- * CSS colors per agent id. The village scene colors markers in snapshot order, so indexing the
- * same agent list gives each agent the same color in the panel as on the map.
+ * CSS colors per agent id. The village view colors markers from this same map, so each agent has
+ * the same color in the panel as on the map.
  */
 export function buildAgentColors(agents: Agent[]): Map<string, string> {
   return new Map(

@@ -29,11 +29,11 @@ The sim loop is the only writer of world state; the browser never calls the LLM 
 | Server    | Node or Bun + `ws`                            | No web framework needed                                                                    |
 | Storage   | SQLite (`better-sqlite3` or `bun:sqlite`)     | Agents, memories, event log; leave room for `sqlite-vec` later                             |
 | LLM       | OpenAI-compatible client                      | Base URL, model and key from `.env`; works with OpenRouter or Ollama; use JSON output mode |
-| Rendering | Phaser 4 (latest)                             | Tilemap, sprites, speech bubbles, camera                                                   |
-| UI panels | React via Vite                                | Inspector and controls beside the Phaser canvas                                            |
+| Rendering | Canvas 2D + DOM (no game engine)              | Tiles drawn once to a canvas; agents, speech bubbles and overlays as DOM/SVG above it      |
+| UI panels | React via Vite                                | Inspector and controls beside the village view                                             |
 | Map       | Tiled JSON + a free CC0 tileset (e.g. Kenney) | Object layer defines interactables                                                         |
 
-Suggested layout: `server/` (sim loop, world, agents, memory, llm, db, ws), `server/prompts/` (plain-text prompt templates for decision, interact, morning, night and weekly calls, so prompts can be tuned without code changes), `client/` (Phaser scene, React panels), `shared/` (types and WebSocket message definitions), `maps/` (Tiled files), `seeds/` (agent seed file).
+Suggested layout: `server/` (sim loop, world, agents, memory, llm, db, ws), `server/prompts/` (plain-text prompt templates for decision, interact, morning, night and weekly calls, so prompts can be tuned without code changes), `client/` (village view, React panels), `shared/` (types and WebSocket message definitions), `maps/` (Tiled files), `seeds/` (agent seed file).
 
 WebSocket messages: the server pushes small events (`agent_moved`, `said`, `interacted`, `state_changed`, `tick`, `paused`); the client sends controls (`pause`, `resume`, `step`, `set_speed`, `inspect_agent`, `update_settings`, `reset`). The server also sends a full `snapshot` on connect and after reset, `settings` when speed or budget change, `event_logged` for the event feed, and `agent_detail` (agent, memories, last 20 LLM calls, personality history) in reply to `inspect_agent` and whenever the inspected agent changes. All message types live in `shared/src/messages.ts`.
 
@@ -344,7 +344,7 @@ Wanting to change does nothing by itself: the prompt must ask the agent to base 
 
 ## Frontend UI
 
-The page is the Phaser village on the left and a React side panel on the right; the prompt viewer is the most important screen.
+The page is the village view on the left and a React side panel on the right; the prompt viewer is the most important screen.
 
 - **Village view:** the tile map, agent sprites with name labels, smooth movement between tiles, and speech bubbles for each line spoken (fade after a few seconds). Clicking an agent selects it. A debug toggle shades the selected agent's line of sight and the reach of its normal speech.
 - **Top bar:** sim day and time, pause/resume, step one tick, speed (1x, 4x, 16x), count of in-flight LLM calls, total tokens used today.
@@ -357,7 +357,7 @@ The page is the Phaser village on the left and a React side panel on the right; 
 
 Build in five milestones; each ends with something visible running in the browser.
 
-1. **World skeleton:** server tick loop, generated map loaded, agents walking random paths, WebSocket streaming to Phaser, pause/step/speed working. No LLM.
+1. **World skeleton:** server tick loop, generated map loaded, agents walking random paths, WebSocket streaming to the village view, pause/step/speed working. No LLM.
 2. **LLM decisions:** sight-based perception, action menu, JSON decisions, `walk_to`, `interact` (two-step), `wait`, needs decay and effects, inventory, coins, recipes, give, notice board, prompt viewer.
 3. **Memory:** buckets, broadcast filing, recall scoring with association pass, fading with recall bumps, memory tab.
 4. **Talking:** `say` with the sound simulation, doors, awareness and the "Around you" section, conversation participation, `overheard`, `note`, `recall`, speech bubbles.

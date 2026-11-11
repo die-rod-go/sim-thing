@@ -23,7 +23,7 @@ finished task without waiting to be asked: one commit per task, with a short imp
 
 - `server/` simulation loop, world, agents, memory, LLM client, database, WebSocket server
 - `server/prompts/` prompt templates (plain text)
-- `client/` Phaser village view and React panels
+- `client/` village view (canvas tiles, DOM agents and bubbles) and React panels
 - `shared/` types and WebSocket message definitions used by both sides
 - `seeds/` agent seed file
 - `maps/` Tiled map files

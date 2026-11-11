@@ -3,7 +3,7 @@ import {
   computeFitZoom,
   computeRegionOutlineEdges,
   pickAgentColor,
-  summarizeTiledMap,
+  tileCenter,
   tileIndexToPosition,
 } from "./village-geometry";
 
@@ -13,6 +13,10 @@ describe("villageGeometry", () => {
   it("converts tile indexes using y * width + x", () => {
     expect(tileIndexToPosition(0, MAP_WIDTH)).toEqual({ x: 0, y: 0 });
     expect(tileIndexToPosition(2 * MAP_WIDTH + 5, MAP_WIDTH)).toEqual({ x: 5, y: 2 });
+  });
+
+  it("centers a position in its tile", () => {
+    expect(tileCenter({ x: 2, y: 1 }, 16)).toEqual({ x: 40, y: 24 });
   });
 
   it("outlines a single tile with four edges", () => {
@@ -36,26 +40,5 @@ describe("villageGeometry", () => {
 
   it("gives neighboring agents different colors", () => {
     expect(pickAgentColor(0)).not.toBe(pickAgentColor(1));
-  });
-
-  it("summarizes a valid map and names missing layers", () => {
-    const map = {
-      width: 40,
-      height: 30,
-      tilewidth: 16,
-      layers: [
-        { type: "tilelayer", name: "ground" },
-        { type: "objectgroup", name: "objects" },
-      ],
-      tilesets: [{ name: "kenney", image: "tileset.png" }],
-    };
-    expect(() => summarizeTiledMap(map, ["ground", "walls"])).toThrow(/walls/);
-    const summary = summarizeTiledMap(map, ["ground"]);
-    expect(summary.tilesetName).toBe("kenney");
-    expect(summary.tileLayerNames).toEqual(["ground"]);
-  });
-
-  it("rejects a map file that is not JSON map data", () => {
-    expect(() => summarizeTiledMap("<html>", ["ground"])).toThrow(/missing/);
   });
 });

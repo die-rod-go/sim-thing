@@ -5,6 +5,11 @@ export interface TileEdge {
   to: Position;
 }
 
+/** The pixel center of a tile, in unscaled map pixels. */
+export function tileCenter(position: Position, tileSize: number): Position {
+  return { x: position.x * tileSize + tileSize / 2, y: position.y * tileSize + tileSize / 2 };
+}
+
 export function tileIndexToPosition(index: number, mapWidth: number): Position {
   return { x: index % mapWidth, y: Math.floor(index / mapWidth) };
 }
@@ -56,45 +61,4 @@ const AGENT_PALETTE = [
 
 export function pickAgentColor(agentIndex: number): number {
   return AGENT_PALETTE[agentIndex % AGENT_PALETTE.length] ?? AGENT_PALETTE[0] ?? 0xffffff;
-}
-
-export interface TiledMapSummary {
-  width: number;
-  height: number;
-  tileWidth: number;
-  tilesetName: string;
-  tileLayerNames: string[];
-}
-
-function isRecord(value: unknown): value is Record<string, unknown> {
-  return typeof value === "object" && value !== null;
-}
-
-/** Checks the loaded map JSON has what the village view needs; throws a readable error if not. */
-export function summarizeTiledMap(
-  data: unknown,
-  requiredLayers: readonly string[],
-): TiledMapSummary {
-  if (!isRecord(data)) throw new Error("Map file is not a JSON object (is village.json missing?)");
-  const { width, height, tilewidth: tileWidth, layers, tilesets } = data;
-  if (typeof width !== "number" || typeof height !== "number" || typeof tileWidth !== "number") {
-    throw new Error("Map file has no width, height or tilewidth");
-  }
-  if (!Array.isArray(layers) || !Array.isArray(tilesets)) {
-    throw new Error("Map file has no layers or tilesets");
-  }
-  const firstTileset: unknown = tilesets[0];
-  if (!isRecord(firstTileset) || typeof firstTileset.name !== "string") {
-    throw new Error("Map file has no embedded tileset");
-  }
-  const tileLayerNames = layers
-    .filter(
-      (layer): layer is Record<string, unknown> => isRecord(layer) && layer.type === "tilelayer",
-    )
-    .map((layer) => String(layer.name));
-  const missingLayers = requiredLayers.filter((layerName) => !tileLayerNames.includes(layerName));
-  if (missingLayers.length > 0) {
-    throw new Error(`Map file is missing tile layers: ${missingLayers.join(", ")}`);
-  }
-  return { width, height, tileWidth, tilesetName: firstTileset.name, tileLayerNames };
 }

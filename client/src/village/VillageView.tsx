@@ -1,40 +1,89 @@
-import { useEffect, useRef, useState } from "react";
-import * as Phaser from "phaser";
-import type { MapStatus, SceneBridge } from "./scene-bridge";
-import { VillageScene } from "./village-scene";
+import { useEffect, useRef, useState, type RefObject } from "react";
+import { clientConfig } from "../client-config";
+import { computeTickDurationMs } from "../format/formatters";
+import type { ClientState } from "../state/client-state";
+import { useVillageMap } from "./use-village-map";
+import { computeFitZoom } from "./village-geometry";
+import { VillageWorld } from "./VillageWorld";
 
-const CANVAS_BACKGROUND = "#14161c";
-
-interface VillageViewProps {
-  bridge: SceneBridge;
+interface ViewSize {
+  width: number;
+  height: number;
 }
 
-/** Hosts the Phaser game; it is created once per bridge and never re-created on re-render. */
-export function VillageView({ bridge }: VillageViewProps) {
-  const containerRef = useRef<HTMLDivElement>(null);
-  const [mapStatus, setMapStatus] = useState<MapStatus>({ kind: "loading" });
+interface VillageViewProps {
+  state: ClientState;
+  isDebugOverlayOn: boolean;
+  onSelectAgent: (agentId: string) => void;
+}
 
-  useEffect(() => bridge.on("mapStatusChanged", setMapStatus), [bridge]);
-
+function useElementSize(elementRef: RefObject<HTMLElement | null>): ViewSize {
+  const [size, setSize] = useState<ViewSize>({ width: 0, height: 0 });
   useEffect(() => {
-    const parent = containerRef.current;
-    if (!parent) return;
-    const game = new Phaser.Game({
-      type: Phaser.AUTO,
-      parent,
-      backgroundColor: CANVAS_BACKGROUND,
-      pixelArt: true,
-      // Phaser 4 defaults roundPixels to false; pixel art needs it to stay crisp.
-      roundPixels: true,
-      scale: { mode: Phaser.Scale.RESIZE, width: parent.clientWidth, height: parent.clientHeight },
-      scene: new VillageScene(bridge),
+    const element = elementRef.current;
+    if (!element) return;
+    const observer = new ResizeObserver(() => {
+      setSize({ width: element.clientWidth, height: element.clientHeight });
     });
-    return () => game.destroy(true);
-  }, [bridge]);
+    observer.observe(element);
+    return () => observer.disconnect();
+  }, [elementRef]);
+  return size;
+}
+
+function selectPerceptionView(state: ClientState, isDebugOverlayOn: boolean) {
+  const detail = state.agentDetail;
+  if (!isDebugOverlayOn || !detail || detail.agentId !== state.inspectedAgentId) return null;
+  return detail.perceptionView;
+}
+
+/** The village map scaled to fit its panel; renders only what the client state says. */
+export function VillageView({ state, isDebugOverlayOn, onSelectAgent }: VillageViewProps) {
+  const containerRef = useRef<HTMLDivElement>(null);
+  const viewSize = useElementSize(containerRef);
+  const mapStatus = useVillageMap();
+  const moveDurationMs = computeTickDurationMs(
+    state.baseTicksPerSecond,
+    state.clock.speed,
+    clientConfig.village.maxMoveTweenMs,
+  );
+
+  let world = null;
+  if (mapStatus.kind === "ready") {
+    const { map } = mapStatus;
+    const mapPixelWidth = map.width * map.tileWidth;
+    const mapPixelHeight = map.height * map.tileHeight;
+    const zoom = computeFitZoom(viewSize.width, viewSize.height, mapPixelWidth, mapPixelHeight);
+    const offsetX = (viewSize.width - mapPixelWidth * zoom) / 2;
+    const offsetY = (viewSize.height - mapPixelHeight * zoom) / 2;
+    world = (
+      <div
+        className="village-world"
+        style={{
+          width: mapPixelWidth,
+          height: mapPixelHeight,
+          transform: `translate(${offsetX}px, ${offsetY}px) scale(${zoom})`,
+        }}
+      >
+        <VillageWorld
+          map={map}
+          tilesetImage={mapStatus.tilesetImage}
+          agents={state.agents}
+          speechBubbles={state.speechBubbles}
+          inspectedAgentId={state.inspectedAgentId}
+          perceptionView={selectPerceptionView(state, isDebugOverlayOn)}
+          moveDurationMs={moveDurationMs}
+          onSelectAgent={onSelectAgent}
+        />
+      </div>
+    );
+  }
 
   return (
     <div className="village-view">
-      <div className="village-canvas" ref={containerRef} />
+      <div className="village-canvas" ref={containerRef}>
+        {world}
+      </div>
       {mapStatus.kind === "loading" && <div className="village-notice">Loading map…</div>}
       {mapStatus.kind === "error" && (
         <div className="village-notice village-notice-error">

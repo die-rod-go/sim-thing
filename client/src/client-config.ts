@@ -15,7 +15,6 @@ export const clientConfig = {
   map: {
     mapUrl: "/village.json",
     tilesetUrl: "/tileset.png",
-    tileSizePixels: 16,
     requiredLayers: ["ground", "walls"],
     optionalLayers: ["decor"],
   },
@@ -29,7 +28,6 @@ export const clientConfig = {
     speechBubbleGap: 2,
     speechBubbleLeaderLineWidth: 1,
     speechBubbleLeaderLineAlpha: 0.6,
-    textResolution: 4,
     selectionRingRadius: 8,
     visibleTileAlpha: 0.28,
     speechReachLineWidth: 1,

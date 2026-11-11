@@ -16,7 +16,11 @@ export function App() {
         sendControl={simClient.sendControl}
       />
       <main className="app-body">
-        <VillageView bridge={simClient.bridge} />
+        <VillageView
+          state={simClient.state}
+          isDebugOverlayOn={simClient.isDebugOverlayOn}
+          onSelectAgent={simClient.selectAgent}
+        />
         <SidePanel state={simClient.state} onSelectAgent={simClient.selectAgent} />
       </main>
     </div>
