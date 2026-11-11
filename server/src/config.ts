@@ -412,6 +412,12 @@ export const config = {
     livingHolderReason: "{name} is alive, and only they can hand over what they carry",
   },
 
+  walking: {
+    /** A walker whose way stays blocked by other agents this many ticks gives up the walk. */
+    blockedGiveUpTicks: 5,
+    blockedReason: "{agent} was in the way",
+  },
+
   doors: {
     /** Walking into a closed door opens it in passing. */
     openedInPassingLoudness: 3,

@@ -46,6 +46,8 @@ const walkSchema = z.object({
   pendingVerb: pendingVerbSchema.nullable(),
   /** For a walk after an aimed verb's target: the tick the agent stops following and gives up. */
   giveUpAtTick: z.number().int().optional(),
+  /** Consecutive ticks the next step has been blocked by another agent. */
+  blockedTicks: z.number().int().optional(),
 });
 
 /** A verb in progress: what is used, and what its `finish` effects need to know. */

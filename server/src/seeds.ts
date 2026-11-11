@@ -8,6 +8,7 @@ import {
   type ItemCatalog,
   type Memory,
   type Needs,
+  type Position,
   type SeedAgent,
   type SeedFile,
   type SeedProblem,
@@ -16,7 +17,8 @@ import {
 import { config } from "./config";
 import { createEntity, type EntityWorld } from "./items/entity-store";
 import { findPlaceAt } from "./world/map-loader";
-import type { WorldMap } from "./world/types";
+import { findNearestFreeTile } from "./world/pathfinding";
+import { tileIndex, type WorldMap } from "./world/types";
 
 export interface SeededWorld {
   agents: Agent[];
@@ -81,10 +83,18 @@ function buildStartingNeeds(): Needs {
   return needs;
 }
 
-function buildAgent(seed: SeedAgent, map: WorldMap): Agent {
+/** The agent's spawn point, or the nearest free tile when another agent already stands there. */
+function findSpawnTile(seed: SeedAgent, map: WorldMap, takenIndexes: Set<number>): Position {
   const spawn = map.spawnPoints[seed.spawnPlace];
   if (!spawn) throw new Error(`Seed agent ${seed.id} spawns at unknown place "${seed.spawnPlace}"`);
-  const pos = { ...spawn };
+  const tile = findNearestFreeTile(map.grid, spawn, takenIndexes);
+  if (!tile)
+    throw new Error(`No free tile to spawn seed agent ${seed.id} near "${seed.spawnPlace}"`);
+  takenIndexes.add(tileIndex(map.grid, tile));
+  return { ...tile };
+}
+
+function buildAgent(seed: SeedAgent, map: WorldMap, pos: Position): Agent {
   return {
     id: seed.id,
     name: seed.name.trim(),
@@ -162,7 +172,10 @@ export function buildSeededWorld(
     const descriptions = errors.map((problem) => describeProblem(seedFile, problem));
     throw new Error(`Invalid seed file:\n${descriptions.join("\n")}`);
   }
-  const agents = seedFile.agents.map((seed) => buildAgent(seed, map));
+  const takenIndexes = new Set<number>();
+  const agents = seedFile.agents.map((seed) =>
+    buildAgent(seed, map, findSpawnTile(seed, map, takenIndexes)),
+  );
   const world: EntityWorld = { agents, entities: [], nextEntityId: 1, items };
   seedEntities(seedFile, map, world);
   return {

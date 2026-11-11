@@ -50,6 +50,20 @@ describe("seeds", () => {
   });
   const world = buildSeededWorld(seedFile, map, items);
 
+  it("spawns an agent beside one already standing on its spawn point", () => {
+    const crowded = buildSeededWorld(
+      parseSeedFile({
+        agents: [makeSeedAgent(), makeSeedAgent({ id: "ilsa", name: "Ilsa", peopleNotes: {} })],
+      }),
+      map,
+      items,
+    );
+    const [mara, ilsa] = crowded.agents;
+    expect(mara?.pos).toEqual(map.spawnPoints["rose cottage"]);
+    expect(ilsa?.pos).not.toEqual(mara?.pos);
+    expect(ilsa?.place).toBe("rose cottage");
+  });
+
   it("builds the project's own seed file, whatever agents it holds", () => {
     const projectSeedFile = loadSeedFile(resolve(repositoryRoot, config.server.seedsPath));
     const projectWorld = buildSeededWorld(projectSeedFile, map, items);

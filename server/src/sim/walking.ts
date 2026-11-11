@@ -12,6 +12,7 @@ import {
 import { describePlace, fileFirstVisit } from "../memory/filing";
 import { canSee } from "../perception/sight";
 import { findPlaceAt } from "../world/map-loader";
+import type { TileGrid } from "../world/types";
 import { findPathToAny, findPathToPlace, findPathToTile } from "../world/pathfinding";
 import { WALK_ACTION } from "./action-phrases";
 import { describeAttempt } from "./action-phrases";
@@ -19,6 +20,7 @@ import {
   getAgentRuntime,
   type PendingVerb,
   type UsedThing,
+  type Walk,
   type WalkDestination,
 } from "./agent-runtime";
 import { broadcastEvent } from "./event-broadcast";
@@ -37,7 +39,10 @@ import { startVerbNow } from "./verb-runner";
 import {
   buildPerceptionWorld,
   buildWalkingGrid,
+  buildWalkingGridFor,
+  describeAgentAsSeen,
   findAgent,
+  findAgentBlockingTile,
   markAgentChanged,
   markEntityChanged,
   rememberBriefly,
@@ -49,12 +54,14 @@ const SURROUNDING_OFFSETS: readonly Position[] = [-1, 0, 1].flatMap((offsetY) =>
   [-1, 0, 1].map((offsetX) => ({ x: offsetX, y: offsetY })),
 );
 
+/** A path around other agents, or with `grid` given, one that only avoids walls and objects. */
 function computePath(
   state: WorldState,
+  agentId: string,
   from: Position,
   destination: WalkDestination,
+  grid: TileGrid = buildWalkingGridFor(state, agentId),
 ): Position[] | null {
-  const grid = buildWalkingGrid(state);
   if (destination.kind === "place") {
     return findPathToPlace(state.map, grid, from, destination.placeName);
   }
@@ -100,7 +107,10 @@ export function startWalk(
 ): boolean {
   const { state, result } = context;
   const agent = findAgent(state, agentId);
-  const path = computePath(state, agent.pos, destination);
+  // Agents in the way now may move on, so the walk starts if only they block it.
+  const path =
+    computePath(state, agentId, agent.pos, destination) ??
+    computePath(state, agentId, agent.pos, destination, buildWalkingGrid(state));
   const where = describeDestination(state, destination);
   if (path === null) {
     failAction(state, result, agentId, `walk to ${where}`, "I couldn't find a way there");
@@ -228,7 +238,8 @@ function pursueAim(context: TickContext, agentId: string): boolean {
     return true;
   }
   if (walk.remainingSteps.length === 0) {
-    walk.remainingSteps = computePath(state, findAgent(state, agentId).pos, walk.destination) ?? [];
+    const from = findAgent(state, agentId).pos;
+    walk.remainingSteps = computePath(state, agentId, from, walk.destination) ?? [];
   }
   return false;
 }
@@ -295,20 +306,53 @@ function refreshAgentPath(context: TickContext, agentId: string): void {
   const other = findAgent(state, walk.destination.agentId);
   const world = buildPerceptionWorld(state);
   if (!canSee(world, walker.pos, other.pos, config.perception.sightRangeTiles)) return;
-  walk.remainingSteps = computePath(state, walker.pos, walk.destination) ?? walk.remainingSteps;
+  walk.remainingSteps =
+    computePath(state, agentId, walker.pos, walk.destination) ?? walk.remainingSteps;
 }
 
 /**
- * One tile per tick along the stored path, opening closed doors on the way; ends on arrival. A
- * walk towards an aimed verb's target ends as soon as the target is in reach.
+ * The next step, rerouted around another agent standing on it. Null when there is no way around
+ * this tick; after waiting too long the walk fails.
+ */
+function takeNextStep(context: TickContext, agentId: string, walk: Walk): Position | null {
+  const { state, result } = context;
+  const plannedStep = walk.remainingSteps[0];
+  if (!plannedStep) return null;
+  const blocker = findAgentBlockingTile(state, agentId, plannedStep);
+  if (!blocker) {
+    delete walk.blockedTicks;
+    return walk.remainingSteps.shift() ?? null;
+  }
+  const from = findAgent(state, agentId).pos;
+  const detour = computePath(state, agentId, from, walk.destination);
+  if (detour !== null) {
+    delete walk.blockedTicks;
+    walk.remainingSteps = detour;
+    return walk.remainingSteps.shift() ?? null;
+  }
+  walk.blockedTicks = (walk.blockedTicks ?? 0) + 1;
+  if (walk.blockedTicks >= config.walking.blockedGiveUpTicks) {
+    const where = describeDestination(state, walk.destination);
+    const reason = config.walking.blockedReason.split("{agent}").join(describeAgentAsSeen(blocker));
+    failAction(state, result, agentId, `walk to ${where}`, reason);
+  }
+  return null;
+}
+
+/**
+ * One tile per tick along the stored path, opening closed doors on the way and never onto a tile
+ * another living agent stands on; ends on arrival. A walk towards an aimed verb's target ends as
+ * soon as the target is in reach.
  */
 export function advanceWalk(context: TickContext, agentId: string): void {
   if (pursueAim(context, agentId)) return;
   refreshAgentPath(context, agentId);
   const walk = getAgentRuntime(context.state, agentId).walk;
   if (!walk) return;
-  const nextStep = walk.remainingSteps.shift();
+  const nextStep = takeNextStep(context, agentId, walk);
+  if (getAgentRuntime(context.state, agentId).walk === null) return;
   if (nextStep) stepOnce(context, agentId, nextStep);
+  else if (walk.remainingSteps.length > 0) return;
   if (pursueAim(context, agentId)) return;
   const isPursuing = walk.pendingVerb?.aim !== undefined && walk.pendingVerb.used !== undefined;
   if (walk.remainingSteps.length === 0 && !isPursuing) arrive(context, agentId);

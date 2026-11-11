@@ -125,6 +125,28 @@ export function findPathToTile(grid: TileGrid, from: Position, tile: Position): 
   return findPathToAny(grid, from, adjacentTiles);
 }
 
+/** The walkable tile nearest to `start` (by steps) that isn't taken; `start` itself if free. */
+export function findNearestFreeTile(
+  grid: TileGrid,
+  start: Position,
+  takenIndexes: ReadonlySet<number>,
+): Position | null {
+  if (!isInsideGrid(grid, start)) return null;
+  const queue: Position[] = [start];
+  const seen = new Set<number>([tileIndex(grid, start)]);
+  for (let queueIndex = 0; queueIndex < queue.length; queueIndex++) {
+    const current = queue[queueIndex]!;
+    if (!takenIndexes.has(tileIndex(grid, current))) return current;
+    for (const offset of NEIGHBOR_OFFSETS) {
+      const neighbor = { x: current.x + offset.x, y: current.y + offset.y };
+      if (!isWalkable(grid, neighbor) || seen.has(tileIndex(grid, neighbor))) continue;
+      seen.add(tileIndex(grid, neighbor));
+      queue.push(neighbor);
+    }
+  }
+  return null;
+}
+
 /** The grid with more tiles walled off, e.g. where objects stand in the way. */
 export function withBlockedTiles(grid: TileGrid, blockedIndexes: ReadonlySet<number>): TileGrid {
   if (blockedIndexes.size === 0) return grid;

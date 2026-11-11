@@ -1,4 +1,10 @@
-import { readComponentField, toSimTime, type Agent, type Entity } from "@village/shared";
+import {
+  readComponentField,
+  toSimTime,
+  type Agent,
+  type Entity,
+  type Position,
+} from "@village/shared";
 import { config } from "../config";
 import type { NamedCandidate } from "../decision/resolve-name";
 import { isAsleep } from "../economy/sleep";
@@ -75,6 +81,28 @@ export function buildWalkingGrid(state: WorldState): TileGrid {
   const blocked = collectTiles(state, (entity) =>
     readFlag(state, entity, "blocking", "blocksMovement"),
   );
+  return withBlockedTiles(state.map.grid, blocked);
+}
+
+/** The living agent other than this one standing on the tile, if any. Bodies don't block. */
+export function findAgentBlockingTile(
+  state: WorldState,
+  agentId: string,
+  tile: Position,
+): Agent | undefined {
+  return listLivingAgents(state).find(
+    (other) => other.id !== agentId && other.pos.x === tile.x && other.pos.y === tile.y,
+  );
+}
+
+/** The walking grid with the tiles of the other living agents walled off as well. */
+export function buildWalkingGridFor(state: WorldState, agentId: string): TileGrid {
+  const blocked = collectTiles(state, (entity) =>
+    readFlag(state, entity, "blocking", "blocksMovement"),
+  );
+  for (const other of listLivingAgents(state)) {
+    if (other.id !== agentId) blocked.add(tileIndex(state.map.grid, other.pos));
+  }
   return withBlockedTiles(state.map.grid, blocked);
 }
 

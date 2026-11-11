@@ -1,5 +1,6 @@
 import { describe, expect, it } from "vitest";
 import {
+  findNearestFreeTile,
   findPath,
   findPathToPlace,
   findPathToTile,
@@ -102,5 +103,17 @@ describe("findPathToTile", () => {
     const path = findPathToTile(grid, { x: 0, y: 0 }, { x: 2, y: 0 });
     expect(path?.at(-1)).toEqual({ x: 1, y: 0 });
     expect(findPath(grid, { x: 0, y: 0 }, { x: 4, y: 0 })).not.toContainEqual({ x: 2, y: 0 });
+  });
+});
+
+describe("findNearestFreeTile", () => {
+  it("returns the start tile when nothing stands on it", () => {
+    const grid = buildGrid(["...", "..."]);
+    expect(findNearestFreeTile(grid, { x: 1, y: 0 }, new Set())).toEqual({ x: 1, y: 0 });
+  });
+
+  it("steps to the nearest free floor tile past taken ones and walls", () => {
+    const grid = buildGrid([".#..", "...."]);
+    expect(findNearestFreeTile(grid, { x: 0, y: 0 }, new Set([0, 4]))).toEqual({ x: 1, y: 1 });
   });
 });
