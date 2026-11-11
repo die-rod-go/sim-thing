@@ -1,4 +1,3 @@
-import { renameSync, writeFileSync } from "node:fs";
 import {
   findSeedFileProblems,
   hasSeedErrors,
@@ -7,6 +6,7 @@ import {
   type SeedFileMessage,
   type SeedProblem,
 } from "@village/shared";
+import { describeError, writeFileAtomically } from "./atomic-write";
 import { config } from "./config";
 import { createLogger } from "./logger";
 import { buildNewAgentTemplate, buildSeedRules, loadSeedFile } from "./seeds";
@@ -23,17 +23,6 @@ export interface SeedSaveResult {
 export interface SeedEditor {
   describeSeedFile(): SeedFileMessage;
   saveSeedFile(seedFile: SeedFile): SeedSaveResult;
-}
-
-function describeError(error: unknown): string {
-  if (!(error instanceof Error)) return String(error);
-  return error.cause instanceof Error ? `${error.message}: ${error.cause.message}` : error.message;
-}
-
-function writeFileAtomically(filePath: string, text: string): void {
-  const temporaryPath = `${filePath}.saving`;
-  writeFileSync(temporaryPath, text, "utf8");
-  renameSync(temporaryPath, filePath);
 }
 
 export function createSeedEditor(options: {

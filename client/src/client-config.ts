@@ -146,6 +146,25 @@ export const clientConfig = {
     coreTextAreaRows: 5,
   },
 
+  itemEditor: {
+    /** Starting names for things added in the editor; a number is appended when one is taken. */
+    newDefinitionId: "new_item",
+    newVerbName: "new verb",
+    newComponentName: "new_component",
+    newFieldName: "newField",
+    newPropertyName: "new_property",
+    newConditionName: "new_condition",
+    newStimulusName: "new_stimulus",
+    /** Used for a new item's sprite when no definition names a tileset yet. */
+    defaultSpriteTileset: "village",
+    /** How many times larger than a map tile the sprite preview is drawn. */
+    spritePreviewScale: 3,
+    /** Step for literal numbers in verbs and effects. */
+    numberStep: 0.01,
+    /** How many matches a rule lists before folding the rest into "and N more". */
+    maxListedRuleMatches: 12,
+  },
+
   conversations: {
     /** A line more than this many ticks after the previous one at the same place opens a new thread. */
     maxGapTicks: 10,

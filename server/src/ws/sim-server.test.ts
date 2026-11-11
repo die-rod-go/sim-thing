@@ -6,6 +6,7 @@ import { WebSocket } from "ws";
 import type { ServerMessage } from "@village/shared";
 import { IN_MEMORY_DATABASE, openDatabase, type Database } from "../db/database";
 import { InMemoryTokenUsageStore, TokenBudget } from "../llm/token-budget";
+import { createItemEditor } from "../item-editor";
 import { createSeedEditor } from "../seed-editor";
 import { SimLoop } from "../sim/loop";
 import { buildEmptySeededWorld, loadTestItems } from "../sim/test-sim";
@@ -167,6 +168,11 @@ describe("sim WebSocket server", () => {
       tokenBudget,
       findPauseReason: () => (tokenBudget.isOverBudget() ? "Daily token budget reached" : null),
       seedEditor: createSeedEditor({ seedFilePath, map, items }),
+      itemEditor: createItemEditor({
+        itemFilePath: join(seedDirectory, "items.json"),
+        seedFilePath,
+        map,
+      }),
       resetWorld: () => {
         resetCount += 1;
         return Promise.resolve();
@@ -296,5 +302,13 @@ describe("sim WebSocket server", () => {
     expect(reply.problems.map((problem) => problem.field)).toContain("spawnPlace");
     expect(resetCount).toBe(0);
     expect(readFileSync(seedFilePath, "utf8")).toContain('"bakery"');
+  });
+
+  it("answers the item editor's save with the problems that stopped it", async () => {
+    const client = await connect();
+    client.send({ type: "save_item_file", itemFile: { definitions: "none" } });
+    const reply = await client.waitFor("item_file_saved");
+    expect(reply.isSaved).toBe(false);
+    expect(reply.problems.length).toBeGreaterThan(0);
   });
 });
