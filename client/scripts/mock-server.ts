@@ -17,6 +17,7 @@ import {
   makeSampleEvent,
   makeSampleLlmCall,
   makeSampleMemory,
+  makeSampleMoment,
   makeSampleSnapshot,
 } from "../src/fixtures/sample-data";
 
@@ -26,7 +27,14 @@ const MAP_HEIGHT = 30;
 const SIGHT_RADIUS = 6;
 const SPEECH_RADIUS = 4;
 const SPEECH_CHANCE = 0.15;
+const MOMENT_CHANCE = 0.03;
 const LINES = ["Fresh bread!", "Has anyone seen Bob?", "Nice weather today.", "Psst, over here."];
+const THOUGHTS = [
+  "Maybe someone nearby wants to talk.",
+  "I hope nobody noticed I was late.",
+  "Bob looks like he has news.",
+  "I should keep my voice down.",
+];
 const VOLUMES: Volume[] = ["whisper", "normal", "shout"];
 const MILLISECONDS_PER_SECOND = 1000;
 
@@ -41,6 +49,7 @@ const startingAgents = (): Agent[] => [
 let snapshot: SnapshotMessage = makeSampleSnapshot(startingAgents());
 let inspectedAgentId: string | null = null;
 let nextEventId = 1;
+let nextMomentId = 1;
 let tickTimer: ReturnType<typeof setTimeout> | null = null;
 const sockets = new Set<WebSocket>();
 
@@ -108,11 +117,25 @@ function speakRandomLine(): void {
   nextEventId += 1;
   const volume = pickRandom(VOLUMES);
   const text = pickRandom(LINES);
+  const thought = pickRandom(THOUGHTS);
+  agent.lastThought = { text: thought, tick: snapshot.clock.tick };
+  broadcast({ type: "state_changed", agents: [agent] });
   broadcast({ type: "said", agentId: agent.id, text, volume, tick: snapshot.clock.tick });
   broadcast({
     type: "event_logged",
-    event: { ...event, description: `said "${text}"`, speech: { words: text, volume } },
+    event: {
+      ...event,
+      description: `said "${text}"`,
+      speech: { words: text, volume, thought, llmCallId: event.id },
+    },
   });
+}
+
+function recordRandomMoment(): void {
+  const moment = makeSampleMoment(nextMomentId, pickRandom(snapshot.agents), snapshot.clock.tick);
+  nextMomentId += 1;
+  snapshot.recentMoments.push(moment);
+  broadcast({ type: "moment", moment });
 }
 
 function advanceTick(): void {
@@ -120,6 +143,7 @@ function advanceTick(): void {
   snapshot.stats.tokensToday += Math.floor(Math.random() * 500);
   moveRandomAgent();
   if (Math.random() < SPEECH_CHANCE) speakRandomLine();
+  if (Math.random() < MOMENT_CHANCE) recordRandomMoment();
   broadcast({ type: "tick", tick: snapshot.clock.tick, stats: snapshot.stats });
 }
 

@@ -71,6 +71,8 @@ export const simRuntimeSchema = z.object({
       sleepStartedAtTick: z.number().int().nullable(),
     }),
   ),
+  /** Absent in saves made before moments existed. */
+  nextMomentId: z.number().int().positive().optional(),
 });
 
 export type SimRuntime = z.infer<typeof simRuntimeSchema>;

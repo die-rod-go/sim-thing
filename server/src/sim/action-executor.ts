@@ -1,4 +1,4 @@
-import type { DecisionReply } from "@village/shared";
+import type { Agent, AgentThought, DecisionReply } from "@village/shared";
 import { config } from "../config";
 import { normalizeDisplayName, resolveName } from "../decision/resolve-name";
 import { computeChebyshevDistance, executeGive } from "../economy/give";
@@ -7,7 +7,7 @@ import { filePersonNote } from "../memory/filing";
 import { pushWorkingMemory } from "../memory/working-memory";
 import { WAIT_ACTION } from "./action-phrases";
 import { getAgentRuntime } from "./agent-runtime";
-import type { DecisionPlan, PlannedAction } from "./decision-runner";
+import type { DecidedReply, DecisionPlan, PlannedAction } from "./decision-runner";
 import { broadcastEvent } from "./event-broadcast";
 import { createEvent, createSpeechEvent } from "./event-factory";
 import { failAction } from "./failure";
@@ -24,14 +24,21 @@ import {
 
 const { minutesPerTick } = config.clock;
 
+function chooseLastThought(agent: Agent, reply: DecisionReply, tick: number): AgentThought | null {
+  const text = reply.thought.trim();
+  return text ? { text, tick } : agent.lastThought;
+}
+
 /** intention, mood and note: free mental acts that ride along with any action. */
-function applyFreeActs(context: TickContext, agentId: string, reply: DecisionReply): void {
+function applyFreeActs(context: TickContext, agentId: string, decided: DecidedReply): void {
   const { state } = context;
+  const { reply } = decided;
   const agent = findAgent(state, agentId);
   replaceAgent(state, {
     ...agent,
     intention: reply.intention || agent.intention,
     mood: reply.mood ?? agent.mood,
+    lastThought: chooseLastThought(agent, reply, state.tick),
   });
   if (reply.note) {
     const personId = resolveName(reply.note.person, state.agents);
@@ -51,8 +58,8 @@ function applyFreeActs(context: TickContext, agentId: string, reply: DecisionRep
     const speech = createSpeechEvent(
       state,
       findAgent(state, agentId),
-      reply.say,
-      reply.volume ?? "normal",
+      { words: reply.say, volume: reply.volume ?? "normal" },
+      { thought: reply.thought, llmCallId: decided.llmCallId },
     );
     broadcastEvent(state, speech, context.result);
   }

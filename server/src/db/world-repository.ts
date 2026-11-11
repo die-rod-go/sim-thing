@@ -108,6 +108,9 @@ export function loadWorld(database: Database): SavedWorld | null {
   const { maxEventId } = database.prepare("SELECT MAX(id) AS maxEventId FROM events").get() as {
     maxEventId: number | null;
   };
+  const { maxMomentId } = database.prepare("SELECT MAX(id) AS maxMomentId FROM moments").get() as {
+    maxMomentId: number | null;
+  };
 
   // Rows were written by saveWorld from typed values, so they are trusted as those types.
   const agents = database
@@ -128,6 +131,9 @@ export function loadWorld(database: Database): SavedWorld | null {
     agents,
     objects,
     memories,
-    runtime,
+    runtime: runtime && {
+      ...runtime,
+      nextMomentId: Math.max(runtime.nextMomentId ?? 1, (maxMomentId ?? 0) + 1),
+    },
   };
 }

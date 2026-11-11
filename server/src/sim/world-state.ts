@@ -1,4 +1,4 @@
-import type { Agent, Position, WorldEvent, WorldObject } from "@village/shared";
+import type { Agent, Moment, Position, WorldEvent, WorldObject } from "@village/shared";
 import { config } from "../config";
 import { SeededRandom } from "../random";
 import type { SavedWorld } from "../db/world-repository";
@@ -18,6 +18,7 @@ export interface WorldState {
   map: WorldMap;
   random: SeededRandom;
   nextEventId: number;
+  nextMomentId: number;
   memoryStore: MemoryStore;
   memoryIds: MemoryIdGenerator;
   conversationLog: ConversationLog;
@@ -52,6 +53,8 @@ export interface TickResult {
   tick: number;
   moves: AgentMove[];
   events: WorldEvent[];
+  /** Highlights for the viewer, in the order they happened. */
+  moments: Moment[];
   /** Agents whose data changed beyond position (action, needs, inventory, ...). */
   changedAgentIds: string[];
   changedObjectIds: string[];
@@ -74,6 +77,7 @@ export function createWorldState(map: WorldMap, seededWorld: SeededWorld): World
     map,
     random: new SeededRandom(config.seed),
     nextEventId: 1,
+    nextMomentId: 1,
     memoryStore,
     memoryIds: new MemoryIdGenerator(),
     conversationLog: createConversationLog(),
@@ -92,6 +96,7 @@ export function createEmptyTickResult(tick: number): TickResult {
     tick,
     moves: [],
     events: [],
+    moments: [],
     changedAgentIds: [],
     changedObjectIds: [],
     interactionStarts: [],
@@ -105,6 +110,18 @@ export function takeNextEventId(state: WorldState): number {
   return eventId;
 }
 
+export function takeNextMomentId(state: WorldState): number {
+  const momentId = state.nextMomentId;
+  state.nextMomentId += 1;
+  return momentId;
+}
+
+/** Saves made before `lastThought` existed lack it; an absent field reads as no thought yet. */
+function withLastThought(agent: Agent): Agent {
+  const saved: Partial<Pick<Agent, "lastThought">> = agent;
+  return { ...agent, lastThought: saved.lastThought ?? null };
+}
+
 function toSimRuntime(state: WorldState): SimRuntime {
   return {
     agentRuntimes: state.agentRuntimes,
@@ -112,6 +129,7 @@ function toSimRuntime(state: WorldState): SimRuntime {
     memoryIdCounter: state.memoryIds.getState(),
     lastForgettingTick: state.lastForgettingTick,
     reflectionSchedules: state.reflectionSchedules,
+    nextMomentId: state.nextMomentId,
   };
 }
 
@@ -143,11 +161,12 @@ export function restoreWorldState(
   return {
     state: {
       tick: saved.tick,
-      agents: saved.agents,
+      agents: saved.agents.map(withLastThought),
       objects: map.objects.map((object) => savedObjects.get(object.id) ?? structuredClone(object)),
       map,
       random,
       nextEventId: saved.nextEventId,
+      nextMomentId: runtime?.nextMomentId ?? 1,
       memoryStore,
       memoryIds: new MemoryIdGenerator(runtime?.memoryIdCounter ?? 0),
       conversationLog: runtime?.conversationLog ?? createConversationLog(),

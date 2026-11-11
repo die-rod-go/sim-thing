@@ -90,6 +90,7 @@ export function createTestSim(options: TestSimOptions): TestSim {
     client,
     tokenUsageStore: new InMemoryTokenUsageStore(),
     dailyTokenBudget: options.dailyTokenBudget ?? Number.MAX_SAFE_INTEGER,
+    // The 1-based position in the list stands in for the llm_calls row id.
     recordLlmCall: (record) => records.push(record),
     pause: () => Promise.resolve(),
   });

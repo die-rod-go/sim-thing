@@ -82,6 +82,7 @@ export function startSimServer(options: SimServerOptions): Promise<SimServer> {
       }
       broadcaster.broadcast({ type: "event_logged", event });
     }
+    for (const moment of result.moments) broadcaster.broadcast({ type: "moment", moment });
     const state = context.loop.getState();
     const changedAgents = state.agents.filter((agent) => result.changedAgentIds.includes(agent.id));
     const changedObjects = state.objects.filter((object) =>

@@ -46,6 +46,7 @@ export const config = {
     seedsPath: "seeds/agents.json",
     promptsDirectory: "server/prompts",
     recentEventsInSnapshot: 200,
+    recentMomentsInSnapshot: 100,
     llmCallsInDetail: 20,
   },
 

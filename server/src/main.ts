@@ -8,6 +8,7 @@ import { openDatabase, wipeDatabase, type Database } from "./db/database";
 import {
   appendEvent,
   appendLlmCall,
+  appendMoment,
   appendPersonalityChange,
   createTokenUsageStore,
 } from "./db/log-repository";
@@ -109,9 +110,7 @@ async function run(): Promise<void> {
     provider: environment.LLM_PROVIDER,
     tokenUsageStore: createTokenUsageStore(database),
     dailyTokenBudget: settings.dailyTokenBudget,
-    recordLlmCall: (record) => {
-      appendLlmCall(database, record);
-    },
+    recordLlmCall: (record) => appendLlmCall(database, record),
   });
   logger.info(`LLM provider: ${environment.LLM_PROVIDER} (model ${llm.client.model})`);
   const findPauseReason = () => describeBudgetPause(llm.budget);
@@ -132,6 +131,7 @@ async function run(): Promise<void> {
   });
   loop.addTickListener((result, state) => {
     for (const event of result.events) appendEvent(database, event);
+    for (const moment of result.moments) appendMoment(database, moment);
     if (state.tick % config.clock.saveEveryTicks === 0) saveState(database, state, settings);
     const pauseReason = findPauseReason();
     if (pauseReason !== null) loop.pause(pauseReason);

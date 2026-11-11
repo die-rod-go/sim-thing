@@ -6,7 +6,12 @@ import type {
 } from "@village/shared";
 import { config } from "../config";
 import type { Database } from "../db/database";
-import { listLlmCalls, listPersonalityHistory, listRecentEvents } from "../db/log-repository";
+import {
+  listLlmCalls,
+  listPersonalityHistory,
+  listRecentEvents,
+  listRecentMoments,
+} from "../db/log-repository";
 import type { TokenBudget } from "../llm/token-budget";
 import { computeVisibleTiles } from "../perception/sight";
 import { computeSpeechReachTiles } from "../perception/sound";
@@ -62,6 +67,7 @@ export function buildSnapshot(context: SimServerContext): SnapshotMessage {
     agents: state.agents,
     objects: state.objects,
     recentEvents: listRecentEvents(context.database, config.server.recentEventsInSnapshot),
+    recentMoments: listRecentMoments(context.database, config.server.recentMomentsInSnapshot),
   };
 }
 

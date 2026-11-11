@@ -28,12 +28,18 @@ export type PlannedAction =
   | { kind: "continue" }
   | { kind: "fail"; attempt: string; reason: string };
 
+/** One decision reply and the `llm_calls` row it came from (null for a fallback). */
+export interface DecidedReply {
+  reply: DecisionReply;
+  llmCallId: number | null;
+}
+
 /** Everything one decision produced; applied to the world after all decisions of the tick return. */
 export interface DecisionPlan {
   agentId: string;
   isMidActionInterrupt: boolean;
   /** Replies in order (two after a recall); free acts of each apply, the last one's action wins. */
-  replies: DecisionReply[];
+  replies: DecidedReply[];
   action: PlannedAction;
   /** Working-memory entries from a recall, already stamped. */
   recallEntries: string[];
@@ -53,7 +59,7 @@ async function askForDecision(
   dependencies: SimDependencies,
   request: DecisionRequest,
   agentOverride?: Agent,
-): Promise<DecisionReply> {
+): Promise<DecidedReply> {
   const context = buildDecisionContext(
     state,
     request.agentId,
@@ -71,7 +77,9 @@ async function askForDecision(
     prompt,
     ...schemas,
   });
-  return reply.ok ? reply.value : fallbackWait(findAgent(state, request.agentId));
+  return reply.ok
+    ? { reply: reply.value, llmCallId: reply.callId }
+    : { reply: fallbackWait(findAgent(state, request.agentId)), llmCallId: null };
 }
 
 /** The `recall` action: memories sharing names in the query, plus where named agents were last perceived. */
@@ -215,9 +223,10 @@ export async function runDecision(
   request: DecisionRequest,
 ): Promise<DecisionPlan> {
   const agent = findAgent(state, request.agentId);
-  const replies = [await askForDecision(state, dependencies, request)];
+  const first = await askForDecision(state, dependencies, request);
+  const replies = [first];
   let recallEntries: string[] = [];
-  let finalReply = replies[0] ?? fallbackWait(agent);
+  let finalReply = first.reply;
   if (finalReply.action === "recall") {
     recallEntries = runRecall(state, agent, finalReply.query ?? "");
     const workingMemory = recallEntries.reduce(
@@ -226,10 +235,10 @@ export async function runDecision(
     );
     const second = await askForDecision(state, dependencies, request, { ...agent, workingMemory });
     finalReply =
-      second.action === "recall"
-        ? { ...second, action: "wait", minutes: config.decision.defaultWaitMinutes }
-        : second;
-    replies.push(finalReply);
+      second.reply.action === "recall"
+        ? { ...second.reply, action: "wait", minutes: config.decision.defaultWaitMinutes }
+        : second.reply;
+    replies.push({ reply: finalReply, llmCallId: second.llmCallId });
   }
   const action =
     finalReply.action === "interact"

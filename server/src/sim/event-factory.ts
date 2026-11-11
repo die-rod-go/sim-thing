@@ -1,4 +1,4 @@
-import type { Agent, Volume, WorldEvent, WorldEventKind } from "@village/shared";
+import type { Agent, EventSpeech, Volume, WorldEvent, WorldEventKind } from "@village/shared";
 import { config } from "../config";
 import { takeNextEventId, type WorldState } from "./world-state";
 
@@ -32,19 +32,31 @@ export function createEvent(state: WorldState, actor: Agent, fields: EventFields
   return event;
 }
 
+/** The decision behind a line of speech, kept on the event for the viewer. */
+export interface SpeechOrigin {
+  thought: string;
+  llmCallId: number | null;
+}
+
 export function createSpeechEvent(
   state: WorldState,
   speaker: Agent,
-  words: string,
-  volume: Volume,
+  line: { words: string; volume: Volume },
+  origin?: SpeechOrigin,
 ): WorldEvent {
+  const { words, volume } = line;
   const verb = volume === "normal" ? "said" : `${volume}ed`;
+  const speech: EventSpeech = { words, volume };
+  const thought = origin?.thought.trim();
+  if (thought) speech.thought = thought;
+  const llmCallId = origin?.llmCallId;
+  if (typeof llmCallId === "number") speech.llmCallId = llmCallId;
   return {
     ...createEvent(state, speaker, {
       kind: "said",
       description: `${verb} "${words}"`,
       loudness: config.perception.speechLoudness[volume],
     }),
-    speech: { words, volume },
+    speech,
   };
 }

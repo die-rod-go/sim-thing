@@ -16,6 +16,13 @@ import {
   type ReflectionSchedule,
 } from "../reflection/schedule";
 import { runWeeklyPass } from "../reflection/weekly";
+import {
+  buildDailyPlanMoment,
+  buildGoalMoments,
+  buildNightReflectionMoment,
+  buildPersonalityMoments,
+  recordMoments,
+} from "./moments";
 import type { ReflectionHook } from "./reflection-hook";
 import { findAgent, listKnownNames, markAgentChanged, replaceAgent } from "./world-access";
 import type { TickResult, WorldState } from "./world-state";
@@ -56,12 +63,12 @@ export function createReflectionHook(dependencies: ReflectionPassDependencies): 
       tick: state.tick,
       timeText: formatSimTime(state.tick, config.clock),
     });
-    replaceAgent(state, {
-      ...findAgent(state, agentId),
-      dailyPlan: agent.dailyPlan,
-      mood: agent.mood,
-    });
+    const before = findAgent(state, agentId);
+    replaceAgent(state, { ...before, dailyPlan: agent.dailyPlan, mood: agent.mood });
     markAgentChanged(result, agentId);
+    if (agent.dailyPlan !== before.dailyPlan) {
+      recordMoments(state, result, [buildDailyPlanMoment(before, state.tick, agent.dailyPlan)]);
+    }
   }
 
   async function runWeekly(state: WorldState, agentId: string, result: TickResult) {
@@ -79,6 +86,10 @@ export function createReflectionHook(dependencies: ReflectionPassDependencies): 
     });
     for (const change of weekly.changes) dependencies.recordPersonalityChange(change);
     markAgentChanged(result, agentId);
+    recordMoments(state, result, [
+      ...buildPersonalityMoments(current, weekly.changes),
+      ...buildGoalMoments(current, state.tick, current.goals, weekly.agent.goals),
+    ]);
   }
 
   async function runNight(state: WorldState, agentId: string, result: TickResult) {
@@ -94,8 +105,14 @@ export function createReflectionHook(dependencies: ReflectionPassDependencies): 
         .map((other) => other.name),
     });
     if (!night.succeeded) logger.warn(`night pass for ${agentId} failed at tick ${state.tick}`);
-    replaceAgent(state, { ...findAgent(state, agentId), mood: night.agent.mood });
+    const sleeper = findAgent(state, agentId);
+    replaceAgent(state, { ...sleeper, mood: night.agent.mood });
     markAgentChanged(result, agentId);
+    if (night.reflection) {
+      recordMoments(state, result, [
+        buildNightReflectionMoment(sleeper, state.tick, night.reflection),
+      ]);
+    }
     const schedule = recordNightPass(getSchedule(state, agentId), state.tick);
     setSchedule(state, agentId, schedule);
     if (isWeeklyPassDue(schedule)) await runWeekly(state, agentId, result);
