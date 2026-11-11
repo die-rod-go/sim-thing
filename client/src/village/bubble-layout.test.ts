@@ -1,10 +1,15 @@
 import { describe, expect, it } from "vitest";
 import { layOutBubbleStacks, type BubbleLayoutSpacing, type BubbleStackBox } from "./bubble-layout";
 
-const SPACING: BubbleLayoutSpacing = { gap: 2, maxSideShift: 100, sameColumnTolerance: 1 };
+const SPACING: BubbleLayoutSpacing = { gap: 2, maxSideShiftFraction: 2.5, sameColumnTolerance: 1 };
 
-function makeStack(agentId: string, anchorX: number, anchorBottom: number): BubbleStackBox {
-  return { agentId, anchorX, anchorBottom, width: 40, height: 10 };
+function makeStack(
+  agentId: string,
+  anchorX: number,
+  anchorBottom: number,
+  speechOrder = 0,
+): BubbleStackBox {
+  return { agentId, speechOrder, anchorX, anchorBottom, width: 40, height: 10 };
 }
 
 describe("layOutBubbleStacks", () => {
@@ -48,12 +53,31 @@ describe("layOutBubbleStacks", () => {
   });
 
   it("lifts instead of sliding further than the side-shift limit", () => {
-    const narrowSpacing = { ...SPACING, maxSideShift: 20 };
+    const narrowSpacing = { ...SPACING, maxSideShiftFraction: 0.25 };
     const placements = layOutBubbleStacks(
       [makeStack("ada", 110, 40), makeStack("bob", 100, 50)],
       narrowSpacing,
     );
     expect(placements.get("ada")).toEqual({ centerX: 110, bottom: 50 - 10 - 2 });
+  });
+
+  it("keeps the latest speaker's stack in place and lifts an earlier one above it", () => {
+    const placements = layOutBubbleStacks(
+      [makeStack("ada", 100, 40, 2), makeStack("bob", 100, 50, 1)],
+      SPACING,
+    );
+    expect(placements.get("ada")).toEqual({ centerX: 100, bottom: 40 });
+    expect(placements.get("bob")).toEqual({ centerX: 100, bottom: 40 - 10 - 2 });
+  });
+
+  it("stacks a crowd on one spot in the order they spoke, latest at the bottom", () => {
+    const crowd = ["ada", "bob", "cy", "dee"].map((agentId, index) =>
+      makeStack(agentId, 100, 50, index),
+    );
+    const placements = layOutBubbleStacks(crowd, SPACING);
+    expect(["ada", "bob", "cy", "dee"].map((agentId) => placements.get(agentId)?.bottom)).toEqual([
+      14, 26, 38, 50,
+    ]);
   });
 
   it("stacks a crowd of speakers on one spot without any two overlapping", () => {

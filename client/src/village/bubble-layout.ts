@@ -1,6 +1,8 @@
 /** One speaker's bubble stack, measured, before placement. Centered on anchorX, growing upward. */
 export interface BubbleStackBox {
   agentId: string;
+  /** Higher for a stack whose latest speech was said later; stacks with no speech rank lowest. */
+  speechOrder: number;
   anchorX: number;
   anchorBottom: number;
   width: number;
@@ -15,8 +17,8 @@ export interface BubbleStackPlacement {
 
 export interface BubbleLayoutSpacing {
   gap: number;
-  /** How far a stack may slide sideways off its speaker before it is lifted instead. */
-  maxSideShift: number;
+  /** How far a stack may slide sideways off its speaker, as a share of its width, before it is lifted. */
+  maxSideShiftFraction: number;
   /** Speakers closer than this horizontally count as one column and stack vertically. */
   sameColumnTolerance: number;
 }
@@ -88,16 +90,16 @@ function findSideSlot(
     centerX = slidesRight
       ? Math.max(...overlapping.map((placed) => placed.right)) + spacing.gap + halfWidth
       : Math.min(...overlapping.map((placed) => placed.left)) - spacing.gap - halfWidth;
-    if (Math.abs(centerX - stack.anchorX) > spacing.maxSideShift) return null;
+    if (Math.abs(centerX - stack.anchorX) > stack.width * spacing.maxSideShiftFraction) return null;
     overlapping = findOverlapping(stack, centerX, bottom, placedBoxes, spacing.gap);
   }
   return centerX;
 }
 
 /**
- * Places every stack so none overlap. Stacks nearest the bottom of the screen keep their spot; the
- * rest slide sideways to make room when their speaker stands apart, or are lifted just above
- * whatever they would cover when they share a column or would slide too far.
+ * Places every stack so none overlap, like a chat log: the most recent speaker's stack keeps its
+ * spot and earlier ones make way, sliding sideways when their speaker stands apart or lifting just
+ * above whatever they would cover when they share a column or would slide too far.
  */
 export function layOutBubbleStacks(
   stacks: BubbleStackBox[],
@@ -105,7 +107,9 @@ export function layOutBubbleStacks(
 ): Map<string, BubbleStackPlacement> {
   const ordered = [...stacks].sort(
     (first, second) =>
-      second.anchorBottom - first.anchorBottom || first.agentId.localeCompare(second.agentId),
+      second.speechOrder - first.speechOrder ||
+      second.anchorBottom - first.anchorBottom ||
+      first.agentId.localeCompare(second.agentId),
   );
   const placedBoxes: PlacedBox[] = [];
   const placementsByAgent = new Map<string, BubbleStackPlacement>();

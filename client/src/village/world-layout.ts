@@ -64,6 +64,8 @@ export interface WorldScene {
   places: readonly TiledPlace[];
   links: readonly ConversationLink[];
   hoveredAgentId: string | null;
+  /** Higher for agents whose latest shown speech came later; absent for agents only thinking. */
+  speechOrderByAgent: ReadonlyMap<string, number>;
   /** The tile whose card is shown, in tile coordinates. */
   inspectedTile: Position | null;
   tileSize: number;
@@ -166,13 +168,14 @@ function placeLeaderLine(
  */
 function layOutBubbles(
   world: WorldElements,
+  speechOrderByAgent: ReadonlyMap<string, number>,
   screenPositions: ReadonlyMap<string, Position>,
   scale: number,
 ): void {
   const {
     speechBubbleGap,
     speechBubbleOffsetAboveFigure,
-    speechBubbleMaxSideShift,
+    speechBubbleMaxSideShiftFraction,
     speechBubbleSameColumnTolerance,
   } = clientConfig.village;
   const figureHalfHeight = (FIGURE_SIZE / 2) * scale;
@@ -183,6 +186,7 @@ function layOutBubbles(
     if (!anchor) continue;
     stacks.push({
       agentId,
+      speechOrder: speechOrderByAgent.get(agentId) ?? Number.NEGATIVE_INFINITY,
       anchorX: anchor.x,
       anchorBottom: anchor.y - lift,
       width: stackElement.offsetWidth,
@@ -191,7 +195,7 @@ function layOutBubbles(
   }
   const placementsByAgent = layOutBubbleStacks(stacks, {
     gap: speechBubbleGap,
-    maxSideShift: speechBubbleMaxSideShift,
+    maxSideShiftFraction: speechBubbleMaxSideShiftFraction,
     sameColumnTolerance: speechBubbleSameColumnTolerance,
   });
   for (const [agentId, stackElement] of world.bubbleStacks.elements) {
@@ -281,7 +285,7 @@ export function layOutWorld(world: WorldElements, scene: WorldScene, frame: Worl
   if (world.mapLayer.current) {
     world.mapLayer.current.style.transform = computeWorldTransform(frame.camera, frame.view);
   }
-  layOutBubbles(world, screenPositions, scale);
+  layOutBubbles(world, scene.speechOrderByAgent, screenPositions, scale);
   layOutMarkers(world, screenPositions, scale);
   layOutLinks(world, scene, screenPositions);
   layOutPlaceLabels(world, scene, frame);
