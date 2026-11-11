@@ -80,7 +80,7 @@ describe("conversation summaries in the sim", () => {
     await sim.advance(TICKS_UNTIL_SUMMARY);
     const prompts = summaryPrompts(sim);
     expect(prompts).toHaveLength(2);
-    const maraPrompt = prompts.find((prompt) => prompt.startsWith("You are Mara,")) ?? "";
+    const maraPrompt = prompts.find((prompt) => prompt.startsWith("You are Mara.")) ?? "";
     expect(maraPrompt).toContain('I overheard Ilsa say: "Morning, Mara"');
     expect(maraPrompt).toContain('I said: "Morning, Ilsa"');
     const maraOverheard = sim.state.memoryStore.listByAgentAndBucket("mara", "overheard");
@@ -92,7 +92,7 @@ describe("conversation summaries in the sim", () => {
   it("gives a bystander who only overheard no summary", async () => {
     const sim = startGreetingSim(summarizingBy((name) => `${name} remembers the greeting`));
     await sim.advance(TICKS_UNTIL_SUMMARY);
-    expect(summaryPrompts(sim).some((prompt) => prompt.startsWith("You are Bram,"))).toBe(false);
+    expect(summaryPrompts(sim).some((prompt) => prompt.startsWith("You are Bram."))).toBe(false);
     expect(sim.state.memoryStore.listByAgentAndBucket("bram", "overheard")).not.toEqual([]);
   });
 
