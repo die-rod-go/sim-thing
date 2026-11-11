@@ -31,7 +31,7 @@ export const clientConfig = {
     speechBubbleWrapWidth: 240,
     speechBubbleGap: 4,
     /** Text sizes in screen pixels, by how loudly the line was said. */
-    speechBubbleFontSizes: { whisper: 6, normal: 6, shout: 12 },
+    speechBubbleFontSizes: { whisper: 10, normal: 10, shout: 12 },
     speechBubbleLeaderLineWidth: 1,
     speechBubbleLeaderLineAlpha: 0.6,
     /** How much of the speaker's color is mixed into a speech bubble's background, 0–1. */
@@ -39,7 +39,7 @@ export const clientConfig = {
     /** Space between the top of a figure and the bottom of its bubble stack. */
     speechBubbleOffsetAboveFigure: 14,
     /** How far a stack may slide sideways to clear a neighbor's, as a share of its own width. */
-    speechBubbleMaxSideShiftFraction: 0.25,
+    speechBubbleMaxSideShiftFraction: 0.5,
     /** Speakers closer than this horizontally share a column, so their stacks pile up instead. */
     speechBubbleSameColumnTolerance: 1,
     /** How far in from a stack's corners a sideways leader line may start. */
@@ -57,6 +57,7 @@ export const clientConfig = {
     /** Thought clouds: longest text shown before an ellipsis, wrap width, and how long they last. */
     thoughtBubbleMaxLength: 90,
     thoughtBubbleWrapWidth: 200,
+    thoughtBubbleFontSize: 12,
     thoughtMaxAgeTicks: 30,
     /** localStorage key for whose thoughts are shown; this viewer's choice survives a reload. */
     thoughtModeStorageKey: "village.thoughtMode",

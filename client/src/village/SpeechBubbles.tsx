@@ -65,6 +65,7 @@ export function SpeechBubbleStack({
     speechBubbleSpeakerTint,
     speechBubbleFontSizes,
     thoughtBubbleWrapWidth,
+    thoughtBubbleFontSize,
   } = clientConfig.village;
   const speakerTintStyle = {
     "--speaker-color": speakerColor,
@@ -82,7 +83,7 @@ export function SpeechBubbleStack({
       {thought && (
         <div
           className="thought-bubble"
-          style={{ maxWidth: thoughtBubbleWrapWidth }}
+          style={{ maxWidth: thoughtBubbleWrapWidth, fontSize: thoughtBubbleFontSize }}
           title={`${speakerName} thinks: ${thought.fullText}`}
         >
           {thought.shortText}
