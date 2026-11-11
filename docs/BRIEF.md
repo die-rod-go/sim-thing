@@ -180,15 +180,15 @@ interface Memory {
 type Bucket = "seen" | "conversations" | "overheard" | "did" | "people" | "places" | "reflections";
 ```
 
-| Bucket          | Filled by                                                                         |
-| --------------- | --------------------------------------------------------------------------------- |
-| `did`           | The agent's own actions and their results                                         |
-| `conversations` | Speech the agent said, or heard while taking part in the conversation             |
-| `overheard`     | Speech heard while not taking part, and muffled speech                            |
-| `seen`          | Other agents' actions in sight, and non-speech sounds heard                       |
-| `people`        | The agent's own `note` field about a person, plus nightly rewrites of those notes |
-| `places`        | First visit to a place, objects found there                                       |
-| `reflections`   | Daily and weekly reflection output                                                |
+| Bucket          | Filled by                                                                           |
+| --------------- | ----------------------------------------------------------------------------------- |
+| `did`           | The agent's own actions and their results                                           |
+| `conversations` | Speech the agent said, or heard while taking part; replaced by a summary at its end |
+| `overheard`     | Speech heard while not taking part, and muffled speech                              |
+| `seen`          | Other agents' actions in sight, and non-speech sounds heard                         |
+| `people`        | The agent's own `note` field about a person, plus nightly rewrites of those notes   |
+| `places`        | First visit to a place, objects found there                                         |
+| `reflections`   | Daily and weekly reflection output                                                  |
 
 **Writing.** One `broadcast(event)` function files each world event: the actor gets a `did` memory (so does the recipient of a give); each perceiver gets `conversations`, `overheard` or `seen`. Tags come from the event (actor, target, place) plus any known agent, object or place name found in speech text by string match. An agent is taking part if it has spoken within earshot of the speaker in the last 10 ticks. File an action once when it starts and once with its result, never per tick of walking, and skip a memory if the same actor did the same thing within the agent's last 30 ticks. Keep each memory to one sentence (200 characters or less).
 
@@ -223,7 +223,7 @@ Every decision prompt renders it as an "Around you" section, for any purpose, no
 
 Entries older than 60 sim-minutes drop out of the prompt but stay in the record; a recall that names an agent also returns where it was last perceived. From this, the agent infers whether someone out of view might still be listening, where someone went, or who might have witnessed something.
 
-**Forgetting.** Memories fade unless they're used. Each memory's strength halves over its bucket's half-life (in sim-time), and each recall bumps it back up, as above. Memories the agent keeps recalling persist; the rest fade away. Delete any memory below strength 0.05. If a bucket still exceeds its cap (default 60), delete its weakest memories until it fits. No summarization in v1. Example: a did memory (1-day half-life) that is never recalled falls to 0.5 after a day, 0.25 after two, and is deleted after about 4 days. If it keeps coming up, for instance because the person it involves is often around, each recall pushes it back up and it can last indefinitely. Anything an agent wants to keep for sure, such as a debt or a promise, it can note into people, which fades over weeks.
+**Forgetting.** Memories fade unless they're used. Each memory's strength halves over its bucket's half-life (in sim-time), and each recall bumps it back up, as above. Memories the agent keeps recalling persist; the rest fade away. Delete any memory below strength 0.05. If a bucket still exceeds its cap (default 60), delete its weakest memories until it fits. Example: a did memory (1-day half-life) that is never recalled falls to 0.5 after a day, 0.25 after two, and is deleted after about 4 days. If it keeps coming up, for instance because the person it involves is often around, each recall pushes it back up and it can last indefinitely. Anything an agent wants to keep for sure, such as a debt or a promise, it can note into people, which fades over weeks.
 
 | Bucket                  | Default half-life |
 | ----------------------- | ----------------- |
@@ -231,6 +231,8 @@ Entries older than 60 sim-minutes drop out of the prompt but stay in the record;
 | `conversations`, `did`  | 1 sim-day         |
 | `places`                | 3 sim-days        |
 | `people`, `reflections` | 7 sim-days        |
+
+**Conversation summaries.** Remembered lines alone don't tell an agent what a conversation settled, so agents repeat themselves. When an agent's conversation ends (no remembered line for 15 ticks, or 30 lines piled up), one LLM call shows it the lines as it heard them, plus what it overheard during and just before (a line addressed to an agent before it has spoken is filed as overheard), and it writes one first-person summary of what it will remember: who, what about, and anything asked, agreed, promised or left open. The summary goes into `conversations`, tagged with every tag the lines had, and the lines are deleted; overheard memories are left as they are. If the call fails, the lines stay and the agent tries again 30 ticks later. Summaries are logged to `llm_calls` like any other call.
 
 ## Decision loop and actions
 

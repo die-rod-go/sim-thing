@@ -40,9 +40,11 @@ const SPEECH_BASE_FORM: Record<Volume, string> = {
   shout: "shout",
 };
 
-/** Keeps a memory to `maxMemoryChars`, ending a cut text with an ellipsis. */
-export function truncateMemoryText(text: string): string {
-  const maxChars = config.memory.maxMemoryChars;
+/** Keeps a memory to `maxChars` (default `maxMemoryChars`), ending a cut text with an ellipsis. */
+export function truncateMemoryText(
+  text: string,
+  maxChars: number = config.memory.maxMemoryChars,
+): string {
   if (text.length <= maxChars) return text;
   return text.slice(0, maxChars - ELLIPSIS.length).trimEnd() + ELLIPSIS;
 }

@@ -199,6 +199,9 @@ const BUILT_IN_ANSWERS: Record<string, FakeAnswer> = {
     insights: [{ text: "Keeping busy makes the day go well." }],
     peopleNotes: [],
   }),
+  conversation_summary_reply: () => ({
+    summary: "I chatted with the people around me about the day's work. Nothing was settled.",
+  }),
   weekly_reply: (_request, random) => ({
     traitChanges: [
       {

@@ -442,6 +442,16 @@ export const config = {
     recallActionResultLimit: 6,
     reflectionInsightStrength: 1.0,
     newMemoryStrength: 1.0,
+    /**
+     * When a conversation ends, each participant's line memories from it are replaced by one
+     * summary the agent writes. Lines summarised early when a conversation runs long.
+     */
+    conversationSummary: {
+      endAfterQuietTicks: 15,
+      maxLinesPerSummary: 30,
+      maxChars: 320,
+      retryAfterTicks: 30,
+    },
   },
 
   decision: {
@@ -474,7 +484,14 @@ export const config = {
      * Ceilings, not targets: only generated tokens are billed. Some models tokenize JSON at barely
      * over one character per token, so a full decision reply can need several hundred tokens.
      */
-    maxReplyTokens: { decision: 1500, interact: 500, morning: 1500, night: 3000, weekly: 3000 },
+    maxReplyTokens: {
+      decision: 1500,
+      interact: 500,
+      morning: 1500,
+      night: 3000,
+      weekly: 3000,
+      conversation_summary: 800,
+    },
     dailyTokenBudget: 10_000_000,
     /** One first try plus one retry on invalid output or an API error. */
     attemptsPerCall: 2,

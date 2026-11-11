@@ -6,6 +6,7 @@ import { FakeLlmClient, type FakeResponder } from "../llm/fake-llm-client";
 import { buildLlmStack, type LlmStack } from "../llm/llm-stack";
 import { InMemoryTokenUsageStore } from "../llm/token-budget";
 import type { LlmRequest } from "../llm/types";
+import { CONVERSATION_SUMMARY_SCHEMA_NAME } from "../memory/conversation-summary";
 import { buildSeededWorld, loadSeedFile } from "../seeds";
 import { findPlaceAt, loadWorldMap } from "../world/map-loader";
 import { createNoReflectionHook } from "./reflection-hook";
@@ -45,9 +46,17 @@ export function decisionReply(fields: Record<string, unknown>): string {
 
 export type AgentScript = (request: LlmRequest, callIndex: number) => string | undefined;
 
-/** Replies per agent name; anyone unscripted (or a script returning undefined) waits a long time. */
+export const DEFAULT_CONVERSATION_SUMMARY = "I talked with the people nearby.";
+
+/**
+ * Replies per agent name; anyone unscripted (or a script returning undefined) waits a long time.
+ * Conversation summary calls get a fixed summary, so scripts only deal with decisions.
+ */
 export function scriptByAgent(scripts: Record<string, AgentScript>): FakeResponder {
   return (request, callIndex) => {
+    if (request.schemaName === CONVERSATION_SUMMARY_SCHEMA_NAME) {
+      return JSON.stringify({ summary: DEFAULT_CONVERSATION_SUMMARY });
+    }
     const reply = scripts[findPromptAgentName(request)]?.(request, callIndex);
     return reply ?? decisionReply({ action: "wait", minutes: config.decision.maxWaitMinutes });
   };

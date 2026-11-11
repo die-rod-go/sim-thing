@@ -18,6 +18,7 @@ const THOUGHT_LABELS: Record<ActivityThought["thoughtKind"], string> = {
   morning: "morning",
   night: "night reflection",
   weekly: "weekly reflection",
+  conversation_summary: "remembering a conversation",
   latest: "thought",
 };
 

@@ -141,6 +141,8 @@ function summarizeReply(
       return summarizeNight(fields);
     case "weekly":
       return summarizeWeekly(fields);
+    case "conversation_summary":
+      return { headline: readText(fields, "summary"), parts: [] };
     case "interact":
       return summarizeOther(fields);
   }
