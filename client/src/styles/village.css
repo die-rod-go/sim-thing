@@ -193,6 +193,12 @@
   opacity: 0.6;
 }
 
+.agent-marker.is-dead .agent-figure svg {
+  transform: rotate(90deg);
+  filter: grayscale(1);
+  opacity: 0.6;
+}
+
 .agent-head {
   stroke: rgb(0 0 0 / 80%);
   stroke-width: 1;

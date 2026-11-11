@@ -29,6 +29,26 @@ const metaSchema = z.object({
 
 type SavedMeta = z.infer<typeof metaSchema>;
 
+/** Fields every saved agent must have; saves from before health and stats lack them. */
+const currentAgentFieldsSchema = z.object({
+  health: z.number(),
+  starvingSinceTick: z.number().nullable(),
+  conditions: z.array(z.unknown()),
+  death: z.object({ tick: z.number(), cause: z.string() }).nullable(),
+  body: z.object({ strength: z.number(), agility: z.number() }),
+});
+
+/** Agent rows were written by saveWorld from typed values, so a current-format row is trusted. */
+function parseSavedAgent(data: string): Agent {
+  const parsed: unknown = JSON.parse(data);
+  if (!currentAgentFieldsSchema.safeParse(parsed).success) {
+    throw new Error(
+      "The saved sim was made by an older version and can't be loaded. Run `make reset` to start fresh.",
+    );
+  }
+  return parsed as Agent;
+}
+
 interface MemoryRow {
   id: string;
   agent_id: string;
@@ -112,11 +132,11 @@ export function loadWorld(database: Database): SavedWorld | null {
     maxMomentId: number | null;
   };
 
-  // Rows were written by saveWorld from typed values, so they are trusted as those types.
   const agents = database
     .prepare("SELECT data FROM agents ORDER BY rowid")
     .all()
-    .map((row) => JSON.parse((row as { data: string }).data) as Agent);
+    .map((row) => parseSavedAgent((row as { data: string }).data));
+  // Object rows were written by saveWorld from typed values, so they are trusted as that type.
   const objects = database
     .prepare("SELECT data FROM objects ORDER BY rowid")
     .all()

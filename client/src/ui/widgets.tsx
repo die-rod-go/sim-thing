@@ -1,19 +1,23 @@
 import type { ReactNode } from "react";
 import type { NeedName, TraitName } from "@village/shared";
-import { describeNeed, describeTrait } from "../format/character-sheet";
+import {
+  describeHealth,
+  describeNeed,
+  describeTrait,
+  type NeedLevel,
+} from "../format/character-sheet";
 import { formatPercent } from "../format/formatters";
 import { usePanelContext } from "./panel-context";
 
 const PERCENT = 100;
 const HALF = 50;
 
-/** A need as a colored word with a thin bar, the way a character sheet would phrase it. */
-export function NeedRow({ needName, value }: { needName: NeedName; value: number }) {
-  const level = describeNeed(needName, value);
+/** A 0–1 level as a colored word with a thin bar, the way a character sheet would phrase it. */
+function LevelRow({ label, level, value }: { label: string; level: NeedLevel; value: number }) {
   const clampedValue = Math.min(Math.max(value, 0), 1);
   return (
-    <div className="need-row" title={`${needName} ${formatPercent(clampedValue)}`}>
-      <span className="need-name">{needName}</span>
+    <div className="need-row" title={`${label} ${formatPercent(clampedValue)}`}>
+      <span className="need-name">{label}</span>
       <span className={`need-word level-${level.levelIndex}`}>{level.word}</span>
       <span className="need-track">
         <span
@@ -23,6 +27,14 @@ export function NeedRow({ needName, value }: { needName: NeedName; value: number
       </span>
     </div>
   );
+}
+
+export function NeedRow({ needName, value }: { needName: NeedName; value: number }) {
+  return <LevelRow label={needName} level={describeNeed(needName, value)} value={value} />;
+}
+
+export function HealthRow({ value }: { value: number }) {
+  return <LevelRow label="health" level={describeHealth(value)} value={value} />;
 }
 
 /** A trait as a phrase over a bar that grows left or right from the middle. */

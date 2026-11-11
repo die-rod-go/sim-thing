@@ -3,6 +3,7 @@ import { config } from "../config";
 import { isAsleep } from "../economy/sleep";
 import { pushWorkingMemory } from "../memory/working-memory";
 import { canSee } from "../perception/sight";
+import { describeBodyName, isDead } from "../status/health";
 import type { PerceptionWorld, Perceiver } from "../perception/types";
 import { tileIndex } from "../world/types";
 import type { TickResult, WorldState } from "./world-state";
@@ -46,6 +47,15 @@ export function buildPerceptionWorld(state: WorldState): PerceptionWorld {
   return { grid: state.map.grid, closedDoorTiles };
 }
 
+export function listLivingAgents(state: WorldState): Agent[] {
+  return state.agents.filter((agent) => !isDead(agent));
+}
+
+/** The name others use for the agent: their own name, or "Mara's body" once dead. */
+export function describeAgentAsSeen(agent: Agent): string {
+  return isDead(agent) ? describeBodyName(agent.name) : agent.name;
+}
+
 export function toPerceiver(agent: Agent): Perceiver {
   return { agentId: agent.id, name: agent.name, pos: agent.pos, isAsleep: isAsleep(agent) };
 }
@@ -56,7 +66,7 @@ export function listVisibleAgentIds(
   world: PerceptionWorld,
   viewer: Agent,
 ): string[] {
-  if (isAsleep(viewer)) return [];
+  if (isAsleep(viewer) || isDead(viewer)) return [];
   return state.agents
     .filter((other) => other.id !== viewer.id)
     .filter((other) => canSee(world, viewer.pos, other.pos, config.perception.sightRangeTiles))

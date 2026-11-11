@@ -8,6 +8,7 @@ export const MOMENT_GLYPHS: Record<MomentKind, string> = {
   daily_plan: "☀",
   reflection: "✎",
   action_failed: "✗",
+  died: "✝",
 };
 
 export const MOMENT_LABELS: Record<MomentKind, string> = {
@@ -18,6 +19,7 @@ export const MOMENT_LABELS: Record<MomentKind, string> = {
   daily_plan: "plan for the day",
   reflection: "reflection",
   action_failed: "failed",
+  died: "died",
 };
 
 /**
@@ -28,6 +30,7 @@ export function isStoryMoment(moment: Moment): boolean {
   if (moment.kind === "reflection") return moment.pass === "weekly";
   return (
     moment.kind === "personality_changed" ||
+    moment.kind === "died" ||
     moment.kind === "goal_added" ||
     moment.kind === "goal_removed"
   );
@@ -46,6 +49,8 @@ export function describeMomentDetail(moment: Moment): string | null {
       return moment.plan;
     case "reflection":
       return moment.summary;
+    case "died":
+      return moment.cause;
     case "goal_removed":
     case "action_failed":
       return null;

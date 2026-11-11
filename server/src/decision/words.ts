@@ -1,7 +1,14 @@
-import { NEED_NAMES, TRAIT_NAMES } from "@village/shared";
-import type { NeedName, Needs, Personality } from "@village/shared";
+import { NEED_NAMES, STAT_NAMES, TRAIT_NAMES } from "@village/shared";
+import type { AgentBody, NeedName, Needs, Personality } from "@village/shared";
 import { config } from "../config";
 import type { NeedWord } from "../config";
+import { findHealthWord } from "../status/health";
+
+/** What the agent feels of its own body and needs. */
+export interface StatusView {
+  health: number;
+  needs: Needs;
+}
 
 function findNeedWord(needName: NeedName, value: number): NeedWord {
   const levels = config.needs.words[needName];
@@ -15,16 +22,20 @@ function joinWithAnd(phrases: string[]): string {
 }
 
 /**
- * Needs as words, never numbers. Pressing needs come first, lowest first, each as its own
- * sentence, so they can't get lost among the satisfied ones:
+ * Health and needs as words, never numbers. Pressing ones come first, lowest first, each as its
+ * own sentence, so they can't get lost among the satisfied ones:
  * "You are exhausted: you can barely keep your eyes open and need to sleep now. Otherwise you
- * are well fed, socially fulfilled and a bit bored."
+ * are unhurt, well fed, socially fulfilled and a bit bored."
  */
-export function describeNeeds(needs: Needs): string {
-  const needWords = NEED_NAMES.map((needName) => ({
-    value: needs[needName],
-    word: findNeedWord(needName, needs[needName]),
-  }));
+export function describeStatus(status: StatusView): string {
+  const { needs } = status;
+  const needWords = [
+    { value: status.health, word: findHealthWord(status.health) },
+    ...NEED_NAMES.map((needName) => ({
+      value: needs[needName],
+      word: findNeedWord(needName, needs[needName]),
+    })),
+  ];
   const pressingSentences = needWords
     .filter((needWord) => needWord.word.urge !== undefined)
     .sort((first, second) => first.value - second.value)
@@ -37,14 +48,31 @@ export function describeNeeds(needs: Needs): string {
   return `${pressingSentences.join(" ")} Otherwise you are ${joinWithAnd(otherWords)}.`;
 }
 
+function pickBandWord(
+  words: readonly string[],
+  wordBands: readonly number[],
+  value: number,
+  fallback: string,
+): string {
+  const bandIndex = wordBands.findIndex((upperBound) => value < upperBound);
+  return words[bandIndex === -1 ? words.length - 1 : bandIndex] ?? fallback;
+}
+
 /** "quite introverted, very agreeable, ...": each trait as the word for its band. */
 export function describeTraits(traits: Personality["traits"]): string {
-  return TRAIT_NAMES.map((traitName) => {
-    const words = config.traits.words[traitName];
-    const bandIndex = config.traits.wordBands.findIndex(
-      (upperBound) => traits[traitName] < upperBound,
-    );
-    const index = bandIndex === -1 ? words.length - 1 : bandIndex;
-    return words[index] ?? traitName;
-  }).join(", ");
+  return TRAIT_NAMES.map((traitName) =>
+    pickBandWord(
+      config.traits.words[traitName],
+      config.traits.wordBands,
+      traits[traitName],
+      traitName,
+    ),
+  ).join(", ");
+}
+
+/** "quite strong, rather clumsy": the agent's own stats as words. Others never see these. */
+export function describeStats(body: AgentBody): string {
+  return STAT_NAMES.map((statName) =>
+    pickBandWord(config.stats.words[statName], config.stats.wordBands, body[statName], statName),
+  ).join(", ");
 }

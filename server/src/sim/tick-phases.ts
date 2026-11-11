@@ -5,6 +5,13 @@ import { regrowStocks } from "../economy/object-state";
 import { advanceSleep, findWakeReason, isAsleep } from "../economy/sleep";
 import { mergeAwareness, observeAgents } from "../perception/awareness";
 import { canInterrupt, detectNewPerceptions } from "../perception/interrupts";
+import {
+  computeStarvationDamage,
+  isDead,
+  regenerateHealth,
+  trackStarvation,
+} from "../status/health";
+import { applyDamage } from "./damage";
 import { WAIT_ACTION, WALK_ACTION, describeDoing } from "./action-phrases";
 import { getAgentRuntime, requestDecision } from "./agent-runtime";
 import { finishRunningInteraction, wakeAgent } from "./interaction-runner";
@@ -12,7 +19,9 @@ import type { TickContext } from "./tick-context";
 import { advanceWalk } from "./walking";
 import {
   buildPerceptionWorld,
+  describeAgentAsSeen,
   findAgent,
+  listLivingAgents,
   listVisibleAgentIds,
   markAgentChanged,
   replaceAgent,
@@ -21,20 +30,31 @@ import {
 
 const { minutesPerTick } = config.clock;
 
-/** Phase 1: stocks regrow; needs decay (slower asleep); sleepers recover; crowds affect the awake. */
+/**
+ * Phase 1: stocks regrow; for the living, needs decay (slower asleep), sleepers recover, crowds
+ * affect the awake, health regenerates, and starvation does damage after its grace period.
+ */
 export function applyMechanics(context: TickContext): Map<string, Needs> {
   const { state } = context;
   state.objects = regrowStocks(state.objects, minutesPerTick);
   const world = buildPerceptionWorld(state);
   const needsBefore = new Map<string, Needs>();
-  for (const agent of [...state.agents]) {
-    needsBefore.set(agent.id, agent.needs);
+  for (const agentId of listLivingAgents(state).map((agent) => agent.id)) {
+    const agent = findAgent(state, agentId);
+    needsBefore.set(agentId, agent.needs);
     const isSleeping = isAsleep(agent);
     let updated = decayNeeds(agent, { isAsleep: isSleeping, minutesPerTick });
     updated = isSleeping
       ? advanceSleep(updated, minutesPerTick)
       : applyCrowdEffect(updated, listVisibleAgentIds(state, world, agent).length);
+    updated = trackStarvation(updated, state.tick);
+    updated = regenerateHealth(updated, { isAsleep: isSleeping, minutesPerTick });
     replaceAgent(state, updated);
+    applyDamage(context, agentId, {
+      amount: computeStarvationDamage(updated, state.tick, minutesPerTick),
+      killed: config.health.starvationKilledPhrase,
+      sourceAgentId: null,
+    });
   }
   return needsBefore;
 }
@@ -49,7 +69,7 @@ export function progressActions(context: TickContext): void {
   for (const agentId of state.agents.map((agent) => agent.id)) {
     const agent = findAgent(state, agentId);
     const action = agent.currentAction;
-    if (action === null) continue;
+    if (action === null || isDead(agent)) continue;
     if (action.kind === WALK_ACTION && getAgentRuntime(state, agentId).walk) {
       advanceWalk(context, agentId);
     } else if (isAsleep(agent)) {
@@ -74,7 +94,7 @@ export function updateSight(context: TickContext): void {
     place: agent.place,
     doing: describeDoing(state, agent, getAgentRuntime(state, agent.id)),
   }));
-  for (const agentId of state.agents.map((agent) => agent.id)) {
+  for (const agentId of listLivingAgents(state).map((agent) => agent.id)) {
     const agent = findAgent(state, agentId);
     const runtime = getAgentRuntime(state, agentId);
     const sighted = observeAgents(world, toPerceiver(agent), observed, state.tick);
@@ -82,7 +102,9 @@ export function updateSight(context: TickContext): void {
     const visibleIds = listVisibleAgentIds(state, world, agent);
     const newlyVisible = detectNewPerceptions(runtime.visibleAgentIds, visibleIds);
     if (newlyVisible.length > 0) {
-      const names = newlyVisible.map((otherId) => findAgent(state, otherId).name).join(", ");
+      const names = newlyVisible
+        .map((otherId) => describeAgentAsSeen(findAgent(state, otherId)))
+        .join(", ");
       requestDecision(runtime, `${names} came into view`, false);
     }
     runtime.visibleAgentIds = visibleIds;
@@ -91,7 +113,7 @@ export function updateSight(context: TickContext): void {
 
 /** Phase 4: a need that dropped below the decision threshold this tick gives a decision. */
 export function flagCrossedNeeds(context: TickContext, needsBefore: Map<string, Needs>): void {
-  for (const agent of context.state.agents) {
+  for (const agent of listLivingAgents(context.state)) {
     const before = needsBefore.get(agent.id);
     if (!before) continue;
     const crossed = findCrossedThresholds(before, agent.needs);
@@ -118,7 +140,7 @@ export function selectDecisionRequests(
 ): DecisionRequest[] {
   const { state } = context;
   const requests: DecisionRequest[] = [];
-  for (const agent of state.agents) {
+  for (const agent of listLivingAgents(state)) {
     if (isAgentDeciding(agent.id)) continue;
     const runtime = getAgentRuntime(state, agent.id);
     const pending = runtime.pendingDecision;

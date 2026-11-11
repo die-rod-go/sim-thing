@@ -1,10 +1,11 @@
 import type { Agent, AgentThought, DecisionReply } from "@village/shared";
 import { config } from "../config";
-import { normalizeDisplayName, resolveName } from "../decision/resolve-name";
+import { normalizeDisplayName, resolveName, type NamedCandidate } from "../decision/resolve-name";
 import { computeChebyshevDistance, executeGive } from "../economy/give";
 import { describeQuantity } from "../economy/inventory";
 import { filePersonNote } from "../memory/filing";
 import { pushWorkingMemory } from "../memory/working-memory";
+import { isDead } from "../status/health";
 import { WAIT_ACTION } from "./action-phrases";
 import { getAgentRuntime } from "./agent-runtime";
 import type { DecidedReply, DecisionPlan, PlannedAction } from "./decision-runner";
@@ -14,7 +15,9 @@ import { failAction } from "./failure";
 import { startInteractionNow, stopCurrentAction } from "./interaction-runner";
 import type { TickContext } from "./tick-context";
 import { startWalk } from "./walking";
+import type { WorldState } from "./world-state";
 import {
+  describeAgentAsSeen,
   findAgent,
   listKnownNames,
   markAgentChanged,
@@ -65,6 +68,13 @@ function applyFreeActs(context: TickContext, agentId: string, decided: DecidedRe
   }
 }
 
+/** Other agents under the names this agent would use for them: the dead as "Mara's body". */
+function listOthersAsSeen(state: WorldState, agentId: string): NamedCandidate[] {
+  return state.agents
+    .filter((other) => other.id !== agentId)
+    .map((other) => ({ id: other.id, name: describeAgentAsSeen(other) }));
+}
+
 function startWait(context: TickContext, agentId: string, minutes: number): void {
   const clamped = Math.min(Math.max(minutes, minutesPerTick), config.decision.maxWaitMinutes);
   const agent = findAgent(context.state, agentId);
@@ -86,10 +96,7 @@ function executeWalk(context: TickContext, agentId: string, targetName: string):
     }
     return;
   }
-  const otherId = resolveName(
-    targetName,
-    state.agents.filter((other) => other.id !== agentId),
-  );
+  const otherId = resolveName(targetName, listOthersAsSeen(state, agentId));
   if (otherId) {
     const other = findAgent(state, otherId);
     if (computeChebyshevDistance(agent.pos, other.pos) <= config.economy.giveReachTiles) {
@@ -97,7 +104,7 @@ function executeWalk(context: TickContext, agentId: string, targetName: string):
         state,
         result,
         agentId,
-        `walk over to ${other.name}`,
+        `walk over to ${describeAgentAsSeen(other)}`,
         "I was already right next to them",
       );
     } else {
@@ -146,7 +153,7 @@ function executeGiveAction(
   const { state, result } = context;
   const giver = findAgent(state, agentId);
   const what = describeQuantity(action.amount, action.item.trim().toLowerCase());
-  const recipientId = resolveName(action.target, state.agents);
+  const recipientId = resolveName(action.target, listOthersAsSeen(state, agentId));
   if (!recipientId) {
     failAction(
       state,
@@ -158,6 +165,17 @@ function executeGiveAction(
     return;
   }
   const recipient = findAgent(state, recipientId);
+  if (isDead(recipient)) {
+    const recipientName = describeAgentAsSeen(recipient);
+    failAction(
+      state,
+      result,
+      agentId,
+      `hand ${what} to ${recipientName}`,
+      "a body can't take anything",
+    );
+    return;
+  }
   const given = executeGive({ giver, recipient, item: action.item, amount: action.amount });
   if (!given.isSuccess) {
     failAction(state, result, agentId, `hand ${recipient.name} ${what}`, given.reason);
@@ -202,6 +220,8 @@ function executeAction(context: TickContext, agentId: string, action: PlannedAct
 export function applyDecisionPlan(context: TickContext, plan: DecisionPlan): void {
   const { state, result } = context;
   const { agentId } = plan;
+  // A reply for someone who died since it was asked for (or earlier in this tick) is dropped.
+  if (isDead(findAgent(state, agentId))) return;
   const isContinuing =
     plan.action.kind === "continue" && findAgent(state, agentId).currentAction !== null;
   if (!isContinuing) stopCurrentAction(context, agentId);

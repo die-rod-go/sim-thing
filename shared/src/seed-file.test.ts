@@ -9,6 +9,7 @@ import {
 
 const rules: SeedRules = {
   traitRange: { min: -1, max: 1 },
+  statRange: { min: 0, max: 1 },
   sleepRecoveryRange: { min: 0.12, max: 0.18 },
   spawnPlaces: ["bakery", "rose cottage"],
   itemNames: ["bread", "wheat"],
@@ -30,6 +31,8 @@ function buildSeedAgent(overrides: Partial<SeedAgent> = {}): SeedAgent {
     core: "",
     selfImage: "",
     sleepRecoveryPerHour: 0.15,
+    strength: 0.5,
+    agility: 0.5,
     coins: 30,
     inventory: { bread: 2 },
     mood: "",
@@ -72,6 +75,14 @@ describe("findSeedFileProblems", () => {
   it("rejects traits outside the configured range", () => {
     const traits = { ...buildSeedAgent().traits, neuroticism: 1.5 };
     expect(listFields([buildSeedAgent({ traits })])).toEqual(["traits.neuroticism"]);
+  });
+
+  it("rejects strength and agility outside the configured range", () => {
+    expect(listFields([buildSeedAgent({ strength: 1.2, agility: -0.1 })])).toEqual([
+      "strength",
+      "agility",
+    ]);
+    expect(listFields([buildSeedAgent({ strength: 0, agility: 1 })])).toEqual([]);
   });
 
   it("rejects a spawn place that is not on the map", () => {

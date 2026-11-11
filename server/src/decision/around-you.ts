@@ -1,4 +1,5 @@
 import { config } from "../config";
+import { describeBodyName } from "../status/health";
 import type { AroundYou, AwarenessEntry } from "./context";
 
 const MINUTES_PER_HOUR = 60;
@@ -14,8 +15,11 @@ export function formatMinutesAgo(minutesAgo: number): string {
   return days === 1 ? "1 day ago" : `${days} days ago`;
 }
 
+/** "Tobias, looks hurt (chopping wood)", or "Mara's body" for someone lying dead in sight. */
 function describeInSight(entry: AwarenessEntry): string {
-  return entry.doing ? `${entry.name} (${entry.doing})` : entry.name;
+  if (entry.isDead) return describeBodyName(entry.name);
+  const name = entry.healthAsSeen ? `${entry.name}, ${entry.healthAsSeen}` : entry.name;
+  return entry.doing ? `${name} (${entry.doing})` : name;
 }
 
 function describeOutOfSight(entry: AwarenessEntry): string {
@@ -43,7 +47,8 @@ export function describeAroundYou(aroundYou: AroundYou): string {
     .filter((entry) => entry.minutesAgo <= config.perception.awarenessPromptWindowMinutes)
     .sort((first, second) => first.minutesAgo - second.minutesAgo);
   const normalHearers = new Set(aroundYou.normalHearerIds);
-  const inSight = recentEntries.filter((entry) => entry.isInSight);
+  const inSight = recentEntries.filter((entry) => entry.isInSight && !entry.isDead);
+  const bodiesInSight = recentEntries.filter((entry) => entry.isInSight && entry.isDead);
   const outOfSight = recentEntries.filter((entry) => !entry.isInSight);
   const lines = [
     sentence(
@@ -60,6 +65,7 @@ export function describeAroundYou(aroundYou: AroundYou): string {
         .filter((entry) => aroundYou.whisperHearerIds.includes(entry.agentId))
         .map((entry) => entry.name),
     ),
+    sentence("Also in sight", bodiesInSight.map(describeInSight)),
     sentence(
       "Recently around, now out of sight",
       outOfSight.filter((entry) => entry.via === "saw").map(describeOutOfSight),

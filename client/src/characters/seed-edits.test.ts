@@ -27,6 +27,8 @@ function buildSeedAgent(name: string, overrides: Partial<SeedAgent> = {}): SeedA
     core: "",
     selfImage: "",
     sleepRecoveryPerHour: 0.15,
+    strength: 0.5,
+    agility: 0.5,
     coins: 30,
     inventory: {},
     mood: "",

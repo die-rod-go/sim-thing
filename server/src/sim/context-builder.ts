@@ -11,9 +11,17 @@ import type {
 import { currentConversation } from "../memory/conversation";
 import { buildCue, recallForDecision } from "../memory/recall";
 import { findObviousListeners } from "../perception/listeners";
+import { describeHealthAsSeen, isDead } from "../status/health";
 import { describeDoing } from "./action-phrases";
 import { getAgentRuntime } from "./agent-runtime";
-import { buildPerceptionWorld, findAgent, listKnownNames, toPerceiver } from "./world-access";
+import {
+  buildPerceptionWorld,
+  describeAgentAsSeen,
+  findAgent,
+  listKnownNames,
+  listLivingAgents,
+  toPerceiver,
+} from "./world-access";
 import type { WorldState } from "./world-state";
 
 const { minutesPerTick } = config.clock;
@@ -27,6 +35,7 @@ function buildAwarenessEntries(state: WorldState, agent: Agent): AwarenessEntry[
   return Object.values(agent.awareness).flatMap((entry) => {
     const other = state.agents.find((candidate) => candidate.id === entry.agentId);
     if (!other) return [];
+    const isInSight = visibleIds.has(entry.agentId);
     return [
       {
         agentId: entry.agentId,
@@ -35,7 +44,9 @@ function buildAwarenessEntries(state: WorldState, agent: Agent): AwarenessEntry[
         place: entry.place,
         doing: entry.doing,
         minutesAgo: minutesSince(entry.tick, state.tick),
-        isInSight: visibleIds.has(entry.agentId),
+        isInSight,
+        isDead: isInSight && isDead(other),
+        healthAsSeen: isInSight && !isDead(other) ? describeHealthAsSeen(other.health) : null,
       },
     ];
   });
@@ -61,7 +72,7 @@ export function buildValidTargets(state: WorldState, agent: Agent): DecisionTarg
   const visibleIds = getAgentRuntime(state, agent.id).visibleAgentIds;
   return {
     places: state.map.places.map((place) => place.name),
-    agents: visibleIds.map((agentId) => findAgent(state, agentId).name),
+    agents: visibleIds.map((agentId) => describeAgentAsSeen(findAgent(state, agentId))),
     objects: listNearbyObjects(state, agent).map((object) => object.name),
     heldItems: listHeldItemsWithUses(agent),
   };
@@ -114,7 +125,9 @@ export function buildDecisionContext(
   const listeners = findObviousListeners(
     world,
     toPerceiver(agent),
-    state.agents.filter((other) => other.id !== agentId).map(toPerceiver),
+    listLivingAgents(state)
+      .filter((other) => other.id !== agentId)
+      .map(toPerceiver),
   );
   const aroundYouEntries = buildAwarenessEntries(state, agent);
   const nearbyObjects = listNearbyObjects(state, agent);
@@ -127,6 +140,8 @@ export function buildDecisionContext(
     personality: agent.personality,
     mood: agent.mood,
     needs: agent.needs,
+    health: agent.health,
+    body: agent.body,
     goals: agent.goals,
     dailyPlan: agent.dailyPlan,
     intention: agent.intention,

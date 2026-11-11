@@ -3,7 +3,7 @@ import { config } from "../config";
 import { describeAroundYou } from "./around-you";
 import type { DecisionContext, RecalledMemory } from "./context";
 import { buildDecisionPrompt, estimatePromptTokens } from "./decision-prompt";
-import { describeNeeds, describeTraits } from "./words";
+import { describeStats, describeStatus, describeTraits } from "./words";
 
 function buildContext(overrides: Partial<DecisionContext> = {}): DecisionContext {
   return {
@@ -22,6 +22,8 @@ function buildContext(overrides: Partial<DecisionContext> = {}): DecisionContext
     },
     mood: "busy but content",
     needs: { hunger: 0.4, energy: 0.9, social: 0.45, fun: 0.6 },
+    health: 1,
+    body: { sleepRecoveryPerHour: 0.15, strength: 0.7, agility: 0.3 },
     goals: [
       { text: "Bake every day", why: "people rely on me", progress: "on track", kind: "world" },
     ],
@@ -53,9 +55,10 @@ function manyMemories(count: number, text: string): RecalledMemory[] {
 }
 
 describe("buildDecisionPrompt", () => {
-  it("renders needs as words not numbers", () => {
-    expect(describeNeeds({ hunger: 0.4, energy: 0.9, social: 0.45, fun: 0.6 })).toBe(
-      "You are quite hungry, rested, a bit lonely and fairly entertained.",
+  it("renders health and needs as words not numbers", () => {
+    const needs = { hunger: 0.4, energy: 0.9, social: 0.45, fun: 0.6 };
+    expect(describeStatus({ health: 1, needs })).toBe(
+      "You are unhurt, quite hungry, rested, a bit lonely and fairly entertained.",
     );
     const prompt = buildDecisionPrompt(buildContext());
     expect(prompt).toContain("quite hungry");
@@ -63,11 +66,30 @@ describe("buildDecisionPrompt", () => {
   });
 
   it("puts pressing needs first, lowest first, each with how it feels", () => {
-    expect(describeNeeds({ hunger: 0.25, energy: 0.05, social: 0.9, fun: 0.45 })).toBe(
+    const needs = { hunger: 0.25, energy: 0.05, social: 0.9, fun: 0.45 };
+    expect(describeStatus({ health: 0.7, needs })).toBe(
       "You are exhausted: you can barely keep your eyes open and need to sleep now. " +
         "You are very hungry: your stomach aches and you need to eat soon. " +
-        "Otherwise you are socially fulfilled and a bit bored.",
+        "Otherwise you are bruised, socially fulfilled and a bit bored.",
     );
+  });
+
+  it("puts a serious wound first like a pressing need", () => {
+    const needs = { hunger: 0.8, energy: 0.8, social: 0.8, fun: 0.8 };
+    expect(describeStatus({ health: 0.3, needs })).toMatch(
+      /^You are badly wounded: your wounds throb and you feel faint\. Otherwise you are well fed/,
+    );
+  });
+
+  it("describes the agent's own stats as words in Who you are", () => {
+    const context = buildContext();
+    expect(describeStats(context.body)).toBe("quite strong, rather clumsy");
+    const prompt = buildDecisionPrompt(context);
+    const whoSection = prompt.slice(
+      prompt.indexOf("## Who you are"),
+      prompt.indexOf("## How you feel"),
+    );
+    expect(whoSection).toContain("Your body: quite strong, rather clumsy");
   });
 
   it("shows needs next to the time in the Now section", () => {
@@ -150,6 +172,8 @@ describe("describeAroundYou", () => {
           doing: "kneading dough",
           minutesAgo: 0,
           isInSight: true,
+          isDead: false,
+          healthAsSeen: null,
         },
         {
           agentId: "clara",
@@ -159,6 +183,8 @@ describe("describeAroundYou", () => {
           doing: "",
           minutesAgo: 0,
           isInSight: true,
+          isDead: false,
+          healthAsSeen: null,
         },
         {
           agentId: "dave",
@@ -168,6 +194,8 @@ describe("describeAroundYou", () => {
           doing: "walking into the back room",
           minutesAgo: 3,
           isInSight: false,
+          isDead: false,
+          healthAsSeen: null,
         },
         {
           agentId: "ed",
@@ -177,6 +205,8 @@ describe("describeAroundYou", () => {
           doing: "talking",
           minutesAgo: 5,
           isInSight: false,
+          isDead: false,
+          healthAsSeen: null,
         },
         {
           agentId: "fay",
@@ -186,6 +216,8 @@ describe("describeAroundYou", () => {
           doing: "",
           minutesAgo: 90,
           isInSight: false,
+          isDead: false,
+          healthAsSeen: null,
         },
       ],
       normalHearerIds: ["bob", "clara"],
@@ -198,6 +230,37 @@ describe("describeAroundYou", () => {
         "Recently around, now out of sight: Dave, seen 3 min ago walking into the back room (bakery).",
         "Ed's voice, heard 5 min ago from the street.",
       ].join("\n"),
+    );
+  });
+
+  it("shows how hurt others look once it shows, and the dead as bodies", () => {
+    const base = { via: "saw" as const, place: "bakery", minutesAgo: 0, isInSight: true };
+    const text = describeAroundYou({
+      entries: [
+        {
+          ...base,
+          agentId: "bob",
+          name: "Bob",
+          doing: "sitting",
+          isDead: false,
+          healthAsSeen: "looks hurt",
+        },
+        {
+          ...base,
+          agentId: "mara",
+          name: "Mara",
+          doing: "lying dead",
+          isDead: true,
+          healthAsSeen: null,
+        },
+      ],
+      normalHearerIds: ["bob", "mara"],
+      whisperHearerIds: [],
+    });
+    expect(text).toBe(
+      ["In sight, would hear you: Bob, looks hurt (sitting).", "Also in sight: Mara's body."].join(
+        "\n",
+      ),
     );
   });
 

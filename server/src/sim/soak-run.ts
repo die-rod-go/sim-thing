@@ -14,6 +14,8 @@ export interface SoakReport {
   /** Human-readable problems; empty when the run is healthy. */
   problems: string[];
   personalityChanges: Omit<PersonalityChange, "id">[];
+  /** Who died and how; deaths are reported, not counted as problems. */
+  deaths: string[];
   sim: TestSim;
 }
 
@@ -63,7 +65,7 @@ export async function runSoak(options: SoakOptions): Promise<SoakReport> {
       }
     }
     for (const agent of sim.state.agents) {
-      const isIdle = agent.currentAction === null && !isAsleep(agent);
+      const isIdle = agent.currentAction === null && !isAsleep(agent) && agent.death === null;
       const idle =
         isIdle && !result.decidedAgentIds.includes(agent.id)
           ? (idleTicks.get(agent.id) ?? 0) + 1
@@ -81,5 +83,16 @@ export async function runSoak(options: SoakOptions): Promise<SoakReport> {
         problems.push(`${agent.id} has ${count} ${bucket} memories`);
     }
   }
-  return { ticks: options.ticks, llmCalls, events: eventCount, problems, personalityChanges, sim };
+  const deaths = sim.state.agents.flatMap((agent) =>
+    agent.death ? [`tick ${agent.death.tick}: ${agent.id} ${agent.death.cause}`] : [],
+  );
+  return {
+    ticks: options.ticks,
+    llmCalls,
+    events: eventCount,
+    problems,
+    personalityChanges,
+    deaths,
+    sim,
+  };
 }

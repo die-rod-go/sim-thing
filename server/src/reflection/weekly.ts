@@ -1,6 +1,7 @@
 import { TRAIT_NAMES } from "@village/shared";
 import type { Agent, Personality, PersonalityChange, TraitName } from "@village/shared";
 import { config } from "../config";
+import { describeStats, describeStatus } from "../decision/words";
 import type { StructuredCaller } from "../llm/call-structured";
 import { renderTemplate } from "../llm/templates";
 import type { MemoryReader } from "../memory/memory-store";
@@ -38,6 +39,8 @@ export function buildWeeklyPrompt(input: WeeklyPassInput): string {
     profession: agent.profession,
     core: agent.personality.core,
     selfImage: agent.personality.selfImage,
+    body: describeStats(agent.body),
+    status: describeStatus(agent),
     traits: describeTraitValues(agent.personality.traits),
     goals: describeGoalsWithKind(agent.goals),
     daySummaries: describeReflections(summaries, "No days recorded."),

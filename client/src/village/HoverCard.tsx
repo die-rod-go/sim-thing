@@ -1,5 +1,5 @@
 import { NEED_NAMES, type Agent, type SimTimeSettings } from "@village/shared";
-import { describeActivity, describeNeed } from "../format/character-sheet";
+import { describeActivity, describeDeath, describeNeed } from "../format/character-sheet";
 
 const PERCENT = 100;
 
@@ -40,11 +40,17 @@ export function HoverCard({ agent, color, timeSettings, cardRef }: HoverCardProp
         <strong>{agent.name}</strong>
         <span className="hover-card-profession">{agent.profession}</span>
       </div>
-      <div className="hover-card-status">
-        {describeActivity(agent.currentAction, timeSettings)} · feeling <em>{agent.mood}</em>
-      </div>
-      {agent.intention && <div className="hover-card-intention">→ {agent.intention}</div>}
-      <NeedBars agent={agent} />
+      {agent.death !== null ? (
+        <div className="hover-card-status">{describeDeath(agent.death, timeSettings)}</div>
+      ) : (
+        <>
+          <div className="hover-card-status">
+            {describeActivity(agent.currentAction, timeSettings)} · feeling <em>{agent.mood}</em>
+          </div>
+          {agent.intention && <div className="hover-card-intention">→ {agent.intention}</div>}
+          <NeedBars agent={agent} />
+        </>
+      )}
       {agent.lastThought && <div className="hover-card-thought">“{agent.lastThought.text}”</div>}
     </div>
   );

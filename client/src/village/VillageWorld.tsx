@@ -204,6 +204,7 @@ export function VillageWorld(props: VillageWorldProps) {
             isHighlighted={highlighted.has(agent.id)}
             isSpeaking={bubblesBySpeaker.has(agent.id)}
             isMuted={props.mutedSpeakers.has(agent.id)}
+            isDead={agent.death !== null}
             activityCue={pickActivityCue(agent.currentAction, activity)}
             markerRef={world.markers.register(agent.id)}
             onSelect={props.onSelectAgent}

@@ -11,6 +11,8 @@ const agent: SeedAgent = {
   core: "",
   selfImage: "",
   sleepRecoveryPerHour: 0.15,
+  strength: 0.5,
+  agility: 0.5,
   coins: 30,
   inventory: {},
   mood: "",
@@ -26,6 +28,7 @@ const loadedMessage: SeedFileMessage = {
   loadError: null,
   rules: {
     traitRange: { min: -1, max: 1 },
+    statRange: { min: 0, max: 1 },
     sleepRecoveryRange: { min: 0.12, max: 0.18 },
     spawnPlaces: ["rose cottage"],
     itemNames: ["bread"],

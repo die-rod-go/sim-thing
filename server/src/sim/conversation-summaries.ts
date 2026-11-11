@@ -9,7 +9,7 @@ import {
   findEndedConversations,
   selectOverheardAround,
 } from "../memory/conversation-summary";
-import { findAgent } from "./world-access";
+import { findAgent, listLivingAgents } from "./world-access";
 import type { WorldState } from "./world-state";
 
 const logger = createLogger("conversation-summary");
@@ -86,7 +86,7 @@ export function createConversationSummarizer(
   }
 
   return async (state) => {
-    const pending = state.agents
+    const pending = listLivingAgents(state)
       .filter((agent) => !isWaitingToRetry(agent.id, state.tick))
       .flatMap((agent) =>
         findEndedConversations(state.memoryStore, agent.id, state.tick).map((conversation) =>

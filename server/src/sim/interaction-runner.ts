@@ -274,6 +274,25 @@ export function stopCurrentAction(context: TickContext, agentId: string): void {
   }
 }
 
+/**
+ * Ends whatever the agent was doing without a word, for an agent who just died: a sleeper's bed
+ * and an interaction's object (the card table) are freed, nothing is broadcast.
+ */
+export function abandonCurrentAction(context: TickContext, agentId: string): void {
+  const agent = findAgent(context.state, agentId);
+  const record = findRecord(context, agent);
+  const object = record?.objectId ? (findObjectById(context.state, record.objectId) ?? null) : null;
+  if (isAsleep(agent) && object) {
+    const ended = endSleep(agent, object);
+    applyStopped(context, { agent: ended.agent, object: ended.bed });
+  } else if (record) {
+    applyStopped(context, cancelInteraction({ agent, object, record }));
+  } else {
+    applyStopped(context, { agent: { ...agent, currentAction: null }, object: null });
+  }
+  getAgentRuntime(context.state, agentId).walk = null;
+}
+
 /** "opened the bakery door", for doors opened by walking through them. */
 export function describeDoorOpened(door: WorldObject): string {
   return describeDoneInteraction("open", door.name);

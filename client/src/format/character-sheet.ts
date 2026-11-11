@@ -1,5 +1,8 @@
 import {
   formatSimTime,
+  toSimTime,
+  type AgentCondition,
+  type AgentDeath,
   type CurrentAction,
   type NeedName,
   type SimTimeSettings,
@@ -12,6 +15,35 @@ export interface NeedLevel {
   /** 0 is the worst level; the highest index is fully satisfied. */
   levelIndex: number;
   isAlert: boolean;
+}
+
+export function describeHealth(value: number): NeedLevel {
+  const { upperBounds, words, alertLevelIndex } = clientConfig.healthLevels;
+  const foundIndex = upperBounds.findIndex((upperBound) => value < upperBound);
+  const levelIndex = foundIndex === -1 ? upperBounds.length : foundIndex;
+  return {
+    word: words[levelIndex] ?? "health",
+    levelIndex,
+    isAlert: levelIndex <= alertLevelIndex,
+  };
+}
+
+/** "Died day 3, 14:20: stabbed by Tobias" */
+export function describeDeath(death: AgentDeath, timeSettings: SimTimeSettings): string {
+  const time = toSimTime(death.tick, timeSettings);
+  const clock = `${String(time.hour).padStart(2, "0")}:${String(time.minute).padStart(2, "0")}`;
+  return `Died day ${time.day}, ${clock}: ${death.cause}`;
+}
+
+/** "bleeding 12m", or just "burning" for a condition with no set end. */
+export function describeCondition(
+  condition: AgentCondition,
+  currentTick: number,
+  timeSettings: SimTimeSettings,
+): string {
+  if (condition.endsAtTick === null) return condition.name;
+  const minutesLeft = Math.max(0, condition.endsAtTick - currentTick) * timeSettings.minutesPerTick;
+  return `${condition.name} ${minutesLeft}m`;
 }
 
 export function describeNeed(needName: NeedName, value: number): NeedLevel {
