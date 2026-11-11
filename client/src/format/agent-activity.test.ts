@@ -1,6 +1,11 @@
 import { describe, expect, it } from "vitest";
 import type { WorldEvent } from "@village/shared";
-import { makeSampleAgent, makeSampleEvent, makeSampleLlmCall } from "../fixtures/sample-data";
+import {
+  makeSampleAgent,
+  makeSampleEvent,
+  makeSampleLlmCall,
+  makeSampleMoment,
+} from "../fixtures/sample-data";
 import { buildAgentActivity, findNewestThought } from "./agent-activity";
 import { groupConversations } from "./conversations";
 import { summarizeLlmCall } from "./thoughts";
@@ -32,6 +37,7 @@ function buildFor(events: WorldEvent[], callTicks: number[] = []) {
       summarizeLlmCall(makeSampleLlmCall(callIndex + 1, "ada", tick)),
     ),
     latestThought: null,
+    moments: [],
   });
 }
 
@@ -76,6 +82,7 @@ describe("buildAgentActivity", () => {
         threads: [],
         thoughts: [summarizeLlmCall(makeSampleLlmCall(1, "ada", 3)), summarizeLlmCall(morning)],
         latestThought: null,
+        moments: [],
       },
       "reflections",
     );
@@ -91,8 +98,48 @@ describe("buildAgentActivity", () => {
       threads: [],
       thoughts: [],
       latestThought: { text: "Bob looks tired", tick: 9 },
+      moments: [],
     });
     expect(groups[0]?.items[0]).toMatchObject({ kind: "thought", headline: "Bob looks tired" });
+  });
+});
+
+describe("buildAgentActivity folding and pairing", () => {
+  it("folds failed attempts in a row into one item", () => {
+    const groups = buildFor([
+      act(1, 1, "action_failed"),
+      act(2, 2, "action_failed"),
+      act(3, 3, "action_failed"),
+      act(4, 4, "action_finished"),
+    ]);
+    const kinds = groups.flatMap((group) => group.items.map((item) => item.kind));
+    expect(kinds).toEqual(["action", "failures"]);
+  });
+
+  it("moves a line beside the decision that produced it", () => {
+    const line: WorldEvent = {
+      ...makeSampleEvent(1, ada, 6),
+      speech: { words: "Bread!", volume: "normal", thought: "Sell it", llmCallId: 1 },
+    };
+    const groups = buildFor([line], [5]);
+    expect(groups).toHaveLength(1);
+    const speech = groups[0]?.items.find((item) => item.kind === "speech");
+    expect(speech?.kind === "speech" && speech.isThoughtShownAbove).toBe(true);
+  });
+
+  it("leaves failure moments to the events that already show them", () => {
+    const groups = buildAgentActivity({
+      agentId: "ada",
+      events: [],
+      threads: [],
+      thoughts: [],
+      latestThought: null,
+      moments: [
+        { ...makeSampleMoment(1, ada, 3), kind: "action_failed", eventId: 1, description: "no" },
+        makeSampleMoment(4, ada, 4),
+      ],
+    });
+    expect(groups.flatMap((group) => group.items.map((item) => item.key))).toEqual(["moment-4"]);
   });
 });
 

@@ -2,10 +2,13 @@ import type { ClientMessage } from "@village/shared";
 import { clientConfig } from "../client-config";
 import { describeClockFace } from "../format/clock-face";
 import { formatCount } from "../format/formatters";
+import { parseStoredBoolean } from "../format/stored-preferences";
 import type { ConnectionStatus } from "../net/sim-connection";
 import type { ClientState } from "../state/client-state";
+import { MomentToasts } from "./MomentToasts";
 import { SettingsMenu } from "./SettingsMenu";
 import { ShortcutsHelp } from "./ShortcutsHelp";
+import { useStoredState } from "./use-stored-state";
 
 const CONNECTION_LABELS: Record<ConnectionStatus, string> = {
   connecting: "Connecting…",
@@ -124,6 +127,11 @@ function StatusPill({
 export function TopBar(props: TopBarProps) {
   const { state, connectionStatus, sendControl } = props;
   const isLive = connectionStatus === "open" && state.hasSnapshot;
+  const [isNotifyingPersonalityChanges, setIsNotifyingPersonalityChanges] = useStoredState(
+    clientConfig.storageKeys.isNotifyingPersonalityChanges,
+    false,
+    parseStoredBoolean,
+  );
   return (
     <header className="top-bar-wrapper">
       <div className="top-bar">
@@ -141,6 +149,8 @@ export function TopBar(props: TopBarProps) {
             sendControl={sendControl}
             isDebugOverlayOn={props.isDebugOverlayOn}
             onDebugOverlayChange={props.onDebugOverlayChange}
+            isNotifyingPersonalityChanges={isNotifyingPersonalityChanges}
+            onNotifyingPersonalityChangesChange={setIsNotifyingPersonalityChanges}
           />
         </div>
       </div>
@@ -148,6 +158,7 @@ export function TopBar(props: TopBarProps) {
         <div className="banner banner-warning">Sim paused itself: {state.pausedReason}</div>
       )}
       {props.protocolError && <div className="banner banner-error">{props.protocolError}</div>}
+      <MomentToasts isEnabled={isNotifyingPersonalityChanges} />
     </header>
   );
 }

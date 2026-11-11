@@ -112,6 +112,9 @@ export const clientConfig = {
     threadStickSlackPx: 24,
     /** Fraction of the token budget at which the usage bar turns to a warning color. */
     tokenWarningFraction: 0.8,
+    /** How long a moment notification stays up before it dismisses itself. */
+    momentToastLifetimeMs: 9000,
+    maxMomentToastsShown: 3,
   },
 
   characterEditor: {
@@ -136,6 +139,16 @@ export const clientConfig = {
     maxSidePanelWindowFraction: 0.6,
   },
 
+  /** The Relations tab's who-talks-with-whom picture, in SVG pixels. */
+  relationshipWeb: {
+    sizePx: 260,
+    ringRadiusPx: 95,
+    nodeRadiusPx: 14,
+    centerRadiusPx: 18,
+    minEdgeWidthPx: 1,
+    maxEdgeWidthPx: 7,
+  },
+
   /** Hours that count as daytime for the clock's sun and moon. */
   daylight: {
     dayStartHour: 6,
@@ -150,6 +163,7 @@ export const clientConfig = {
     sheetTab: "village.sheetTab",
     storyFilter: "village.storyFilter",
     activityFilter: "village.activityFilter",
+    isNotifyingPersonalityChanges: "village.isNotifyingPersonalityChanges",
   },
 
   /** Words for need levels, from worst to best; `upperBounds` splits 0–1 into those levels. */

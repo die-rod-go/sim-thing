@@ -1,6 +1,7 @@
-import type { LlmCallKind, Volume, WorldEvent } from "@village/shared";
+import type { LlmCallKind, Moment, Volume, WorldEvent } from "@village/shared";
 import type { ConversationThread, SpokenLine } from "./conversations";
 import { categorizeEvent, type EventCategory } from "./event-feed";
+import { collectMoments, foldFailures, pairSpeechWithThoughts } from "./activity-folding";
 import type { ThoughtEntry, ThoughtPart } from "./thoughts";
 
 export interface ActivityThought {
@@ -8,6 +9,8 @@ export interface ActivityThought {
   key: string;
   tick: number;
   thoughtKind: LlmCallKind | "latest";
+  /** The LLM call this came from; null for the live latest thought. */
+  callId: number | null;
   headline: string | null;
   parts: ThoughtPart[];
   error: string | null;
@@ -38,9 +41,29 @@ export interface ActivitySpeech {
   place: string;
   /** The other speaker's line this one followed, so a reply reads with what it answers. */
   replyTo: ContextLine | null;
+  thought: string | null;
+  llmCallId: number | null;
+  /** The decision that produced this line is already shown just above it in the timeline. */
+  isThoughtShownAbove: boolean;
 }
 
-export type ActivityItem = ActivityThought | ActivityAction | ActivitySpeech;
+export interface ActivityMoment {
+  kind: "moment";
+  key: string;
+  tick: number;
+  moment: Moment;
+}
+
+/** A run of failed attempts in a row, folded so a stubborn retry loop doesn't flood the sheet. */
+export interface ActivityFailures {
+  kind: "failures";
+  key: string;
+  tick: number;
+  failures: ActivityAction[];
+}
+
+export type ActivityItem =
+  ActivityThought | ActivityAction | ActivitySpeech | ActivityMoment | ActivityFailures;
 
 /** Everything that happened to one agent on one tick, in reading order: thought, did, said. */
 export interface ActivityGroup {
@@ -69,6 +92,8 @@ export interface AgentActivityInput {
   threads: ConversationThread[];
   thoughts: ThoughtEntry[];
   latestThought: LatestThought | null;
+  /** Every agent's moments; only this agent's are used. */
+  moments: Moment[];
 }
 
 /** Decision replies also say what was said and done; the events show those, so skip them here. */
@@ -85,7 +110,13 @@ const REFLECTION_KINDS: ReadonlySet<ActivityThought["thoughtKind"]> = new Set([
   "weekly",
 ]);
 
-const READING_ORDER: Record<ActivityItem["kind"], number> = { thought: 0, action: 1, speech: 2 };
+const READING_ORDER: Record<ActivityItem["kind"], number> = {
+  thought: 0,
+  moment: 1,
+  action: 2,
+  failures: 2,
+  speech: 3,
+};
 
 function toThoughtItem(entry: ThoughtEntry): ActivityThought {
   const isDecision = entry.kind === "decision" || entry.kind === "interact";
@@ -94,6 +125,7 @@ function toThoughtItem(entry: ThoughtEntry): ActivityThought {
     key: `call-${entry.callId}`,
     tick: entry.tick,
     thoughtKind: entry.kind,
+    callId: entry.callId,
     headline: entry.headline,
     parts: isDecision
       ? entry.parts.filter((thoughtPart) => !PARTS_SHOWN_AS_EVENTS.has(thoughtPart.label))
@@ -158,6 +190,9 @@ function collectSpeech(agentId: string, threads: ConversationThread[]): Activity
               volume: line.volume,
               place: thread.place,
               replyTo: findReplyContext(lines, lineIndex),
+              thought: line.thought,
+              llmCallId: line.llmCallId,
+              isThoughtShownAbove: false,
             },
           ]
         : [],
@@ -167,6 +202,9 @@ function collectSpeech(agentId: string, threads: ConversationThread[]): Activity
 
 function isShownByFilter(item: ActivityItem, filter: ActivityFilter): boolean {
   if (filter === "all") return true;
+  if (item.kind === "moment") {
+    return item.moment.kind === "reflection" ? filter !== "doings" : filter === "doings";
+  }
   if (filter === "doings") return item.kind !== "thought";
   if (item.kind !== "thought") return false;
   return filter === "thoughts" || REFLECTION_KINDS.has(item.thoughtKind);
@@ -186,6 +224,29 @@ function groupByTick(items: ActivityItem[]): ActivityGroup[] {
     }));
 }
 
+function buildLatestThoughtItems(
+  latestThought: LatestThought | null,
+  thoughtItems: ActivityThought[],
+): ActivityThought[] {
+  if (latestThought === null) return [];
+  const isAlreadyListed = thoughtItems.some(
+    (item) => item.tick === latestThought.tick && item.headline === latestThought.text,
+  );
+  if (isAlreadyListed) return [];
+  return [
+    {
+      kind: "thought",
+      key: `latest-${latestThought.tick}`,
+      tick: latestThought.tick,
+      thoughtKind: "latest",
+      callId: null,
+      headline: latestThought.text,
+      parts: [],
+      error: null,
+    },
+  ];
+}
+
 /**
  * One agent's thoughts, doings and words as a single timeline: groups newest first, and inside each
  * tick the thought comes before the act and the act before the words.
@@ -195,31 +256,12 @@ export function buildAgentActivity(
   filter: ActivityFilter = "all",
 ): ActivityGroup[] {
   const thoughtItems = input.thoughts.map(toThoughtItem);
-  const { latestThought } = input;
-  const isLatestThoughtNew =
-    latestThought !== null &&
-    !thoughtItems.some(
-      (item) => item.tick === latestThought.tick && item.headline === latestThought.text,
-    );
-  const latestItems: ActivityThought[] =
-    latestThought !== null && isLatestThoughtNew
-      ? [
-          {
-            kind: "thought",
-            key: `latest-${latestThought.tick}`,
-            tick: latestThought.tick,
-            thoughtKind: "latest",
-            headline: latestThought.text,
-            parts: [],
-            error: null,
-          },
-        ]
-      : [];
   const items: ActivityItem[] = [
     ...thoughtItems,
-    ...latestItems,
-    ...collectActions(input.agentId, input.events),
-    ...collectSpeech(input.agentId, input.threads),
+    ...buildLatestThoughtItems(input.latestThought, thoughtItems),
+    ...collectMoments(input.agentId, input.moments, thoughtItems),
+    ...foldFailures(collectActions(input.agentId, input.events)),
+    ...pairSpeechWithThoughts(collectSpeech(input.agentId, input.threads), thoughtItems),
   ].filter((item) => isShownByFilter(item, filter));
   return groupByTick(items);
 }

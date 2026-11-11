@@ -4,6 +4,7 @@ import { clientConfig } from "../client-config";
 import { formatMinutesAgo } from "../format/formatters";
 import { buildRelations, type Relation } from "../format/relations";
 import { usePanelContext } from "./panel-context";
+import { RelationshipWeb } from "./RelationshipWeb";
 import { AgentName, ColorDot, EmptyNote } from "./widgets";
 
 const VIA_VERBS: Record<AwarenessVia, string> = {
@@ -73,6 +74,11 @@ export function RelationsTab({ detail }: { detail: AgentDetailMessage }) {
   if (relations.length === 0) return <EmptyNote>Nobody else lives here.</EmptyNote>;
   return (
     <div className="relations">
+      <RelationshipWeb
+        agentId={detail.agent.id}
+        agentName={detail.agent.name}
+        relations={relations}
+      />
       {relations.map((relation) => (
         <RelationCard key={relation.agentId} relation={relation} />
       ))}

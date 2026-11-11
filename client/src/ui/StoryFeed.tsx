@@ -1,5 +1,5 @@
 import { useMemo } from "react";
-import type { WorldEvent } from "@village/shared";
+import type { Moment, WorldEvent } from "@village/shared";
 import { clientConfig } from "../client-config";
 import { formatClockTime } from "../format/character-sheet";
 import {
@@ -9,6 +9,7 @@ import {
   listEventPlaces,
   type EventCategory,
 } from "../format/event-feed";
+import { describeMomentDetail, MOMENT_GLYPHS, MOMENT_LABELS } from "../format/moments";
 import { buildStory, countStoryThreads, type StoryFilter } from "../format/story-feed";
 import { parseStoredStoryFilter, serializeStoryFilter } from "../format/stored-preferences";
 import { usePanelContext } from "./panel-context";
@@ -31,6 +32,7 @@ const DEFAULT_FILTER: StoryFilter = {
   agentId: null,
   place: null,
   categories: new Set(EVENT_CATEGORIES.filter((category) => category !== "movement")),
+  isShowingMoments: false,
 };
 
 function toggleCategory(
@@ -56,6 +58,23 @@ function StoryEventLine({ worldEvent }: { worldEvent: WorldEvent }) {
         <AgentName agentId={worldEvent.actorId} name={worldEvent.actorName} />{" "}
         {worldEvent.description}
         <span className="feed-place"> · {worldEvent.place}</span>
+      </span>
+    </div>
+  );
+}
+
+function StoryMomentLine({ moment }: { moment: Moment }) {
+  const { state } = usePanelContext();
+  const detail = describeMomentDetail(moment);
+  return (
+    <div className={`story-moment moment-${moment.kind}`}>
+      <span className="line-time">{formatClockTime(moment.tick, state.timeSettings)}</span>
+      <span className="feed-glyph" title={MOMENT_LABELS[moment.kind]}>
+        {MOMENT_GLYPHS[moment.kind]}
+      </span>
+      <span className="feed-text">
+        <AgentName agentId={moment.agentId} name={moment.agentName} /> {moment.text}
+        {detail && <span className="story-moment-detail muted"> · {detail}</span>}
       </span>
     </div>
   );
@@ -114,6 +133,13 @@ function StoryFilters({
             {CATEGORY_GLYPHS[category]} {CATEGORY_LABELS[category]}
           </button>
         ))}
+        <button
+          className={filter.isShowingMoments ? "chip is-active" : "chip"}
+          onClick={() => onChange({ ...filter, isShowingMoments: !filter.isShowingMoments })}
+          title="Personality shifts and goals set or dropped"
+        >
+          ✦ moments
+        </button>
       </div>
     </div>
   );
@@ -136,8 +162,9 @@ export function StoryFeed() {
         filter,
         state.clock.tick,
         clientConfig.conversations.maxGapTicks,
+        state.moments,
       ),
-    [state.events, threads, filter, state.clock.tick],
+    [state.events, state.moments, threads, filter, state.clock.tick],
   );
   const threadCount = countStoryThreads(items);
 
@@ -152,17 +179,21 @@ export function StoryFeed() {
       </div>
       {items.length === 0 && <EmptyNote>Nothing has happened that matches yet.</EmptyNote>}
       <div className="story-items">
-        {items.map((item) =>
-          item.kind === "thread" ? (
-            <ThreadCard
-              key={`thread-${item.thread.id}`}
-              thread={item.thread}
-              isLive={item.isOngoing}
-            />
-          ) : (
-            <StoryEventLine key={`event-${item.event.id}`} worldEvent={item.event} />
-          ),
-        )}
+        {items.map((item) => {
+          if (item.kind === "thread") {
+            return (
+              <ThreadCard
+                key={`thread-${item.thread.id}`}
+                thread={item.thread}
+                isLive={item.isOngoing}
+              />
+            );
+          }
+          if (item.kind === "moment") {
+            return <StoryMomentLine key={`moment-${item.moment.id}`} moment={item.moment} />;
+          }
+          return <StoryEventLine key={`event-${item.event.id}`} worldEvent={item.event} />;
+        })}
       </div>
     </div>
   );

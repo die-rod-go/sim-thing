@@ -6,6 +6,8 @@ export interface RunLine {
   tick: number;
   words: string;
   volume: Volume;
+  thought: string | null;
+  llmCallId: number | null;
 }
 
 /** Consecutive lines by one speaker, shown under a single name like a chat message group. */
@@ -31,6 +33,8 @@ export function mergeSpeakerRuns(entries: ThreadEntry[]): ThreadBlock[] {
       tick: entry.tick,
       words: entry.words,
       volume: entry.volume,
+      thought: entry.thought,
+      llmCallId: entry.llmCallId,
     };
     const previous = blocks[blocks.length - 1];
     if (previous?.kind === "run" && previous.speakerId === entry.speakerId) {
