@@ -7,7 +7,12 @@ import type {
   RecalledMemory,
 } from "../decision/context";
 import { currentConversation } from "../memory/conversation";
-import { buildCue, recallForDecision } from "../memory/recall";
+import {
+  buildCue,
+  buildCueText,
+  recallForDecision,
+  repeatsConversationLine,
+} from "../memory/recall";
 import { findObviousListeners } from "../perception/listeners";
 import { listBodyWords } from "../status/conditions";
 import { describeHealthAsSeen, isDead } from "../status/health";
@@ -84,8 +89,10 @@ function recallMemories(
   agent: Agent,
   aroundYou: AwarenessEntry[],
   nearbyEntityNames: string[],
-  conversationText: string,
+  conversationLines: readonly string[],
+  decisionReason: string | null,
 ): Partial<Record<Bucket, RecalledMemory[]>> {
+  const goalsText = agent.goals.map((goal) => goal.text).join(" ");
   const cue = buildCue({
     place: agent.place,
     aroundAgentNames: aroundYou
@@ -93,11 +100,23 @@ function recallMemories(
       .map((entry) => entry.name),
     nearbyEntityNames,
     actionTarget: agent.currentAction?.target ?? null,
-    conversationText,
+    conversationText: conversationLines.join(" "),
     intention: agent.intention,
+    dailyPlan: agent.dailyPlan,
+    goalsText,
     knownNames: listKnownNames(state),
   });
-  const recalled = recallForDecision(state.memoryStore, agent.id, cue, state.tick);
+  const cueText = buildCueText({
+    intention: agent.intention,
+    dailyPlan: agent.dailyPlan,
+    decisionReason,
+    goalsText,
+    conversationLines,
+  });
+  const recalled = recallForDecision(state.memoryStore, agent.id, cue, state.tick, {
+    cueText,
+    conversationWords: conversationLines,
+  });
   const onMind = new Set(agent.workingMemory);
   return Object.fromEntries(
     BUCKETS.map((bucket) => [
@@ -151,7 +170,7 @@ export function buildDecisionContext(
   const aroundYouEntries = buildAwarenessEntries(state, agent);
   const nearbyEntities = buildHere(state, agent);
   const conversation = currentConversation(state.conversationLog, agentId, state.tick);
-  const conversationText = conversation.map((line) => line.words).join(" ");
+  const conversationLines = conversation.map((line) => line.words);
   const action = agent.currentAction;
   return {
     name: agent.name,
@@ -175,7 +194,9 @@ export function buildDecisionContext(
     },
     belongings: buildBelongings(state, agent),
     itemlessVerbs: listItemlessVerbNames(state),
-    workingMemory: agent.workingMemory,
+    workingMemory: agent.workingMemory.filter(
+      (entry) => !repeatsConversationLine(entry, conversationLines),
+    ),
     conversation: conversation.map((line) => ({
       speakerName: line.speakerName,
       words: line.words,
@@ -188,7 +209,8 @@ export function buildDecisionContext(
             agent,
             aroundYouEntries,
             listNearbyThingNames(state, agent),
-            conversationText,
+            conversationLines,
+            options.decisionReason ?? null,
           )
         : {},
     foggedBy: fog?.statusWords ?? null,

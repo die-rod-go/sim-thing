@@ -39,4 +39,32 @@ describe("decision context", () => {
     const recalledDid = (context.recalledMemories.did ?? []).map((memory) => memory.minutesAgo);
     expect(recalledDid).toEqual([TICK_NOW - 10]);
   });
+
+  it("does not repeat current conversation lines in On your mind or recalled memories", () => {
+    const sim = createTestSim({ agentIds: ["mara"], responder: scriptByAgent({}) });
+    const place = sim.agent("mara").place;
+    sim.state.tick = TICK_NOW;
+    sim.state.conversationLog.lines.push({
+      speakerId: "clara",
+      speakerName: "Clara",
+      tick: TICK_NOW,
+      words: "Is the well dry?",
+      volume: "normal",
+      clearListenerIds: ["mara"],
+      muffledListenerIds: [],
+    });
+    rememberBriefly(sim.state, "mara", 'Clara said: "is the well dry"');
+    rememberBriefly(sim.state, "mara", "I swept the floor");
+    sim.state.memoryStore.add({
+      ...didMemory("heard", TICK_NOW, 'Clara said: "Is the well dry?"', place),
+      bucket: "conversations",
+    });
+    const context = buildDecisionContext(sim.state, "mara", false, {
+      passiveRecallRoll: CLEAR_MIND_ROLL,
+    });
+    expect(context.conversation).toHaveLength(1);
+    expect(context.workingMemory.join(" ")).not.toContain("well dry");
+    expect(context.workingMemory.join(" ")).toContain("swept the floor");
+    expect(context.recalledMemories.conversations ?? []).toEqual([]);
+  });
 });

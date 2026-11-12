@@ -191,18 +191,19 @@ type Bucket = "seen" | "conversations" | "overheard" | "did" | "people" | "place
 
 **Writing.** One `broadcast(event)` function files each world event: the actor gets a `did` memory (so does the recipient of a give); each perceiver gets `conversations`, `overheard` or `seen`. Tags come from the event (actor, target, place) plus any known agent, object or place name found in speech text by string match. An agent is taking part if it has spoken within earshot of the speaker in the last 10 ticks. File an action once when it starts and once with its result, never per tick of walking, and skip a memory if the same actor did the same thing within the agent's last 30 ticks. Keep each memory to one sentence (200 characters or less).
 
-**Recall.** Build a cue from the current place, the agents in the "Around you" section, nearby objects, the current action's target, and known names (agents, objects, places, by string match) found in the current conversation and the agent's intention. The intention matters because it points at what the agent is about to deal with, even before it arrives ("buy bread from Mara" pulls up memories about Mara and the bakery on the walk there). The daily plan and goals are left out: they name too much and would dilute every cue. Score each memory, then take the top k per bucket (defaults: people 3, conversations 5, seen 3, overheard 2, did 3, places 2, reflections 2):
+**Recall.** Build a cue from the current place, the agents in the "Around you" section, nearby objects, the current action's target, and known names (agents, objects, places, by string match) found in the current conversation, the agent's intention, daily plan and goals. The same text (plus the decision reason and the last few conversation lines) also feeds a lexical similarity term. The intention matters because it points at what the agent is about to deal with, even before it arrives ("buy bread from Mara" pulls up memories about Mara and the bakery on the walk there).  Score each memory, then take the top k per bucket (defaults: people 3, conversations 3, seen 3, overheard 2, did 3, places 1, reflections 3), keeping the 10 best overall:
 
 ```ts
 score =
   (1.0 * tagOverlap(m.tags, cueTags)) / cueTags.length +
-  0.5 * 0.5 ** (simHoursSince(m.tick) / RECENCY_HALF_LIFE_HOURS) + // recency, default 6
-  0.5 * m.strength;
+  0.3 * 0.5 ** (simHoursSince(m.tick) / RECENCY_HALF_LIFE_HOURS) + // recency, default 6
+  0.3 * m.strength +
+  1.0 * lexicalSimilarity(cueText, m.text); // idf-weighted shared words, 0..1
 ```
 
-After the first pass, add the tags of the top 3 results to the cue and run a second, small pass (k = 2) for association. Every recalled memory gets `strength = min(1, strength + 0.2)`. Bump a given memory at most once per sim-hour, so the same few memories can't keep reinforcing themselves. Keep weights in config; embeddings are a later addition, so leave a hook for a `similarity` term.
+After the first pass, add the tags of the top 3 results to the cue and run a second, small pass (3 memories overall) for association. Every recalled memory gets `strength = min(1, strength + 0.2)`. Bump a given memory at most once per sim-hour, so the same few memories can't keep reinforcing themselves. Keep weights in config; the similarity term is a hook, so embeddings can replace the lexical scorer later. Memories repeating a line of the current conversation are never recalled.
 
-**Agent-driven recall.** A `recall(query)` action searches all buckets by tags found in the query (known names, by string match) and puts results in working memory for the next few decisions.
+**Agent-driven recall.** A `recall(query)` action searches all buckets for memories sharing a known name from the query or similar in words and puts results in working memory for the next few decisions.
 
 **Awareness (short-term).** Besides the buckets, each agent keeps a small structured record of when it last perceived each other agent. Code updates it from perception every tick. This is plumbing, not interpretation.
 
