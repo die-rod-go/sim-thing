@@ -13,6 +13,8 @@ export interface SimDependencies {
    * it returns. Off (each tick waits for its decisions) keeps runs reproducible, e.g. in tests.
    */
   shouldDecideInBackground?: boolean;
+  /** With `shouldDecideInBackground`, caps how long idle agents' decisions hold a tick; no cap when omitted. */
+  idleDecisionWaitMs?: number;
 }
 
 /** One tick in progress: the world, what the tick has produced so far, and the dependencies. */

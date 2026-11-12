@@ -125,6 +125,25 @@ describe("background decisions", () => {
     expect(sim.agent("mara").currentAction).toMatchObject({ kind: "wait" });
   });
 
+  it("lets the clock go on once an idle agent's decision outlasts the wait cap", async () => {
+    const held = createHeldReplies();
+    const sim = createTestSim({
+      agentIds: ["mara"],
+      responder: held.responder,
+      shouldDecideInBackground: true,
+      idleDecisionWaitMs: 5,
+    });
+    sim.placeAgent("mara", SQUARE);
+    const [firstResult] = await sim.advance();
+    expect(firstResult?.decidedAgentIds).toEqual([]);
+    expect(sim.agent("mara").currentAction).toBeNull();
+    held.releaseNext(decisionReply({ action: "wait", minutes: 30 }));
+    await settleReplies();
+    const [secondResult] = await sim.advance();
+    expect(secondResult?.decidedAgentIds).toEqual(["mara"]);
+    expect(sim.agent("mara").currentAction).toMatchObject({ kind: "wait" });
+  });
+
   it("re-raises a decision that threw on the next tick", async () => {
     const decisions = new BackgroundDecisions();
     const sim = createTestSim({ agentIds: ["mara"], responder: () => "" });

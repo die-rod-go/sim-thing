@@ -466,6 +466,11 @@ export const config = {
      * agents still hold it. Tests always wait for every decision.
      */
     shouldDecideInBackground: true,
+    /**
+     * Longest an idle agent's decision holds the clock in real time; past it the tick goes on and
+     * the plan lands on a later tick, so one slow call can't stall the village.
+     */
+    idleDecisionWaitMs: 1500,
     conversationLines: 12,
     conversationWindowTicks: 30,
     /** Sized so a typical prompt keeps its recalled memories; only unusually long ones get trimmed. */
@@ -491,7 +496,7 @@ export const config = {
   llm: {
     concurrency: 8,
     retryBackoffMs: 1500,
-    requestTimeoutMs: 60000,
+    requestTimeoutMs: 15000,
     /** null sends no temperature, so the provider default applies; Anthropic rejects any other value. */
     temperature: null as number | null,
     /**

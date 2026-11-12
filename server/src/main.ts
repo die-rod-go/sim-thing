@@ -146,6 +146,7 @@ async function run(): Promise<void> {
     advanceTick: createDecisionStrategy({
       callStructured: llm.callStructured,
       shouldDecideInBackground: config.decision.shouldDecideInBackground,
+      idleDecisionWaitMs: config.decision.idleDecisionWaitMs,
       reflectionHook: createReflectionHook({
         callStructured: llm.callStructured,
         recordPersonalityChange: (change) => {

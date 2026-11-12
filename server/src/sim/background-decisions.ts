@@ -47,12 +47,29 @@ export class BackgroundDecisions {
     this.inFlightByAgentId.set(agentId, entry);
   }
 
-  /** Resolves once every listed agent's decision in this world (if any) has returned. */
-  async waitFor(state: WorldState, agentIds: readonly string[]): Promise<void> {
+  /**
+   * Resolves once every listed agent's decision in this world (if any) has returned, or after
+   * `maxWaitMs` of real time when given; decisions still pending then keep running.
+   */
+  async waitFor(state: WorldState, agentIds: readonly string[], maxWaitMs?: number): Promise<void> {
     const entries = agentIds
       .map((agentId) => this.inFlightByAgentId.get(agentId))
       .filter((entry) => entry?.state === state);
-    await Promise.all(entries.map((entry) => entry?.settled));
+    if (entries.length === 0) return;
+    const allSettled = Promise.all(entries.map((entry) => entry?.settled));
+    if (maxWaitMs === undefined) {
+      await allSettled;
+      return;
+    }
+    let timer: ReturnType<typeof setTimeout> | undefined;
+    const timeLimit = new Promise<void>((resolveTimeLimit) => {
+      timer = setTimeout(resolveTimeLimit, maxWaitMs);
+    });
+    try {
+      await Promise.race([allSettled, timeLimit]);
+    } finally {
+      clearTimeout(timer);
+    }
   }
 
   /**

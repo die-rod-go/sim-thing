@@ -39,7 +39,7 @@ function listIdleAgentIds(state: WorldState): string[] {
  *
  * With `shouldDecideInBackground`, only agents with nothing to do hold the clock: step 5 applies
  * the decisions that returned since the last tick, starts the new ones, waits for those of idle
- * agents, then applies every finished plan (in agent order). An agent interrupted mid-action
+ * agents (up to `idleDecisionWaitMs`), then applies every finished plan (in agent order). An agent interrupted mid-action
  * keeps doing what it was doing until its decision lands, so a slow call doesn't stall the
  * village, while idle agents (and the replies they give) never fall behind the clock.
  */
@@ -66,7 +66,11 @@ export function createDecisionStrategy(dependencies: SimDependencies): AdvanceTi
       for (const request of requests) {
         backgroundDecisions.start(state, request.agentId, () => decide(state, request));
       }
-      await backgroundDecisions.waitFor(state, listIdleAgentIds(state));
+      await backgroundDecisions.waitFor(
+        state,
+        listIdleAgentIds(state),
+        dependencies.idleDecisionWaitMs,
+      );
       for (const plan of backgroundDecisions.collectFinished(state)) {
         applyDecisionPlan(context, plan);
       }

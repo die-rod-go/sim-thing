@@ -160,6 +160,8 @@ export interface TestSimOptions {
   dailyTokenBudget?: number;
   /** Runs decisions in the background, as the live sim does; off (each tick waits) when omitted. */
   shouldDecideInBackground?: boolean;
+  /** Caps how long idle agents' decisions hold a tick; no cap when omitted. */
+  idleDecisionWaitMs?: number;
 }
 
 export function createTestSim(options: TestSimOptions): TestSim {
@@ -187,6 +189,7 @@ export function createTestSim(options: TestSimOptions): TestSim {
   const advanceTick = createDecisionStrategy({
     callStructured: llm.callStructured,
     shouldDecideInBackground: options.shouldDecideInBackground,
+    idleDecisionWaitMs: options.idleDecisionWaitMs,
     reflectionHook: options.reflection
       ? createReflectionHook({
           callStructured: llm.callStructured,
