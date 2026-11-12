@@ -68,6 +68,7 @@ export function buildDaytimePrompt(
     recentMemories: describeTimedMemories(recentMemories, "Nothing stands out."),
     simTime: formatSimTime(input.tick, config.clock),
     maxInsights: String(config.reflection.maxInsights),
+    maxChars: String(config.memory.maxMemoryChars),
   });
 }
 

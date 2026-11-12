@@ -3,6 +3,7 @@ import { z } from "zod";
 import { config } from "../config";
 import { createLogger } from "../logger";
 import type { ConcurrencyLimiter } from "./concurrency-limiter";
+import { renderTemplate } from "./templates";
 import type { TokenBudget } from "./token-budget";
 import type { JsonSchema, LlmCallSink, LlmClient } from "./types";
 
@@ -42,7 +43,18 @@ export interface StructuredCallerDependencies {
 
 type AttemptOutcome<Value> =
   | { ok: true; value: Value; record: LlmCallDraft }
-  | { ok: false; error: string; record: LlmCallDraft };
+  | { ok: false; error: string; record: LlmCallDraft; isReplyRejected: boolean };
+
+const REJECTED_REPLY_TEMPLATE = "rejected-reply";
+
+/** The prompt for the next attempt: after a rejected reply the model is told what was wrong. */
+function buildRetryPrompt(
+  request: StructuredCallRequest<unknown>,
+  rejection: string | null,
+): string {
+  if (rejection === null) return request.prompt;
+  return `${request.prompt}\n\n${renderTemplate(REJECTED_REPLY_TEMPLATE, { error: rejection })}`;
+}
 
 export const BUDGET_REACHED_ERROR = "daily token budget reached";
 
@@ -92,17 +104,18 @@ function describeCutOff<Result extends { ok: boolean; error?: string }>(
 async function attemptCall<Value>(
   client: LlmClient,
   request: StructuredCallRequest<Value>,
+  prompt: string,
 ): Promise<AttemptOutcome<Value>> {
   const baseRecord = {
     agentId: request.agentId,
     tick: request.tick,
     kind: request.kind,
-    prompt: request.prompt,
+    prompt,
   };
   const startedAt = performance.now();
   try {
     const response = await client.complete({
-      prompt: request.prompt,
+      prompt,
       jsonSchema: request.jsonSchema,
       schemaName: request.schemaName,
       maxTokens: request.maxTokens ?? config.llm.maxReplyTokens[request.kind],
@@ -125,7 +138,7 @@ async function attemptCall<Value>(
     };
     return parseResult.ok
       ? { ok: true, value: parseResult.value, record }
-      : { ok: false, error: parseResult.error, record };
+      : { ok: false, error: parseResult.error, record, isReplyRejected: true };
   } catch (error) {
     const message = `API error: ${describeError(error)}`;
     const record: LlmCallDraft = {
@@ -138,14 +151,14 @@ async function attemptCall<Value>(
       latencyMs: Math.round(performance.now() - startedAt),
       error: message,
     };
-    return { ok: false, error: message, record };
+    return { ok: false, error: message, record, isReplyRejected: false };
   }
 }
 
 /**
  * Builds the one entry point for structured LLM calls: limiter, client, JSON parse, zod validation,
- * one retry after a backoff, and every attempt reported to the call log and the token budget.
- * Callers fall back to `wait` when the result is not ok.
+ * retries after a backoff (a rejected reply is retried with the error added to the prompt), and
+ * every attempt reported to the call log and the token budget. Callers fall back when not ok.
  */
 export function createStructuredCaller(
   dependencies: StructuredCallerDependencies,
@@ -153,14 +166,16 @@ export function createStructuredCaller(
   const pause = dependencies.pause ?? pauseFor;
   return async <Value>(request: StructuredCallRequest<Value>) => {
     let lastError = BUDGET_REACHED_ERROR;
+    let rejection: string | null = null;
     for (let attempt = 1; attempt <= config.llm.attemptsPerCall; attempt += 1) {
       if (attempt > 1) await pause(config.llm.retryBackoffMs);
       if (dependencies.budget.isOverBudget()) {
         logger.warn(`Skipped ${request.kind} call for ${request.agentId}: ${BUDGET_REACHED_ERROR}`);
         return { ok: false, error: BUDGET_REACHED_ERROR };
       }
+      const prompt = buildRetryPrompt(request, rejection);
       const outcome = await dependencies.limiter.run(() =>
-        attemptCall(dependencies.client, request),
+        attemptCall(dependencies.client, request, prompt),
       );
       const callId = dependencies.recordLlmCall(outcome.record);
       dependencies.budget.addTokens(outcome.record.promptTokens + outcome.record.completionTokens);
@@ -172,6 +187,7 @@ export function createStructuredCaller(
         return { ok: true, value: outcome.value, record: outcome.record, callId };
       }
       lastError = outcome.error;
+      rejection = outcome.isReplyRejected ? outcome.error : null;
       logger.warn(`${request.kind} call for ${request.agentId} failed (attempt ${attempt})`, {
         error: outcome.error,
       });

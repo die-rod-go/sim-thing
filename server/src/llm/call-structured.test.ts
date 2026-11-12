@@ -74,6 +74,19 @@ describe("callStructured", () => {
     expect(result.ok && result.value).toEqual({ answer: "wood" });
   });
 
+  it("tells the model why its reply was rejected when it retries", async () => {
+    const { callStructured, request, records } = setUp(['{"answer":3}', '{"answer":"wood"}']);
+    await callStructured(request);
+    expect(records[0]?.prompt).toBe("What now?");
+    expect(records[1]?.prompt).toMatch(/^What now\?\n\n## Your last reply was rejected\n.*answer/s);
+  });
+
+  it("retries an API error with the prompt unchanged", async () => {
+    const { callStructured, request, records } = setUp([new Error("HTTP 503"), '{"answer":"x"}']);
+    await callStructured(request);
+    expect(records[1]?.prompt).toBe("What now?");
+  });
+
   it("records every attempt in the call log", async () => {
     const { callStructured, request, records } = setUp([new Error("timeout"), '{"answer":"x"}']);
     await callStructured(request);

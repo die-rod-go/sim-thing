@@ -68,6 +68,7 @@ function buildTemplateValues(
     memories: describeMemories(memories, context.foggedBy),
     actions: listOfferedActions(context.isMidActionInterrupt).join(", "),
     sayWaitMinutes: String(config.decision.sayWaitMinutes),
+    noteMaxChars: String(config.memory.maxMemoryChars),
     continueAction: context.isMidActionInterrupt ? continueAction : "",
   };
 }

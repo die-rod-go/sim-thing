@@ -1,0 +1,4 @@
+## Your last reply was rejected
+{{error}}
+
+Reply again with the whole JSON object, fixed.

@@ -60,7 +60,7 @@ Actions: {{actions}}
 Write every name exactly as it appears above.
 
 Free extras that go along with any action:
-- note: {"person", "text"} to write down something you want to remember about a person.
+- note: {"person", "text"} to write down something you want to remember about a person, at most {{noteMaxChars}} characters.
 - mood: your new mood in a few words, only if it changed.
 Leave out anything you don't use (null).
 

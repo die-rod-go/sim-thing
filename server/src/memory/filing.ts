@@ -315,7 +315,7 @@ export function filePersonNote(
   const draft: MemoryDraft = {
     agentId,
     bucket: "people",
-    text: truncateMemoryText(`About ${person}: ${text}`),
+    text: `About ${person}: ${text}`,
     tags: uniqueTags([person, ...extractTags(text, knownNames)]),
   };
   return createMemory(draft, tick, idGenerator);

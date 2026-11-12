@@ -27,5 +27,5 @@ It is {{simTime}}.
 
 ## Reply
 Reply with only a JSON object, fields in this order:
-- insights: 0 to {{maxInsights}} things you now think or understand, each {"text"}, one sentence each, in your own words. Weigh what you saw for yourself against what you only heard or assumed: if you are counting on someone or something you have never seen, say whether that still makes sense. Use an empty list if nothing new comes to mind.
+- insights: 0 to {{maxInsights}} things you now think or understand, each {"text"}, one sentence each (at most {{maxChars}} characters), in your own words. Weigh what you saw for yourself against what you only heard or assumed: if you are counting on someone or something you have never seen, say whether that still makes sense. Use an empty list if nothing new comes to mind.
 - mood: your mood now in a few words, or null if it hasn't changed.

@@ -505,7 +505,10 @@ export const config = {
       conversation_summary: 1000,
     },
     dailyTokenBudget: 100_000_000,
-    /** One first try plus one retry on invalid output or an API error. */
+    /**
+     * Tries per call, the first included. A rejected reply (bad JSON, failed validation, too long)
+     * is retried with the error added to the prompt; after the last try the caller falls back.
+     */
     attemptsPerCall: 2,
     /** How much of a failed HTTP response body is kept in the error message. */
     errorBodyPreviewChars: 500,

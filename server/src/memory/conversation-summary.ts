@@ -6,7 +6,6 @@ import type { ReplySchemas } from "../decision/reply-schema";
 import { dropEmptyFields, strictJsonObject } from "../decision/schema-fields";
 import { describeTraits } from "../decision/words";
 import { renderTemplate } from "../llm/templates";
-import { truncateMemoryText } from "./filing";
 import type { MemoryIdGenerator, MemoryReader } from "./memory-store";
 import { normalizeTag, uniqueTags } from "./tags";
 
@@ -22,7 +21,12 @@ export interface ConversationSummaryReply {
 
 export function buildConversationSummaryReplySchema(): ReplySchemas<ConversationSummaryReply> {
   return {
-    schema: z.preprocess(dropEmptyFields, z.object({ summary: z.string().trim().min(1) })),
+    schema: z.preprocess(
+      dropEmptyFields,
+      z.object({
+        summary: z.string().trim().min(1).max(config.memory.conversationSummary.maxChars),
+      }),
+    ),
     jsonSchema: strictJsonObject({ summary: { type: "string" } }),
     schemaName: CONVERSATION_SUMMARY_SCHEMA_NAME,
   };
@@ -148,7 +152,7 @@ export function createConversationSummaryMemory(
     agentId,
     bucket: "conversations",
     tick: lastTick,
-    text: truncateMemoryText(summary, config.memory.conversationSummary.maxChars),
+    text: summary,
     tags: uniqueTags([CONVERSATION_SUMMARY_TAG, ...conversation.flatMap((line) => line.tags)]),
     strength: config.memory.newMemoryStrength,
     lastRecalledTick: null,

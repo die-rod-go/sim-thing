@@ -2,6 +2,7 @@ import type { Memory } from "@village/shared";
 import { describe, expect, it } from "vitest";
 import { config } from "../config";
 import {
+  buildConversationSummaryReplySchema,
   CONVERSATION_SUMMARY_TAG,
   createConversationSummaryMemory,
   findEndedConversations,
@@ -111,13 +112,9 @@ describe("conversation summaries", () => {
     expect(summary.tags).toEqual([CONVERSATION_SUMMARY_TAG, "mara", "bakery", "bram"]);
   });
 
-  it("cuts a summary longer than the summary limit", () => {
-    const summary = createConversationSummaryMemory(
-      "mara",
-      [line("a", 0)],
-      "word ".repeat(maxChars),
-      new MemoryIdGenerator(),
-    );
-    expect(summary.text.length).toBeLessThanOrEqual(maxChars);
+  it("rejects a summary longer than the summary limit instead of cutting it", () => {
+    const { schema } = buildConversationSummaryReplySchema();
+    expect(schema.safeParse({ summary: "word ".repeat(maxChars) }).success).toBe(false);
+    expect(schema.safeParse({ summary: "I talked with Edwin." }).success).toBe(true);
   });
 });

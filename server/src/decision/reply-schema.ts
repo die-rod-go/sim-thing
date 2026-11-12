@@ -1,5 +1,6 @@
 import type { DecisionAction, DecisionReply, Volume } from "@village/shared";
 import { z } from "zod";
+import { config } from "../config";
 import type { JsonSchema } from "../llm/types";
 import type { DecisionTargets, ValidItem } from "./context";
 import { listOfferedActions } from "./decision-prompt";
@@ -109,7 +110,10 @@ export function buildDecisionReplySchema(
       query: z.string().trim().optional(),
       minutes: z.number().positive().optional(),
       note: z
-        .object({ person: z.string().trim().min(1), text: z.string().trim().min(1) })
+        .object({
+          person: z.string().trim().min(1),
+          text: z.string().trim().min(1).max(config.memory.maxMemoryChars),
+        })
         .optional(),
       mood: z.string().trim().optional(),
     })

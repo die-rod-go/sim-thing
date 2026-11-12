@@ -1,7 +1,6 @@
 import { simHoursBetween } from "@village/shared";
 import type { Bucket, Memory } from "@village/shared";
 import { config } from "../config";
-import { truncateMemoryText } from "../memory/filing";
 import type { MemoryIdGenerator, MemoryReader } from "../memory/memory-store";
 import { extractTags, normalizeTag, uniqueTags } from "../memory/tags";
 
@@ -32,7 +31,7 @@ export function createReflectionMemory(
     agentId: draft.agentId,
     bucket: "reflections",
     tick,
-    text: truncateMemoryText(draft.text),
+    text: draft.text,
     tags: uniqueTags([draft.kindTag, ...extractTags(draft.text, knownNames)]),
     strength: draft.strength,
     lastRecalledTick: null,

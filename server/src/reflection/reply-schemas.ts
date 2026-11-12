@@ -16,6 +16,8 @@ const [FIRST_TRAIT = "extraversion", ...OTHER_TRAITS] = TRAIT_NAMES;
 const TRAIT_ENUM: readonly [TraitName, ...TraitName[]] = [FIRST_TRAIT, ...OTHER_TRAITS];
 
 const requiredText = () => z.string().trim().min(1);
+/** Text kept as a memory: over-long replies are rejected and retried, never cut. */
+const memoryText = () => requiredText().max(config.memory.maxMemoryChars);
 
 /** Strict structured output (Anthropic) rejects `maxItems` and any `minItems` above 1. */
 function jsonArray(items: JsonSchema, limits: { minItems?: 0 | 1 } = {}) {
@@ -48,7 +50,7 @@ export function buildDaytimeReplySchema(): ReplySchemas<DaytimeReply> {
   const { maxInsights } = config.reflection;
   const replyObject = z.object({
     insights: z
-      .array(z.object({ text: requiredText() }))
+      .array(z.object({ text: memoryText() }))
       .optional()
       .transform((insights) => (insights ?? []).slice(0, maxInsights)),
     mood: requiredText().optional(),
@@ -73,15 +75,15 @@ export interface NightReply {
 export function buildNightReplySchema(): ReplySchemas<NightReply> {
   const { maxInsights } = config.reflection;
   const replyObject = z.object({
-    summary: requiredText(),
-    moodEntry: requiredText(),
+    summary: memoryText(),
+    moodEntry: memoryText(),
     // A model that writes too many insights is trimmed rather than rejected.
     insights: z
-      .array(z.object({ text: requiredText() }))
+      .array(z.object({ text: memoryText() }))
       .min(1)
       .transform((insights) => insights.slice(0, maxInsights)),
     peopleNotes: z
-      .array(z.object({ person: requiredText(), text: requiredText() }))
+      .array(z.object({ person: requiredText(), text: memoryText() }))
       .optional()
       .transform((notes) => notes ?? []),
   });
