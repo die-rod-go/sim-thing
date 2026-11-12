@@ -134,13 +134,6 @@ export function getTokenUsage(database: Database, day: string): number {
   return row?.tokens ?? 0;
 }
 
-/** The local calendar day for token budgeting, as YYYY-MM-DD. */
-export function formatCalendarDay(date: Date): string {
-  const month = String(date.getMonth() + 1).padStart(2, "0");
-  const day = String(date.getDate()).padStart(2, "0");
-  return `${date.getFullYear()}-${month}-${day}`;
-}
-
 export function appendPersonalityChange(
   database: Database,
   change: Omit<PersonalityChange, "id">,
