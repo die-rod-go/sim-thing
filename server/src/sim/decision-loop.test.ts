@@ -161,6 +161,20 @@ describe("decision loop", () => {
     expect(getAgentRuntime(sim.state, "mara").lastFailure).toContain("doesn't do 'dance'");
   });
 
+  it("interact with the thing named only as target uses it as the item", async () => {
+    const sim = createTestSim({
+      agentIds: ["mara"],
+      responder: (_request, callIndex) =>
+        callIndex === 0
+          ? decisionReply({ action: "interact", target: "oven", verb: "bake bread" })
+          : decisionReply({ action: "continue" }),
+    });
+    sim.placeAgent("mara", NEXT_TO_OVEN);
+    loadOvenWithBakingSupplies(sim);
+    await sim.advance();
+    expect(sim.agent("mara").currentAction).toMatchObject({ kind: "interact", verb: "bake bread" });
+  });
+
   it("interact uses a carried item named as item, oldest first", async () => {
     const sim = createTestSim({
       agentIds: ["mara"],

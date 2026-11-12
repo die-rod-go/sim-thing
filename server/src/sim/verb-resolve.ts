@@ -202,6 +202,17 @@ function findBareHandedVerb(named: readonly NamedVerb[]): NamedVerb | undefined 
   return named.find(({ verb }) => isBareHanded(verb));
 }
 
+/**
+ * A reply that names only a target, for a verb that needs an item ("read" with target "notice
+ * board"), means that thing as the item: the reply put it in the wrong field.
+ */
+function moveLoneTargetToItem(state: WorldState, request: InteractRequest): InteractRequest {
+  const { targetName, ...rest } = request;
+  if (request.itemName !== undefined || targetName === undefined) return request;
+  if (findBareHandedVerb(listVerbsNamed(state, request.verb))) return request;
+  return { ...rest, itemName: targetName };
+}
+
 interface ItemChoice {
   entry: NamedVerb;
   candidate: ItemCandidate | null;
@@ -243,8 +254,9 @@ function chooseVerbAndItem(
 export function resolveInteract(
   state: WorldState,
   agentId: string,
-  request: InteractRequest,
+  reply: InteractRequest,
 ): InteractResolution {
+  const request = moveLoneTargetToItem(state, reply);
   const choice = chooseVerbAndItem(state, agentId, request);
   if ("kind" in choice) return choice;
   const { entry, candidate } = choice;

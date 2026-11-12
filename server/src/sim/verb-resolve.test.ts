@@ -201,6 +201,20 @@ describe("resolving the stack", () => {
 });
 
 describe("resolving the target", () => {
+  it("takes a lone target as the item when no verb of that name works bare-handed", () => {
+    const sim = buildTavernSim([EXAMINE_HERE]);
+    const board = placeOnGround(sim, "notice_board", 20);
+    const ready = resolveReady(sim, { verb: "examine", targetName: "notice board" });
+    expect(ready.start.itemIds).toEqual([board.id]);
+    expect(ready.start.target).toBeNull();
+  });
+
+  it("keeps a lone target as the target for a bare-handed verb", () => {
+    const sim = buildTavernSim();
+    const ready = resolveReady(sim, { verb: "punch", targetName: "Tobias" });
+    expect(ready.start.target).toEqual({ kind: "agent", agentId: "tobias" });
+  });
+
   it("fails when the target doesn't match what the verb aims at", () => {
     const sim = buildTavernSim();
     handOver(sim, "mara", "bandage");
