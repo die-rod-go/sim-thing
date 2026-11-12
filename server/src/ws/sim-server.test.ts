@@ -166,7 +166,7 @@ describe("sim WebSocket server", () => {
       countInFlightLlmCalls: () => 0,
       tokenBudget,
       findPauseReason: () => (tokenBudget.isOverBudget() ? "Daily token budget reached" : null),
-      seedEditor: createSeedEditor({ seedFilePath, getMap: () => map, items }),
+      seedEditor: createSeedEditor({ seedFilePath, getMap: () => map, getItems: () => items }),
       itemEditor: createItemEditor({
         itemFilePath: join(seedDirectory, "items.json"),
         seedFilePath,

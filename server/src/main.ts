@@ -175,7 +175,7 @@ async function run(): Promise<void> {
     seedEditor: createSeedEditor({
       seedFilePath: resolve(repositoryRoot, config.server.seedsPath),
       getMap: () => map,
-      items,
+      getItems: () => loadItemCatalog(resolve(repositoryRoot, config.server.itemsPath), []),
     }),
     itemEditor: createItemEditor({
       itemFilePath: resolve(repositoryRoot, config.server.itemsPath),

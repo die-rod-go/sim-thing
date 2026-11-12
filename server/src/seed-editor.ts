@@ -29,9 +29,10 @@ export function createSeedEditor(options: {
   seedFilePath: string;
   /** The current map: it is reloaded on reset, and start tiles come from it. */
   getMap: () => WorldMap;
-  items: ItemCatalog;
+  /** The item catalog the next reset will use, read when needed so item editor saves count. */
+  getItems: () => ItemCatalog;
 }): SeedEditor {
-  const buildRules = () => buildSeedRules(options.getMap(), options.items);
+  const buildRules = () => buildSeedRules(options.getMap(), options.getItems());
   return {
     describeSeedFile() {
       const rules = buildRules();
