@@ -202,14 +202,27 @@ function findBareHandedVerb(named: readonly NamedVerb[]): NamedVerb | undefined 
   return named.find(({ verb }) => isBareHanded(verb));
 }
 
+function namesThingHere(state: WorldState, agentId: string, name: string): boolean {
+  const listed = listItemCandidates(state, agentId, name);
+  return listed.kind === "found" && listed.candidates.length > 0;
+}
+
 /**
- * A reply that names only a target, for a verb that needs an item ("read" with target "notice
- * board"), means that thing as the item: the reply put it in the wrong field.
+ * A reply that names only a target, for verbs that take an item and are never aimed ("read" with
+ * target "notice board"), means that thing as the item: the reply put it in the wrong field. Only
+ * when the name is a thing here or carried, so "play cards" with "Beckett" still fails honestly.
  */
-function moveLoneTargetToItem(state: WorldState, request: InteractRequest): InteractRequest {
+function moveLoneTargetToItem(
+  state: WorldState,
+  agentId: string,
+  request: InteractRequest,
+): InteractRequest {
   const { targetName, ...rest } = request;
   if (request.itemName !== undefined || targetName === undefined) return request;
-  if (findBareHandedVerb(listVerbsNamed(state, request.verb))) return request;
+  const named = listVerbsNamed(state, request.verb);
+  const isUnaimedWithItem =
+    named.length > 0 && named.every(({ verb }) => verb.target === undefined && !isBareHanded(verb));
+  if (!isUnaimedWithItem || !namesThingHere(state, agentId, targetName)) return request;
   return { ...rest, itemName: targetName };
 }
 
@@ -256,7 +269,7 @@ export function resolveInteract(
   agentId: string,
   reply: InteractRequest,
 ): InteractResolution {
-  const request = moveLoneTargetToItem(state, reply);
+  const request = moveLoneTargetToItem(state, agentId, reply);
   const choice = chooseVerbAndItem(state, agentId, request);
   if ("kind" in choice) return choice;
   const { entry, candidate } = choice;
