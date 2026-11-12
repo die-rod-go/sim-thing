@@ -83,6 +83,7 @@ describe("stored preferences", () => {
       place: null,
       categories: new Set(["speech", "sleep"] as const),
       isShowingMoments: true,
+      isShowingActionsInThreads: true,
     };
     expect(parseStoredStoryFilter(serializeStoryFilter(filter))).toEqual(filter);
     const withUnknown = JSON.stringify({ agentId: null, place: null, categories: ["speech", "x"] });

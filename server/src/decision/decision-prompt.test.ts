@@ -74,7 +74,7 @@ describe("buildDecisionPrompt", () => {
   it("puts pressing needs first, lowest first, each with how it feels", () => {
     const needs = { hunger: 0.25, energy: 0.05, social: 0.9, fun: 0.45 };
     expect(describeStatus({ health: 0.7, needs })).toBe(
-      "You are exhausted: you can barely keep your eyes open and need to sleep now. " +
+      "You are exhausted: you can barely keep your eyes open and need to find a bed to sleep. " +
         "You are very hungry: your stomach aches and you need to eat soon. " +
         "Otherwise you are bruised, socially fulfilled and a bit bored.",
     );
