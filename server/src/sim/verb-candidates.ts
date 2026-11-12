@@ -1,12 +1,11 @@
-import { compareEntityAge, findDefinitionByName, type Entity } from "@village/shared";
+import { compareEntityAge, type Entity } from "@village/shared";
 import { computeChebyshevDistance } from "../economy/give";
-import { normalizeDisplayName, resolveName } from "../decision/resolve-name";
+import { resolveName } from "../decision/resolve-name";
 import {
-  describeEntityName,
+  isEntityNamed,
   listContents,
   listHeldEntities,
   listTileEntitiesAt,
-  type EntityWorld,
 } from "../items/entity-store";
 import { readThingId, type ThingRef } from "../items/things";
 import { canSeeInto } from "../items/world-physics";
@@ -23,14 +22,6 @@ export interface ItemCandidate {
 
 export type ItemCandidates =
   { kind: "found"; candidates: ItemCandidate[] } | { kind: "failed"; reason: string };
-
-/** Whether the entity answers to the name: its label or name, or (unlabelled) its definition's. */
-export function isEntityNamed(world: EntityWorld, entity: Entity, name: string): boolean {
-  const wanted = normalizeDisplayName(name);
-  if (normalizeDisplayName(describeEntityName(world, entity)) === wanted) return true;
-  if (entity.label !== null) return false;
-  return findDefinitionByName(world.items, wanted)?.id === entity.definitionId;
-}
 
 function listHeld(state: WorldState, agentId: string, name: string | undefined): Entity[] {
   return listHeldEntities(state, agentId)

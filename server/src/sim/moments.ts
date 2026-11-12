@@ -131,10 +131,11 @@ export function buildNightReflectionMoment(
 
 export function buildFailureMoment(event: WorldEvent): MomentDraft | null {
   if (event.kind !== "action_failed") return null;
-  return draftMoment({ id: event.actorId, name: event.actorName }, event.tick, event.description, {
+  const description = event.actorDescription ?? event.description;
+  return draftMoment({ id: event.actorId, name: event.actorName }, event.tick, description, {
     kind: "action_failed",
     eventId: event.id,
-    description: event.description,
+    description,
   });
 }
 

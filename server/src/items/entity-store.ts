@@ -1,6 +1,7 @@
 import {
   compareEntityAge,
   findDefinition,
+  findDefinitionByName,
   formatEntityId,
   isDirectlyInside,
   isEntityId,
@@ -12,6 +13,7 @@ import {
   type Position,
   type ThingId,
 } from "@village/shared";
+import { normalizeDisplayName } from "../decision/resolve-name";
 
 /** The part of the world state the entity store reads and writes. */
 export interface EntityWorld {
@@ -187,6 +189,14 @@ export function isNestedIn(world: EntityWorld, entity: Entity, holderId: ThingId
 /** "tavern chest" for a labelled map object, otherwise the definition's name ("bread"). */
 export function describeEntityName(world: EntityWorld, entity: Entity): string {
   return entity.label ?? getDefinition(world, entity).name;
+}
+
+/** Whether the entity answers to the name: its label or name, or (unlabelled) its definition's. */
+export function isEntityNamed(world: EntityWorld, entity: Entity, name: string): boolean {
+  const wanted = normalizeDisplayName(name);
+  if (normalizeDisplayName(describeEntityName(world, entity)) === wanted) return true;
+  if (entity.label !== null) return false;
+  return findDefinitionByName(world.items, wanted)?.id === entity.definitionId;
 }
 
 /** Saved entities whose definition `items.json` no longer has. */

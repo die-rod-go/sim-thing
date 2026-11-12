@@ -356,6 +356,8 @@ export const config = {
     chaseTicks: 10,
     /** The event for damage that isn't an attack. Its subject is the actor. */
     hurtDescription: "was hurt",
+    /** What onlookers learn of a failed attempt, without the actor's private reason. `{attempt}` is the act. */
+    failedAttemptDescription: "tried to {attempt}, but it didn't happen",
   },
 
   verbs: {

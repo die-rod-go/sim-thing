@@ -274,6 +274,25 @@ describe("decision loop", () => {
     expect(secondPrompt).toContain(`What just went wrong: ${failure}`);
   });
 
+  it("keeps the giver's private reason out of what a bystander remembers", async () => {
+    const sim = createTestSim({
+      agentIds: ["mara", "ilsa", "tobias"],
+      responder: scriptByAgent({
+        Mara: (_request, callIndex) =>
+          callIndex === 0
+            ? decisionReply({ action: "give", target: "Ilsa", item: "bread", amount: 1 })
+            : undefined,
+      }),
+    });
+    sim.placeAgent("mara", SQUARE);
+    sim.placeAgent("ilsa", { x: SQUARE.x + 4, y: SQUARE.y });
+    sim.placeAgent("tobias", { x: SQUARE.x, y: SQUARE.y + 1 });
+    await sim.advance();
+    const texts = memoriesOf(sim, "tobias").map((memory) => memory.text);
+    expect(texts).toContain("I saw that Mara tried to hand Ilsa 1 bread, but it didn't happen");
+    expect(texts.join(" ")).not.toContain("too far away");
+  });
+
   it("recall puts results in working memory and decides again in the same tick", async () => {
     const sim = createTestSim({
       agentIds: ["mara", "tobias"],

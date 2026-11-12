@@ -1,3 +1,4 @@
+import { config } from "../config";
 import { getAgentRuntime } from "./agent-runtime";
 import { broadcastEvent } from "./event-broadcast";
 import { createEvent } from "./event-factory";
@@ -28,9 +29,13 @@ export function failAction(
   const runtime = getAgentRuntime(state, agentId);
   runtime.walk = null;
   runtime.verbRun = null;
-  const description = `tried to ${attempt} but ${continueSentence(reason)}`;
-  runtime.lastFailure = `I ${description}`;
-  const event = createEvent(state, agent, { kind: "action_failed", description });
+  const actorDescription = `tried to ${attempt} but ${continueSentence(reason)}`;
+  runtime.lastFailure = `I ${actorDescription}`;
+  const event = createEvent(state, agent, {
+    kind: "action_failed",
+    description: config.combat.failedAttemptDescription.split("{attempt}").join(attempt),
+    actorDescription,
+  });
   broadcastEvent(state, event, result);
   recordMoments(state, result, [buildFailureMoment(event)]);
   // A repeated failure is skipped as a duplicate memory but should still be on the agent's mind.

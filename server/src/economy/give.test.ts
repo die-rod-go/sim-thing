@@ -80,6 +80,26 @@ describe("give", () => {
     });
   });
 
+  it("hands over a held item named by its instance name", () => {
+    const world = buildWorld();
+    const axe = createEntity(world, "bread", locateInside("mara"), "woodcutter's axe 1");
+    const result = giveFromMara(world, "Woodcutter's Axe 1", 1);
+    if (!result.isSuccess) throw new Error(result.reason);
+    expect(result.movedEntityIds).toEqual([axe.id]);
+    expect(result.description).toBe("woodcutter's axe 1");
+    expect(countHeld(world, "mara", "bread")).toBe(1);
+    expect(countHeld(world, "bob", "bread")).toBe(1);
+  });
+
+  it("fails to give an instance name the giver doesn't hold", () => {
+    const world = buildWorld();
+    createEntity(world, "bread", locateInside("bob"), "woodcutter's axe 1");
+    expect(giveFromMara(world, "woodcutter's axe 1", 1)).toEqual({
+      isSuccess: false,
+      reason: "I don't have any woodcutter's axe 1",
+    });
+  });
+
   it("fails for amounts that aren't positive whole numbers", () => {
     for (const amount of [0, -1, 1.5]) {
       expect(giveFromMara(buildWorld(), "coins", amount).isSuccess).toBe(false);

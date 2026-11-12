@@ -1,7 +1,16 @@
-import { describeCount, findDefinitionByName, type Agent, type Position } from "@village/shared";
+import {
+  describeCount,
+  findDefinitionByName,
+  type Agent,
+  type Entity,
+  type ItemDefinition,
+  type Position,
+} from "@village/shared";
 import { config } from "../config";
 import {
-  listHeldOfDefinition,
+  getDefinition,
+  isEntityNamed,
+  listHeldEntities,
   locateInside,
   moveEntity,
   type EntityWorld,
@@ -29,7 +38,7 @@ export interface GiveOutcome {
 export function chooseEntitiesToGive(
   world: EntityWorld,
   request: GiveRequest,
-): MechanicResult<{ definitionId: string; entityIds: string[] }> {
+): MechanicResult<{ definitionId: string; description: string; entityIds: string[] }> {
   const { giver, recipient, amount } = request;
   const reachTiles = request.reachTiles ?? config.economy.giveReachTiles;
   if (giver.id === recipient.id) return failWith("I can't hand something to myself");
@@ -39,21 +48,30 @@ export function chooseEntitiesToGive(
   if (!Number.isInteger(amount) || amount <= 0) {
     return failWith("I can only hand over a whole number of things, at least one");
   }
-  const definition = findDefinitionByName(world.items, request.itemName);
-  if (!definition) return failWith(`I don't have any ${request.itemName.trim().toLowerCase()}`);
-  const held = listHeldOfDefinition(world, giver.id, definition.id);
+  const held = listHeldEntities(world, giver.id).filter((entity) =>
+    isEntityNamed(world, entity, request.itemName),
+  );
+  const [first] = held;
+  if (first === undefined) {
+    const definition = findDefinitionByName(world.items, request.itemName);
+    const name = definition?.plural ?? definition?.name ?? request.itemName.trim().toLowerCase();
+    return failWith(`I don't have any ${name}`);
+  }
+  const definition = getDefinition(world, first);
   if (held.length < amount) {
-    return failWith(
-      held.length === 0
-        ? `I don't have any ${definition.plural ?? definition.name}`
-        : `I only have ${describeCount(definition, held.length)}`,
-    );
+    return failWith(`I only have ${describeHeld(first, definition, held.length)}`);
   }
   return {
     isSuccess: true,
-    definitionId: definition.id,
+    definitionId: first.definitionId,
+    description: describeHeld(first, definition, amount),
     entityIds: held.slice(0, amount).map((entity) => entity.id),
   };
+}
+
+/** A labelled thing goes by its label ("woodcutter's axe 1"), any other by count ("3 coins"). */
+function describeHeld(entity: Entity, definition: ItemDefinition, count: number): string {
+  return entity.label ?? describeCount(definition, count);
 }
 
 /**
@@ -66,11 +84,10 @@ export function executeGive(world: EntityWorld, request: GiveRequest): MechanicR
   for (const entityId of chosen.entityIds) {
     moveEntity(world, entityId, locateInside(request.recipient.id));
   }
-  const definition = world.items.definitionsById.get(chosen.definitionId);
   return {
     isSuccess: true,
     definitionId: chosen.definitionId,
-    description: definition ? describeCount(definition, request.amount) : chosen.definitionId,
+    description: chosen.description,
     amount: request.amount,
     movedEntityIds: chosen.entityIds,
   };
