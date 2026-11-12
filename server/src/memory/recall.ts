@@ -1,6 +1,7 @@
 import { BUCKETS, simHoursBetween, type Bucket, type Memory } from "@village/shared";
 import { config } from "../config";
 import type { MemoryStore } from "./memory-store";
+import { ELLIPSIS } from "./filing";
 import { createLexicalSimilarity, type SimilarityScorer } from "./similarity";
 import { extractTags, uniqueTags } from "./tags";
 
@@ -64,19 +65,27 @@ function normalizeWords(text: string): string {
     .join(" ");
 }
 
-/** The normalized words inside each pair of double quotes in the text. */
+/** The normalized words inside each pair of double quotes; a final quote left open is included. */
 function listQuotedWords(text: string): string[] {
-  return [...text.matchAll(/"([^"]+)"/g)].map((match) => normalizeWords(match[1] ?? ""));
+  return [...text.matchAll(/"([^"]+)(?:"|$)/g)].map((match) => normalizeWords(match[1] ?? ""));
 }
 
-/** Whether the text quotes one of the conversation lines, comparing words rather than formatting. */
+/**
+ * Whether the text quotes one of the conversation lines, comparing words rather than formatting.
+ * A memory cut short with an ellipsis matches when its words begin a line.
+ */
 export function repeatsConversationLine(
   text: string,
   conversationWords: readonly string[],
 ): boolean {
   if (conversationWords.length === 0) return false;
-  const lines = new Set(conversationWords.map(normalizeWords));
-  return listQuotedWords(text).some((quoted) => lines.has(quoted));
+  const lines = conversationWords.map(normalizeWords);
+  const isTruncated = text.trimEnd().endsWith(ELLIPSIS);
+  return listQuotedWords(text).some((quoted) =>
+    lines.some(
+      (line) => line === quoted || (isTruncated && quoted !== "" && line.startsWith(quoted)),
+    ),
+  );
 }
 
 function countTagOverlap(memoryTags: readonly string[], cueTags: ReadonlySet<string>): number {

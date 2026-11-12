@@ -1,6 +1,12 @@
 import { describe, expect, it } from "vitest";
 import { makeSampleAgent, makeSampleEvent } from "../fixtures/sample-data";
-import { categorizeEvent, filterEvents, groupEventsByHour, listEventPlaces } from "./event-feed";
+import {
+  categorizeEvent,
+  describeEventForViewer,
+  filterEvents,
+  groupEventsByHour,
+  listEventPlaces,
+} from "./event-feed";
 
 const ada = makeSampleAgent("ada", "Ada", 0, 0);
 const bob = { ...makeSampleAgent("bob", "Bob", 1, 1), place: "tavern" };
@@ -46,5 +52,16 @@ describe("eventFeed", () => {
     const groups = groupEventsByHour([...events, late], { minutesPerTick: 1, startHour: 6 });
     expect(groups.map((group) => group.label)).toEqual(["Day 1 · 06:00", "Day 1 · 07:00"]);
     expect(groups[0]?.events).toHaveLength(3);
+  });
+
+  it("shows the actor's real reason for a failed action to the viewer", () => {
+    const failed = {
+      ...makeSampleEvent(4, ada, 4),
+      kind: "action_failed" as const,
+      description: "tried to hand over an axe, but it didn't happen",
+      actorDescription: "tried to hand over an axe but had no axe",
+    };
+    expect(describeEventForViewer(failed)).toBe("tried to hand over an axe but had no axe");
+    expect(describeEventForViewer({ ...failed, kind: "said" })).toBe(failed.description);
   });
 });

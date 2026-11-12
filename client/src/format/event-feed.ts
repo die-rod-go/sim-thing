@@ -33,6 +33,12 @@ const CATEGORY_BY_KIND: Record<WorldEventKind, EventCategory> = {
   sound: "action",
 };
 
+/** The viewer sees everything, so a failed action reads with the actor's real reason. */
+export function describeEventForViewer(event: WorldEvent): string {
+  if (event.kind === "action_failed") return event.actorDescription ?? event.description;
+  return event.description;
+}
+
 export function categorizeEvent(event: WorldEvent): EventCategory {
   return CATEGORY_BY_KIND[event.kind];
 }

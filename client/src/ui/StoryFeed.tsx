@@ -5,6 +5,7 @@ import { formatClockTime } from "../format/character-sheet";
 import {
   CATEGORY_GLYPHS,
   categorizeEvent,
+  describeEventForViewer,
   EVENT_CATEGORIES,
   listEventPlaces,
   type EventCategory,
@@ -56,7 +57,7 @@ function StoryEventLine({ worldEvent }: { worldEvent: WorldEvent }) {
       </span>
       <span className="feed-text">
         <AgentName agentId={worldEvent.actorId} name={worldEvent.actorName} />{" "}
-        {worldEvent.description}
+        {describeEventForViewer(worldEvent)}
         <span className="feed-place"> · {worldEvent.place}</span>
       </span>
     </div>

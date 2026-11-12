@@ -25,7 +25,7 @@ interface MemoryDraft {
   tags: string[];
 }
 
-const ELLIPSIS = "…";
+export const ELLIPSIS = "…";
 const UNKNOWN_SPEAKER = "someone";
 
 const SPEECH_PAST_TENSE: Record<Volume, string> = {

@@ -183,6 +183,21 @@ describe("recallForDecision", () => {
     expect(recalled.conversations.map((memory) => memory.id)).toEqual(["c2"]);
   });
 
+  it("does not recall a truncated copy of a line in the current conversation", () => {
+    const line = "Is the well dry or has someone been taking water from it all morning long";
+    const store = new MemoryStore();
+    store.addAll([
+      makeMemory({
+        id: "c1",
+        bucket: "conversations",
+        text: 'Clara said: "Is the well dry or has someone been taking wat…',
+        tags: ["mara"],
+      }),
+    ]);
+    const recalled = recallForDecision(store, "mara", ["mara"], 0, { conversationWords: [line] });
+    expect(recalled.conversations).toEqual([]);
+  });
+
   it("recalls memories sharing words with the cue text", () => {
     const store = new MemoryStore();
     store.addAll([

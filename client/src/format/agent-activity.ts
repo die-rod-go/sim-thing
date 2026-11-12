@@ -1,6 +1,6 @@
 import type { LlmCallKind, Moment, Volume, WorldEvent } from "@village/shared";
 import type { ConversationThread, SpokenLine } from "./conversations";
-import { categorizeEvent, type EventCategory } from "./event-feed";
+import { categorizeEvent, describeEventForViewer, type EventCategory } from "./event-feed";
 import { collectMoments, foldFailures, pairSpeechWithThoughts } from "./activity-folding";
 import type { ThoughtEntry, ThoughtPart } from "./thoughts";
 
@@ -159,7 +159,7 @@ function collectActions(agentId: string, events: WorldEvent[]): ActivityAction[]
       tick: event.tick,
       category,
       eventKind: event.kind,
-      text: category === "movement" ? describeMovement(event) : event.description,
+      text: category === "movement" ? describeMovement(event) : describeEventForViewer(event),
       place: event.place,
     });
   }
