@@ -184,7 +184,7 @@ describe("resolving a target", () => {
     );
     setAgentHealth(sim, "tobias", 0);
     aim(sim, "mara", { verb: "attack", itemName: "knife", targetName: "Tobias" });
-    expect(lastFailure(sim, "mara")).toContain("but I can't attack Tobias");
+    expect(lastFailure(sim, "mara")).toContain("but that doesn't work on Tobias");
     expect(readHealth(sim, "tobias")).toBe(0);
   });
 

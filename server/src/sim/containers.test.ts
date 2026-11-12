@@ -104,11 +104,11 @@ describe("putting into and taking from containers", () => {
     const capacity = 20;
     fillChest(sim, "wood", capacity - 1);
     act(sim, "mara", { verb: "put", itemName: "bread", targetName: CHEST, amount: 2 });
-    expect(lastFailure(sim, "mara")).toContain("only had room for 1 more");
+    expect(lastFailure(sim, "mara")).toContain("but the tavern chest only had room for 1 more");
     expect(listContents(sim.state, chestOf(sim).id)).toHaveLength(capacity - 1);
     fillChest(sim, "wood", 1);
     act(sim, "mara", { verb: "put", itemName: "bread", targetName: CHEST, amount: 1 });
-    expect(lastFailure(sim, "mara")).toContain("was full");
+    expect(lastFailure(sim, "mara")).toContain("but the tavern chest was full");
   });
 
   it("never puts a container inside itself", () => {

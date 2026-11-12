@@ -253,7 +253,7 @@ describe("resolving the target", () => {
     putChest(sim, 20, "tavern chest");
     expect(
       resolveFailure(sim, { verb: "use", itemName: "bandage", targetName: "tavern chest" }),
-    ).toBe("bandage tavern chest with a bandage | I can't use the tavern chest");
+    ).toBe("bandage tavern chest with a bandage | that doesn't work on the tavern chest");
   });
 
   it("offers the item's verbs that can aim at a target the asked-for verb refuses", () => {

@@ -9,6 +9,7 @@ import {
 import { listContents } from "../../items/entity-store";
 import { describeThingName, viewThing, type ThingRef } from "../../items/things";
 import { readThingName, scopeOf } from "../../items/values";
+import { describePlace } from "../../memory/filing";
 import { destroyEntities } from "./step-entities";
 import { findRoleThing, findStepThings, snapshotThing } from "./step-roles";
 import { DONE, type StepHandler, type StepOutcome, type StepRun } from "./step-run";
@@ -35,7 +36,7 @@ function listMatching(run: StepRun, holder: ThingRef, rule: Matcher): Entity[] {
 function describeHolder(run: StepRun, step: PickStep, holder: ThingRef): string {
   if (holder.kind === "agent" && step.in !== "user") return readThingName(scopeOf(run), step.in);
   if (step.in === "item" || step.in === "target") {
-    return `the ${readThingName(scopeOf(run), step.in)}`;
+    return describePlace(readThingName(scopeOf(run), step.in));
   }
   return describeThingName(run.context.state, holder);
 }

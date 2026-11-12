@@ -81,7 +81,7 @@ export function resolveTarget(
     const reason =
       target.kind === "agent" && target.agentId === agentId
         ? `I can't ${verb.name} myself`
-        : `I can't ${verb.name} ${name}`;
+        : `that doesn't work on ${name}`;
     return { kind: "failed", reason, unfitting: target };
   }
   return { kind: "found", target, name };

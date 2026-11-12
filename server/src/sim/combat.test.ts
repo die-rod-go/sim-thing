@@ -125,7 +125,7 @@ describe("attacking someone", () => {
     const knife = handOver(sim, "mara", "knife");
     aimWith(sim, "mara", knife, "attack", "Tobias's body");
     expect(getAgentRuntime(sim.state, "mara").lastFailure).toBe(
-      "I tried to attack Tobias's body with a knife but I can't attack Tobias's body",
+      "I tried to attack Tobias's body with a knife but that doesn't work on Tobias's body",
     );
   });
 });

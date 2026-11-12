@@ -7,6 +7,7 @@ import {
 } from "../../items/entity-store";
 import { locateThing, type ThingRef } from "../../items/things";
 import { readThingName, resolveNumber, scopeOf } from "../../items/values";
+import { describePlace } from "../../memory/filing";
 import { findPlaceAt } from "../../world/map-loader";
 import { isWalkable } from "../../world/pathfinding";
 import { buildWalkingGrid } from "../world-access";
@@ -88,19 +89,19 @@ export function findPlacementRefusal(
   const { state } = run.context;
   const scope = scopeOf(run);
   const holderId = toHolderId(holder);
-  const name = readThingName(scope, settings.into ?? "self");
+  const name = describePlace(readThingName(scope, settings.into ?? "self"));
   const holderEntity =
     holder.kind === "entity" ? findEntityIfPresent(state, holder.entityId) : undefined;
   const isSelfNesting =
     holderEntity !== undefined &&
     moved.some((entity) => entity.id === holderId || isNestedIn(state, holderEntity, entity.id));
-  if (isSelfNesting) return `the ${name} can't go inside itself`;
+  if (isSelfNesting) return `${name} can't go inside itself`;
   if (settings.limit === undefined) return null;
   const movedIds = new Set(moved.map((entity) => entity.id));
   const present = listContents(state, holderId).filter(
     (entity) => !movedIds.has(entity.id) && !run.setAsideIds?.has(entity.id),
   );
   const room = Math.floor(resolveNumber(scope, settings.limit)) - present.length;
-  if (room <= 0) return `the ${name} was full`;
-  return incomingCount > room ? `the ${name} only had room for ${room} more` : null;
+  if (room <= 0) return `${name} was full`;
+  return incomingCount > room ? `${name} only had room for ${room} more` : null;
 }
