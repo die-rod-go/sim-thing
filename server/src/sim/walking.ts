@@ -63,7 +63,13 @@ function computePath(
   grid: TileGrid = buildWalkingGridFor(state, agentId),
 ): Position[] | null {
   if (destination.kind === "place") {
-    return findPathToPlace(state.map, grid, from, destination.placeName);
+    return findPathToPlace(
+      state.map,
+      grid,
+      from,
+      destination.placeName,
+      config.walking.arrivalDoorwayClearanceTiles,
+    );
   }
   if (destination.kind === "entity") {
     const entity = findEntityIfPresent(state, destination.entityId);
@@ -310,16 +316,41 @@ function refreshAgentPath(context: TickContext, agentId: string): void {
     computePath(state, agentId, walker.pos, walk.destination) ?? walk.remainingSteps;
 }
 
+function hasSteppedThisTick(context: TickContext, agentId: string): boolean {
+  return context.result.moves.some((move) => move.agentId === agentId);
+}
+
 /**
- * The next step, rerouted around another agent standing on it. Null when there is no way around
- * this tick; after waiting too long the walk fails.
+ * Two walkers each about to step onto the other's tile trade places in one tick, so neither
+ * blocks the other in a doorway. Moves the oncoming walker; true when the swap happened.
+ */
+function swapWithOncomingWalker(context: TickContext, agentId: string, blocker: Agent): boolean {
+  const { state } = context;
+  const blockerWalk = getAgentRuntime(state, blocker.id).walk;
+  const blockerNextStep = blockerWalk?.remainingSteps[0];
+  const position = findAgent(state, agentId).pos;
+  const isComingAtUs =
+    blockerNextStep !== undefined &&
+    blockerNextStep.x === position.x &&
+    blockerNextStep.y === position.y;
+  if (!blockerWalk || !isComingAtUs || hasSteppedThisTick(context, blocker.id)) return false;
+  blockerWalk.remainingSteps.shift();
+  delete blockerWalk.blockedTicks;
+  stepOnce(context, blocker.id, blockerNextStep);
+  return true;
+}
+
+/**
+ * The next step: swapping places with a walker coming the other way, or rerouted around another
+ * agent standing on it. Null when there is no way around this tick; after waiting too long the
+ * walk fails.
  */
 function takeNextStep(context: TickContext, agentId: string, walk: Walk): Position | null {
   const { state, result } = context;
   const plannedStep = walk.remainingSteps[0];
   if (!plannedStep) return null;
   const blocker = findAgentBlockingTile(state, agentId, plannedStep);
-  if (!blocker) {
+  if (!blocker || swapWithOncomingWalker(context, agentId, blocker)) {
     delete walk.blockedTicks;
     return walk.remainingSteps.shift() ?? null;
   }
@@ -342,17 +373,20 @@ function takeNextStep(context: TickContext, agentId: string, walk: Walk): Positi
 /**
  * One tile per tick along the stored path, opening closed doors on the way and never onto a tile
  * another living agent stands on; ends on arrival. A walk towards an aimed verb's target ends as
- * soon as the target is in reach.
+ * soon as the target is in reach. A walker already moved this tick by a swap doesn't step again.
  */
 export function advanceWalk(context: TickContext, agentId: string): void {
   if (pursueAim(context, agentId)) return;
-  refreshAgentPath(context, agentId);
+  const wasSwapped = hasSteppedThisTick(context, agentId);
+  if (!wasSwapped) refreshAgentPath(context, agentId);
   const walk = getAgentRuntime(context.state, agentId).walk;
   if (!walk) return;
-  const nextStep = takeNextStep(context, agentId, walk);
-  if (getAgentRuntime(context.state, agentId).walk === null) return;
-  if (nextStep) stepOnce(context, agentId, nextStep);
-  else if (walk.remainingSteps.length > 0) return;
+  if (!wasSwapped) {
+    const nextStep = takeNextStep(context, agentId, walk);
+    if (getAgentRuntime(context.state, agentId).walk === null) return;
+    if (nextStep) stepOnce(context, agentId, nextStep);
+    else if (walk.remainingSteps.length > 0) return;
+  }
   if (pursueAim(context, agentId)) return;
   const isPursuing = walk.pendingVerb?.aim !== undefined && walk.pendingVerb.used !== undefined;
   if (walk.remainingSteps.length === 0 && !isPursuing) arrive(context, agentId);
