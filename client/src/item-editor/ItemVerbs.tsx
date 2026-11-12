@@ -1,83 +1,115 @@
-import { useState } from "react";
 import {
   hasItemErrors,
+  listDefinitionViews,
+  matchesThing,
   type ItemDefinition,
   type ItemFile,
   type ItemProblem,
 } from "@village/shared";
+import type { TabSelection } from "./editor-state";
 import { selectEntryProblems } from "./problems";
-import { VerbEditor } from "./VerbEditor";
 import {
   addVerb,
   buildVerbForDefinition,
   countOtherDefinitionsMatched,
   listVerbIndexesForDefinition,
-  updateVerb,
 } from "./verb-edits";
 
-/**
- * The verbs whose rule matches this item, worked out live. Editing one edits the verb itself, so
- * each warns how many other items it also applies to.
- */
+function listAimedVerbIndexes(file: ItemFile, definition: ItemDefinition): number[] {
+  const views = listDefinitionViews(file, definition);
+  return file.verbs.flatMap((verb, index) => {
+    const { target } = verb;
+    return target !== undefined && views.some((view) => matchesThing(target, view)) ? [index] : [];
+  });
+}
+
+function VerbLink({
+  file,
+  verbIndex,
+  problems,
+  note,
+  onOpen,
+}: {
+  file: ItemFile;
+  verbIndex: number;
+  problems: readonly ItemProblem[];
+  note?: string;
+  onOpen: (selection: TabSelection) => void;
+}) {
+  const verb = file.verbs[verbIndex];
+  if (!verb) return null;
+  const verbProblems = selectEntryProblems(problems, file, "verbs", verbIndex);
+  return (
+    <div className="row-item">
+      <button className="add-button" onClick={() => onOpen({ tab: "verbs", index: verbIndex })}>
+        {verb.name || "unnamed verb"}
+        {hasItemErrors(verbProblems) && <span className="problem-marker has-errors" />}
+      </button>
+      {note !== undefined && <span className="field-hint"> {note}</span>}
+    </div>
+  );
+}
+
+/** The verbs whose matchers meet this item, each opening in the Verbs tab. */
 export function ItemVerbs({
   definition,
   file,
   problems,
   onEdit,
+  onOpen,
 }: {
   definition: ItemDefinition;
   file: ItemFile;
   problems: readonly ItemProblem[];
-  onEdit: (file: ItemFile) => void;
+  onEdit: (file: ItemFile, selection?: TabSelection) => void;
+  onOpen: (selection: TabSelection) => void;
 }) {
-  const [openVerbIndexes, setOpenVerbIndexes] = useState<ReadonlySet<number>>(new Set());
   const verbIndexes = listVerbIndexesForDefinition(file, definition);
-  const toggle = (index: number) => {
-    const next = new Set(openVerbIndexes);
-    if (!next.delete(index)) next.add(index);
-    setOpenVerbIndexes(next);
-  };
-  const addVerbForItem = () => {
-    const withVerb = addVerb(file, buildVerbForDefinition(file, definition));
-    setOpenVerbIndexes(new Set([...openVerbIndexes, withVerb.verbs.length - 1]));
-    onEdit(withVerb);
-  };
+  const aimedIndexes = listAimedVerbIndexes(file, definition);
+  const addVerbForItem = () =>
+    onEdit(addVerb(file, buildVerbForDefinition(file, definition)), {
+      tab: "verbs",
+      index: file.verbs.length,
+    });
 
   return (
     <div className="row-list">
       {verbIndexes.length === 0 && <p className="muted">No verb applies to it yet.</p>}
       {verbIndexes.map((verbIndex) => {
         const verb = file.verbs[verbIndex];
-        if (!verb) return null;
-        const otherCount = countOtherDefinitionsMatched(file, verb, definition.id);
-        const verbProblems = selectEntryProblems(problems, file, "verbs", verbIndex);
-        const isOpen = openVerbIndexes.has(verbIndex);
+        const otherCount = verb ? countOtherDefinitionsMatched(file, verb, definition.id) : 0;
+        const note =
+          otherCount > 0
+            ? `also applies to ${otherCount} other item${otherCount === 1 ? "" : "s"}`
+            : undefined;
         return (
-          <div key={verbIndex} className="row-item">
-            <button className="icon-button verb-toggle" onClick={() => toggle(verbIndex)}>
-              {isOpen ? "▾" : "▸"} {verb.name || "unnamed verb"}
-              {hasItemErrors(verbProblems) && <span className="problem-marker has-errors" />}
-            </button>
-            {otherCount > 0 && (
-              <span className="field-hint">
-                {" "}
-                Also applies to {otherCount} other item{otherCount === 1 ? "" : "s"}.
-              </span>
-            )}
-            {isOpen && (
-              <VerbEditor
-                verb={verb}
-                file={file}
-                problems={verbProblems}
-                onChange={(changed) => onEdit(updateVerb(file, verbIndex, changed))}
-              />
-            )}
-          </div>
+          <VerbLink
+            key={verbIndex}
+            file={file}
+            verbIndex={verbIndex}
+            problems={problems}
+            note={note}
+            onOpen={onOpen}
+          />
         );
       })}
       <button className="add-button" onClick={addVerbForItem}>
         + verb
       </button>
+      {aimedIndexes.length > 0 && (
+        <div className="aimed-verbs">
+          <h4>Verbs that can be aimed at it</h4>
+          {aimedIndexes.map((verbIndex) => (
+            <VerbLink
+              key={verbIndex}
+              file={file}
+              verbIndex={verbIndex}
+              problems={problems}
+              onOpen={onOpen}
+            />
+          ))}
+        </div>
+      )}
     </div>
   );
 }

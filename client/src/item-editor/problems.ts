@@ -51,6 +51,11 @@ export function findDraftProblems(draft: ItemFile, context: ValidationContext): 
   ];
 }
 
+/** "verbs.3 (eat)": the path every problem about that entry starts with. */
+export function formatEntryPath(file: ItemFile, section: FileSection, index: number): string {
+  return `${section}.${index} (${describeEntry(file, section, index)})`;
+}
+
 /** Problems about one entry, including "definitions (knife)" for a definition the map uses. */
 export function selectEntryProblems(
   problems: readonly ItemProblem[],
@@ -58,7 +63,7 @@ export function selectEntryProblems(
   section: FileSection,
   index: number,
 ): ItemProblem[] {
-  const entryPath = `${section}.${index} (${describeEntry(file, section, index)})`;
+  const entryPath = formatEntryPath(file, section, index);
   const referencePath = `${section} (${describeEntry(file, section, index)})`;
   return problems.filter(
     (problem) =>

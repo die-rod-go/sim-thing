@@ -1,19 +1,18 @@
 import {
   describeThingView,
+  listAllSteps,
   listAllVerbViews,
   listDefinitionViews,
-  listGuaranteedComponents,
   matchesAppliesTo,
   matchesThing,
   verbSchema,
-  type FieldType,
   type ItemDefinition,
   type ItemFile,
   type Matcher,
   type Verb,
 } from "@village/shared";
 import { clientConfig } from "../client-config";
-import { listAllSteps, listStepStimuli } from "./step-edits";
+import { listStepStimuli } from "./step-edits";
 import { createUniqueName, removeAt, replaceAt } from "./list-edits";
 
 /** Whether the verb applies to the definition anywhere it can be (held, here, inside). */
@@ -83,26 +82,6 @@ export function updateVerb(file: ItemFile, index: number, verb: Verb): ItemFile 
 
 export function removeVerb(file: ItemFile, index: number): ItemFile {
   return { ...file, verbs: removeAt(file.verbs, index) };
-}
-
-/**
- * Component reads a verb with this matcher may use, as "item.<component>.<field>" paths: the
- * fields of the given type in every component the matcher guarantees. None when bare-handed.
- */
-export function listReadablePaths(
-  file: ItemFile,
-  matcher: Matcher | undefined,
-  fieldType: FieldType,
-): string[] {
-  if (matcher === undefined) return [];
-  const definitionsById = new Map(
-    file.definitions.map((definition) => [definition.id, definition]),
-  );
-  return [...listGuaranteedComponents(matcher, definitionsById)].flatMap((component) =>
-    Object.entries(file.components[component]?.fields ?? {})
-      .filter(([, field]) => field.type === fieldType)
-      .map(([field]) => `item.${component}.${field}`),
-  );
 }
 
 /** Every stimulus the file sends or reacts to, sorted, for stimulus pickers. */

@@ -1,0 +1,23 @@
+.component-block {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  padding: 6px 0;
+}
+
+.component-heading {
+  display: flex;
+  align-items: baseline;
+  gap: 8px;
+}
+
+.aimed-verbs {
+  margin-top: 8px;
+}
+
+.aimed-verbs h4 {
+  margin: 0 0 4px;
+  font-size: 0.85em;
+  font-weight: normal;
+  opacity: 0.7;
+}

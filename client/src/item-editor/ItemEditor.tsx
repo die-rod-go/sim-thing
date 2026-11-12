@@ -1,26 +1,33 @@
 import { useMemo } from "react";
 import { hasItemErrors, type ItemFile, type ItemProblem } from "@village/shared";
 import type { ConnectionStatus } from "../net/sim-connection";
-import { ComponentPanel } from "./DeclarationPanels";
+import { ComponentPage } from "./ComponentPage";
 import { duplicateDefinition } from "./definition-edits";
-import { countTabEntries, EDITOR_TABS, type EditorState, type EditorTab } from "./editor-state";
+import {
+  countTabEntries,
+  EDITOR_TABS,
+  type EditorState,
+  type EditorTab,
+  type TabSelection,
+} from "./editor-state";
 import { ItemPage } from "./ItemPage";
-import { RulesPanel } from "./RulesPanel";
-import { findDraftProblems, selectEntryProblems } from "./problems";
+import { RulePage } from "./RulePage";
+import { findDraftProblems, formatEntryPath, selectEntryProblems } from "./problems";
 import { addTabEntry, listTabEntries, removeTabEntry, TAB_LABELS } from "./tab-entries";
 import { useItemEditor } from "./use-item-editor";
 import { listStimuli, updateVerb } from "./verb-edits";
 import { VerbEditor } from "./VerbEditor";
+import { WorldPage } from "./WorldPage";
 import { ItemProblemList, SideList } from "./widgets";
 
 const CONNECTION_LABELS: Record<ConnectionStatus, string> = {
-  connecting: "Connecting…",
+  connecting: "Connectingâ€¦",
   open: "Connected",
-  closed: "Disconnected, retrying…",
+  closed: "Disconnected, retryingâ€¦",
 };
 
 function describeSaveStatus(state: EditorState, isDirty: boolean, problems: ItemProblem[]): string {
-  if (state.saveStatus === "saving") return "Saving…";
+  if (state.saveStatus === "saving") return "Savingâ€¦";
   if (hasItemErrors(problems)) return "Fix the errors to save";
   if (isDirty) return "Unsaved changes";
   if (state.saveStatus === "saved") return "Saved to seeds/items.json";
@@ -34,15 +41,17 @@ function TabPanel({
   problems,
   stimuli,
   onEdit,
+  onOpen,
 }: {
   tab: EditorTab;
   file: ItemFile;
   index: number;
   problems: readonly ItemProblem[];
   stimuli: readonly string[];
-  onEdit: (file: ItemFile) => void;
+  onEdit: (file: ItemFile, selection?: TabSelection) => void;
+  onOpen: (selection: TabSelection) => void;
 }) {
-  const panelProps = { file, index, problems, stimuli, onEdit };
+  const panelProps = { file, index, problems, stimuli, onEdit, onOpen };
   switch (tab) {
     case "items":
       return <ItemPage {...panelProps} definitionIndex={index} />;
@@ -55,16 +64,25 @@ function TabPanel({
           verb={verb}
           file={file}
           problems={selectEntryProblems(problems, file, "verbs", index)}
+          ownerPath={formatEntryPath(file, "verbs", index)}
           onChange={(changed) => onEdit(updateVerb(file, index, changed))}
         />
       );
     }
     case "rules":
-      return <RulesPanel {...panelProps} />;
+      return <RulePage {...panelProps} />;
+    case "world":
+      return <WorldPage file={file} problems={problems} onEdit={onEdit} />;
     case "components": {
       const name = Object.keys(file.components)[index];
       return name === undefined ? null : (
-        <ComponentPanel file={file} name={name} problems={problems} onEdit={onEdit} />
+        <ComponentPage
+          file={file}
+          name={name}
+          problems={problems}
+          onEdit={onEdit}
+          onOpen={onOpen}
+        />
       );
     }
   }
@@ -141,7 +159,7 @@ export function ItemEditor() {
       {editor.protocolError && <div className="banner banner-error">{editor.protocolError}</div>}
       {!draft ? (
         <p className="editor-empty muted">
-          {state.isLoaded ? "Nothing to edit." : "Loading items from the sim server…"}
+          {state.isLoaded ? "Nothing to edit." : "Loading items from the sim serverâ€¦"}
         </p>
       ) : (
         <main className="editor-body">
@@ -162,9 +180,11 @@ export function ItemEditor() {
               selectedIndex={selectedIndex}
               onSelect={(index) => editor.select({ tab, index })}
             />
-            <button className="add-button" onClick={addEntry}>
-              + new
-            </button>
+            {tab !== "world" && (
+              <button className="add-button" onClick={addEntry}>
+                + new
+              </button>
+            )}
             <p className="field-hint">
               Changes apply on the next server start or `make reset`. This editor only defines
               items: the map places objects and the character editor sets inventories.
@@ -187,9 +207,11 @@ export function ItemEditor() {
                       Duplicate
                     </button>
                   )}
-                  <button className="danger" onClick={confirmRemove}>
-                    Remove
-                  </button>
+                  {tab !== "world" && (
+                    <button className="danger" onClick={confirmRemove}>
+                      Remove
+                    </button>
+                  )}
                 </div>
               </div>
             )}
@@ -199,16 +221,17 @@ export function ItemEditor() {
               index={selectedIndex}
               problems={problems}
               stimuli={stimuli}
-              onEdit={(changed) => editor.edit(changed)}
+              onEdit={(changed, selection) => editor.edit(changed, selection)}
+              onOpen={editor.select}
             />
-            <section className="form-section item-problems">
-              <h3>Problems</h3>
+            <details className="form-section item-problems">
+              <summary>All problems ({problems.length})</summary>
               {problems.length === 0 ? (
                 <p className="muted">none</p>
               ) : (
                 <ItemProblemList problems={problems} showsPath />
               )}
-            </section>
+            </details>
           </section>
         </main>
       )}

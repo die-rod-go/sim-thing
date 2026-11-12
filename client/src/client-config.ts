@@ -154,12 +154,23 @@ export const clientConfig = {
     newVerbName: "new verb",
     newComponentName: "new_component",
     newFieldName: "newField",
-    /** Rows and indent of the JSON text a rule is edited as. */
-    ruleTextAreaRows: 14,
-    jsonIndent: 2,
+    /** Text of a field's new prompt-word entry. */
+    newFieldWordText: "words",
+    /** Minutes between firings of a rule switched to the `every` trigger. */
+    newRuleMinutes: 60,
+    /** Hint in the field for how a death from a rule reads. */
+    killedPlaceholder: "burned to death",
     newStimulusName: "new_stimulus",
     /** Starting text for a new `set` field path and `announce` phrase. */
     newTextValue: "text",
+    /** Starting numbers for the settings of a step added from the palette. */
+    newStepMinutes: 1,
+    newStepAmount: 0.1,
+    newStepChance: 0.5,
+    newStepLoudness: 1,
+    newStepCount: 1,
+    newStepRadius: 1,
+    defaultTimesFactor: 1,
     /** A new item is drawn as a white bullet until it's given its own glyph. */
     newDefinitionGlyph: { index: 7, color: "#ffffff" },
     /** How many times larger than the sheet the glyph picker's grid is drawn. */
