@@ -5,7 +5,6 @@ import { groupConversations } from "../format/conversations";
 import { computeTickDurationMs } from "../format/formatters";
 import type { ClientState } from "../state/client-state";
 import { useStoredState } from "../ui/use-stored-state";
-import { listConversationLinks } from "./activity-cues";
 import type { Size } from "./camera";
 import { CameraControls } from "./CameraControls";
 import { computeDaylightTint, computeHourOfDay } from "./daylight";
@@ -59,17 +58,9 @@ function selectPerceptionView(state: ClientState, isDebugOverlayOn: boolean) {
   return detail.perceptionView;
 }
 
-function useConversations(state: ClientState) {
+function useConversationThreads(state: ClientState) {
   const { maxGapTicks } = clientConfig.conversations;
-  const threads = useMemo(
-    () => groupConversations(state.events, maxGapTicks),
-    [state.events, maxGapTicks],
-  );
-  const links = useMemo(
-    () => listConversationLinks(threads, state.clock.tick, maxGapTicks),
-    [threads, state.clock.tick, maxGapTicks],
-  );
-  return { threads, links };
+  return useMemo(() => groupConversations(state.events, maxGapTicks), [state.events, maxGapTicks]);
 }
 
 function useVisibleThoughts(state: ClientState, mode: ThoughtMode) {
@@ -122,10 +113,10 @@ export function VillageView({
     setMutedSpeakers(toggleMutedSpeaker(mutedSpeakers, agentId));
   const canFollow = state.inspectedAgentId !== null;
   useCameraInput(containerRef, controls, canFollow);
-  const conversations = useConversations(state);
+  const threads = useConversationThreads(state);
   const thoughtsByAgent = useVisibleThoughts(state, thoughtMode);
   const director = useDirector(controls, manualInputCount, {
-    threads: conversations.threads,
+    threads,
     events: state.events,
     currentTick: state.clock.tick,
   });
@@ -173,7 +164,6 @@ export function VillageView({
             inspectedAgentId={state.inspectedAgentId}
             highlightedAgentIds={highlightedAgentIds}
             perceptionView={selectPerceptionView(state, isDebugOverlayOn)}
-            conversationLinks={conversations.links}
             daylightTint={daylightTint}
             isPlaceLabelsOn={isPlaceLabelsOn}
             moveDurationMs={moveDurationMs}

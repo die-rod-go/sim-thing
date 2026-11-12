@@ -1,7 +1,6 @@
 import { useEffect, useState } from "react";
 import type { Position } from "@village/shared";
 import { clientConfig } from "../client-config";
-import type { ConversationLink } from "./activity-cues";
 import { computeMotionPosition, type AgentMotion } from "./agent-motion";
 import {
   layOutBubbleStacks,
@@ -54,7 +53,6 @@ export interface WorldElements {
   bubbleStacks: ElementRegistry;
   leaderLines: ElementRegistry;
   placeLabels: ElementRegistry;
-  linkLines: ElementRegistry<SVGLineElement>;
   hoverCard: { current: HTMLElement | null };
   tileCard: { current: HTMLElement | null };
 }
@@ -62,7 +60,6 @@ export interface WorldElements {
 /** What the frame loop needs from the latest render. */
 export interface WorldScene {
   places: readonly TiledPlace[];
-  links: readonly ConversationLink[];
   hoveredAgentId: string | null;
   /** The tile whose card is shown, in tile coordinates. */
   inspectedTile: Position | null;
@@ -98,25 +95,6 @@ function layOutMarkers(
     if (!position) continue;
     placeElement(markerElement, position.x, position.y);
     markerElement.style.setProperty("--figure-scale", String(scale));
-  }
-}
-
-function layOutLinks(
-  world: WorldElements,
-  scene: WorldScene,
-  screenPositions: ReadonlyMap<string, Position>,
-): void {
-  for (const link of scene.links) {
-    const line = world.linkLines.elements.get(link.key);
-    if (!line) continue;
-    const from = screenPositions.get(link.fromAgentId);
-    const to = screenPositions.get(link.toAgentId);
-    line.style.visibility = from && to ? "visible" : "hidden";
-    if (!from || !to) continue;
-    line.setAttribute("x1", String(from.x));
-    line.setAttribute("y1", String(from.y));
-    line.setAttribute("x2", String(to.x));
-    line.setAttribute("y2", String(to.y));
   }
 }
 
@@ -283,7 +261,6 @@ export function layOutWorld(world: WorldElements, scene: WorldScene, frame: Worl
   }
   layOutBubbles(world, screenPositions, scale);
   layOutMarkers(world, screenPositions, scale);
-  layOutLinks(world, scene, screenPositions);
   layOutPlaceLabels(world, scene, frame);
   layOutHoverCard(world, scene, frame, screenPositions);
   layOutTileCard(world, scene, frame);
