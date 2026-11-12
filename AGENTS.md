@@ -14,6 +14,7 @@ A browser-viewable village simulation: LLM-driven agents with memory, needs, goa
 | `make dev`     | Run the sim server and the client together |
 | `make check`   | Typecheck and lint                         |
 | `make test`    | Run all tests                              |
+| `make soak`    | Full three-sim-day headless soak (minutes) |
 | `make reset`   | Wipe the saved sim and reseed              |
 
 `make check` and `make test` must pass before any task is considered done. Once they do, commit the
