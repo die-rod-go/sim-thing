@@ -10,7 +10,13 @@ import { describeAgentAsSeen, findAgent, listOthersAsSeen } from "./world-access
 import type { WorldState } from "./world-state";
 
 export type TargetResolution =
-  { kind: "found"; target: ThingRef; name: string } | { kind: "failed"; reason: string };
+  | { kind: "found"; target: ThingRef; name: string }
+  | {
+      kind: "failed";
+      reason: string;
+      /** The named thing, when it is here but the verb's `target` matcher refuses it. */
+      unfitting?: ThingRef;
+    };
 
 function isSelfName(state: WorldState, agentId: string, wanted: string): boolean {
   return (
@@ -76,7 +82,7 @@ export function resolveTarget(
       target.kind === "agent" && target.agentId === agentId
         ? `I can't ${verb.name} myself`
         : `I can't ${verb.name} ${name}`;
-    return { kind: "failed", reason };
+    return { kind: "failed", reason, unfitting: target };
   }
   return { kind: "found", target, name };
 }

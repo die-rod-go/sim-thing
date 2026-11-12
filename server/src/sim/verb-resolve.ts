@@ -4,6 +4,7 @@ import {
   findDefinition,
   isBareHanded,
   matchesAppliesTo,
+  matchesThing,
   type Entity,
   type Verb,
 } from "@village/shared";
@@ -14,7 +15,8 @@ import { describeAttempt, describeHolderName } from "./action-phrases";
 import type { InteractRequest } from "./agent-runtime";
 import { listItemCandidates, type ItemCandidate } from "./verb-candidates";
 import type { VerbStart } from "./verb-runner";
-import { resolveTarget } from "./verb-target";
+import { viewThingFrom } from "./thing-where";
+import { describeTargetName, resolveTarget } from "./verb-target";
 import type { WorldState } from "./world-state";
 
 export interface ReadyInteract {
@@ -23,13 +25,21 @@ export interface ReadyInteract {
   verb: Verb;
 }
 
+/** A second question that gives the agent another try in the same tick: which of these verbs. */
+export interface VerbFollowUp {
+  /** The item the verbs are done with. */
+  item: Entity;
+  verbNames: string[];
+  /** The target the verbs were narrowed to, when the one asked for couldn't aim at it. */
+  targetName?: string;
+}
+
 export interface FailedInteract {
   kind: "failed";
   /** "bake bread at the oven", for "I tried to ... but ...". */
   attempt: string;
   reason: string;
-  /** The first thing the reply could mean, when it offers some verbs but not the one asked for. */
-  unofferedBy?: Entity;
+  followUp?: VerbFollowUp;
 }
 
 export type InteractResolution = ReadyInteract | FailedInteract;
@@ -39,8 +49,12 @@ interface NamedVerb {
   index: number;
 }
 
-function fail(attempt: string, reason: string, unofferedBy?: Entity): FailedInteract {
-  return { kind: "failed", attempt, reason, ...(unofferedBy ? { unofferedBy } : {}) };
+function fail(attempt: string, reason: string, followUp?: VerbFollowUp): FailedInteract {
+  return { kind: "failed", attempt, reason, ...(followUp ? { followUp } : {}) };
+}
+
+function listUniqueVerbNames(verbs: readonly Verb[]): string[] {
+  return [...new Set(verbs.map((verb) => verb.name))];
 }
 
 function listVerbsNamed(state: WorldState, verbName: string): NamedVerb[] {
@@ -129,7 +143,26 @@ function describeNotOffered(
   const name = describeEntityName(state, first);
   const isHeld = buildEntityView(state, agentId, first).where === "held";
   const reason = isHeld ? `I can't '${verbName}' ${name}` : `The ${name} doesn't do '${verbName}'`;
-  return fail(`use the ${name}`, reason, first);
+  const verbNames = listUniqueVerbNames(listVerbsForEntity(state, agentId, first));
+  return fail(`use the ${name}`, reason, { item: first, verbNames });
+}
+
+/** The item's other verbs that can aim at the target the asked-for verb refused, if any. */
+function buildTargetFollowUp(
+  state: WorldState,
+  agentId: string,
+  item: Entity | undefined,
+  target: ThingRef | undefined,
+): VerbFollowUp | undefined {
+  if (item === undefined || target === undefined) return undefined;
+  const targetView = viewThingFrom(state, agentId, target);
+  if (targetView === null) return undefined;
+  const fitting = listVerbsForEntity(state, agentId, item).filter(
+    (verb) => verb.target !== undefined && matchesThing(verb.target, targetView),
+  );
+  if (fitting.length === 0) return undefined;
+  const targetName = describeTargetName(state, agentId, target);
+  return { item, verbNames: listUniqueVerbNames(fitting), targetName };
 }
 
 /** The attempt phrase with the names the reply used, before its target is settled. */
@@ -227,7 +260,8 @@ export function resolveInteract(
     const resolved = resolveTarget(state, agentId, verb, request.targetName, itemIds);
     if (resolved.kind === "failed") {
       const attempt = describeRequestAttempt(state, verb, itemName, from, request.targetName);
-      return fail(attempt, resolved.reason);
+      const followUp = buildTargetFollowUp(state, agentId, items[0], resolved.unfitting);
+      return fail(attempt, resolved.reason, followUp);
     }
     target = resolved.target;
     targetName = resolved.name;

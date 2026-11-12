@@ -3,7 +3,7 @@ You are {{agentName}}. You chose to do something with the {{objectName}} (the it
 ## Now
 You were: {{intention}}
 
-## What you can do with the {{objectName}}
+## What you can do with the {{objectName}}{{targetWords}}
 {{options}}
 
 ## Reply

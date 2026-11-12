@@ -18,6 +18,8 @@ export interface InteractOption {
 export interface InteractPromptInput {
   agentName: string;
   objectName: string;
+  /** "the oven", when the options are narrowed to the verbs that can aim at it. */
+  targetName?: string;
   options: InteractOption[];
   intention: string;
 }
@@ -40,6 +42,7 @@ export function buildInteractPrompt(input: InteractPromptInput, promptsDirectory
     {
       agentName: input.agentName,
       objectName: input.objectName,
+      targetWords: input.targetName === undefined ? "" : ` and ${input.targetName}`,
       intention: input.intention || "nothing in particular",
       options,
     },

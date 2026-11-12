@@ -12,7 +12,7 @@ import {
   place,
 } from "./combat-test-kit";
 import type { TestSim } from "./test-sim";
-import { resolveInteract, type ReadyInteract } from "./verb-resolve";
+import { resolveInteract, type ReadyInteract, type VerbFollowUp } from "./verb-resolve";
 
 const EXAMINE_HELD = {
   name: "examine",
@@ -65,6 +65,12 @@ function resolveFailure(sim: TestSim, request: InteractRequest): string {
   const resolution = resolveInteract(sim.state, "mara", request);
   if (resolution.kind !== "failed") throw new Error("resolved, but a failure was expected");
   return `${resolution.attempt} | ${resolution.reason}`;
+}
+
+function resolveFollowUp(sim: TestSim, request: InteractRequest): VerbFollowUp | undefined {
+  const resolution = resolveInteract(sim.state, "mara", request);
+  if (resolution.kind !== "failed") throw new Error("resolved, but a failure was expected");
+  return resolution.followUp;
 }
 
 describe("resolving which entity a reply means", () => {
@@ -202,6 +208,37 @@ describe("resolving the target", () => {
     expect(
       resolveFailure(sim, { verb: "use", itemName: "bandage", targetName: "tavern chest" }),
     ).toBe("bandage tavern chest with a bandage | I can't use the tavern chest");
+  });
+
+  it("offers the item's verbs that can aim at a target the asked-for verb refuses", () => {
+    const sim = buildTavernSim();
+    const bandage = handOver(sim, "mara", "bandage");
+    putChest(sim, 20, "tavern chest");
+    const followUp = resolveFollowUp(sim, {
+      verb: "use",
+      itemName: "bandage",
+      targetName: "tavern chest",
+    });
+    expect(followUp?.item.id).toBe(bandage.id);
+    expect(followUp?.verbNames).toContain("put");
+    expect(followUp?.verbNames).not.toContain("use");
+    expect(followUp?.targetName).toBe("the tavern chest");
+  });
+
+  it("offers no second try when none of the item's verbs can aim at the target", () => {
+    const sim = buildTavernSim();
+    handOver(sim, "mara", "wheat");
+    expect(resolveFollowUp(sim, { verb: "put", itemName: "wheat", targetName: "Mara" })).toBe(
+      undefined,
+    );
+  });
+
+  it("offers no second try when the target isn't here", () => {
+    const sim = buildTavernSim();
+    handOver(sim, "mara", "bandage");
+    expect(
+      resolveFollowUp(sim, { verb: "use", itemName: "bandage", targetName: "tavern chest" }),
+    ).toBe(undefined);
   });
 
   it("aims at the user when no target is named and that fits", () => {

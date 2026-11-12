@@ -1,12 +1,11 @@
-import type { Agent, DecisionReply, Entity } from "@village/shared";
+import type { Agent, DecisionReply } from "@village/shared";
 import { config } from "../config";
 import { buildInteractPrompt, buildInteractReplySchema } from "../decision/interact-prompt";
 import { describeEntityName } from "../items/entity-store";
-import { listVerbsForEntity } from "../items/verb-offers";
 import type { PlannedAction } from "./decision-runner";
 import type { InteractRequest } from "./agent-runtime";
 import type { SimDependencies } from "./tick-context";
-import { resolveInteract } from "./verb-resolve";
+import { resolveInteract, type VerbFollowUp } from "./verb-resolve";
 import type { WorldState } from "./world-state";
 
 /** The reply's words for an interact, which are resolved to things when the verb starts. */
@@ -28,15 +27,14 @@ async function askWhichVerb(
   agent: Agent,
   reply: DecisionReply,
   request: InteractRequest,
-  thing: Entity,
+  followUp: VerbFollowUp,
 ): Promise<PlannedAction> {
-  const verbNames = [
-    ...new Set(listVerbsForEntity(state, agent.id, thing).map((verb) => verb.name)),
-  ];
+  const { verbNames } = followUp;
   const prompt = buildInteractPrompt(
     {
       agentName: agent.name,
-      objectName: describeEntityName(state, thing),
+      objectName: describeEntityName(state, followUp.item),
+      ...(followUp.targetName === undefined ? {} : { targetName: followUp.targetName }),
       intention: reply.intention,
       options: verbNames.map((name) => ({ name, description: "" })),
     },
@@ -62,8 +60,9 @@ async function askWhichVerb(
 }
 
 /**
- * Plans an interact from the reply's words. When what it names offers some verbs but not the one
- * asked for, a second call lists them; anything else is resolved, or failed, when the verb starts.
+ * Plans an interact from the reply's words. When the item offers some verbs but not the one asked
+ * for, or the target refuses it but other verbs of the item could aim at it, a second call lists
+ * them; anything else is resolved, or failed, when the verb starts.
  */
 export async function planInteract(
   state: WorldState,
@@ -73,8 +72,8 @@ export async function planInteract(
 ): Promise<PlannedAction> {
   const request = buildInteractRequest(reply);
   const resolution = resolveInteract(state, agent.id, request);
-  if (resolution.kind === "failed" && resolution.unofferedBy !== undefined) {
-    return askWhichVerb(state, dependencies, agent, reply, request, resolution.unofferedBy);
+  if (resolution.kind === "failed" && resolution.followUp !== undefined) {
+    return askWhichVerb(state, dependencies, agent, reply, request, resolution.followUp);
   }
   return { kind: "interact", request };
 }

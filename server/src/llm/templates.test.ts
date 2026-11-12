@@ -20,6 +20,7 @@ describe("templates", () => {
     const prompt = renderTemplate("interact", {
       agentName: "Mara",
       objectName: "oven",
+      targetWords: "",
       intention: "bake",
       options: "- bake bread",
     });

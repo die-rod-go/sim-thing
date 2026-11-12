@@ -141,6 +141,19 @@ describe("interact second call", () => {
     });
     expect(schema.safeParse({ verb: "burn it" }).success).toBe(false);
   });
+
+  it("names the target when the options are narrowed to verbs that can aim at it", () => {
+    const input = {
+      agentName: "Mara",
+      objectName: "wheat",
+      intention: "store the harvest",
+      options: [{ name: "put", description: "" }],
+    };
+    expect(buildInteractPrompt({ ...input, targetName: "the oven" })).toContain(
+      "## What you can do with the wheat and the oven",
+    );
+    expect(buildInteractPrompt(input)).toContain("## What you can do with the wheat\n");
+  });
 });
 
 describe("resolveName", () => {
