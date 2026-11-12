@@ -1,5 +1,6 @@
 import { useCallback } from "react";
 import type { Position } from "@village/shared";
+import { ItemDataDisclosure } from "../ui/ItemData";
 import type { InspectedNote, InspectedThing, TileInspection } from "./tile-inspection";
 
 interface TileCardProps {
@@ -78,6 +79,7 @@ function ThingEntry({ thing, isPinned }: { thing: InspectedThing; isPinned: bool
         <div className="tile-card-muted">holds {thing.contents.join(", ")}</div>
       )}
       <NotesSection notes={thing.notes} isPinned={isPinned} />
+      {isPinned && thing.data.length > 0 && <ItemDataDisclosure label="data" data={thing.data} />}
     </li>
   );
 }
@@ -130,7 +132,7 @@ export function TileCard({ inspection, isPinned, onClose, cardRef }: TileCardPro
       )}
       {!isPinned && (
         <div className="tile-card-hint">
-          {hasNotes ? "click to pin and read every note" : "click to pin"}
+          {hasNotes ? "click to pin and read every note" : "click to pin and see item data"}
         </div>
       )}
     </div>

@@ -1,12 +1,8 @@
 import {
-  describeCount,
-  isDirectlyInside,
   formatTimeOfDay,
   toSimTime,
   type AgentDeath,
   type CurrentAction,
-  type Entity,
-  type ItemDefinition,
   type NeedName,
   type SimTimeSettings,
   type TraitName,
@@ -103,22 +99,4 @@ export function describeActivity(
 /** "8:05 am", without the day; for timestamps inside a list already grouped by day. */
 export function formatClockTime(tick: number, timeSettings: SimTimeSettings): string {
   return formatTimeOfDay(toSimTime(tick, timeSettings));
-}
-
-/** "30 coins", "2 bread", "a knife": what the agent carries, counted by definition. */
-export function formatCarrying(
-  agentId: string,
-  entities: readonly Entity[],
-  definitions: readonly ItemDefinition[],
-): string[] {
-  const counts = new Map<string, number>();
-  for (const entity of entities) {
-    if (!isDirectlyInside(entity, agentId)) continue;
-    counts.set(entity.definitionId, (counts.get(entity.definitionId) ?? 0) + 1);
-  }
-  const definitionsById = new Map(definitions.map((definition) => [definition.id, definition]));
-  return [...counts].map(([definitionId, count]) => {
-    const definition = definitionsById.get(definitionId);
-    return definition ? describeCount(definition, count) : `${count} ${definitionId}`;
-  });
 }

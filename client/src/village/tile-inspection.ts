@@ -11,6 +11,7 @@ import {
   type ThingCatalog,
 } from "@village/shared";
 import { formatPercent } from "../format/formatters";
+import { describeItemData, type ItemComponentData } from "../format/item-data";
 import { isLyingOnTile } from "./entity-glyphs";
 import { listTileTerrains, type TiledMap, type TiledPlace } from "./tiled-map";
 
@@ -36,6 +37,8 @@ export interface InspectedThing {
   contents: string[];
   /** Written things inside it, newest first; empty when it holds none. */
   notes: InspectedNote[];
+  /** Its components and field values; empty for a pile, whose items may differ. */
+  data: ItemComponentData[];
 }
 
 /** Everything the viewer can learn about one map tile. */
@@ -137,6 +140,7 @@ function inspectEntity(
     details: describeEntityState(entity, catalog),
     contents: countContents(otherContents, catalog),
     notes,
+    data: describeItemData(resolveEntityComponents(catalog, entity), catalog),
   };
 }
 
@@ -167,6 +171,7 @@ function inspectThings(position: Position, sources: TileInspectionSources): Insp
       details: [],
       contents: [],
       notes: [],
+      data: [],
     };
   });
   return [

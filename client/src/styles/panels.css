@@ -538,3 +538,47 @@ pre {
 .feed-action_failed .feed-text {
   color: var(--danger);
 }
+
+.carried-items {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.item-disclosure > summary {
+  cursor: pointer;
+}
+
+.carried-items .item-disclosure > summary {
+  display: inline-block;
+  padding: 1px 7px;
+  border: 1px solid var(--border);
+  border-radius: 3px;
+  background: var(--surface-raised);
+}
+
+.item-data {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  margin: 4px 0 2px 10px;
+}
+
+.item-data dt {
+  color: var(--text-muted);
+}
+
+.item-data dd {
+  margin: 0 0 0 10px;
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+}
+
+.item-data-field {
+  color: var(--text-muted);
+  font-family: var(--mono);
+}
+
+.item-data-empty {
+  color: var(--text-muted);
+}

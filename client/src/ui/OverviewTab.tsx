@@ -5,7 +5,9 @@ import {
   resolveBodyComponents,
   type Agent,
 } from "@village/shared";
-import { describeDeath, formatCarrying } from "../format/character-sheet";
+import { describeDeath } from "../format/character-sheet";
+import { groupCarriedItems } from "../format/item-data";
+import { ItemDataDisclosure } from "./ItemData";
 import { usePanelContext } from "./panel-context";
 import { EmptyNote, HealthRow, NeedRow, PanelSection } from "./widgets";
 
@@ -48,17 +50,15 @@ function StatusSection({ agent }: { agent: Agent }) {
 
 export function OverviewTab({ agent }: { agent: Agent }) {
   const { state } = usePanelContext();
-  const carrying = formatCarrying(agent.id, state.entities, state.itemDefinitions);
+  const carrying = groupCarriedItems(agent.id, state.entities, state.catalog);
   return (
     <div className="overview">
       <StatusSection agent={agent} />
       <PanelSection title="Carrying">
-        <div className="token-list">
-          {carrying.length === 0 && <EmptyNote>Nothing.</EmptyNote>}
-          {carrying.map((entry) => (
-            <span key={entry} className="token">
-              {entry}
-            </span>
+        {carrying.length === 0 && <EmptyNote>Nothing.</EmptyNote>}
+        <div className="carried-items">
+          {carrying.map((group) => (
+            <ItemDataDisclosure key={group.key} label={group.label} data={group.data} />
           ))}
         </div>
       </PanelSection>

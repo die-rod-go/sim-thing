@@ -1,11 +1,5 @@
 import { describe, expect, it } from "vitest";
-import {
-  describeActivity,
-  describeNeed,
-  describeTrait,
-  formatCarrying,
-  formatClockTime,
-} from "./character-sheet";
+import { describeActivity, describeNeed, describeTrait, formatClockTime } from "./character-sheet";
 
 const timeSettings = { minutesPerTick: 1, startHour: 6 };
 
@@ -45,27 +39,5 @@ describe("characterSheet", () => {
 
   it("shows the clock time without the day", () => {
     expect(formatClockTime(65, timeSettings)).toBe("7:05 am");
-  });
-
-  it("counts what the agent carries by definition, coins included", () => {
-    const glyph = { index: 0, color: "#ffffff" };
-    const definitions = [
-      { id: "coin", name: "coin", plural: "coins", glyph },
-      { id: "bread", name: "bread", glyph },
-    ].map((definition) => ({ ...definition, components: {} }));
-    const carried = (id: string, definitionId: string, agentId: string) => ({
-      id,
-      definitionId,
-      label: null,
-      location: { kind: "inside" as const, holderId: agentId },
-      changes: {},
-    });
-    const entities = [
-      carried("entity-1", "coin", "ada"),
-      carried("entity-2", "coin", "ada"),
-      carried("entity-3", "bread", "ada"),
-      carried("entity-4", "bread", "bob"),
-    ];
-    expect(formatCarrying("ada", entities, definitions)).toEqual(["2 coins", "1 bread"]);
   });
 });
