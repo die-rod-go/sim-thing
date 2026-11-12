@@ -27,19 +27,40 @@ export interface EntityPosition {
   pos: Position;
 }
 
+const indexesByEntityList = new WeakMap<Entity[], Map<string, number>>();
+
+function indexEntities(entities: Entity[]): Map<string, number> {
+  const indexes = new Map(entities.map((entity, index) => [entity.id, index]));
+  indexesByEntityList.set(entities, indexes);
+  return indexes;
+}
+
+/**
+ * Where the entity sits in the list, or -1. Lookups by id run for every thing on every tick, so a
+ * scan of the whole list each time makes a tick cost grow with the square of the entity count.
+ * The cached index is checked against the id on every hit, so a list changed in place is
+ * re-indexed instead of trusted.
+ */
+function findEntityIndex(entities: Entity[], entityId: string): number {
+  const cachedIndex = indexesByEntityList.get(entities)?.get(entityId);
+  if (cachedIndex !== undefined && entities[cachedIndex]?.id === entityId) return cachedIndex;
+  return indexEntities(entities).get(entityId) ?? -1;
+}
+
 export function findEntity(world: EntityWorld, entityId: string): Entity {
-  const entity = world.entities.find((candidate) => candidate.id === entityId);
+  const entity = findEntityIfPresent(world, entityId);
   if (!entity) throw new Error(`Unknown entity "${entityId}"`);
   return entity;
 }
 
 /** Undefined once the entity is gone (eaten, destroyed). */
 export function findEntityIfPresent(world: EntityWorld, entityId: string): Entity | undefined {
-  return world.entities.find((candidate) => candidate.id === entityId);
+  const index = findEntityIndex(world.entities, entityId);
+  return index === -1 ? undefined : world.entities[index];
 }
 
 export function replaceEntity(world: EntityWorld, updated: Entity): void {
-  const index = world.entities.findIndex((candidate) => candidate.id === updated.id);
+  const index = findEntityIndex(world.entities, updated.id);
   if (index === -1) throw new Error(`Unknown entity "${updated.id}"`);
   world.entities[index] = updated;
 }
