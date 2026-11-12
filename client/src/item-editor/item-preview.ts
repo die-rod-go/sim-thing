@@ -1,23 +1,31 @@
 import {
   describeCount,
+  listComponentWords,
   listDefinitionViews,
   matchesAppliesTo,
+  resolveComponents,
   type ItemDefinition,
   type ItemFile,
 } from "@village/shared";
 
+/** The names of the verbs that apply to the definition somewhere it can be, each once. */
+export function listApplyingVerbNames(file: ItemFile, definition: ItemDefinition): string[] {
+  const views = listDefinitionViews(file, definition);
+  const names = file.verbs
+    .filter((verb) => views.some((view) => matchesAppliesTo(verb, view)))
+    .map((verb) => verb.name);
+  return [...new Set(names)];
+}
+
 /**
- * How a prompt lists one of these in the user's hands, or where it stands for a placeable:
- * "a knife (attack, throw)". The server's grouping code needs a live world, so this mirrors its
- * format for a single stateless entity.
+ * How a prompt lists an untouched one to an agent who sees it: "a jar (take from; 6 left)", the
+ * verbs first, then the visible component and number-field words, as the server writes them.
+ * Grouping, contents and ground words need a live world and are left out.
  */
 export function describeItemPreview(file: ItemFile, definition: ItemDefinition): string {
-  const [view] = listDefinitionViews(file, definition);
-  const verbNames =
-    view === undefined
-      ? []
-      : file.verbs.filter((verb) => matchesAppliesTo(verb, view)).map((verb) => verb.name);
-  const uniqueNames = [...new Set(verbNames)];
+  const components = resolveComponents(file.components, definition, {});
+  const words = listComponentWords(file.components, components, true).join(", ");
+  const details = [listApplyingVerbNames(file, definition).join(", "), words].filter(Boolean);
   const text = describeCount(definition, 1);
-  return uniqueNames.length > 0 ? `${text} (${uniqueNames.join(", ")})` : text;
+  return details.length > 0 ? `${text} (${details.join("; ")})` : text;
 }

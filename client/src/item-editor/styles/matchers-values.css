@@ -1,0 +1,19 @@
+.matcher-builder {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.matcher-node > .rule-children .matcher-node > .rule-children {
+  padding-left: 12px;
+}
+
+.path-picker {
+  display: inline-flex;
+  align-items: center;
+  gap: 2px;
+}
+
+.value-input {
+  flex-wrap: wrap;
+}

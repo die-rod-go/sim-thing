@@ -1,5 +1,5 @@
 import type { ItemFile, ItemProblem } from "@village/shared";
-import { addComponentDeclaration, removeComponentDeclaration } from "./declaration-edits";
+import { addComponentDeclaration, removeComponentDeclaration } from "./component-edits";
 import { addDefinition, removeDefinition } from "./definition-edits";
 import type { EditorTab } from "./editor-state";
 import { selectEntryProblems, selectProblemsUnder } from "./problems";
@@ -7,11 +7,14 @@ import { addRule, describeRuleTrigger, removeRule, summarizeRule } from "./rules
 import { addVerb, buildNewVerb, removeVerb } from "./verb-edits";
 import { findWorstSeverity, type SideListEntry } from "./widgets";
 
+const WORLD_ENTRY_LABEL = "World settings";
+
 export const TAB_LABELS: Record<EditorTab, string> = {
   items: "Items",
-  verbs: "Verbs",
   components: "Components",
+  verbs: "Verbs",
   rules: "Rules",
+  world: "World",
 };
 
 /** What the sidebar lists for a tab, each with its worst problem. */
@@ -37,6 +40,13 @@ export function listTabEntries(
         detail: summarizeRule(rule),
         severity: findWorstSeverity(selectEntryProblems(problems, file, "rules", index)),
       }));
+    case "world":
+      return [
+        {
+          label: WORLD_ENTRY_LABEL,
+          severity: findWorstSeverity(selectProblemsUnder(problems, "world")),
+        },
+      ];
     case "components":
       return Object.keys(file.components).map((name) => ({
         label: name,
@@ -55,6 +65,8 @@ export function addTabEntry(file: ItemFile, tab: EditorTab, stimuli: readonly st
       return addRule(file, stimuli);
     case "components":
       return addComponentDeclaration(file);
+    case "world":
+      return file;
   }
 }
 
@@ -66,6 +78,8 @@ export function removeTabEntry(file: ItemFile, tab: EditorTab, index: number): I
       return removeVerb(file, index);
     case "rules":
       return removeRule(file, index);
+    case "world":
+      return file;
     case "components": {
       const name = Object.keys(file.components)[index];
       return name === undefined ? file : removeComponentDeclaration(file, name);

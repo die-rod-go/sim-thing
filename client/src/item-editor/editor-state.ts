@@ -6,7 +6,7 @@ import type {
   ItemReference,
 } from "@village/shared";
 
-export const EDITOR_TABS = ["items", "verbs", "components", "rules"] as const;
+export const EDITOR_TABS = ["items", "components", "verbs", "rules", "world"] as const;
 export type EditorTab = (typeof EDITOR_TABS)[number];
 
 export type SaveStatus = "idle" | "saving" | "saved" | "rejected";
@@ -56,6 +56,7 @@ export const initialEditorState: EditorState = {
     verbs: 0,
     components: 0,
     rules: 0,
+    world: 0,
   },
 };
 
@@ -64,6 +65,7 @@ export function countTabEntries(file: ItemFile | null, tab: EditorTab): number {
   if (tab === "items") return file.definitions.length;
   if (tab === "verbs") return file.verbs.length;
   if (tab === "rules") return file.rules.length;
+  if (tab === "world") return 1;
   return Object.keys(file.components).length;
 }
 

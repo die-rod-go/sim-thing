@@ -16,15 +16,14 @@ export function buildDefaultFieldValue(type: FieldType): FieldValue {
   return "";
 }
 
-/** A value for every declared field, ready to edit. */
+/** A value for each field that has no declared default: the rest start at their default. */
 export function buildDefaultComponentValues(
   declaration: ComponentDeclaration,
 ): Record<string, FieldValue> {
   return Object.fromEntries(
-    Object.entries(declaration.fields).map(([field, { type, default: fieldDefault }]) => [
-      field,
-      fieldDefault ?? buildDefaultFieldValue(type),
-    ]),
+    Object.entries(declaration.fields)
+      .filter(([, field]) => field.default === undefined)
+      .map(([name, field]) => [name, buildDefaultFieldValue(field.type)]),
   );
 }
 
@@ -61,6 +60,20 @@ export function setComponentField(
   return {
     ...definition,
     components: { ...definition.components, [componentName]: { ...values, [fieldName]: value } },
+  };
+}
+
+/** Drops an override so the field reads its declared default again. */
+export function clearComponentField(
+  definition: ItemDefinition,
+  componentName: string,
+  fieldName: string,
+): ItemDefinition {
+  const values = definition.components[componentName];
+  if (values === undefined) return definition;
+  return {
+    ...definition,
+    components: { ...definition.components, [componentName]: withoutKey(values, fieldName) },
   };
 }
 

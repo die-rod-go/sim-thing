@@ -1,8 +1,7 @@
 import { ruleSchema, type ItemFile, type Rule } from "@village/shared";
 import { clientConfig } from "../client-config";
 import { removeAt, replaceAt } from "./list-edits";
-
-export type ParsedRuleText = { rule: Rule; error: null } | { rule: null; error: string };
+import { describeMatcher } from "./matcher-edits";
 
 /** A rule that fires once a stimulus reaches anything with the first component, no steps yet. */
 export function buildNewRule(file: ItemFile, stimuli: readonly string[]): Rule {
@@ -41,28 +40,31 @@ export function describeRuleTrigger(rule: Rule): string {
 
 /** The matcher and how many steps the rule has, in one line. */
 export function summarizeRule(rule: Rule): string {
-  return `if ${JSON.stringify(rule.if)}: ${rule.steps.length} steps`;
+  return `if ${describeMatcher(rule.if)}: ${rule.steps.length} steps`;
 }
 
-/** The rule as editable JSON text. */
-export function formatRuleText(rule: Rule): string {
-  return JSON.stringify(rule, null, clientConfig.itemEditor.jsonIndent);
-}
+export type RuleTrigger = Rule["trigger"];
 
-/** Text as a rule, or the reason it isn't one (a JSON syntax error or the schema's complaints). */
-export function parseRuleText(text: string): ParsedRuleText {
-  let json: unknown;
-  try {
-    json = JSON.parse(text);
-  } catch (error) {
-    return { rule: null, error: error instanceof Error ? error.message : String(error) };
+export const RULE_TRIGGERS: readonly RuleTrigger[] = ["every", "stimulus", "becomes"];
+
+/** The rule with another trigger: its matcher, steps and death phrase stay, the setting is reset. */
+export function changeRuleTrigger(
+  rule: Rule,
+  trigger: RuleTrigger,
+  stimuli: readonly string[],
+): Rule {
+  const { if: matcher, steps, killed } = rule;
+  const shared = { if: matcher, steps, ...(killed === undefined ? {} : { killed }) };
+  switch (trigger) {
+    case "every":
+      return { trigger, minutes: clientConfig.itemEditor.newRuleMinutes, ...shared };
+    case "stimulus":
+      return {
+        trigger,
+        stimulus: stimuli[0] ?? clientConfig.itemEditor.newStimulusName,
+        ...shared,
+      };
+    case "becomes":
+      return { trigger, ...shared };
   }
-  const parsed = ruleSchema.safeParse(json);
-  if (parsed.success) return { rule: parsed.data, error: null };
-  return {
-    rule: null,
-    error: parsed.error.issues
-      .map((issue) => `${issue.path.join(".") || "rule"}: ${issue.message}`)
-      .join("; "),
-  };
 }

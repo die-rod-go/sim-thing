@@ -2,7 +2,13 @@ import { describe, expect, it } from "vitest";
 import type { ItemFileMessage } from "@village/shared";
 import { buildTestItemFile } from "../../../shared/src/items/test-item-file";
 import { removeDefinition } from "./definition-edits";
-import { hasUnsavedChanges, initialEditorState, reduceEditorState } from "./editor-state";
+import {
+  countTabEntries,
+  EDITOR_TABS,
+  hasUnsavedChanges,
+  initialEditorState,
+  reduceEditorState,
+} from "./editor-state";
 
 function buildLoadedMessage(): ItemFileMessage {
   return {
@@ -50,6 +56,12 @@ describe("item editor state", () => {
     expect(refused.saveStatus).toBe("rejected");
     expect(refused.serverProblems).toEqual([problem]);
     expect(hasUnsavedChanges(refused)).toBe(true);
+  });
+
+  it("lists the tabs in order and counts the world as one entry", () => {
+    expect(EDITOR_TABS).toEqual(["items", "components", "verbs", "rules", "world"]);
+    expect(countTabEntries(buildTestItemFile(), "world")).toBe(1);
+    expect(countTabEntries(null, "world")).toBe(0);
   });
 
   it("keeps each tab's selection inside its list", () => {

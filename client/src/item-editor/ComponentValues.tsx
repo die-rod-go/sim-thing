@@ -1,97 +1,98 @@
-import type { FieldType, FieldValue, ItemDefinition, ItemFile } from "@village/shared";
-import { NumberInput, TextInput } from "../characters/fields";
-import { clientConfig } from "../client-config";
+import type { FieldValue, ItemDefinition, ItemFile, ItemProblem } from "@village/shared";
+import { FieldValueInput, formatFieldValue } from "./ComponentFieldInput";
 import {
   addComponentToDefinition,
   buildDefaultFieldValue,
+  clearComponentField,
   removeComponentFromDefinition,
   setComponentField,
 } from "./definition-edits";
-import { Checkbox, InlineField } from "./widgets";
+import { selectProblemsUnder } from "./problems";
+import { InlineField, ItemProblemList } from "./widgets";
 
-const { numberStep } = clientConfig.itemEditor;
-
-/** An input that fits the field's declared type; a value of the wrong type starts over. */
-function FieldValueInput({
-  type,
-  value,
-  onChange,
-}: {
-  type: FieldType;
-  value: FieldValue | undefined;
-  onChange: (value: FieldValue) => void;
-}) {
-  if (type === "number") {
-    return (
-      <NumberInput
-        value={typeof value === "number" ? value : 0}
-        step={numberStep}
-        onChange={onChange}
-      />
-    );
-  }
-  if (type === "boolean") {
-    return <Checkbox label="" checked={value === true} onChange={onChange} />;
-  }
-  if (type === "text" || type === "item") {
-    return <TextInput value={typeof value === "string" ? value : ""} onChange={onChange} />;
-  }
-  const range = typeof value === "object" ? value : { min: 0, max: 0 };
-  return (
-    <span className="value-input">
-      <NumberInput
-        value={range.min}
-        step={numberStep}
-        onChange={(min) => onChange({ ...range, min })}
-      />
-      –
-      <NumberInput
-        value={range.max}
-        step={numberStep}
-        onChange={(max) => onChange({ ...range, max })}
-      />
-    </span>
-  );
-}
-
-/** The components an item has, each field with an input of its declared type. */
+/** The components an item has: each with its fields, problems and a way to remove it. */
 export function ComponentValues({
   definition,
   file,
+  problems,
+  entryPath,
   onChange,
 }: {
   definition: ItemDefinition;
   file: ItemFile;
+  problems: readonly ItemProblem[];
+  entryPath: string;
   onChange: (definition: ItemDefinition) => void;
 }) {
   const missing = Object.keys(file.components).filter(
     (name) => !Object.hasOwn(definition.components, name),
   );
+  const definitionIds = file.definitions.map((entry) => entry.id);
   return (
     <div className="row-list">
       {Object.entries(definition.components).map(([componentName, values]) => {
-        const fields = Object.entries(file.components[componentName]?.fields ?? {});
+        const declaration = file.components[componentName];
         return (
-          <div key={componentName} className="effect-fields">
-            <strong className="component-name">{componentName}</strong>
-            {fields.map(([fieldName, field]) => (
-              <InlineField key={fieldName} label={fieldName}>
-                <FieldValueInput
-                  type={field.type}
-                  value={values[fieldName] ?? buildDefaultFieldValue(field.type)}
-                  onChange={(value) =>
-                    onChange(setComponentField(definition, componentName, fieldName, value))
-                  }
-                />
-              </InlineField>
-            ))}
-            <button
-              className="icon-button"
-              title={`Remove ${componentName}`}
-              onClick={() => onChange(removeComponentFromDefinition(definition, componentName))}
-            >
-              ×
-            </button>
+          <div key={componentName} className="component-block">
+            <div className="component-heading">
+              <strong className="component-name">{componentName}</strong>
+              {declaration === undefined ? (
+                <span className="field-hint">no longer declared</span>
+              ) : (
+                declaration.description !== "" && (
+                  <span className="field-hint">{declaration.description}</span>
+                )
+              )}
+              <button
+                className="icon-button"
+                title={`Remove ${componentName}`}
+                onClick={() => onChange(removeComponentFromDefinition(definition, componentName))}
+              >
+                ×
+              </button>
+            </div>
+            <div className="effect-fields">
+              {Object.entries(declaration?.fields ?? {}).map(([fieldName, field]) => {
+                const value = values[fieldName];
+                const change = (next: FieldValue) =>
+                  onChange(setComponentField(definition, componentName, fieldName, next));
+                const fieldDefault = field.default;
+                return (
+                  <InlineField key={fieldName} label={fieldName}>
+                    {value === undefined && fieldDefault !== undefined ? (
+                      <>
+                        <span className="muted">default ({formatFieldValue(fieldDefault)})</span>
+                        <button className="add-button" onClick={() => change(fieldDefault)}>
+                          override
+                        </button>
+                      </>
+                    ) : (
+                      <>
+                        <FieldValueInput
+                          field={field}
+                          value={value ?? buildDefaultFieldValue(field.type)}
+                          definitionIds={definitionIds}
+                          onChange={change}
+                        />
+                        {fieldDefault !== undefined && (
+                          <button
+                            className="add-button"
+                            onClick={() =>
+                              onChange(clearComponentField(definition, componentName, fieldName))
+                            }
+                          >
+                            use default
+                          </button>
+                        )}
+                      </>
+                    )}
+                  </InlineField>
+                );
+              })}
+            </div>
+            <ItemProblemList
+              problems={selectProblemsUnder(problems, `${entryPath}.components.${componentName}`)}
+            />
           </div>
         );
       })}
