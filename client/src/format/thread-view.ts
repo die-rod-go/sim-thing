@@ -19,11 +19,27 @@ export interface SpeakerRun {
   lines: RunLine[];
 }
 
-export type ThreadBlock = SpeakerRun | StageDirection;
+/** A quiet stretch between two entries, marked with the time talk or action picked up again. */
+export interface TimePause {
+  kind: "pause";
+  key: number;
+  tick: number;
+}
 
-export function mergeSpeakerRuns(entries: ThreadEntry[]): ThreadBlock[] {
+export type ThreadBlock = SpeakerRun | StageDirection | TimePause;
+
+/**
+ * Groups entries into chat blocks. With `maxGapTicks`, a gap longer than that between two entries
+ * becomes a pause, which also starts a new speaker run.
+ */
+export function mergeSpeakerRuns(entries: ThreadEntry[], maxGapTicks = Infinity): ThreadBlock[] {
   const blocks: ThreadBlock[] = [];
+  let previousTick: number | null = null;
   for (const entry of entries) {
+    if (previousTick !== null && entry.tick - previousTick > maxGapTicks) {
+      blocks.push({ kind: "pause", key: entry.eventId, tick: entry.tick });
+    }
+    previousTick = entry.tick;
     if (entry.kind === "stage") {
       blocks.push(entry);
       continue;

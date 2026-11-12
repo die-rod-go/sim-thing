@@ -50,7 +50,6 @@ export function parseStoredStoryFilter(raw: string | null): StoryFilter | null {
     place: readNullableString(parsed, "place"),
     categories: new Set(parsed.categories.filter(isEventCategory)),
     isShowingMoments: parsed.isShowingMoments === true,
-    isShowingActionsInThreads: parsed.isShowingActionsInThreads === true,
   };
 }
 
@@ -60,6 +59,5 @@ export function serializeStoryFilter(filter: StoryFilter): string {
     place: filter.place,
     categories: [...filter.categories],
     isShowingMoments: filter.isShowingMoments,
-    isShowingActionsInThreads: filter.isShowingActionsInThreads,
   });
 }

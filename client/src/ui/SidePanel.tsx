@@ -17,9 +17,7 @@ export function SidePanel() {
             <h2>Story</h2>
             <span className="muted">Click a villager to see what they think</span>
           </header>
-          <div className="panel-scroll">
-            <StoryFeed />
-          </div>
+          <StoryFeed />
         </>
       )}
     </aside>

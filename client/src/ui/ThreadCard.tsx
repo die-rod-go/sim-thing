@@ -2,12 +2,14 @@ import { useLayoutEffect, useRef, useState } from "react";
 import { formatSimTime } from "@village/shared";
 import { clientConfig } from "../client-config";
 import { formatClockTime } from "../format/character-sheet";
-import type { ConversationThread, StageDirection } from "../format/conversations";
+import type { ConversationThread, StageDirection, ThreadEntry } from "../format/conversations";
 import {
   countThreadLines,
   describeThreadPreview,
   mergeSpeakerRuns,
   type SpeakerRun,
+  type ThreadBlock,
+  type TimePause,
 } from "../format/thread-view";
 import { usePanelContext } from "./panel-context";
 import { ThoughtReveal } from "./ThoughtReveal";
@@ -42,6 +44,21 @@ function StageBlock({ direction }: { direction: StageDirection }) {
       <AgentName agentId={direction.actorId} name={direction.actorName} /> {direction.text}
     </li>
   );
+}
+
+function PauseBlock({ pause }: { pause: TimePause }) {
+  const { state } = usePanelContext();
+  return (
+    <li className="thread-pause" title={formatSimTime(pause.tick, state.timeSettings)}>
+      {formatClockTime(pause.tick, state.timeSettings)}
+    </li>
+  );
+}
+
+function ChatBlock({ block }: { block: ThreadBlock }) {
+  if (block.kind === "run") return <SpeakerRunBlock run={block} />;
+  if (block.kind === "pause") return <PauseBlock pause={block} />;
+  return <StageBlock direction={block} />;
 }
 
 /** Keeps a live thread scrolled to its newest line unless the reader has scrolled up to read. */
@@ -86,8 +103,17 @@ function useStickToBottom(lineCount: number, isLive: boolean) {
   return { scrollRef, handleScroll, unseenLineCount, scrollToBottom };
 }
 
-function ThreadBody({ thread, isLive }: { thread: ConversationThread; isLive: boolean }) {
-  const lineCount = thread.entries.length;
+/** A scrolling chat of entries that follows new ones in, with a pause marker after long gaps. */
+export function ThreadBody({
+  entries,
+  isLive,
+  maxGapTicks,
+}: {
+  entries: ThreadEntry[];
+  isLive: boolean;
+  maxGapTicks?: number;
+}) {
+  const lineCount = entries.length;
   const { scrollRef, handleScroll, unseenLineCount, scrollToBottom } = useStickToBottom(
     lineCount,
     isLive,
@@ -100,13 +126,12 @@ function ThreadBody({ thread, isLive }: { thread: ConversationThread; isLive: bo
         onScroll={handleScroll}
         style={{ maxHeight: clientConfig.ui.maxThreadHeightPx }}
       >
-        {mergeSpeakerRuns(thread.entries).map((block) =>
-          block.kind === "run" ? (
-            <SpeakerRunBlock key={block.key} run={block} />
-          ) : (
-            <StageBlock key={block.eventId} direction={block} />
-          ),
-        )}
+        {mergeSpeakerRuns(entries, maxGapTicks).map((block) => (
+          <ChatBlock
+            key={`${block.kind}-${block.kind === "stage" ? block.eventId : block.key}`}
+            block={block}
+          />
+        ))}
       </ol>
       {unseenLineCount > 0 && (
         <button className="new-lines-pill" onClick={scrollToBottom}>
@@ -159,7 +184,7 @@ export function ThreadCard({ thread, isLive }: { thread: ConversationThread; isL
         </span>
       </header>
       {isExpanded ? (
-        <ThreadBody thread={thread} isLive={isLive} />
+        <ThreadBody entries={thread.entries} isLive={isLive} />
       ) : (
         <button className="thread-preview" onClick={() => setIsExpandedByReader(true)}>
           <strong>{preview.speakerName}:</strong> {preview.words}

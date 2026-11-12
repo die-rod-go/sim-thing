@@ -10,16 +10,10 @@ import {
   type EventCategory,
 } from "../format/event-feed";
 import { describeMomentDetail, MOMENT_GLYPHS, MOMENT_LABELS } from "../format/moments";
-import { groupConversations } from "../format/conversations";
-import {
-  buildStory,
-  countStoryThreads,
-  pickStageEvents,
-  type StoryFilter,
-} from "../format/story-feed";
+import { buildPlaceChats, buildStoryLog, type StoryFilter } from "../format/story-feed";
 import { parseStoredStoryFilter, serializeStoryFilter } from "../format/stored-preferences";
 import { usePanelContext } from "./panel-context";
-import { ThreadCard } from "./ThreadCard";
+import { PlaceChatCard } from "./PlaceChatCard";
 import { useStoredState } from "./use-stored-state";
 import { AgentName, EmptyNote } from "./widgets";
 
@@ -39,7 +33,6 @@ const DEFAULT_FILTER: StoryFilter = {
   place: null,
   categories: new Set(EVENT_CATEGORIES.filter((category) => category !== "movement")),
   isShowingMoments: false,
-  isShowingActionsInThreads: false,
 };
 
 function toggleCategory(
@@ -147,23 +140,17 @@ function StoryFilters({
         >
           ✦ moments
         </button>
-        <button
-          className={filter.isShowingActionsInThreads ? "chip is-active" : "chip"}
-          onClick={() =>
-            onChange({ ...filter, isShowingActionsInThreads: !filter.isShowingActionsInThreads })
-          }
-          title="Show what speakers do (of the categories shown) inside their conversations"
-        >
-          ⚒ in talk
-        </button>
       </div>
     </div>
   );
 }
 
-/** The village as one story: live conversations on top, then talk and doings newest first. */
+/**
+ * The village as one story: a chat per place pinned on top (live ones first, in a fixed order),
+ * and below it a log of every action, newest first.
+ */
 export function StoryFeed() {
-  const { state, threads } = usePanelContext();
+  const { state } = usePanelContext();
   const [filter, setFilter] = useStoredState(
     clientConfig.storageKeys.storyFilter,
     DEFAULT_FILTER,
@@ -171,46 +158,40 @@ export function StoryFeed() {
     serializeStoryFilter,
   );
   const { maxGapTicks } = clientConfig.conversations;
-  const storyThreads = useMemo(
-    () =>
-      filter.isShowingActionsInThreads
-        ? groupConversations(state.events, maxGapTicks, pickStageEvents(filter))
-        : threads,
-    [state.events, threads, filter, maxGapTicks],
+  const chats = useMemo(
+    () => buildPlaceChats(state.events, filter, state.clock.tick, maxGapTicks),
+    [state.events, filter, state.clock.tick, maxGapTicks],
   );
-  const items = useMemo(
-    () =>
-      buildStory(state.events, storyThreads, filter, state.clock.tick, maxGapTicks, state.moments),
-    [state.events, state.moments, storyThreads, filter, state.clock.tick, maxGapTicks],
+  const logItems = useMemo(
+    () => buildStoryLog(state.events, filter, state.moments),
+    [state.events, state.moments, filter],
   );
-  const threadCount = countStoryThreads(items);
 
   return (
     <div className="story-feed">
       <div className="story-toolbar">
         <StoryFilters filter={filter} onChange={setFilter} />
         <span className="muted story-count">
-          {threadCount} {threadCount === 1 ? "conversation" : "conversations"} ·{" "}
-          {items.length - threadCount} events
+          {chats.length} {chats.length === 1 ? "place" : "places"} talking · {logItems.length}{" "}
+          events
         </span>
       </div>
-      {items.length === 0 && <EmptyNote>Nothing has happened that matches yet.</EmptyNote>}
-      <div className="story-items">
-        {items.map((item) => {
-          if (item.kind === "thread") {
-            return (
-              <ThreadCard
-                key={`thread-${item.thread.id}`}
-                thread={item.thread}
-                isLive={item.isOngoing}
-              />
-            );
-          }
-          if (item.kind === "moment") {
-            return <StoryMomentLine key={`moment-${item.moment.id}`} moment={item.moment} />;
-          }
-          return <StoryEventLine key={`event-${item.event.id}`} worldEvent={item.event} />;
-        })}
+      {chats.length > 0 && (
+        <div className="story-chats">
+          {chats.map((chat) => (
+            <PlaceChatCard key={chat.place} chat={chat} />
+          ))}
+        </div>
+      )}
+      <div className="story-log">
+        {logItems.length === 0 && <EmptyNote>No actions that match yet.</EmptyNote>}
+        {logItems.map((item) =>
+          item.kind === "moment" ? (
+            <StoryMomentLine key={`moment-${item.moment.id}`} moment={item.moment} />
+          ) : (
+            <StoryEventLine key={`event-${item.event.id}`} worldEvent={item.event} />
+          ),
+        )}
       </div>
     </div>
   );

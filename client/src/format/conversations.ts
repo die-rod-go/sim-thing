@@ -39,12 +39,10 @@ export interface ConversationThread {
 
 const STAGE_EVENT_KINDS: ReadonlySet<WorldEvent["kind"]> = new Set(["gave"]);
 
-/** Gifts and notes always show inside the conversation they happen during. */
-export function isGiftOrNote(event: WorldEvent): boolean {
-  return STAGE_EVENT_KINDS.has(event.kind);
-}
-
-function toSpokenLine(event: WorldEvent, speech: NonNullable<WorldEvent["speech"]>): SpokenLine {
+export function toSpokenLine(
+  event: WorldEvent,
+  speech: NonNullable<WorldEvent["speech"]>,
+): SpokenLine {
   return {
     kind: "line",
     eventId: event.id,
@@ -55,6 +53,17 @@ function toSpokenLine(event: WorldEvent, speech: NonNullable<WorldEvent["speech"
     volume: speech.volume,
     thought: speech.thought ?? null,
     llmCallId: speech.llmCallId ?? null,
+  };
+}
+
+export function toStageDirection(event: WorldEvent): StageDirection {
+  return {
+    kind: "stage",
+    eventId: event.id,
+    tick: event.tick,
+    actorId: event.actorId,
+    actorName: event.actorName,
+    text: event.description,
   };
 }
 
@@ -83,14 +92,12 @@ function openThread(event: WorldEvent, line: SpokenLine): ConversationThread {
 
 /**
  * Groups speech into threads for display: lines at the same place join the latest thread there
- * unless the previous line was more than `maxGapTicks` earlier. Events by a speaker during a
- * thread that `isStageEvent` picks (gifts and notes by default) show inline. Input is oldest
- * first; threads come back newest first.
+ * unless the previous line was more than `maxGapTicks` earlier. Gifts and notes by a speaker
+ * during a thread show inline. Input is oldest first; threads come back newest first.
  */
 export function groupConversations(
   events: WorldEvent[],
   maxGapTicks: number,
-  isStageEvent: (event: WorldEvent) => boolean = isGiftOrNote,
 ): ConversationThread[] {
   const threads: ConversationThread[] = [];
   const openThreadIndexByPlace = new Map<string, number>();
@@ -113,19 +120,13 @@ export function groupConversations(
     }
 
     const isParticipantAction =
-      isThreadOpen && isStageEvent(event) && openThreadAtPlace.speakerIds.includes(event.actorId);
+      isThreadOpen &&
+      STAGE_EVENT_KINDS.has(event.kind) &&
+      openThreadAtPlace.speakerIds.includes(event.actorId);
     if (isParticipantAction && openIndex !== undefined) {
-      const direction: StageDirection = {
-        kind: "stage",
-        eventId: event.id,
-        tick: event.tick,
-        actorId: event.actorId,
-        actorName: event.actorName,
-        text: event.description,
-      };
       threads[openIndex] = {
         ...openThreadAtPlace,
-        entries: [...openThreadAtPlace.entries, direction],
+        entries: [...openThreadAtPlace.entries, toStageDirection(event)],
       };
     }
   }
