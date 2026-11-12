@@ -160,6 +160,8 @@ export interface DecisionRequest {
   agentId: string;
   /** Interrupted while doing something, so `continue` is offered. */
   isMidActionInterrupt: boolean;
+  /** What flagged this decision ("Jess came into view"), or null when the agent simply had nothing to do. */
+  reason: string | null;
   recallRolls: RecallRolls;
 }
 
@@ -185,11 +187,17 @@ export function selectDecisionRequests(
     const pending = runtime.pendingDecision;
     runtime.pendingDecision = null;
     const isMidActionInterrupt = agent.currentAction !== null;
+    const buildRequest = (): DecisionRequest => ({
+      agentId: agent.id,
+      isMidActionInterrupt,
+      reason: pending?.reason ?? null,
+      recallRolls: rollRecall(state),
+    });
     if (agent.currentAction === null || pending?.isUrgent) {
-      requests.push({ agentId: agent.id, isMidActionInterrupt, recallRolls: rollRecall(state) });
+      requests.push(buildRequest());
     } else if (pending && canInterrupt(runtime.lastInterruptTick, state.tick)) {
       runtime.lastInterruptTick = state.tick;
-      requests.push({ agentId: agent.id, isMidActionInterrupt, recallRolls: rollRecall(state) });
+      requests.push(buildRequest());
     }
   }
   return requests;

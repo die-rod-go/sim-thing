@@ -20,6 +20,7 @@ It is {{simTime}}.
 {{status}}
 You were: {{intention}}
 {{currentAction}}
+{{decisionReason}}
 {{lastFailure}}
 
 ## Where you are

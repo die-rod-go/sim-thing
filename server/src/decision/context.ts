@@ -114,6 +114,8 @@ export interface DecisionContext {
   currentAction: CurrentActionSummary | null;
   /** True for a perception interrupt during an action; only then is `continue` offered. */
   isMidActionInterrupt: boolean;
+  /** What flagged this decision, in the agent's own words ("my hunger"), or null. */
+  decisionReason: string | null;
   lastFailure: string | null;
   validTargets: DecisionTargets;
   validItems: ValidItem[];

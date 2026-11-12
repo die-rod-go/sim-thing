@@ -94,6 +94,10 @@ export function describeCurrentAction(
   return `You are in the middle of: ${currentAction.description}${aside}.`;
 }
 
+export function describeDecisionReason(reason: string | null): string {
+  return reason ? `Just now: ${reason}.` : "";
+}
+
 export function describeLastFailure(lastFailure: string | null): string {
   return lastFailure ? `What just went wrong: ${lastFailure}` : "";
 }

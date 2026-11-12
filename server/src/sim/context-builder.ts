@@ -113,6 +113,8 @@ export interface DecisionContextOptions {
   agentOverride?: Agent;
   /** Below the agent's recall fog chance, no memories come to mind; left out, they always do. */
   passiveRecallRoll?: number;
+  /** What flagged the decision, shown to the agent as it was perceived. */
+  decisionReason?: string | null;
 }
 
 /** A roll no chance is above, for a context built without one. */
@@ -197,6 +199,7 @@ export function buildDecisionContext(
             slowedBy: runtime.verbRun?.slowedBy ?? null,
           },
     isMidActionInterrupt,
+    decisionReason: options.decisionReason ?? null,
     lastFailure: runtime.lastFailure,
     validTargets: buildValidTargets(state, agent),
     validItems: listValidItems(state, agent),

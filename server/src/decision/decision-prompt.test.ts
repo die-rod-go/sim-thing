@@ -48,6 +48,7 @@ function buildContext(overrides: Partial<DecisionContext> = {}): DecisionContext
     knownPlaces: ["bakery", "farm", "town square"],
     currentAction: null,
     isMidActionInterrupt: false,
+    decisionReason: null,
     lastFailure: null,
     validTargets: { places: ["bakery", "farm"], agents: ["Tom"], entities: ["oven"], aimOnly: [] },
     validItems: [{ name: "coin", plural: "coins" }, { name: "bread" }],
@@ -173,6 +174,12 @@ describe("buildDecisionPrompt", () => {
     expect(interrupted).toMatch(/^Actions: .*continue$/m);
     expect(interrupted).toMatch(/^- continue:/m);
     expect(interrupted).toContain("You are in the middle of: baking bread at the oven");
+  });
+
+  it("shows what flagged the decision, and nothing when nothing did", () => {
+    const flagged = buildDecisionPrompt(buildContext({ decisionReason: "Jess came into view" }));
+    expect(flagged).toMatch(/^Just now: Jess came into view\.$/m);
+    expect(buildDecisionPrompt(buildContext())).not.toContain("Just now:");
   });
 
   it("says why an interrupted action is going slowly", () => {

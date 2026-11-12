@@ -11,6 +11,7 @@ import {
   createTestSim,
   decisionReply,
   findPromptAgentName,
+  interruptDuringWait,
   promptOf,
   scriptByAgent,
 } from "./test-sim";
@@ -67,6 +68,14 @@ describe("decision loop", () => {
     expect(memoriesOf(sim, "mara").map((memory) => memory.text)).toContain(
       "I visited the town square for the first time; I found the notice board and the bench here",
     );
+  });
+
+  it("tells an interrupted agent what flagged the decision", async () => {
+    const sim = createTestSim({ agentIds: ["mara"], responder: scriptByAgent({}) });
+    sim.placeAgent("mara", SQUARE);
+    interruptDuringWait(sim, "mara", 60);
+    await sim.advance();
+    expect(sim.records[0]?.prompt).toMatch(/^Just now: a test interruption\.$/m);
   });
 
   it("the clock waits for every pending decision", async () => {

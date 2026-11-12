@@ -64,6 +64,7 @@ async function askForDecision(
 ): Promise<DecidedReply> {
   const context = buildDecisionContext(state, request.agentId, request.isMidActionInterrupt, {
     passiveRecallRoll: request.recallRolls.passive,
+    decisionReason: request.reason,
     ...(agentOverride ? { agentOverride } : {}),
   });
   const prompt = buildDecisionPrompt(context, dependencies.promptsDirectory);
