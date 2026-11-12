@@ -11,7 +11,7 @@
         "neuroticism": 0.1,
         "openness": 0.2
       },
-      "core": "A natural born leader. You like things done properly and have no patience for fuss or small talk. Your humor is dry and deadpan; you rarely laugh at your own jokes. You talk in short, blunt sentences and say exactly what you think. No one else is allowed in the bakery! Everything must be dropped off in the town square for her to pick up.",
+      "core": "A natural born leader. You like things done properly and have no patience for fuss or small talk. Your humor is dry and deadpan; you rarely laugh at your own jokes. You talk in short, blunt sentences and say exactly what you think.",
       "selfImage": "The only person around here who gets anything done on time. In charge and not afraid to tell people what they need to do to survive. Life is good, but it's not kind.",
       "sleepRecoveryPerHour": 0.15,
       "strength": 0.5,
@@ -185,6 +185,43 @@
       "peopleNotes": {
         "Beckett": "Amazing and creative and friendly and beautiful"
       }
+    },
+    {
+      "id": "tony",
+      "name": "Tony",
+      "profession": "woodcutter",
+      "traits": {
+        "extraversion": 1,
+        "agreeableness": 1,
+        "conscientiousness": 1,
+        "neuroticism": -1,
+        "openness": 1
+      },
+      "core": "Fine good axeman. Proud of my work and I don't like when other people try their hand.",
+      "selfImage": "Hardworking",
+      "sleepRecoveryPerHour": 0.15,
+      "strength": 1,
+      "agility": 0.5,
+      "inventory": {
+        "coin": 30,
+        "bread": 2
+      },
+      "mood": "",
+      "goals": [
+        {
+          "text": "Start a physical fight",
+          "why": "",
+          "progress": "",
+          "kind": "world"
+        },
+        {
+          "text": "Get along with everyone",
+          "why": "",
+          "progress": "",
+          "kind": "world"
+        }
+      ],
+      "peopleNotes": {}
     }
   ]
 }
