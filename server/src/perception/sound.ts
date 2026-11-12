@@ -4,8 +4,8 @@ import type { TileGrid } from "../world/types";
 import { isInsideGrid, tileIndex } from "../world/types";
 import type { Hearing, PerceptionWorld } from "./types";
 
-/** Path cost of sound from a source to each tile index; Infinity where it does not reach. */
-export type SoundCosts = readonly number[];
+/** Path cost of sound from a source, by tile index, for the tiles it reaches. */
+export type SoundCosts = ReadonlyMap<number, number>;
 
 const NEIGHBOR_OFFSETS: readonly Position[] = [
   { x: 1, y: 0 },
@@ -20,54 +20,78 @@ export function clearSoundCostCache(grid: TileGrid): void {
   soundCostCache.delete(grid);
 }
 
+/** The cost for sound to reach a tile; Infinity where it does not. */
+export function readSoundCost(costs: SoundCosts, grid: TileGrid, position: Position): number {
+  if (!isInsideGrid(grid, position)) return Infinity;
+  return costs.get(tileIndex(grid, position)) ?? Infinity;
+}
+
 function computeEnteringCost(world: PerceptionWorld, index: number): number {
   return world.muffledTiles.has(index)
     ? config.perception.closedDoorSoundCost
     : config.perception.openTileSoundCost;
 }
 
-function buildCacheKey(world: PerceptionWorld, sourceIndex: number, maxCost: number): string {
-  const doorSignature = [...world.muffledTiles].sort((first, second) => first - second);
-  return `${sourceIndex}|${maxCost}|${doorSignature.join(",")}`;
+/** How many steps sound can travel at most before its cost runs past `maxCost`. */
+function computeReachSteps(maxCost: number): number {
+  const cheapestStep = Math.min(
+    config.perception.openTileSoundCost,
+    config.perception.closedDoorSoundCost,
+  );
+  return cheapestStep > 0 ? Math.floor(maxCost / cheapestStep) : Infinity;
+}
+
+/** Only closed doors the sound could reach change the fill, so only those are in the key. */
+function buildCacheKey(world: PerceptionWorld, source: Position, maxCost: number): string {
+  const { width } = world.grid;
+  const reachSteps = computeReachSteps(maxCost);
+  const doorsInReach = [...world.muffledTiles]
+    .filter((index) => {
+      const distance =
+        Math.abs((index % width) - source.x) + Math.abs(Math.floor(index / width) - source.y);
+      return distance <= reachSteps;
+    })
+    .sort((first, second) => first - second);
+  return `${tileIndex(world.grid, source)}|${maxCost}|${doorsInReach.join(",")}`;
 }
 
 /**
  * Shortest sound path cost from the source over open tiles; walls block. Relaxation with a work
- * queue: the grid is small and costs are non-negative, so this settles quickly.
+ * queue over only the tiles within reach: costs are non-negative, so this settles quickly.
  */
-function fillSoundCosts(world: PerceptionWorld, source: Position, maxCost: number): number[] {
+function fillSoundCosts(world: PerceptionWorld, source: Position, maxCost: number): SoundCosts {
   const { grid } = world;
-  const costs = new Array<number>(grid.width * grid.height).fill(Infinity);
-  if (!isInsideGrid(grid, source)) return costs;
   const sourceIndex = tileIndex(grid, source);
-  costs[sourceIndex] = 0;
+  const costs = new Map<number, number>([[sourceIndex, 0]]);
   const pendingIndexes: number[] = [sourceIndex];
   for (let queuePosition = 0; queuePosition < pendingIndexes.length; queuePosition += 1) {
     const currentIndex = pendingIndexes[queuePosition] ?? sourceIndex;
+    const currentCost = costs.get(currentIndex) ?? Infinity;
     const current = { x: currentIndex % grid.width, y: Math.floor(currentIndex / grid.width) };
     for (const offset of NEIGHBOR_OFFSETS) {
       const neighbor = { x: current.x + offset.x, y: current.y + offset.y };
       if (!isInsideGrid(grid, neighbor)) continue;
       const neighborIndex = tileIndex(grid, neighbor);
       if (grid.isWall[neighborIndex] === true) continue;
-      const candidateCost =
-        (costs[currentIndex] ?? Infinity) + computeEnteringCost(world, neighborIndex);
-      if (candidateCost > maxCost || candidateCost >= (costs[neighborIndex] ?? Infinity)) continue;
-      costs[neighborIndex] = candidateCost;
+      const candidateCost = currentCost + computeEnteringCost(world, neighborIndex);
+      if (candidateCost > maxCost || candidateCost >= (costs.get(neighborIndex) ?? Infinity)) {
+        continue;
+      }
+      costs.set(neighborIndex, candidateCost);
       pendingIndexes.push(neighborIndex);
     }
   }
   return costs;
 }
 
-/** Sound path costs from a source tile, cached by source tile, muffled tiles and reach. Read-only. */
+/** Sound path costs from a source tile, cached by source tile, doors in reach and reach. Read-only. */
 export function computeSoundCosts(
   world: PerceptionWorld,
   source: Position,
   maxCost: number,
 ): SoundCosts {
-  const sourceIndex = isInsideGrid(world.grid, source) ? tileIndex(world.grid, source) : -1;
-  const cacheKey = buildCacheKey(world, sourceIndex, maxCost);
+  if (!isInsideGrid(world.grid, source)) return new Map();
+  const cacheKey = buildCacheKey(world, source, maxCost);
   let gridCache = soundCostCache.get(world.grid);
   if (gridCache === undefined) {
     gridCache = new Map();
@@ -76,7 +100,7 @@ export function computeSoundCosts(
   const cachedCosts = gridCache.get(cacheKey);
   if (cachedCosts !== undefined) return cachedCosts;
   if (gridCache.size >= config.perception.soundCacheMaxEntries) gridCache.clear();
-  const costs = Object.freeze(fillSoundCosts(world, source, maxCost));
+  const costs = fillSoundCosts(world, source, maxCost);
   gridCache.set(cacheKey, costs);
   return costs;
 }
@@ -99,9 +123,8 @@ export function computeSpeechReachTiles(
 ): number[] {
   const loudness = config.perception.speechLoudness[volume];
   const costs = computeSoundCosts(world, from, loudness);
-  const reachTiles: number[] = [];
-  costs.forEach((cost, index) => {
-    if (cost <= loudness) reachTiles.push(index);
-  });
-  return reachTiles;
+  return [...costs]
+    .filter(([, cost]) => cost <= loudness)
+    .map(([index]) => index)
+    .sort((first, second) => first - second);
 }

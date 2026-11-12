@@ -1,10 +1,15 @@
 import type { WorldEvent } from "@village/shared";
 import { config } from "../config";
-import { tileIndex } from "../world/types";
 import { describeDirection } from "./direction";
 import { isOwnNameMentioned } from "./interrupts";
 import { canSee } from "./sight";
-import { classifyHearing, computeMuffledReach, computeSoundCosts, type SoundCosts } from "./sound";
+import {
+  classifyHearing,
+  computeMuffledReach,
+  computeSoundCosts,
+  readSoundCost,
+  type SoundCosts,
+} from "./sound";
 import type { EventPerception, Hearing, PerceptionWorld, Perceiver } from "./types";
 
 function canSleeperHear(event: WorldEvent, perceiver: Perceiver): boolean {
@@ -22,7 +27,7 @@ function computeHearing(
 ): Hearing {
   if (event.loudness === null || soundCosts === null) return "none";
   if (perceiver.isAsleep && !canSleeperHear(event, perceiver)) return "none";
-  const pathCost = soundCosts[tileIndex(world.grid, perceiver.pos)] ?? Infinity;
+  const pathCost = readSoundCost(soundCosts, world.grid, perceiver.pos);
   return classifyHearing(pathCost, event.loudness);
 }
 

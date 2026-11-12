@@ -1,7 +1,6 @@
 import { config } from "../config";
-import { tileIndex } from "../world/types";
 import { canSee } from "./sight";
-import { computeSoundCosts } from "./sound";
+import { computeSoundCosts, readSoundCost } from "./sound";
 import type { ObviousListeners, PerceptionWorld, Perceiver } from "./types";
 
 /**
@@ -20,7 +19,7 @@ export function findObviousListeners(
   for (const other of others) {
     if (other.agentId === speaker.agentId || other.isAsleep) continue;
     if (!canSee(world, speaker.pos, other.pos, sightRangeTiles)) continue;
-    const pathCost = soundCosts[tileIndex(world.grid, other.pos)] ?? Infinity;
+    const pathCost = readSoundCost(soundCosts, world.grid, other.pos);
     if (pathCost > speechLoudness.normal) continue;
     wouldHearNormal.push(other.agentId);
     if (pathCost <= speechLoudness.whisper) wouldHearWhisper.push(other.agentId);

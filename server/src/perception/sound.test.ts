@@ -6,6 +6,7 @@ import {
   clearSoundCostCache,
   computeSoundCosts,
   computeSpeechReachTiles,
+  readSoundCost,
 } from "./sound";
 import { buildAsciiWorld, requireMarker } from "./test-grid";
 
@@ -27,25 +28,33 @@ describe("sound", () => {
       requireMarker(asciiWorld, "a"),
       normalLoudness,
     );
-    expect(costs[tileIndex(grid, requireMarker(asciiWorld, "c"))]).toBe(8);
-    expect(costs[tileIndex(grid, requireMarker(asciiWorld, "b"))]).toBe(Infinity);
+    expect(readSoundCost(costs, grid, requireMarker(asciiWorld, "c"))).toBe(8);
+    expect(readSoundCost(costs, grid, requireMarker(asciiWorld, "b"))).toBe(Infinity);
   });
 
   it("a closed door costs more to pass than an open tile", () => {
     const closed = buildAsciiWorld("#a..D..b#");
     const open = buildAsciiWorld("#a..O..b#");
-    const listenerIndex = tileIndex(closed.world.grid, requireMarker(closed, "b"));
+    const listener = requireMarker(closed, "b");
     const maxCost = normalLoudness * config.perception.muffledReachMultiplier;
-    expect(
-      computeSoundCosts(closed.world, requireMarker(closed, "a"), maxCost)[listenerIndex],
-    ).toBe(9);
-    expect(computeSoundCosts(open.world, requireMarker(open, "a"), maxCost)[listenerIndex]).toBe(6);
+    const closedCosts = computeSoundCosts(closed.world, requireMarker(closed, "a"), maxCost);
+    const openCosts = computeSoundCosts(open.world, requireMarker(open, "a"), maxCost);
+    expect(readSoundCost(closedCosts, closed.world.grid, listener)).toBe(9);
+    expect(readSoundCost(openCosts, open.world.grid, listener)).toBe(6);
   });
 
   it("stops spreading beyond the maximum cost", () => {
     const asciiWorld = buildAsciiWorld("#a.....b#");
     const costs = computeSoundCosts(asciiWorld.world, requireMarker(asciiWorld, "a"), 3);
-    expect(costs[tileIndex(asciiWorld.world.grid, requireMarker(asciiWorld, "b"))]).toBe(Infinity);
+    expect(readSoundCost(costs, asciiWorld.world.grid, requireMarker(asciiWorld, "b"))).toBe(
+      Infinity,
+    );
+  });
+
+  it("only visits the tiles a quiet sound can reach", () => {
+    const asciiWorld = buildAsciiWorld(`#a${".".repeat(40)}#`);
+    const costs = computeSoundCosts(asciiWorld.world, requireMarker(asciiWorld, "a"), 3);
+    expect(costs.size).toBe(4);
   });
 
   it("hears clearly within loudness and muffled within 1.5x", () => {
