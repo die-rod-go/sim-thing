@@ -141,7 +141,7 @@ export const config = {
         {
           below: 0.1,
           text: "exhausted",
-          urge: "you can barely keep your eyes open and need to sleep now",
+          urge: "you can barely keep your eyes open and need to find a bed to sleep",
           slowdown: 0.6,
           recallFailureChance: 0.35,
         },
