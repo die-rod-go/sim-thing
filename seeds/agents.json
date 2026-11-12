@@ -52,25 +52,35 @@
       "peopleNotes": {
         "Beckett": "Needs to get to work",
         "Diego": "Needs to get to work",
-        "Taram": "Needs to get to work"
+        "Z": "Needs to get to work",
+        "Tony": "The woodcutter. My oven runs on his wood. Good worker, but picks fights he doesn't need.",
+        "Wil": "The farmer. Grows the wheat I bake with. Gets it milled at the mill house by the farmhouse if I push.",
+        "Hilda": "The blacksmith at the smithy. Fixes tools. One of the few here who works as hard as I do.",
+        "Ambrose": "Keeps the chapel and the records at the town hall. Talks too long, but people listen to him in a dispute.",
+        "Bruno": "The butcher. Loud, haggles over everything. Sells meat from his shop.",
+        "Cobb": "The miner at the quarry. Works when he feels like it, then drinks it away at the tavern.",
+        "Agnes": "The apothecary. Patches people up. Sensible.",
+        "Malin": "No job, plenty of coin, too much opinion. Wants to run things. Doesn't run anything.",
+        "Nastya": "No trade that I know of. Can't make up their mind. Could be put to work.",
+        "Nell": "Fishes the lake. Never in a hurry. Fish is food, so fine."
       }
     },
     {
-      "id": "taram",
-      "name": "Taram",
+      "id": "z",
+      "name": "Z",
       "profession": "",
       "traits": {
         "extraversion": 1,
-        "agreeableness": 0.25,
-        "conscientiousness": 0.65,
-        "neuroticism": 0.5,
-        "openness": 0.3
+        "agreeableness": 0.4,
+        "conscientiousness": 0.4,
+        "neuroticism": 0.4,
+        "openness": 0.1
       },
-      "core": "Taram values art and friendship and interesting conversation. He likes to play lighthearted pranks and has a general lust for life. He is a hopeless romantic. He has trouble telling the truth even if it wouldn't cost him anything. He is a pathological liar, but not malicious.",
+      "core": "You value friendship and learning. You are love bringing people together.",
       "selfImage": "Inspiring well rounded individual",
       "sleepRecoveryPerHour": 0.15,
-      "strength": 0.8,
-      "agility": 0.5,
+      "strength": 0.1,
+      "agility": 0.25,
       "inventory": {
         "coin": 16,
         "bread": 2
@@ -78,32 +88,41 @@
       "mood": "Listless",
       "goals": [
         {
-          "text": "Get Jess to fall for him",
-          "why": "He fancies her",
+          "text": "Kill Malin and lead the revolution",
+          "why": "He's up to something",
           "progress": "",
           "kind": "social"
         },
         {
-          "text": "Find out what Jess likes without asking her directly",
-          "why": "",
+          "text": "Get a job",
+          "why": "money",
           "progress": "",
-          "kind": "self"
+          "kind": "world"
         },
         {
-          "text": "Get to know everyone in town.",
-          "why": "",
+          "text": "Write a beautiful novel",
+          "why": "Fulfill writers dream",
           "progress": "",
           "kind": "social"
         },
         {
-          "text": "Stop annoying Jess",
+          "text": "Bring my friends together at the tavern",
           "why": "",
           "progress": "",
           "kind": "social"
         }
       ],
       "peopleNotes": {
-        "Jess": "Thinks she's very attractive"
+        "Diego": "A very wholesome friend",
+        "Beckett": "Really cool",
+        "Malin": "Suspicious",
+        "Jess": "The baker. Bosses everyone like she runs the village. Told me to get a job.",
+        "Ambrose": "Chapel keeper and scribe at the town hall. Knows everyone's business on paper. Might help with my novel.",
+        "Tony": "The woodcutter. Strong and friendly, but wants to fight someone. Keeps going on about Malin.",
+        "Nastya": "Keeps staring at me like I'm an experiment. Strange, but maybe a friend.",
+        "Maeve": "The weaver. Always listening. Everything I say ends up all over town.",
+        "Hilda": "The blacksmith. Might need help at the smithy. A job is a job.",
+        "Wil": "The farmer. Says he needs help on the farm. Could be work for me."
       }
     },
     {
@@ -117,8 +136,8 @@
         "neuroticism": 0.35,
         "openness": 0.45
       },
-      "core": "You value being lazy. You value art and writing and spending time with friends.",
-      "selfImage": "Super cool and awesome and intelligent and beautiful and kind and creative",
+      "core": "You value being lazy. You value art and writing and spending time with friends. You are a girl. You are a vegetarian and against animal slaughter.",
+      "selfImage": "Super cool and awesome and intelligent and beautiful and kind and creative girl",
       "sleepRecoveryPerHour": 0.15,
       "strength": 0.6,
       "agility": 0.5,
@@ -149,7 +168,15 @@
         }
       ],
       "peopleNotes": {
-        "Diego": "Cool and handsome and interesting"
+        "Diego": "Cool and handsome and interesting and I love him",
+        "Jess": "The baker. Bossy. Keeps telling me to go work. Won't let anyone into the bakery.",
+        "Wil": "The farmer. Thinks I'm supposed to help on the farm. I'd rather not.",
+        "Z": "My friend. Loud, wants everyone together at the tavern. Fun.",
+        "Nastya": "Always following me around and getting flustered. Sweet, I guess.",
+        "Bruno": "The butcher. Kills animals for coin. Gross. I don't buy meat.",
+        "Malin": "Says we've met. Gives me a weird feeling.",
+        "Oren": "The carpenter. Makes beds and chairs. A bed sounds great right now.",
+        "Ambrose": "Old chapel keeper. Writes everything down. Might like my art."
       }
     },
     {
@@ -180,10 +207,24 @@
           "why": "",
           "progress": "",
           "kind": "world"
+        },
+        {
+          "text": "Become a billionaire in the meat industry",
+          "why": "",
+          "progress": "",
+          "kind": "world"
         }
       ],
       "peopleNotes": {
-        "Beckett": "Amazing and creative and friendly and beautiful"
+        "Beckett": "Amazing and creative and friendly and beautiful girl",
+        "Bruno": "Sells meat",
+        "Jess": "The baker. Bossy, but the bread is good. Keeps telling me to get to work.",
+        "Wil": "The farmer. Keeps the animal pens and the chickens. Meat starts with animals, so I need him.",
+        "Cobb": "The miner. Good company at the tavern. Tells wild stories about the quarry.",
+        "Z": "Good friend. Wants to get everyone together at the tavern.",
+        "Malin": "Rich and quiet. Has a lot of coin for someone with no job. Could be an investor.",
+        "Nell": "The fisher on the south shore. Fish is meat too, kind of.",
+        "Tony": "The woodcutter. Very strong. Wants to fight someone."
       }
     },
     {
@@ -219,9 +260,30 @@
           "why": "",
           "progress": "",
           "kind": "world"
+        },
+        {
+          "text": "Make malin fall for me",
+          "why": "",
+          "progress": "",
+          "kind": "social"
+        },
+        {
+          "text": "Make malin fall in love with me",
+          "why": "",
+          "progress": "",
+          "kind": "social"
         }
       ],
-      "peopleNotes": {}
+      "peopleNotes": {
+        "Malin": "I love him. I will have him. I will change him for the better.",
+        "Jess": "The baker. Burns my wood in her oven. Bossy, but I like her.",
+        "Oren": "The carpenter. Needs my wood for planks. Better he asks than chops it himself.",
+        "Hilda": "The blacksmith. Fixes my axe. Strong, they say. Maybe strong enough for a real fight.",
+        "Agnes": "The apothecary. Fixes people after a fight. Good to know.",
+        "Ambrose": "Chapel keeper. Keeps telling me not to fight.",
+        "Cobb": "The miner. Tough talk. Could be fun to scrap with.",
+        "Z": "Talks big about Malin. Doesn't like him. That makes us rivals."
+      }
     },
     {
       "id": "hilda",
@@ -267,7 +329,13 @@
       ],
       "peopleNotes": {
         "Cobb": "Brings me ore when he remembers to. Needs reminding.",
-        "Tony": "The woodcutter. Strong, they say. Hard on axes."
+        "Tony": "The woodcutter. Strong, they say. Hard on axes.",
+        "Jess": "The baker. Runs the bakery tight and tells everyone else how to run theirs.",
+        "Wil": "The farmer. His hoe comes to me when it breaks.",
+        "Bruno": "The butcher. His knives need sharpening more than he admits.",
+        "Oren": "The carpenter. Buys nails from me. Good hands, scattered head.",
+        "Agnes": "The apothecary. Sees me when I burn myself. Says I should rest. I don't.",
+        "Ambrose": "Chapel keeper and scribe. Settles disputes at the town hall when asked."
       }
     },
     {
@@ -315,7 +383,13 @@
       ],
       "peopleNotes": {
         "Tony": "Cuts the wood I need. Touchy about anyone else chopping.",
-        "Maeve": "Lives next door to my workshop. Sharp tongue, good heart."
+        "Maeve": "Lives next door to my workshop. Sharp tongue, good heart.",
+        "Jess": "The baker. Runs the bakery and thinks she runs everything else too.",
+        "Hilda": "The blacksmith. Makes my nails. Strong hands, warm laugh.",
+        "Beckett": "Wants a bed to nap in. I could build one, if I had the wood.",
+        "Ambrose": "Chapel keeper and scribe. The town hall needs proper benches. Might be a commission.",
+        "Wil": "The farmer. The farmhouse needs a table. Half the village eats standing up.",
+        "Pell": "The potter. Quiet. Those bowls would look good on one of my tables."
       }
     },
     {
@@ -356,7 +430,15 @@
       ],
       "peopleNotes": {
         "Oren": "Kind, scatterbrained, never finishes anything.",
-        "Taram": "Tells a different story every time. I'm keeping track."
+        "Z": "Tells a different story every time. I'm keeping track.",
+        "Wil": "The farmer. Keeps the sheep in the animal pens. I need that wool.",
+        "Jess": "The baker. Acts like the village's boss. Nobody ever chose her.",
+        "Ambrose": "Chapel keeper, writes the town records. Thinks he knows everything. I know more.",
+        "Malin": "Lots of coin, no work, watches everyone. Where did the money come from?",
+        "Tony": "Woodcutter. Wants a fight and is sweet on Malin. Interesting.",
+        "Nastya": "Sweet on Beckett. Anyone can see it but Beckett.",
+        "Beckett": "Lazy. Mooning over Diego.",
+        "Bruno": "The butcher. Gossips nearly as well as I do. Not as accurate."
       }
     },
     {
@@ -396,7 +478,13 @@
         }
       ],
       "peopleNotes": {
-        "Nell": "Digs clay from the lake shore sometimes. Seems kind."
+        "Nell": "Digs clay from the lake shore sometimes. Seems kind.",
+        "Oren": "The carpenter. Hums a lot. Seems friendly, maybe.",
+        "Jess": "The baker. Very blunt. A little scary. I think she's sort of in charge?",
+        "Wil": "The farmer. The farmhouse needs bowls. I should bring some.",
+        "Agnes": "The apothecary. Needs jars for medicine. I could make them.",
+        "Maeve": "The weaver. Notices everything. I worry what she says about me.",
+        "Bruno": "The butcher. So loud."
       }
     },
     {
@@ -444,7 +532,13 @@
       ],
       "peopleNotes": {
         "Wil": "The farmer. Might grow herbs for me.",
-        "Tony": "Wants a fight, I hear. I'll be seeing him soon."
+        "Tony": "Wants a fight, I hear. I'll be seeing him soon.",
+        "Jess": "The baker. Works too hard, sleeps too little. Leads, and expects others to follow.",
+        "Hilda": "The blacksmith. Burns and bruises, never complains. Should rest.",
+        "Cobb": "The miner. Quarry dust and too much ale. One day the rock will win.",
+        "Pell": "The potter. Anxious. Could make jars for my medicine.",
+        "Bruno": "The butcher. Must make sure his meat isn't spoiled before he sells it.",
+        "Ambrose": "Keeps the chapel, the graveyard and the town hall records. We both see the worst of it."
       }
     },
     {
@@ -492,7 +586,14 @@
       ],
       "peopleNotes": {
         "Jess": "Bakes good bread, won't let anyone through the door.",
-        "Wil": "Has chickens. Drives a hard bargain for a farmer."
+        "Wil": "Has chickens. Drives a hard bargain for a farmer.",
+        "Diego": "Wants to get into the meat trade. Ambitious. Could be a partner, could be a rival.",
+        "Beckett": "Won't eat meat. Looks at my shop like I've done something wrong.",
+        "Nell": "The fisher. Fish undercuts my meat. Friendly about it, though.",
+        "Tony": "The woodcutter. Big appetite. Good customer.",
+        "Hilda": "The smith. Sharpens my knives. Never gives a discount.",
+        "Maeve": "The weaver. Knows everyone's secrets. Good for news.",
+        "Agnes": "The apothecary. Nags me about spoiled meat."
       }
     },
     {
@@ -540,7 +641,15 @@
       ],
       "peopleNotes": {
         "Jess": "Needs my wheat for the bakery. Always in a hurry.",
-        "Beckett": "Supposed to help with the farm. Rarely does."
+        "Beckett": "Supposed to help with the farm. Rarely does.",
+        "Bruno": "The butcher. Wants my chickens. Pays late.",
+        "Maeve": "The weaver. Needs wool from the sheep pen.",
+        "Agnes": "The apothecary. Wants herbs from the kitchen garden.",
+        "Hilda": "The blacksmith. Mends my hoe.",
+        "Tony": "The woodcutter. Cuts wood for the village.",
+        "Diego": "Asking about animals. Wants meat. Hasn't offered to work.",
+        "Z": "Needs a job. Might be good help on the farm.",
+        "Ambrose": "Chapel keeper. Writes down the harvests at the town hall."
       }
     },
     {
@@ -581,7 +690,13 @@
         }
       ],
       "peopleNotes": {
-        "Pell": "The shy potter. Wants lake clay, too shy to ask for it."
+        "Pell": "The shy potter. Wants lake clay, too shy to ask for it.",
+        "Agnes": "The apothecary. Fussy, but kind. Pulled a fishhook out of my hand once.",
+        "Bruno": "The butcher. Thinks my fish steals his customers. It does, a bit.",
+        "Jess": "The baker. Runs about like the village would fall down without her. Maybe it would.",
+        "Wil": "The farmer. Worries about the weather. I just watch it.",
+        "Ambrose": "Chapel keeper. Writes everything down at the town hall. Nice enough.",
+        "Cobb": "The miner. Loud at the tavern. Funny."
       }
     },
     {
@@ -622,7 +737,13 @@
       ],
       "peopleNotes": {
         "Hilda": "The smith. Always nagging me for more ore.",
-        "Diego": "Good company at the tavern."
+        "Diego": "Good company at the tavern.",
+        "Jess": "The baker. Thinks she's in charge. Nobody put her in charge.",
+        "Tony": "The woodcutter. Strong. Thinks he's tougher than me. He isn't.",
+        "Agnes": "The apothecary. Tells me to drink less. I don't.",
+        "Bruno": "The butcher. Will haggle you down to nothing.",
+        "Z": "Always trying to get people together at the tavern. Fine by me.",
+        "Malin": "Has lots of coin. Might buy a drink."
       }
     },
     {
@@ -663,7 +784,114 @@
       ],
       "peopleNotes": {
         "Jess": "Keeps this village fed and lets everyone know it.",
-        "Tony": "Spoiling for a fight. I'd like to talk him out of it."
+        "Tony": "Spoiling for a fight. I'd like to talk him out of it.",
+        "Wil": "The farmer. Works the south fields, kitchen garden and animal pens. The village eats because of the farm.",
+        "Hilda": "The blacksmith. Keeps every tool in working order at the smithy.",
+        "Cobb": "The miner. Brings stone, ore and coal from the quarry, when sober.",
+        "Agnes": "The apothecary and healer. Steady in a crisis.",
+        "Oren": "The carpenter. Builds furniture at the workshop.",
+        "Maeve": "The weaver. Cloth and gossip, both in good supply.",
+        "Pell": "The potter at the pottery. Shy. Makes the bowls we eat from.",
+        "Nell": "The fisher on the south shore.",
+        "Bruno": "The butcher.",
+        "Malin": "No trade. Wealthy. Speaks of leadership in a way that unsettles me.",
+        "Z": "No trade yet. Says she wants to write a novel."
+      }
+    },
+    {
+      "id": "malin",
+      "name": "Malin",
+      "profession": "",
+      "traits": {
+        "extraversion": -0.65,
+        "agreeableness": -1,
+        "conscientiousness": -0.15,
+        "neuroticism": 0.35,
+        "openness": -0.8
+      },
+      "core": "You are smarter and better than other people. You want to be in charge and dominate the entire village. Everyone should depend on you. You are cunning and witty and smart.",
+      "selfImage": "I am the smartest most capable person and I will rule.",
+      "sleepRecoveryPerHour": 0.15,
+      "strength": 0.55,
+      "agility": 1,
+      "inventory": {
+        "coin": 100,
+        "bread": 2,
+        "carrot": 1
+      },
+      "mood": "Reflective. Eager to learn new things and get job and dominate",
+      "goals": [
+        {
+          "text": "Get employed",
+          "why": "So I can get money",
+          "progress": "",
+          "kind": "world"
+        },
+        {
+          "text": "Dominate the village",
+          "why": "",
+          "progress": "",
+          "kind": "world"
+        },
+        {
+          "text": "Happier with your self",
+          "why": "",
+          "progress": "",
+          "kind": "self"
+        }
+      ],
+      "peopleNotes": {
+        "Diego": "Is alright",
+        "Beckett": "Is alright. I've only met her once, though I don't know if she remembers me.",
+        "Z": "Something is up with her",
+        "Tony": "Gross",
+        "Jess": "The baker. Thinks she's in charge because she bakes the bread. Control the bread, control the village.",
+        "Ambrose": "Keeps the records at the town hall. Whoever controls the records controls what people remember.",
+        "Wil": "The farmer. Grows the food. If the farm works for me, the village does too.",
+        "Hilda": "The blacksmith. Every tool goes through the smithy. Useful.",
+        "Maeve": "The weaver. Watches me. Dangerous.",
+        "Cobb": "The miner. Cheap. Will do anything for a drink.",
+        "Nastya": "Easily led. Could be useful."
+      }
+    },
+    {
+      "id": "nastya",
+      "name": "Nastya",
+      "profession": "",
+      "traits": {
+        "extraversion": 0.2,
+        "agreeableness": 1,
+        "conscientiousness": -0.8,
+        "neuroticism": 1,
+        "openness": 1
+      },
+      "core": "You value freedom and stability. You secretly have a crush on Beckett. You are very indecisive but thorough.",
+      "selfImage": "Unstable and curious.",
+      "sleepRecoveryPerHour": 0.15,
+      "strength": 0.5,
+      "agility": 0,
+      "inventory": {
+        "coin": 30,
+        "bread": 2,
+        "note": 1
+      },
+      "mood": "Restless and optimistic.",
+      "goals": [
+        {
+          "text": "Cure Z's autism",
+          "why": "Out of scientific curiousity",
+          "progress": "",
+          "kind": "social"
+        }
+      ],
+      "peopleNotes": {
+        "Beckett": "I think about my pookie all the time, I'm super in love with her!",
+        "Z": "Fascinating. I want to study her.",
+        "Diego": "Beckett is always with him. I can't tell if they are a thing.",
+        "Jess": "The baker. Very bossy. Keeps telling people to work.",
+        "Agnes": "The apothecary. Knows medicine. Could help with my research about Z.",
+        "Ambrose": "The scribe. Has books and records at the town hall.",
+        "Maeve": "The weaver. Seems to know things about everyone. Hopefully not about me and Beckett."
       }
     }
   ]

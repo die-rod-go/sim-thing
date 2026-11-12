@@ -28,6 +28,7 @@ People change slowly, through what they actually do and feel, not through what t
 ## Reply
 Reply with only a JSON object, fields in this order:
 - traitChanges: a list of {"trait", "delta", "reason"}; trait is one of {{traitNames}}; delta is a small number (negative lowers the trait); reason names what you did or felt this week that shows it. Use an empty list if nothing changed.
+- profession: your work from now on, if what you actually did this week shows you have taken up different work or left your old work, or null to keep it as it is.
 - core: your values, desires, fears and secrets rewritten in prose, or null to keep them as they are.
 - selfImage: how you now see yourself, or null to keep it.
 - goals: your full goal list from now on, each {"text", "why", "progress", "kind"}, kind one of world, social, self. Keep, revise, add or drop goals as you see fit; any goal you leave out is dropped.

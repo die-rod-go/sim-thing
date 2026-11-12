@@ -29,7 +29,7 @@ export interface WeeklyPassInput {
 
 export interface WeeklyPassResult {
   agent: Agent;
-  /** One per changed trait, core or self-image; integration writes them to `personality_history`. */
+  /** One per changed trait, profession, core or self-image; integration writes them to `personality_history`. */
   changes: PersonalityChangeDraft[];
 }
 
@@ -86,7 +86,7 @@ function applyTraitChanges(
 }
 
 function proseChange(
-  field: "core" | "selfImage",
+  field: "profession" | "core" | "selfImage",
   oldValue: string,
   newValue: string | undefined,
 ): Omit<PersonalityChangeDraft, "agentId" | "tick"> | null {
@@ -95,8 +95,9 @@ function proseChange(
 }
 
 /**
- * The weekly pass: small, clamped trait changes, an optional new core and self-image, and the
- * revised goal list (old goals kept if the reply has none). The agent is unchanged on failure.
+ * The weekly pass: small, clamped trait changes, an optional new profession, core and self-image,
+ * and the revised goal list (old goals kept if the reply has none). The agent is unchanged on
+ * failure.
  */
 export async function runWeeklyPass(input: WeeklyPassInput): Promise<WeeklyPassResult> {
   return applyWeeklyReply(input.agent, input.tick, await requestWeeklyReply(input));
@@ -131,6 +132,7 @@ export function applyWeeklyReply(
     reason: change.reason,
   }));
   const proseChanges = [
+    proseChange("profession", agent.profession, reply.profession),
     proseChange("core", personality.core, reply.core),
     proseChange("selfImage", personality.selfImage, reply.selfImage),
   ].filter((change) => change !== null);
@@ -141,6 +143,7 @@ export function applyWeeklyReply(
   }));
   const updatedAgent: Agent = {
     ...agent,
+    profession: reply.profession ?? agent.profession,
     personality: {
       traits: traitResult.traits,
       core: reply.core ?? personality.core,

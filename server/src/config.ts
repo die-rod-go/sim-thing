@@ -455,7 +455,7 @@ export const config = {
     conversationSummary: {
       endAfterQuietTicks: 15,
       maxLinesPerSummary: 30,
-      maxChars: 320,
+      maxChars: 500,
       retryAfterTicks: 30,
     },
   },

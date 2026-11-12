@@ -26,6 +26,7 @@ const FIELD_LABELS: Record<PersonalityChange["field"], string> = {
   openness: "openness",
   core: "sense of who they are",
   selfImage: "self-image",
+  profession: "work",
 };
 
 function draftMoment(
@@ -39,6 +40,7 @@ function draftMoment(
 
 function describePersonalityChange(change: Omit<PersonalityChange, "id">): string {
   const label = FIELD_LABELS[change.field];
+  if (change.field === "profession") return `took up new work: ${change.newValue}`;
   if (change.field === "core" || change.field === "selfImage") return `rethought their ${label}`;
   const direction = Number(change.newValue) > Number(change.oldValue) ? "rose" : "fell";
   return `${label} ${direction} from ${change.oldValue} to ${change.newValue}`;

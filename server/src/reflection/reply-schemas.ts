@@ -103,6 +103,7 @@ export function buildNightReplySchema(): ReplySchemas<NightReply> {
 
 export interface WeeklyReply {
   traitChanges: { trait: TraitName; delta: number; reason: string }[];
+  profession?: string;
   core?: string;
   selfImage?: string;
   goals: { text: string; why: string; progress: string; kind: GoalKind }[];
@@ -114,6 +115,7 @@ export function buildWeeklyReplySchema(): ReplySchemas<WeeklyReply> {
       .array(z.object({ trait: looseEnum(TRAIT_ENUM), delta: z.number(), reason: requiredText() }))
       .optional()
       .transform((changes) => changes ?? []),
+    profession: requiredText().optional(),
     core: requiredText().optional(),
     selfImage: requiredText().optional(),
     goals: z
@@ -138,6 +140,7 @@ export function buildWeeklyReplySchema(): ReplySchemas<WeeklyReply> {
           reason: { type: "string" },
         }),
       ),
+      profession: nullableJsonString(),
       core: nullableJsonString(),
       selfImage: nullableJsonString(),
       goals: jsonArray(

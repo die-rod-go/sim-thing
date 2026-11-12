@@ -186,6 +186,7 @@ export function createReflectionHook(dependencies: ReflectionPassDependencies): 
         const weekly = applyWeeklyReply(current, startTick, reply);
         replaceAgent(state, {
           ...current,
+          profession: weekly.agent.profession,
           personality: weekly.agent.personality,
           goals: weekly.agent.goals,
         });

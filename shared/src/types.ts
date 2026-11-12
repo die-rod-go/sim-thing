@@ -234,7 +234,7 @@ export interface PersonalityChange {
   id: number;
   agentId: string;
   tick: number;
-  field: TraitName | "core" | "selfImage";
+  field: TraitName | "core" | "selfImage" | "profession";
   oldValue: string;
   newValue: string;
   reason: string;

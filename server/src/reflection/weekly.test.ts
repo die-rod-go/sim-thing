@@ -110,6 +110,21 @@ describe("runWeeklyPass", () => {
     expect(result.agent.personality.selfImage).toBe("a friendlier baker");
   });
 
+  it("changes the profession and logs it when the reply gives a new one", async () => {
+    const { result } = await runWeekly(weeklyReply({ profession: "farmhand at the south fields" }));
+    expect(result.agent.profession).toBe("farmhand at the south fields");
+    expect(result.changes).toEqual([
+      expect.objectContaining({ field: "profession", newValue: "farmhand at the south fields" }),
+    ]);
+  });
+
+  it("keeps the profession when the reply gives none", async () => {
+    const agent = makeAgent({ goals: OLD_GOALS });
+    const { result } = await runWeekly(weeklyReply(), agent);
+    expect(result.agent.profession).toBe(agent.profession);
+    expect(result.changes).toEqual([]);
+  });
+
   it("keeps the old goals when the reply has none", async () => {
     const { result } = await runWeekly(weeklyReply({ goals: [] }));
     expect(result.agent.goals).toEqual(OLD_GOALS);

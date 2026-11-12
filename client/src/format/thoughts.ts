@@ -117,7 +117,12 @@ function summarizeWeekly(fields: ReplyFields): Pick<ThoughtEntry, "headline" | "
   );
   return {
     headline: readText(fields, "selfImage") ?? readText(fields, "core"),
-    parts: [...part("core", readText(fields, "core")), ...traitChanges, ...goals],
+    parts: [
+      ...part("work", readText(fields, "profession")),
+      ...part("core", readText(fields, "core")),
+      ...traitChanges,
+      ...goals,
+    ],
   };
 }
 
