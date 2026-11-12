@@ -7,7 +7,7 @@ import { setUpRules } from "../rule-test-kit";
 import { sendStimulus } from "../rule-engine";
 import type { TestSim } from "../test-sim";
 import type { TickContext } from "../tick-context";
-import { applyStep, findStepRefusal } from "./step-registry";
+import { applyStep, findStepListRefusal } from "./step-registry";
 import { refreshSnapshots } from "./step-roles";
 import type { StepRun } from "./step-run";
 
@@ -101,10 +101,8 @@ export function runSteps(
   });
   const parsed = parseSteps(steps);
   const result: StepsResult = { context, run, failure: null, made: null, pauseCount: 0 };
-  for (const step of parsed) {
-    result.failure = findStepRefusal(run, step);
-    if (result.failure !== null) return result;
-  }
+  result.failure = findStepListRefusal(run, parsed);
+  if (result.failure !== null) return result;
   for (const step of parsed) {
     const outcome = applyStep(run, step);
     if (outcome.kind === "refused") {

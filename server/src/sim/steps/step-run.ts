@@ -17,6 +17,8 @@ export interface StepRun {
   depth: number;
   /** A verb done in passing (a walker clearing its way): every `wait` takes no time. */
   isInPassing: boolean;
+  /** While a verb's steps are checked up front: what earlier `use_up` steps will have taken. */
+  setAsideIds?: ReadonlySet<string>;
 }
 
 export type StepOutcome =
@@ -30,6 +32,8 @@ export interface StepHandler<Type extends StepType> {
   isVerbOnly: boolean;
   /** Why it can't run now, or null. Must not change anything. */
   findRefusal?(run: StepRun, step: StepOfType<Type>): string | null;
+  /** The entity ids it would destroy, so later steps are checked as if they were gone. Changes nothing. */
+  listTakenIds?(run: StepRun, step: StepOfType<Type>): string[];
   run(run: StepRun, step: StepOfType<Type>): StepOutcome;
 }
 

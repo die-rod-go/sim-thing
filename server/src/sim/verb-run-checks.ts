@@ -2,17 +2,13 @@ import { matchesThing, type Verb } from "@village/shared";
 import { findEntityIfPresent } from "../items/entity-store";
 import { resolveNumber, scopeOf } from "../items/values";
 import type { VerbRun } from "./agent-runtime";
-import { findStepRefusal } from "./steps/step-registry";
+import { findStepListRefusal } from "./steps/step-registry";
 import type { StepRun } from "./steps/step-run";
 import { isThingInReach, isThingInSight, viewThingFrom } from "./thing-where";
 
 /** The first reason any step from `fromIndex` on can't run now, or null. Changes nothing. */
 export function findStepsRefusal(run: StepRun, verb: Verb, fromIndex: number): string | null {
-  for (const step of verb.steps.slice(fromIndex)) {
-    const refusal = findStepRefusal(run, step);
-    if (refusal !== null) return refusal;
-  }
-  return null;
+  return findStepListRefusal(run, verb.steps.slice(fromIndex));
 }
 
 function holderOf(entityId: string, run: StepRun): string | null | undefined {

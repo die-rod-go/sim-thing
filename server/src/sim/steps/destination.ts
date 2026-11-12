@@ -97,7 +97,9 @@ export function findPlacementRefusal(
   if (isSelfNesting) return `the ${name} can't go inside itself`;
   if (settings.limit === undefined) return null;
   const movedIds = new Set(moved.map((entity) => entity.id));
-  const present = listContents(state, holderId).filter((entity) => !movedIds.has(entity.id));
+  const present = listContents(state, holderId).filter(
+    (entity) => !movedIds.has(entity.id) && !run.setAsideIds?.has(entity.id),
+  );
   const room = Math.floor(resolveNumber(scope, settings.limit)) - present.length;
   if (room <= 0) return `the ${name} was full`;
   return incomingCount > room ? `the ${name} only had room for ${room} more` : null;

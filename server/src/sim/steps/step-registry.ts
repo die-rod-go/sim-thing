@@ -78,6 +78,27 @@ export function findStepRefusal(run: StepRun, step: Step): string | null {
   return findHandler(step).findRefusal?.(run, step as StepOfType<StepType>) ?? null;
 }
 
+/** What the step will surely destroy; one left to `chance` might not, so it sets nothing aside. */
+function listSurelyTakenIds(run: StepRun, step: Step): string[] {
+  if (step.chance !== undefined && step.step !== "roll_hit") return [];
+  return findHandler(step).listTakenIds?.(run, step as StepOfType<StepType>) ?? [];
+}
+
+/**
+ * The first reason any of the steps can't run now, or null. Each is judged as if the steps before
+ * it had run: what an earlier `use_up` takes no longer counts (flour used up frees oven space).
+ */
+export function findStepListRefusal(run: StepRun, steps: readonly Step[]): string | null {
+  const setAsideIds = new Set<string>();
+  const checkRun: StepRun = { ...run, setAsideIds };
+  for (const step of steps) {
+    const refusal = findStepRefusal(checkRun, step);
+    if (refusal !== null) return refusal;
+    for (const entityId of listSurelyTakenIds(checkRun, step)) setAsideIds.add(entityId);
+  }
+  return null;
+}
+
 function applyOnce(run: StepRun, step: Step): StepOutcome {
   const chance = step.step === "roll_hit" ? undefined : step.chance;
   if (chance !== undefined && run.context.state.random.next() >= chance) return DONE;

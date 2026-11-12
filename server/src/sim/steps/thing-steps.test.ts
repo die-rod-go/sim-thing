@@ -122,6 +122,32 @@ describe("create", () => {
     ]);
   });
 
+  it("counts the room that an earlier use_up frees in the same container", () => {
+    const sim = withSmallBox();
+    const box = handOver(sim, "mara", "small_box");
+    createEntity(sim.state, "wheat", locateInside(box.id));
+    createEntity(sim.state, "wheat", locateInside(box.id));
+    const result = runSteps(
+      sim,
+      [
+        { step: "use_up", in: "target", rule: { definition: "wheat" }, count: 2 },
+        {
+          step: "create",
+          item: "bread",
+          count: 2,
+          into: "target",
+          limit: { from: "target.capacity.max" },
+        },
+      ],
+      { target: refOf(box.id), targetName: "small box" },
+    );
+    expect(result.failure).toBeNull();
+    expect(listContents(sim.state, box.id).map((entity) => entity.definitionId)).toEqual([
+      "bread",
+      "bread",
+    ]);
+  });
+
   it("makes things on the tile of a thing, with the definition read from a field", () => {
     const sim = setUpSteps();
     const jar = placeThing(sim, "jar", OPEN_GROUND);

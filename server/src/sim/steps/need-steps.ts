@@ -25,6 +25,7 @@ function listMatching(run: StepRun, holder: ThingRef, rule: Matcher): Entity[] {
   const itemIds = run.verbRun?.itemIds ?? [];
   return listContents(state, toHolderId(holder))
     .filter((entity) => !itemIds.includes(entity.id))
+    .filter((entity) => !run.setAsideIds?.has(entity.id))
     .filter((entity) => {
       const view = viewThing(state, { kind: "entity", entityId: entity.id });
       return view !== null && matchesThing(rule, view);
@@ -100,6 +101,7 @@ export const requireStep: StepHandler<"require"> = {
 export const useUpStep: StepHandler<"use_up"> = {
   isVerbOnly: true,
   findRefusal: (run, step) => pick(run, step, false).refusal,
+  listTakenIds: (run, step) => pick(run, step, false).found.map((entity) => entity.id),
   run(run, step) {
     const { found, refusal } = pick(run, step, true);
     if (refusal !== null) return { kind: "refused", reason: refusal };

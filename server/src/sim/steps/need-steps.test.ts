@@ -43,6 +43,15 @@ describe("require and use_up", () => {
     expect(findEntityIfPresent(sim.state, wheat.id)).toBeDefined();
   });
 
+  it("refuses up front when two use_up steps would need the same things", () => {
+    const sim = setUpSteps();
+    const wheat = handOver(sim, "mara", "wheat");
+    handOver(sim, "mara", "wheat");
+    const result = runSteps(sim, [...NEEDS_TWO_WHEAT, ...NEEDS_TWO_WHEAT]);
+    expect(result.failure).toBe("I don't have any wheat: I need 2 wheat");
+    expect(findEntityIfPresent(sim.state, wheat.id)).toBeDefined();
+  });
+
   it("never counts the item the verb is used with", () => {
     const sim = setUpSteps();
     const bread = handOver(sim, "mara", "bread");
