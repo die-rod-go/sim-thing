@@ -6,7 +6,7 @@ import {
   type Agent,
   type Entity,
   type ItemCatalog,
-  type Memory,
+  type Dossier,
   type Needs,
   type Position,
   type SeedAgent,
@@ -15,6 +15,7 @@ import {
   type SeedRules,
 } from "@village/shared";
 import { config } from "./config";
+import { resolveName } from "./decision/resolve-name";
 import { createEntity, locateInside, type EntityWorld } from "./items/entity-store";
 import { findPlaceAt } from "./world/map-loader";
 import { findNearestFreeTile } from "./world/pathfinding";
@@ -22,7 +23,6 @@ import { tileIndex, type WorldMap } from "./world/types";
 
 export interface SeededWorld {
   agents: Agent[];
-  memories: Memory[];
   /** The map's placed objects, then every seed inventory, numbered from 1 in that order. */
   entities: Entity[];
   nextEntityId: number;
@@ -96,7 +96,12 @@ function findStartTile(seed: SeedAgent, map: WorldMap, takenIndexes: Set<number>
   return { ...tile };
 }
 
-function buildAgent(seed: SeedAgent, map: WorldMap, pos: Position): Agent {
+function buildAgent(
+  seed: SeedAgent,
+  map: WorldMap,
+  pos: Position,
+  dossiers: Record<string, Dossier>,
+): Agent {
   return {
     id: seed.id,
     name: seed.name.trim(),
@@ -124,23 +129,24 @@ function buildAgent(seed: SeedAgent, map: WorldMap, pos: Position): Agent {
     currentAction: null,
     workingMemory: [],
     awareness: {},
+    dossiers,
     lastThought: null,
   };
 }
 
-function buildPeopleMemories(seed: SeedAgent): Memory[] {
-  return Object.entries(seed.peopleNotes)
-    .filter(([, note]) => note.trim() !== "")
-    .map(([personName, note], index) => ({
-      id: `${seed.id}-seed-people-${index + 1}`,
-      agentId: seed.id,
-      bucket: "people",
-      tick: 0,
-      text: `${personName}: ${note}`.slice(0, config.memory.maxMemoryChars),
-      tags: [personName.toLowerCase()],
-      strength: config.memory.newMemoryStrength,
-      lastRecalledTick: null,
-    }));
+/** Each seed note becomes the agent's dossier on that person; a blank note makes none. */
+function buildDossiers(seed: SeedAgent, seedFile: SeedFile): Record<string, Dossier> {
+  const dossiers: Record<string, Dossier> = {};
+  for (const [personName, note] of Object.entries(seed.peopleNotes)) {
+    if (note.trim() === "") continue;
+    const personId = resolveName(personName, seedFile.agents);
+    if (personId === null) {
+      throw new Error(`${seed.name}'s peopleNotes name "${personName}", who is not in the village`);
+    }
+    if (personId === seed.id) continue;
+    dossiers[personId] = { text: note.trim(), updatedTick: 0 };
+  }
+  return dossiers;
 }
 
 function seedEntities(seedFile: SeedFile, map: WorldMap, world: EntityWorld): void {
@@ -158,7 +164,7 @@ function seedEntities(seedFile: SeedFile, map: WorldMap, world: EntityWorld): vo
 }
 
 /**
- * Builds the starting agents, their seeded people memories, and the entities: the map's objects
+ * Builds the starting agents, with their seeded dossiers, and the entities: the map's objects
  * and everyone's starting inventory. Throws on any seed error.
  */
 export function buildSeededWorld(
@@ -175,13 +181,12 @@ export function buildSeededWorld(
   }
   const takenIndexes = new Set<number>();
   const agents = seedFile.agents.map((seed) =>
-    buildAgent(seed, map, findStartTile(seed, map, takenIndexes)),
+    buildAgent(seed, map, findStartTile(seed, map, takenIndexes), buildDossiers(seed, seedFile)),
   );
   const world: EntityWorld = { agents, entities: [], nextEntityId: 1, items };
   seedEntities(seedFile, map, world);
   return {
     agents,
-    memories: seedFile.agents.flatMap(buildPeopleMemories),
     entities: world.entities,
     nextEntityId: world.nextEntityId,
   };

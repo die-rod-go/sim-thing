@@ -218,7 +218,7 @@ export function PeopleNotesEditor({
       >
         <TextInput
           value={newPersonName}
-          placeholder="Someone not in the village, e.g. an old employer"
+          placeholder="Name of someone in the village"
           onChange={setNewPersonName}
         />
         <button type="submit" disabled={newPersonName.trim() === ""}>

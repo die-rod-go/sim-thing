@@ -69,6 +69,12 @@ export interface ConversationLine {
   minutesAgo: number;
 }
 
+/** One entry of "People on your mind": a person's name and what the agent holds about them. */
+export interface PersonOnMind {
+  name: string;
+  text: string;
+}
+
 export interface RecalledMemory {
   text: string;
   minutesAgo: number;
@@ -102,6 +108,7 @@ export interface DecisionContext {
   /** What is here: placed objects and ground items. */
   nearbyEntities: PromptEntityGroup[];
   aroundYou: AroundYou;
+  peopleOnMind: PersonOnMind[];
   belongings: PromptEntityGroup[];
   /** Verbs that need no item (`punch`), listed after belongings. */
   itemlessVerbs: string[];

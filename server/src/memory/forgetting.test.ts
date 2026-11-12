@@ -1,5 +1,6 @@
 import type { Memory } from "@village/shared";
 import { describe, expect, it } from "vitest";
+import { config } from "../config";
 import { applyForgetting, fadeStrength } from "./forgetting";
 import { MemoryStore } from "./memory-store";
 
@@ -34,15 +35,15 @@ describe("applyForgetting", () => {
     expect(store.get("d1")?.strength).toBeCloseTo(0.5);
   });
 
-  it("fades people memories more slowly than seen ones", () => {
+  it("fades place memories more slowly than seen ones", () => {
     const store = new MemoryStore();
     store.addAll([
       makeMemory({ id: "s1", bucket: "seen" }),
-      makeMemory({ id: "p1", bucket: "people" }),
+      makeMemory({ id: "p1", bucket: "places" }),
     ]);
     applyForgetting(store, TICKS_PER_DAY, MINUTES_PER_TICK);
     expect(store.get("s1")?.strength).toBeCloseTo(0.25);
-    expect(store.get("p1")?.strength).toBeCloseTo(0.5 ** (24 / 168));
+    expect(store.get("p1")?.strength).toBeCloseTo(0.5 ** (24 / config.memory.halfLifeHours.places));
   });
 
   it("deletes memories below 0.05", () => {

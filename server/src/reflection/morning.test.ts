@@ -84,7 +84,7 @@ describe("failed reflection calls", () => {
       callStructured: night.callStructured,
       tick: 100,
       knownNames: [],
-      otherAgentNames: [],
+      otherAgents: [],
     });
     expect(nightResult).toMatchObject({ agent, addedMemories: [], succeeded: false });
     expect(store.size).toBe(1);

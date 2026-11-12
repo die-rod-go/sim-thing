@@ -154,15 +154,15 @@ function findPeopleNoteProblems(
   agentIndex: number,
   knownNames: ReadonlySet<string>,
 ): SeedProblem[] {
-  return Object.keys(agent.peopleNotes).flatMap((personName): SeedProblem[] => {
+  return Object.entries(agent.peopleNotes).flatMap(([personName, note]): SeedProblem[] => {
     const field = `peopleNotes.${personName}`;
     if (personName.toLowerCase() === agent.name.toLowerCase()) {
       return [{ severity: "warning", agentIndex, field, message: "A note about themself." }];
     }
-    if (knownNames.has(personName.toLowerCase())) return [];
+    if (knownNames.has(personName.toLowerCase()) || note.trim() === "") return [];
     return [
       {
-        severity: "warning",
+        severity: "error",
         agentIndex,
         field,
         message: `Note about "${personName}", who is not in the village.`,

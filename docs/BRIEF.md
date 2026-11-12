@@ -160,7 +160,7 @@ interface Agent {
 - **Traits** reach the prompt as words too ("quite introverted, very conscientious").
 - **Mood** is text the agent updates through its action output.
 - **Goals** are generated from personality at creation and revised at weekly reflection. Goals of `kind: 'self'` (e.g. become more outgoing) are allowed; they change nothing directly.
-- Seed the 6 agents from a `seeds/agents.json` file with hand-written personas, private goals and secrets that conflict with each other, and a few starting people notes about each other (it's a village, so they aren't strangers). Every agent starts knowing all place names. The implementing agent drafts the six personas; they live in the seed file for the user to edit.
+- Seed the 6 agents from a `seeds/agents.json` file with hand-written personas, private goals and secrets that conflict with each other, and a few starting notes about each other, which become each agent's starting dossiers (it's a village, so they aren't strangers). Every agent starts knowing all place names. The implementing agent drafts the six personas; they live in the seed file for the user to edit.
 
 ## Memory
 
@@ -176,7 +176,7 @@ interface Memory {
   tags: string[]; // people, objects, places involved
   strength: number; // 0..1
 }
-type Bucket = "seen" | "conversations" | "overheard" | "did" | "people" | "places" | "reflections";
+type Bucket = "seen" | "conversations" | "overheard" | "did" | "places" | "reflections";
 ```
 
 | Bucket          | Filled by                                                                           |
@@ -185,13 +185,12 @@ type Bucket = "seen" | "conversations" | "overheard" | "did" | "people" | "place
 | `conversations` | Speech the agent said, or heard while taking part; replaced by a summary at its end |
 | `overheard`     | Speech heard while not taking part, and muffled speech                              |
 | `seen`          | Other agents' actions in sight, and non-speech sounds heard                         |
-| `people`        | The agent's own `note` field about a person, plus nightly rewrites of those notes   |
 | `places`        | First visit to a place, objects found there                                         |
 | `reflections`   | Daily and weekly reflection output                                                  |
 
 **Writing.** One `broadcast(event)` function files each world event: the actor gets a `did` memory (so does the recipient of a give); each perceiver gets `conversations`, `overheard` or `seen`. Tags come from the event (actor, target, place) plus any known agent, object or place name found in speech text by string match. An agent is taking part if it has spoken within earshot of the speaker in the last 10 ticks. File an action once when it starts and once with its result, never per tick of walking, and skip a memory if the same actor did the same thing within the agent's last 30 ticks. Keep each memory to one sentence (200 characters or less).
 
-**Recall.** Build a cue from the current place, the agents in the "Around you" section, nearby objects, the current action's target, and known names (agents, objects, places, by string match) found in the current conversation, the agent's intention, daily plan and goals. The same text (plus the decision reason and the last few conversation lines) also feeds a lexical similarity term. The intention matters because it points at what the agent is about to deal with, even before it arrives ("buy bread from Mara" pulls up memories about Mara and the bakery on the walk there). Score each memory, then take the top k per bucket (defaults: people 3, conversations 3, seen 3, overheard 2, did 3, places 1, reflections 3), keeping the 10 best overall:
+**Recall.** Build a cue from the current place, the agents in the "Around you" section, nearby objects, the current action's target, and known names (agents, objects, places, by string match) found in the current conversation, the agent's intention, daily plan and goals. The same text (plus the decision reason and the last few conversation lines) also feeds a lexical similarity term. The intention matters because it points at what the agent is about to deal with, even before it arrives ("buy bread from Mara" pulls up memories about Mara and the bakery on the walk there). Score each memory, then take the top k per bucket (defaults: conversations 3, seen 3, overheard 2, did 3, places 1, reflections 3), keeping the 10 best overall:
 
 ```ts
 score =
@@ -223,16 +222,18 @@ Every decision prompt renders it as an "Around you" section, for any purpose, no
 
 Entries older than 60 sim-minutes drop out of the prompt but stay in the record; a recall that names an agent also returns where it was last perceived. From this, the agent infers whether someone out of view might still be listening, where someone went, or who might have witnessed something.
 
-**Forgetting.** Memories fade unless they're used. Each memory's strength halves over its bucket's half-life (in sim-time), and each recall bumps it back up, as above. Memories the agent keeps recalling persist; the rest fade away. Delete any memory below strength 0.05. If a bucket still exceeds its cap (default 60), delete its weakest memories until it fits. Example: a did memory (1-day half-life) that is never recalled falls to 0.5 after a day, 0.25 after two, and is deleted after about 4 days. If it keeps coming up, for instance because the person it involves is often around, each recall pushes it back up and it can last indefinitely. Anything an agent wants to keep for sure, such as a debt or a promise, it can note into people, which fades over weeks.
+**Dossiers.** Each agent keeps one rewritable text per person it knows (`Agent.dossiers`, keyed by the other agent's id, at most 400 characters), seeded from the seed file's people notes. Code only stores and shows them; the LLM writes them, always after the fact: conversation summaries (which see what actually happened) and the night pass each return replacement entries for the people whose entry should change. The decision prompt's "People on your mind" lists up to five: agents in sight, then speakers in the current conversation, then people named in the intention, plan, goals or conversation; someone in sight or in the conversation with no dossier gets a placeholder line.
 
-| Bucket                  | Default half-life |
-| ----------------------- | ----------------- |
-| `seen`, `overheard`     | 12 sim-hours      |
-| `conversations`, `did`  | 1 sim-day         |
-| `places`                | 3 sim-days        |
-| `people`, `reflections` | 7 sim-days        |
+**Forgetting.** Memories fade unless they're used. Each memory's strength halves over its bucket's half-life (in sim-time), and each recall bumps it back up, as above. Memories the agent keeps recalling persist; the rest fade away. Delete any memory below strength 0.05. If a bucket still exceeds its cap (default 60), delete its weakest memories until it fits. Example: a did memory (1-day half-life) that is never recalled falls to 0.5 after a day, 0.25 after two, and is deleted after about 4 days. If it keeps coming up, for instance because the person it involves is often around, each recall pushes it back up and it can last indefinitely. Anything an agent wants to keep for sure about a person, such as a debt or a promise, goes into its dossier on them, which does not fade.
 
-**Conversation summaries.** Remembered lines alone don't tell an agent what a conversation settled, so agents repeat themselves. When an agent's conversation ends (no remembered line for 15 ticks, or 30 lines piled up), one LLM call shows it the lines as it heard them, plus what it overheard during and just before (a line addressed to an agent before it has spoken is filed as overheard), and it writes one first-person summary of what it will remember: who, what about, and anything asked, agreed, promised or left open. The summary goes into `conversations`, tagged with every tag the lines had, and the lines are deleted; overheard memories are left as they are. If the call fails, the lines stay and the agent tries again 30 ticks later. Summaries are logged to `llm_calls` like any other call.
+| Bucket                 | Default half-life |
+| ---------------------- | ----------------- |
+| `seen`, `overheard`    | 12 sim-hours      |
+| `conversations`, `did` | 1 sim-day         |
+| `places`               | 3 sim-days        |
+| `reflections`          | 7 sim-days        |
+
+**Conversation summaries.** Remembered lines alone don't tell an agent what a conversation settled, so agents repeat themselves. When an agent's conversation ends (no remembered line for 15 ticks, or 30 lines piled up), one LLM call shows it the lines as it heard them, plus what it overheard during and just before (a line addressed to an agent before it has spoken is filed as overheard), and it writes one first-person summary of what it will remember: who, what about, and anything asked, agreed, promised or left open. It is also shown what the agent itself did and saw while the conversation went on (so a failed handover is recorded as failed) and its current dossier on each other speaker, and may rewrite those dossiers. The summary goes into `conversations`, tagged with every tag the lines had, and the lines are deleted; overheard memories are left as they are. If the call fails, the lines stay and the agent tries again 30 ticks later. Summaries are logged to `llm_calls` like any other call.
 
 ## Decision loop and actions
 
@@ -272,7 +273,6 @@ interface DecisionReply {
   amount?: number; // for give
   query?: string; // for recall
   minutes?: number; // for wait (a maximum; interrupts still wake the agent) or for a nap
-  note?: { person: string; text: string }; // written into the people bucket
   mood?: string; // new mood text, only if it changed
 }
 ```
@@ -283,7 +283,7 @@ Why it looks like this:
 - **Thought, then intention, then the act.** Fields are generated in order, so the model reasons before it commits. Keep `thought` short; it is for choice quality and the prompt viewer, not for storage.
 - **Intention is the agent's thread.** Without it, an agent that walks to the bakery to buy bread arrives with no idea why. The next prompt opens with it ("You were: going to buy bread from Mara, offering 2 coins"), and the agent rewrites it whenever it changes its mind. It bridges the daily plan and single actions.
 - **Speech rides along with any action.** `say` is not an action, so an agent can talk while walking, working or handing over coins. Pure conversation is `say` plus `wait`. Speech happens on the action's first tick and costs no extra call.
-- **Free mental acts.** `note` and `mood` happen alongside the action at no cost.
+- **Free mental acts.** `mood` happens alongside the action at no cost.
 - **Recall asks again.** `recall` runs the search, puts results in working memory, and immediately asks for a new decision in the same tick; at most one recall per decision, so it can't loop.
 - **Impossible acts fail in the world, not the parser.** A well-formed reply that can't be carried out (Bob walked out of reach, no wheat left) isn't retried. The failure is filed in `did` and working memory ("I tried to hand Bob the bread but he'd walked off"), and the agent decides again next tick, learning from it like anything else.
 - **Names, not ids.** Agents use display names; the server maps them case-insensitively to ids.
@@ -334,7 +334,7 @@ Three scheduled LLM passes per agent turn experience into plans, opinions and sl
 
 1. Write a short summary of the day plus a one-line mood entry (both stored in `reflections`).
 2. Produce 1–3 insights from the day's memories, stored as high-strength `reflections` memories.
-3. Optionally rewrite notes about people it interacted with (`people` bucket).
+3. Optionally rewrite its dossiers on the people it dealt with that day.
 4. Delete memories that have faded below the strength threshold.
 
 **Weekly (every 7th night, after the nightly pass):** show the agent its traits, core, self-image, goals, and the last 7 day summaries and mood entries (these survive because `reflections` has a 7-day half-life). It returns:

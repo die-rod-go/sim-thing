@@ -1,6 +1,7 @@
 import { formatSimTime, TRAIT_NAMES } from "@village/shared";
 import type { Goal, Memory, Personality, TraitName } from "@village/shared";
 import { config } from "../config";
+import type { DossierEntry } from "../memory/dossiers";
 import { describeReflectionKind } from "./reflection-memories";
 
 const TRAIT_VALUE_DECIMALS_SHOWN = 2;
@@ -31,12 +32,12 @@ export function describeReflections(memories: readonly Memory[], emptyText: stri
   );
 }
 
-export function describePeopleNotes(notesByPerson: ReadonlyMap<string, Memory[]>): string {
-  const lines = [...notesByPerson.entries()].map(([person, notes]) => {
-    const noteText = notes.length > 0 ? notes.map((note) => note.text).join(" ") : "no notes yet";
-    return `${person}: ${noteText}`;
-  });
-  return bulletList(lines, "You did not deal with anyone in particular today.");
+/** "- Bob: <dossier text>" for each person, in the order given. */
+export function describeDossiers(entries: readonly DossierEntry[], emptyText: string): string {
+  return bulletList(
+    entries.map((entry) => `${entry.person}: ${entry.text}`),
+    emptyText,
+  );
 }
 
 /** Goals with their kind, as the weekly pass must return them. */

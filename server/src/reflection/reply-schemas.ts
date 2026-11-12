@@ -10,6 +10,8 @@ import {
   strictJsonObject,
 } from "../decision/schema-fields";
 import type { JsonSchema } from "../llm/types";
+import { dossierEntriesJsonSchema, dossierEntriesSchema } from "../memory/dossiers";
+import type { DossierEntry } from "../memory/dossiers";
 
 const GOAL_KINDS: readonly [GoalKind, ...GoalKind[]] = ["world", "social", "self"];
 const [FIRST_TRAIT = "extraversion", ...OTHER_TRAITS] = TRAIT_NAMES;
@@ -69,7 +71,7 @@ export interface NightReply {
   summary: string;
   moodEntry: string;
   insights: { text: string }[];
-  peopleNotes: { person: string; text: string }[];
+  dossiers: DossierEntry[];
 }
 
 export function buildNightReplySchema(): ReplySchemas<NightReply> {
@@ -82,10 +84,7 @@ export function buildNightReplySchema(): ReplySchemas<NightReply> {
       .array(z.object({ text: memoryText() }))
       .min(1)
       .transform((insights) => insights.slice(0, maxInsights)),
-    peopleNotes: z
-      .array(z.object({ person: requiredText(), text: memoryText() }))
-      .optional()
-      .transform((notes) => notes ?? []),
+    dossiers: dossierEntriesSchema(),
   });
   return {
     schema: z.preprocess(dropEmptyFields, replyObject),
@@ -93,9 +92,7 @@ export function buildNightReplySchema(): ReplySchemas<NightReply> {
       summary: { type: "string" },
       moodEntry: { type: "string" },
       insights: jsonArray(strictJsonObject({ text: { type: "string" } }), { minItems: 1 }),
-      peopleNotes: jsonArray(
-        strictJsonObject({ person: { type: "string" }, text: { type: "string" } }),
-      ),
+      dossiers: dossierEntriesJsonSchema(),
     }),
     schemaName: "night_reply",
   };

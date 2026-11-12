@@ -50,6 +50,7 @@ export function makeSampleAgent(id: string, name: string, x: number, y: number):
     currentAction: { kind: "walk_to", target: "square", endsAtTick: null },
     workingMemory: [],
     awareness: {},
+    dossiers: {},
     lastThought: { text: `${name} wonders whether anyone wants bread today.`, tick: 28 },
   };
 }

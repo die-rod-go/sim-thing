@@ -135,9 +135,9 @@ export function createReflectionHook(dependencies: ReflectionPassDependencies): 
       callStructured,
       tick,
       knownNames: listKnownNames(state),
-      otherAgentNames: state.agents
+      otherAgents: state.agents
         .filter((other) => other.id !== agentId)
-        .map((other) => other.name),
+        .map((other) => ({ id: other.id, name: other.name })),
     };
   }
 
@@ -209,7 +209,11 @@ export function createReflectionHook(dependencies: ReflectionPassDependencies): 
         const night = applyNightReply(buildNightInput(state, agentId, startTick), reply);
         if (!night.succeeded) logger.warn(`night pass for ${agentId} failed at tick ${startTick}`);
         const sleeper = findAgent(state, agentId);
-        replaceAgent(state, { ...sleeper, mood: night.agent.mood });
+        replaceAgent(state, {
+          ...sleeper,
+          mood: night.agent.mood,
+          dossiers: night.agent.dossiers,
+        });
         markAgentChanged(result, agentId);
         if (night.reflection) {
           recordMoments(state, result, [

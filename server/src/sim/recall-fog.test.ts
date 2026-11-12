@@ -9,7 +9,18 @@ const CERTAIN_FAILURE_ROLL = 0;
 const CERTAIN_SUCCESS_ROLL = 0.999;
 
 function buildSim(): TestSim {
-  return createTestSim({ agentIds: ["mara", "tobias"], responder: scriptByAgent({}) });
+  const sim = createTestSim({ agentIds: ["mara", "tobias"], responder: scriptByAgent({}) });
+  sim.state.memoryStore.add({
+    id: "tobias-note",
+    agentId: "mara",
+    bucket: "conversations",
+    tick: 0,
+    text: "Tobias: Runs the tavern.",
+    tags: ["tobias"],
+    strength: 1,
+    lastRecalledTick: null,
+  });
+  return sim;
 }
 
 function exhaust(sim: TestSim): void {

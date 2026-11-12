@@ -12,18 +12,13 @@ interface RelationshipWebProps {
 
 function HoveredNotes({ relation }: { relation: Relation | undefined }) {
   if (!relation) return <p className="web-caption muted">Point at someone to read their notes.</p>;
-  const notes = relation.personNotes.slice(0, clientConfig.ui.maxPersonNotesShown);
   return (
     <div className="web-caption">
       <strong>{relation.name}</strong>
-      {notes.length === 0 ? (
-        <span className="muted"> · no notes about them</span>
+      {relation.dossier === null ? (
+        <span className="muted"> · nothing written about them</span>
       ) : (
-        <ul className="relation-notes">
-          {notes.map((note) => (
-            <li key={note.id}>{note.text}</li>
-          ))}
-        </ul>
+        <p className="relation-notes">{relation.dossier.text}</p>
       )}
     </div>
   );

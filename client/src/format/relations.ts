@@ -8,8 +8,8 @@ export interface Relation {
   awareness: Awareness | null;
   /** Sim-minutes since last perceived; null when never perceived. */
   minutesSincePerceived: number | null;
-  /** The agent's own `people` notes about this person, newest first. */
-  personNotes: Memory[];
+  /** What the agent holds about this person, and how long ago it was last rewritten. */
+  dossier: { text: string; minutesAgo: number } | null;
   /** How many of the agent's memories are tagged with this person. */
   memoryCount: number;
   /** Conversation threads in the recent event window where both spoke. */
@@ -36,6 +36,7 @@ export function buildRelations(
       const tag = toTag(other.name);
       const taggedMemories = memories.filter((memory) => memory.tags.includes(tag));
       const awareness = agent.awareness[other.id] ?? null;
+      const dossier = agent.dossiers[other.id] ?? null;
       return {
         agentId: other.id,
         name: other.name,
@@ -43,9 +44,13 @@ export function buildRelations(
         awareness,
         minutesSincePerceived:
           awareness === null ? null : Math.max(0, (currentTick - awareness.tick) * minutesPerTick),
-        personNotes: taggedMemories
-          .filter((memory) => memory.bucket === "people")
-          .sort((first, second) => second.tick - first.tick),
+        dossier:
+          dossier === null
+            ? null
+            : {
+                text: dossier.text,
+                minutesAgo: Math.max(0, (currentTick - dossier.updatedTick) * minutesPerTick),
+              },
         memoryCount: taggedMemories.length,
         sharedThreadCount: threads.filter(
           (thread) => thread.speakerIds.includes(agent.id) && thread.speakerIds.includes(other.id),

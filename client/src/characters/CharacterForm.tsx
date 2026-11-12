@@ -246,7 +246,7 @@ export function CharacterForm(props: CharacterFormProps) {
       </FormSection>
       <FormSection
         title="People notes"
-        description="What they already think of each person. Each note becomes a starting memory in the people bucket, so it fades unless it keeps coming up."
+        description="What they already think of each person. Each note becomes their starting dossier on that person, rewritten as they learn more. People must live in the village."
       >
         <PeopleNotesEditor
           seedFile={seedFile}

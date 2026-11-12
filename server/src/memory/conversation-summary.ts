@@ -1,11 +1,13 @@
 import { formatSimTime } from "@village/shared";
-import type { Agent, Memory } from "@village/shared";
+import type { Agent, Bucket, Memory } from "@village/shared";
 import { z } from "zod";
 import { config } from "../config";
 import type { ReplySchemas } from "../decision/reply-schema";
 import { dropEmptyFields, strictJsonObject } from "../decision/schema-fields";
 import { describeTraits } from "../decision/words";
 import { renderTemplate } from "../llm/templates";
+import { dossierEntriesJsonSchema, dossierEntriesSchema } from "./dossiers";
+import type { DossierEntry, NamedPerson } from "./dossiers";
 import type { MemoryIdGenerator, MemoryReader } from "./memory-store";
 import { normalizeTag, uniqueTags } from "./tags";
 
@@ -17,6 +19,8 @@ const CONVERSATION_SUMMARY_TEMPLATE = "conversation-summary";
 
 export interface ConversationSummaryReply {
   summary: string;
+  /** Only for participants whose entry should change. */
+  dossiers: DossierEntry[];
 }
 
 export function buildConversationSummaryReplySchema(): ReplySchemas<ConversationSummaryReply> {
@@ -25,9 +29,13 @@ export function buildConversationSummaryReplySchema(): ReplySchemas<Conversation
       dropEmptyFields,
       z.object({
         summary: z.string().trim().min(1).max(config.memory.conversationSummary.maxChars),
+        dossiers: dossierEntriesSchema(),
       }),
     ),
-    jsonSchema: strictJsonObject({ summary: { type: "string" } }),
+    jsonSchema: strictJsonObject({
+      summary: { type: "string" },
+      dossiers: dossierEntriesJsonSchema(),
+    }),
     schemaName: CONVERSATION_SUMMARY_SCHEMA_NAME,
   };
 }
@@ -107,6 +115,55 @@ export function selectOverheardAround(
     .filter((memory) => memory.tick >= leadInStartTick && memory.tick <= lastTick);
 }
 
+/**
+ * The agent's own `did` and `seen` memories from the span of the conversation, newest
+ * `meanwhileMemoriesShown` of them in time order, so a summary can tell what really happened.
+ */
+export function selectMeanwhileMemories(
+  memories: MemoryReader,
+  agentId: string,
+  conversation: readonly Memory[],
+): Memory[] {
+  const firstTick = conversation[0]?.tick;
+  const lastTick = conversation[conversation.length - 1]?.tick;
+  if (firstTick === undefined || lastTick === undefined) return [];
+  const buckets: readonly Bucket[] = ["did", "seen"];
+  return buckets
+    .flatMap((bucket) => memories.listByAgentAndBucket(agentId, bucket))
+    .filter((memory) => memory.tick >= firstTick && memory.tick <= lastTick)
+    .sort(compareOldestFirst)
+    .slice(-config.memory.conversationSummary.meanwhileMemoriesShown);
+}
+
+/** The other agents named as speakers at the start of a line ("Clara said: ..."), in the order given. */
+export function findSpeakers(
+  conversation: readonly Memory[],
+  others: readonly NamedPerson[],
+): NamedPerson[] {
+  return others.filter((person) =>
+    conversation.some((line) =>
+      line.text.toLowerCase().startsWith(`${person.name.toLowerCase()} `),
+    ),
+  );
+}
+
+function describeMeanwhile(memories: readonly Memory[]): string {
+  if (memories.length === 0) return "Nothing in particular.";
+  return memories
+    .map((memory) => `- ${formatSimTime(memory.tick, config.clock)}: ${memory.text}`)
+    .join("\n");
+}
+
+function describeKnownAboutThem(agent: Agent, speakers: readonly NamedPerson[]): string {
+  if (speakers.length === 0) return "No one else spoke.";
+  return speakers
+    .map(
+      (person) =>
+        `- ${person.name}: ${agent.dossiers[person.id]?.text ?? config.dossier.unknownPersonText}`,
+    )
+    .join("\n");
+}
+
 function describeTranscript(lines: readonly Memory[]): string {
   return [...lines]
     .sort(compareOldestFirst)
@@ -118,6 +175,7 @@ export function buildConversationSummaryPrompt(
   agent: Agent,
   conversation: readonly Memory[],
   overheard: readonly Memory[],
+  context: { meanwhile: readonly Memory[]; speakers: readonly NamedPerson[] },
   tick: number,
   promptsDirectory?: string,
 ): string {
@@ -129,6 +187,9 @@ export function buildConversationSummaryPrompt(
       traits: describeTraits(agent.personality.traits),
       core: agent.personality.core,
       transcript: describeTranscript([...conversation, ...overheard]),
+      meanwhile: describeMeanwhile(context.meanwhile),
+      knownAboutThem: describeKnownAboutThem(agent, context.speakers),
+      maxDossierChars: String(config.dossier.maxChars),
       simTime: formatSimTime(tick, config.clock),
       maxChars: String(config.memory.conversationSummary.maxChars),
     },

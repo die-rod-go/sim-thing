@@ -31,7 +31,6 @@ const nullReply = {
   amount: 1,
   query: null,
   minutes: null,
-  note: null,
   mood: null,
 };
 
@@ -46,6 +45,13 @@ describe("buildDecisionReplySchema", () => {
       item: "bread",
       amount: 1,
     });
+  });
+
+  it("has no note field in the reply or its JSON schema", () => {
+    const { schema, jsonSchema } = buildDecisionReplySchema(targets, items, holders);
+    const note = { person: "Bob", text: "owes me" };
+    expect(schema.parse({ ...nullReply, note })).not.toHaveProperty("note");
+    expect(jsonSchema.properties).not.toHaveProperty("note");
   });
 
   it("validates action enums against current targets", () => {

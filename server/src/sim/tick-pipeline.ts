@@ -81,7 +81,7 @@ export function createDecisionStrategy(dependencies: SimDependencies): AdvanceTi
       const plans = await Promise.all(requests.map((request) => decide(state, request)));
       for (const plan of plans) applyDecisionPlan(context, plan);
     }
-    await summarizeEndedConversations(state);
+    await summarizeEndedConversations(state, context.result);
     enforceBucketCaps(state);
     runScheduledForgetting(state);
     state.conversationLog = pruneConversationLog(state.conversationLog, state.tick);

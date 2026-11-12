@@ -9,8 +9,8 @@ export const DAY_SUMMARY_TAG = "day summary";
 export const MOOD_ENTRY_TAG = "mood entry";
 export const INSIGHT_TAG = "insight";
 
-/** People notes and earlier reflections are shown separately, so the day's memories skip them. */
-const BUCKETS_OUTSIDE_THE_DAY: readonly Bucket[] = ["people", "reflections"];
+/** Earlier reflections are shown separately, so the day's memories skip them. */
+const BUCKETS_OUTSIDE_THE_DAY: readonly Bucket[] = ["reflections"];
 const INTERACTION_BUCKETS: readonly Bucket[] = ["did", "conversations"];
 
 export interface ReflectionMemoryDraft {
@@ -93,19 +93,6 @@ export function findPeopleInteractedWith(
   return candidateNames.filter((name) =>
     interactionMemories.some((memory) => hasTag(memory, name)),
   );
-}
-
-/** The newest `peopleNotesShownPerPerson` notes the agent holds about `person`. */
-export function selectPeopleNotes(
-  memories: MemoryReader,
-  agentId: string,
-  person: string,
-): Memory[] {
-  return memories
-    .listByAgentAndBucket(agentId, "people")
-    .filter((memory) => hasTag(memory, person))
-    .sort((first, second) => second.tick - first.tick)
-    .slice(0, config.reflection.peopleNotesShownPerPerson);
 }
 
 /** The newest `count` reflections carrying `tag`, oldest first. */

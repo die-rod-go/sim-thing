@@ -36,6 +36,7 @@ function buildContext(overrides: Partial<DecisionContext> = {}): DecisionContext
       { text: "oven", details: [], verbs: ["bake bread"], toolUses: [], contents: [] },
     ],
     aroundYou: { entries: [], normalHearerIds: [], whisperHearerIds: [] },
+    peopleOnMind: [],
     belongings: [
       { text: "30 coins", details: [], verbs: [], toolUses: [], contents: [] },
       { text: "2 bread", details: [], verbs: ["eat"], toolUses: [], contents: [] },
@@ -198,10 +199,23 @@ describe("buildDecisionPrompt", () => {
     );
   });
 
+  it("lists the people on the agent's mind after the around-you section", () => {
+    const prompt = buildDecisionPrompt(
+      buildContext({ peopleOnMind: [{ name: "Tom", text: "Owes me 3 coins." }] }),
+    );
+    expect(prompt).toContain("## People on your mind\n- Tom: Owes me 3 coins.");
+    expect(prompt.indexOf("## Around you")).toBeLessThan(prompt.indexOf("## People on your mind"));
+  });
+
+  it("says no one is on the agent's mind when the list is empty", () => {
+    const prompt = buildDecisionPrompt(buildContext({ peopleOnMind: [] }));
+    expect(prompt).toContain(`## People on your mind\n${config.dossier.nobodyOnMindText}`);
+  });
+
   it("replaces recalled memories with a foggy mind and its cause", () => {
     const prompt = buildDecisionPrompt(
       buildContext({
-        recalledMemories: { people: [{ text: "Tom owes me 3 coins.", minutesAgo: 600 }] },
+        recalledMemories: { did: [{ text: "Tom owes me 3 coins.", minutesAgo: 600 }] },
         foggedBy: "exhausted",
       }),
     );
@@ -212,10 +226,10 @@ describe("buildDecisionPrompt", () => {
   it("groups recalled memories by bucket in their own sections", () => {
     const prompt = buildDecisionPrompt(
       buildContext({
-        recalledMemories: { people: [{ text: "Tom owes me 3 coins.", minutesAgo: 600 }] },
+        recalledMemories: { did: [{ text: "Tom owes me 3 coins.", minutesAgo: 600 }] },
       }),
     );
-    expect(prompt).toContain("## Memories: people\n- Tom owes me 3 coins. (10 h ago)");
+    expect(prompt).toContain("## Memories: did\n- Tom owes me 3 coins. (10 h ago)");
     expect(prompt).not.toContain("## Memories: seen");
   });
 
@@ -223,7 +237,7 @@ describe("buildDecisionPrompt", () => {
     const context = buildContext({
       recalledMemories: {
         seen: manyMemories(60, "I saw a cart"),
-        people: [{ text: "Tom owes me 3 coins.", minutesAgo: 600 }],
+        conversations: [{ text: "Tom owes me 3 coins.", minutesAgo: 600 }],
       },
     });
     const prompt = buildDecisionPrompt(context);

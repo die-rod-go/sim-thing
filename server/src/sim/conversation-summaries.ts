@@ -1,4 +1,4 @@
-import type { Memory } from "@village/shared";
+import type { Dossier, Memory } from "@village/shared";
 import { config } from "../config";
 import type { StructuredCaller } from "../llm/call-structured";
 import { createLogger } from "../logger";
@@ -7,11 +7,15 @@ import {
   buildConversationSummaryReplySchema,
   createConversationSummaryMemory,
   findEndedConversations,
+  findSpeakers,
+  selectMeanwhileMemories,
   selectOverheardAround,
 } from "../memory/conversation-summary";
+import { rewriteDossiers } from "../memory/dossiers";
+import type { DossierEntry, NamedPerson } from "../memory/dossiers";
 import { BackgroundWork } from "./background-work";
-import { findAgent, listLivingAgents } from "./world-access";
-import type { WorldState } from "./world-state";
+import { findAgent, listLivingAgents, markAgentChanged, replaceAgent } from "./world-access";
+import type { TickResult, WorldState } from "./world-state";
 
 const logger = createLogger("conversation-summary");
 
@@ -23,12 +27,13 @@ export interface ConversationSummarizerDependencies {
 }
 
 /** Summarises every ended conversation; without background calls the clock waits for it. */
-export type SummarizeEndedConversations = (state: WorldState) => Promise<void>;
+export type SummarizeEndedConversations = (state: WorldState, result: TickResult) => Promise<void>;
 
 interface SummaryOutcome {
   agentId: string;
   conversation: Memory[];
   summary: string | null;
+  dossierEntries: DossierEntry[];
 }
 
 /** Swaps the conversation's line memories for its summary; lines already forgotten are skipped. */
@@ -46,6 +51,29 @@ function replaceLinesWithSummary(
   );
   for (const line of conversation) state.memoryStore.remove(line.id);
   state.memoryStore.add(summaryMemory);
+}
+
+function listOtherAgents(state: WorldState, agentId: string): NamedPerson[] {
+  return state.agents
+    .filter((other) => other.id !== agentId)
+    .map((other) => ({ id: other.id, name: other.name }));
+}
+
+function rewriteAgentDossiers(
+  state: WorldState,
+  result: TickResult,
+  outcome: SummaryOutcome,
+): void {
+  if (outcome.dossierEntries.length === 0) return;
+  const agent = findAgent(state, outcome.agentId);
+  const dossiers: Record<string, Dossier> = rewriteDossiers(
+    agent.dossiers,
+    outcome.dossierEntries,
+    listOtherAgents(state, agent.id),
+    state.tick,
+  );
+  replaceAgent(state, { ...agent, dossiers });
+  markAgentChanged(result, agent.id);
 }
 
 /**
@@ -75,6 +103,10 @@ export function createConversationSummarizer(
         findAgent(state, agentId),
         conversation,
         selectOverheardAround(state.memoryStore, agentId, conversation),
+        {
+          meanwhile: selectMeanwhileMemories(state.memoryStore, agentId, conversation),
+          speakers: findSpeakers(conversation, listOtherAgents(state, agentId)),
+        },
         state.tick,
         dependencies.promptsDirectory,
       ),
@@ -82,7 +114,12 @@ export function createConversationSummarizer(
       jsonSchema,
       schemaName,
     });
-    return { agentId, conversation, summary: result.ok ? result.value.summary : null };
+    return {
+      agentId,
+      conversation,
+      summary: result.ok ? result.value.summary : null,
+      dossierEntries: result.ok ? result.value.dossiers : [],
+    };
   }
 
   function isWaitingToRetry(agentId: string, tick: number): boolean {
@@ -90,7 +127,11 @@ export function createConversationSummarizer(
     return retryTick !== undefined && tick < retryTick;
   }
 
-  function applyOutcomes(state: WorldState, outcomes: readonly SummaryOutcome[]): void {
+  function applyOutcomes(
+    state: WorldState,
+    result: TickResult,
+    outcomes: readonly SummaryOutcome[],
+  ): void {
     for (const outcome of outcomes) {
       if (outcome.summary === null) {
         logger.warn(`conversation summary for ${outcome.agentId} failed at tick ${state.tick}`);
@@ -101,6 +142,7 @@ export function createConversationSummarizer(
         continue;
       }
       replaceLinesWithSummary(state, outcome.agentId, outcome.conversation, outcome.summary);
+      rewriteAgentDossiers(state, result, outcome);
     }
   }
 
@@ -115,11 +157,11 @@ export function createConversationSummarizer(
     }
   }
 
-  return async (state) => {
-    applyOutcomes(state, work.collectFinished(state).flat());
+  return async (state, result) => {
+    applyOutcomes(state, result, work.collectFinished(state).flat());
     startDueSummaries(state);
     if (dependencies.shouldCallLlmInBackground) return;
     await work.waitForAll(state);
-    applyOutcomes(state, work.collectFinished(state).flat());
+    applyOutcomes(state, result, work.collectFinished(state).flat());
   };
 }

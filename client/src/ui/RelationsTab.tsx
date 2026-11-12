@@ -1,6 +1,5 @@
 import { useMemo } from "react";
 import type { AgentDetailMessage, AwarenessVia } from "@village/shared";
-import { clientConfig } from "../client-config";
 import { formatMinutesAgo } from "../format/formatters";
 import { buildRelations, type Relation } from "../format/relations";
 import { usePanelContext } from "./panel-context";
@@ -31,7 +30,6 @@ function LastPerceived({ relation }: { relation: Relation }) {
 }
 
 function RelationCard({ relation }: { relation: Relation }) {
-  const notes = relation.personNotes.slice(0, clientConfig.ui.maxPersonNotesShown);
   return (
     <article className="relation">
       <header className="relation-header">
@@ -45,12 +43,11 @@ function RelationCard({ relation }: { relation: Relation }) {
         </span>
       </header>
       <LastPerceived relation={relation} />
-      {notes.length > 0 && (
-        <ul className="relation-notes">
-          {notes.map((note) => (
-            <li key={note.id}>{note.text}</li>
-          ))}
-        </ul>
+      {relation.dossier !== null && (
+        <p className="relation-notes">
+          {relation.dossier.text}{" "}
+          <span className="muted">· written {formatMinutesAgo(relation.dossier.minutesAgo)}</span>
+        </p>
       )}
     </article>
   );

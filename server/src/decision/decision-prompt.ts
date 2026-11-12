@@ -13,6 +13,7 @@ import {
   describeLastFailure,
   describeMemories,
   describeNearbyEntities,
+  describePeopleOnMind,
   describeWorkingMemory,
 } from "./sections";
 import { describeStats, describeStatus, describeTraits } from "./words";
@@ -64,13 +65,13 @@ function buildTemplateValues(
     here: describeNearbyEntities(context.nearbyEntities),
     knownPlaces: context.knownPlaces.join(", "),
     aroundYou: describeAroundYou(context.aroundYou),
+    peopleOnMind: describePeopleOnMind(context.peopleOnMind),
     belongings: describeBelongings(context.belongings, context.itemlessVerbs),
     workingMemory: describeWorkingMemory(context.workingMemory),
     conversation: describeConversation(context.conversation),
     memories: describeMemories(memories, context.foggedBy),
     actions: listOfferedActions(context.isMidActionInterrupt).join(", "),
     sayWaitMinutes: String(config.decision.sayWaitMinutes),
-    noteMaxChars: String(config.memory.maxMemoryChars),
     continueAction: context.isMidActionInterrupt ? continueAction : "",
   };
 }

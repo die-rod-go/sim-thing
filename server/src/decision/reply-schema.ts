@@ -1,6 +1,5 @@
 import type { DecisionAction, DecisionReply, Volume } from "@village/shared";
 import { z } from "zod";
-import { config } from "../config";
 import type { JsonSchema } from "../llm/types";
 import type { DecisionTargets, ValidItem } from "./context";
 import { listOfferedActions } from "./decision-prompt";
@@ -12,7 +11,6 @@ import {
   looseEnum,
   nullableJsonEnum,
   nullableJsonInteger,
-  nullableJsonObject,
   nullableJsonString,
   strictJsonObject,
 } from "./schema-fields";
@@ -54,9 +52,6 @@ function buildDecisionJsonSchema(
     amount: nullableJsonInteger(),
     query: nullableJsonString(),
     minutes: nullableJsonInteger(),
-    note: nullableJsonObject(
-      strictJsonObject({ person: { type: "string" }, text: { type: "string" } }),
-    ),
     mood: nullableJsonString(),
   });
 }
@@ -109,12 +104,6 @@ export function buildDecisionReplySchema(
       amount: z.number().int().positive().optional(),
       query: z.string().trim().optional(),
       minutes: z.number().positive().optional(),
-      note: z
-        .object({
-          person: z.string().trim().min(1),
-          text: z.string().trim().min(1).max(config.memory.maxMemoryChars),
-        })
-        .optional(),
       mood: z.string().trim().optional(),
     })
     .superRefine(requireFieldsForAction);

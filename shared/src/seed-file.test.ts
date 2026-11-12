@@ -112,7 +112,7 @@ describe("findSeedFileProblems", () => {
     expect(listFields([buildSeedAgent({ inventory: { lute: 1 } })])).toEqual(["inventory.lute"]);
   });
 
-  it("only warns about unusual sleep recovery and notes about strangers", () => {
+  it("warns about unusual sleep recovery and rejects a note about a stranger", () => {
     const problems = findSeedFileProblems(
       {
         agents: [
@@ -124,8 +124,8 @@ describe("findSeedFileProblems", () => {
       },
       rules,
     );
-    expect(problems.map((problem) => problem.severity)).toEqual(["warning", "warning"]);
-    expect(hasSeedErrors(problems)).toBe(false);
+    expect(problems.map((problem) => problem.severity)).toEqual(["warning", "error"]);
+    expect(hasSeedErrors(problems)).toBe(true);
   });
 
   it("matches people notes to characters by name, ignoring case", () => {

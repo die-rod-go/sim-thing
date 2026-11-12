@@ -303,6 +303,16 @@ describe("decision loop", () => {
             : undefined,
       }),
     });
+    sim.state.memoryStore.add({
+      id: "tobias-note",
+      agentId: "mara",
+      bucket: "conversations",
+      tick: 0,
+      text: "Tobias: Runs the tavern.",
+      tags: ["tobias"],
+      strength: 1,
+      lastRecalledTick: null,
+    });
     await sim.advance();
     const decisions = sim.records.filter((record) => record.agentId === "mara");
     expect(decisions.map((record) => [record.kind, record.tick])).toEqual([

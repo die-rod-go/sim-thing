@@ -6,11 +6,13 @@ import { buildEmptyItems, buildEmptySeededWorld } from "./test-sim";
 import { createWorldState, type WorldState } from "./world-state";
 
 function buildStateWithMemories(memories: Memory[]): WorldState {
-  return createWorldState(
+  const state = createWorldState(
     { grid: { width: 1, height: 1, isWall: [false] }, places: [], placements: [], startTiles: {} },
-    buildEmptySeededWorld({ memories }),
+    buildEmptySeededWorld(),
     buildEmptyItems(),
   );
+  state.memoryStore.addAll(memories);
+  return state;
 }
 
 function makeMemory(overrides: Partial<Memory> & { id: string }): Memory {

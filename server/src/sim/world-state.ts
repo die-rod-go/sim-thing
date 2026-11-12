@@ -83,8 +83,6 @@ export function createWorldState(
   seededWorld: SeededWorld,
   items: ItemCatalog,
 ): WorldState {
-  const memoryStore = new MemoryStore();
-  memoryStore.addAll(seededWorld.memories);
   return {
     tick: 0,
     agents: seededWorld.agents,
@@ -95,7 +93,7 @@ export function createWorldState(
     random: new SeededRandom(config.seed),
     nextEventId: 1,
     nextMomentId: 1,
-    memoryStore,
+    memoryStore: new MemoryStore(),
     memoryIds: new MemoryIdGenerator(),
     conversationLog: createConversationLog(),
     agentRuntimes: createAgentRuntimes(seededWorld.agents),

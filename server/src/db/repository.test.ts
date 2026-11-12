@@ -108,6 +108,46 @@ describe("database repositories", () => {
     expect(loaded?.body.strength).toBe(first.body.strength);
   });
 
+  it("moves seed people notes into dossiers for a save from before dossiers and drops the rest", () => {
+    const state = buildWorld();
+    saveWorld(database, toSavedWorld(state, createDefaultSettings()));
+    const [first, second] = state.agents;
+    if (!first || !second) throw new Error("need two seed agents");
+    for (const agent of state.agents) {
+      const legacy: Partial<typeof agent> = { ...agent };
+      delete legacy.dossiers;
+      database
+        .prepare("UPDATE agents SET data = ? WHERE id = ?")
+        .run(JSON.stringify(legacy), agent.id);
+    }
+    const insertNote = database.prepare(
+      "INSERT INTO memories (id, agent_id, bucket, tick, text, tags, strength, last_recalled_tick) VALUES (?, ?, 'people', ?, ?, ?, 1, NULL)",
+    );
+    insertNote.run("seed", first.id, 0, `${second.name}: Seed opinion: fair.`, "[]");
+    insertNote.run("later", first.id, 50, `${second.name}: Handed me the axe at last.`, "[]");
+    insertNote.run("stranger", first.id, 0, "Nobody: Who is that?", "[]");
+
+    const loaded = loadWorld(database);
+    const migrated = loaded?.agents.find((agent) => agent.id === first.id);
+    expect(migrated?.dossiers).toEqual({
+      [second.id]: { text: "Seed opinion: fair.", updatedTick: 0 },
+    });
+    expect(loaded?.agents.find((agent) => agent.id === second.id)?.dossiers).toEqual({});
+    expect(loaded?.memories.some((memory) => memory.agentId === first.id)).toBe(false);
+  });
+
+  it("keeps an agent's dossiers through a save", () => {
+    const state = buildWorld();
+    const [first, second] = state.agents;
+    if (!first || !second) throw new Error("need two seed agents");
+    state.agents[0] = {
+      ...first,
+      dossiers: { [second.id]: { text: "Reliable.", updatedTick: 9 } },
+    };
+    saveWorld(database, toSavedWorld(state, createDefaultSettings()));
+    expect(loadWorld(database)?.agents[0]?.dossiers).toEqual(state.agents[0]?.dossiers);
+  });
+
   it("refuses a save from before components existed and says to reset", () => {
     const state = buildWorld();
     saveWorld(database, toSavedWorld(state, createDefaultSettings()));

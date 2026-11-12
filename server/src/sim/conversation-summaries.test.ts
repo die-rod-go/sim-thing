@@ -91,6 +91,33 @@ describe("conversation summaries in the sim", () => {
     expect(summaryPrompts(sim)).toHaveLength(2);
   });
 
+  it("rewrites a participant's dossier from the summary and ignores unknown names", async () => {
+    const sim = startGreetingSim((request, callIndex) => {
+      if (request.schemaName !== CONVERSATION_SUMMARY_SCHEMA_NAME) {
+        return greetings(request, callIndex);
+      }
+      return JSON.stringify({
+        summary: `${findPromptAgentName(request)} remembers the greeting`,
+        dossiers: [
+          { person: "mara", text: "Greets me kindly." },
+          { person: "Zed", text: "Someone who does not exist." },
+        ],
+      });
+    });
+    const ilsa = sim.state.agents.find((agent) => agent.id === "ilsa");
+    if (!ilsa) throw new Error("no ilsa");
+    ilsa.dossiers = { bram: { text: "Unchanged.", updatedTick: 0 } };
+    await sim.advance(TICKS_UNTIL_SUMMARY);
+    const rewritten = sim.state.agents.find((agent) => agent.id === "ilsa");
+    expect(rewritten?.dossiers).toEqual({
+      bram: { text: "Unchanged.", updatedTick: 0 },
+      mara: { text: "Greets me kindly.", updatedTick: TICKS_UNTIL_SUMMARY - 1 },
+    });
+    expect(summaryPrompts(sim).find((prompt) => prompt.startsWith("You are Ilsa."))).toContain(
+      "## What you already know about them",
+    );
+  });
+
   it("keeps the lines while the conversation is still going", async () => {
     const sim = startGreetingSim(summarizingBy((name) => `${name} remembers the greeting`));
     await sim.advance(TICKS_UNTIL_SUMMARY - 1);

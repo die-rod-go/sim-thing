@@ -1,15 +1,15 @@
 import { formatSimTime } from "@village/shared";
 import type { Agent, Memory } from "@village/shared";
 import { config } from "../config";
-import { resolveName } from "../decision/resolve-name";
 import { describeGoals } from "../decision/sections";
 import { describeStats, describeStatus, describeTraits } from "../decision/words";
 import type { StructuredCaller, StructuredCallResult } from "../llm/call-structured";
 import { renderTemplate } from "../llm/templates";
-import { filePersonNote } from "../memory/filing";
+import { rewriteDossiers } from "../memory/dossiers";
+import type { NamedPerson } from "../memory/dossiers";
 import { forgetMemories } from "../memory/forgetting";
 import type { MemoryIdGenerator, MemoryStore } from "../memory/memory-store";
-import { describePeopleNotes, describeTimedMemories } from "./prompt-sections";
+import { describeDossiers, describeTimedMemories } from "./prompt-sections";
 import {
   createReflectionMemory,
   DAY_SUMMARY_TAG,
@@ -17,7 +17,6 @@ import {
   INSIGHT_TAG,
   MOOD_ENTRY_TAG,
   selectDayMemories,
-  selectPeopleNotes,
 } from "./reflection-memories";
 import { buildNightReplySchema } from "./reply-schemas";
 import type { NightReply } from "./reply-schemas";
@@ -42,15 +41,15 @@ export interface NightPassInput {
   tick: number;
   /** Agent, object and place names, used to tag the new memories. */
   knownNames: readonly string[];
-  /** Display names of every agent except this one; people notes about anyone else are ignored. */
-  otherAgentNames: readonly string[];
+  /** Every agent except this one; dossier entries about anyone else are ignored. */
+  otherAgents: readonly NamedPerson[];
 }
 
 export interface NightPassResult {
   agent: Agent;
   /** Already added to the store. */
   addedMemories: Memory[];
-  /** Already removed from the store: faded memories, plus people notes replaced by a rewrite. */
+  /** Already removed from the store: the faded memories. */
   deletedMemoryIds: string[];
   /** False when the LLM call failed; faded memories are still deleted. */
   succeeded: boolean;
@@ -58,11 +57,15 @@ export interface NightPassResult {
   reflection: NightReflection | null;
 }
 
-function collectPeopleNotes(input: NightPassInput, dayMemories: readonly Memory[]) {
-  const people = findPeopleInteractedWith(dayMemories, input.otherAgentNames);
-  return new Map(
-    people.map((person) => [person, selectPeopleNotes(input.store, input.agent.id, person)]),
-  );
+function listDossiersOfPeopleMetToday(input: NightPassInput, dayMemories: readonly Memory[]) {
+  const names = input.otherAgents.map((person) => person.name);
+  const metNames = new Set(findPeopleInteractedWith(dayMemories, names));
+  return input.otherAgents
+    .filter((person) => metNames.has(person.name))
+    .map((person) => ({
+      person: person.name,
+      text: input.agent.dossiers[person.id]?.text ?? config.dossier.unknownPersonText,
+    }));
 }
 
 export function buildNightPrompt(input: NightPassInput, dayMemories: readonly Memory[]): string {
@@ -79,10 +82,14 @@ export function buildNightPrompt(input: NightPassInput, dayMemories: readonly Me
     goals: describeGoals(agent.goals),
     dailyPlan: agent.dailyPlan || "none",
     dayMemories: describeTimedMemories(dayMemories, "Nothing stands out."),
-    peopleNotes: describePeopleNotes(collectPeopleNotes(input, dayMemories)),
+    dossiers: describeDossiers(
+      listDossiersOfPeopleMetToday(input, dayMemories),
+      "You did not deal with anyone in particular today.",
+    ),
     simTime: formatSimTime(input.tick, config.clock),
     maxChars: String(config.memory.maxMemoryChars),
     maxInsights: String(config.reflection.maxInsights),
+    maxDossierChars: String(config.dossier.maxChars),
   });
 }
 
@@ -112,36 +119,6 @@ function createReflections(input: NightPassInput, reply: NightReply): Memory[] {
   );
 }
 
-/** Rewritten notes keyed by canonical person name; unknown names are dropped, the last rewrite wins. */
-function resolvePeopleNotes(input: NightPassInput, reply: NightReply): Map<string, string> {
-  const candidates = input.otherAgentNames.map((name) => ({ id: name, name }));
-  const textByPerson = new Map<string, string>();
-  for (const note of reply.peopleNotes) {
-    const person = resolveName(note.person, candidates);
-    if (person !== null) textByPerson.set(person, note.text);
-  }
-  return textByPerson;
-}
-
-/** Each rewrite replaces the notes the agent was shown about that person. */
-function rewritePeopleNotes(
-  input: NightPassInput,
-  reply: NightReply,
-): { added: Memory[]; replacedIds: string[] } {
-  const added: Memory[] = [];
-  const replacedIds: string[] = [];
-  for (const [person, text] of resolvePeopleNotes(input, reply)) {
-    for (const oldNote of selectPeopleNotes(input.store, input.agent.id, person)) {
-      input.store.remove(oldNote.id);
-      replacedIds.push(oldNote.id);
-    }
-    added.push(
-      filePersonNote(input.agent.id, person, text, input.tick, input.idGenerator, input.knownNames),
-    );
-  }
-  return { added, replacedIds };
-}
-
 export function requestNightReply(
   input: NightPassInput,
 ): Promise<StructuredCallResult<NightReply>> {
@@ -157,7 +134,7 @@ export function requestNightReply(
 
 /**
  * Files what the night reply says: summary, mood entry and insights into `reflections`, rewritten
- * people notes into `people`, and faded memories swept. Mutates `store` to match the returned lists.
+ * dossiers onto the returned agent, and faded memories swept. Mutates `store` to match the returned lists.
  */
 export function applyNightReply(
   input: NightPassInput,
@@ -175,13 +152,20 @@ export function applyNightReply(
     };
   }
   const reflections = createReflections(input, result.value);
-  const { added: notes, replacedIds } = rewritePeopleNotes(input, result.value);
-  const addedMemories = [...reflections, ...notes];
-  store.addAll(addedMemories);
+  store.addAll(reflections);
   return {
-    agent: { ...agent, mood: result.value.moodEntry },
-    addedMemories,
-    deletedMemoryIds: [...fadedIds, ...replacedIds],
+    agent: {
+      ...agent,
+      mood: result.value.moodEntry,
+      dossiers: rewriteDossiers(
+        agent.dossiers,
+        result.value.dossiers,
+        input.otherAgents,
+        input.tick,
+      ),
+    },
+    addedMemories: reflections,
+    deletedMemoryIds: fadedIds,
     succeeded: true,
     reflection: {
       summary: result.value.summary,

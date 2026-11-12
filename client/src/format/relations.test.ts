@@ -10,8 +10,9 @@ const clara = makeSampleAgent("clara", "Clara", 2, 2);
 ada.awareness = {
   clara: { agentId: "clara", tick: 40, via: "saw", place: "square", doing: "selling" },
 };
+ada.dossiers = { bob: { text: "Owes me two coins.", updatedTick: 20 } };
 const memories = [
-  { ...makeSampleMemory("m2", "ada", 5), bucket: "people" as const, tags: ["bob"] },
+  { ...makeSampleMemory("m2", "ada", 5), tags: ["bob"] },
   { ...makeSampleMemory("m4", "ada", 9), tags: ["bob", "bakery"] },
 ];
 const threads = groupConversations(
@@ -27,11 +28,11 @@ describe("buildRelations", () => {
     expect(relations[1]?.minutesSincePerceived).toBeNull();
   });
 
-  it("collects notes, tagged memories and shared conversations per person", () => {
+  it("collects the dossier, tagged memories and shared conversations per person", () => {
     const bobRelation = buildRelations(ada, [ada, bob, clara], memories, threads, 50, 2).find(
       (relation) => relation.agentId === "bob",
     );
-    expect(bobRelation?.personNotes.map((memory) => memory.id)).toEqual(["m2"]);
+    expect(bobRelation?.dossier).toEqual({ text: "Owes me two coins.", minutesAgo: 60 });
     expect(bobRelation?.memoryCount).toBe(2);
     expect(bobRelation?.sharedThreadCount).toBe(1);
   });

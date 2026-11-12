@@ -138,7 +138,7 @@ describe("recallForDecision", () => {
       "conversations",
       "overheard",
       "did",
-      "people",
+      "places",
       "reflections",
     ] as const) {
       for (let index = 0; index < 3; index += 1) {
@@ -233,7 +233,7 @@ describe("searchMemories", () => {
     const store = new MemoryStore();
     store.addAll([
       makeMemory({ id: "c1", bucket: "conversations", tags: ["bob"] }),
-      makeMemory({ id: "pe1", bucket: "people", tags: ["bob", "tavern"] }),
+      makeMemory({ id: "pe1", bucket: "places", tags: ["bob", "tavern"] }),
       makeMemory({ id: "s1", bucket: "seen", tags: ["clara"] }),
     ]);
     const results = searchMemories(store, "mara", "what do I know about Bob?", knownNames, 0);

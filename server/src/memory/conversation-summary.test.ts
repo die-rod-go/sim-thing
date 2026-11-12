@@ -2,14 +2,18 @@ import type { Memory } from "@village/shared";
 import { describe, expect, it } from "vitest";
 import { config } from "../config";
 import {
+  buildConversationSummaryPrompt,
   buildConversationSummaryReplySchema,
   CONVERSATION_SUMMARY_TAG,
   createConversationSummaryMemory,
   findEndedConversations,
+  findSpeakers,
   groupIntoConversations,
   selectLineMemories,
+  selectMeanwhileMemories,
   selectOverheardAround,
 } from "./conversation-summary";
+import { makeAgent } from "../economy/test-fixtures";
 import { MemoryIdGenerator, MemoryStore } from "./memory-store";
 
 const { endAfterQuietTicks, maxLinesPerSummary, maxChars } = config.memory.conversationSummary;
@@ -116,5 +120,80 @@ describe("conversation summaries", () => {
     const { schema } = buildConversationSummaryReplySchema();
     expect(schema.safeParse({ summary: "word ".repeat(maxChars) }).success).toBe(false);
     expect(schema.safeParse({ summary: "I talked with Edwin." }).success).toBe(true);
+  });
+
+  it("shows the agent's own deeds and sightings from the conversation's span, newest few", () => {
+    const conversation = [line("first", 20), line("last", 30)];
+    const memory = (id: string, tick: number, bucket: Memory["bucket"]) =>
+      line(id, tick, { bucket, text: `I did ${id}` });
+    const store = storeWith([
+      ...conversation,
+      memory("before", 19, "did"),
+      memory("start", 20, "did"),
+      memory("seen", 25, "seen"),
+      memory("end", 30, "did"),
+      memory("after", 31, "did"),
+      memory("tail", 25, "did"),
+      { ...memory("other agent", 25, "did"), agentId: "bram" },
+      memory("not a deed", 25, "places"),
+    ]);
+    const shown = selectMeanwhileMemories(store, "mara", conversation).map((entry) => entry.id);
+    expect(shown).toEqual(["start", "seen", "tail", "end"]);
+    const { meanwhileMemoriesShown } = config.memory.conversationSummary;
+    const many = Array.from({ length: meanwhileMemoriesShown + 3 }, (_unused, index) =>
+      memory(`deed${index}`, 21 + (index % 9), "did"),
+    );
+    const capped = selectMeanwhileMemories(
+      storeWith([...conversation, ...many]),
+      "mara",
+      conversation,
+    );
+    expect(capped).toHaveLength(meanwhileMemoriesShown);
+  });
+
+  it("names the other agents who spoke in the lines", () => {
+    const conversation = [
+      line("a", 1, { text: 'I said: "Hello"' }),
+      line("b", 2, { text: 'Bram said: "Hello"' }),
+      line("c", 3, { text: 'Bramwell said: "Hi"' }),
+    ];
+    const others = [
+      { id: "bram", name: "Bram" },
+      { id: "ilsa", name: "Ilsa" },
+    ];
+    expect(findSpeakers(conversation, others)).toEqual([{ id: "bram", name: "Bram" }]);
+  });
+
+  it("shows what happened meanwhile and what the agent knows about the speakers", () => {
+    const agent = makeAgent({ dossiers: { bram: { text: "Owes me an axe.", updatedTick: 0 } } });
+    const prompt = buildConversationSummaryPrompt(
+      agent,
+      [line("a", 1)],
+      [],
+      {
+        meanwhile: [
+          line("m", 1, { bucket: "did", text: "I tried to hand Bram an axe but had none" }),
+        ],
+        speakers: [
+          { id: "bram", name: "Bram" },
+          { id: "ilsa", name: "Ilsa" },
+        ],
+      },
+      5,
+    );
+    expect(prompt).toContain("## What happened meanwhile");
+    expect(prompt).toContain("I tried to hand Bram an axe but had none");
+    expect(prompt).toContain("- Bram: Owes me an axe.");
+    expect(prompt).toContain(`- Ilsa: ${config.dossier.unknownPersonText}`);
+  });
+
+  it("accepts rewritten dossiers and rejects one over the dossier limit", () => {
+    const { schema } = buildConversationSummaryReplySchema();
+    const summary = "I talked with Bram.";
+    expect(schema.parse({ summary }).dossiers).toEqual([]);
+    const entry = { person: "Bram", text: "Keeps his word." };
+    expect(schema.parse({ summary, dossiers: [entry] }).dossiers).toEqual([entry]);
+    const tooLong = { person: "Bram", text: "x".repeat(config.dossier.maxChars + 1) };
+    expect(schema.safeParse({ summary, dossiers: [tooLong] }).success).toBe(false);
   });
 });

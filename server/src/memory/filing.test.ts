@@ -2,7 +2,7 @@ import type { Memory, WorldEvent } from "@village/shared";
 import { describe, expect, it } from "vitest";
 import type { EventPerception, PerceivedEvent } from "../perception/types";
 import { createConversationLog, recordSpeech, type ConversationLog } from "./conversation";
-import { fileEvent, fileFirstVisit, filePersonNote, type FilingContext } from "./filing";
+import { fileEvent, fileFirstVisit, type FilingContext } from "./filing";
 import { MemoryIdGenerator, MemoryStore } from "./memory-store";
 
 function makeEvent(overrides: Partial<WorldEvent> = {}): WorldEvent {
@@ -228,21 +228,5 @@ describe("fileFirstVisit", () => {
       "I visited the bakery for the first time; I found the oven and the bench here",
     );
     expect(memory.tags).toEqual(["bakery", "oven", "bench"]);
-  });
-});
-
-describe("filePersonNote", () => {
-  it("files a note about a person under people, tagged with the person", () => {
-    const memory = filePersonNote(
-      "mara",
-      "Bob",
-      "owes me 2 coins from the tavern",
-      10,
-      new MemoryIdGenerator(),
-      ["tavern"],
-    );
-    expect(memory.bucket).toBe("people");
-    expect(memory.text).toBe("About Bob: owes me 2 coins from the tavern");
-    expect(memory.tags).toEqual(["bob", "tavern"]);
   });
 });

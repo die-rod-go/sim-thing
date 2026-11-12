@@ -71,11 +71,6 @@ function describeDecisionAction(fields: ReplyFields): string | null {
 }
 
 function summarizeDecision(fields: ReplyFields): Pick<ThoughtEntry, "headline" | "parts"> {
-  const note = fields["note"];
-  const noteText =
-    isRecord(note) && readText(note, "person") && readText(note, "text")
-      ? `about ${readText(note, "person")}: ${readText(note, "text")}`
-      : null;
   const volume = readText(fields, "volume");
   const saidLabel = volume === "whisper" ? "whispered" : volume === "shout" ? "shouted" : "said";
   return {
@@ -85,7 +80,6 @@ function summarizeDecision(fields: ReplyFields): Pick<ThoughtEntry, "headline" |
       ...part("does", describeDecisionAction(fields)),
       ...part("intends", readText(fields, "intention")),
       ...part("feels", readText(fields, "mood")),
-      ...part("noted", noteText),
     ],
   };
 }
@@ -98,7 +92,7 @@ function summarizeNight(fields: ReplyFields): Pick<ThoughtEntry, "headline" | "p
       ...readRecords(fields, "insights").flatMap((insight) =>
         part("realized", readText(insight, "text")),
       ),
-      ...readRecords(fields, "peopleNotes").flatMap((note) =>
+      ...readRecords(fields, "dossiers").flatMap((note) =>
         part(`on ${readText(note, "person") ?? "someone"}`, readText(note, "text")),
       ),
     ],

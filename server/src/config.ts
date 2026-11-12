@@ -422,11 +422,9 @@ export const config = {
       conversations: 24,
       did: 24,
       places: 72,
-      people: 168,
       reflections: 168,
     } satisfies Record<Bucket, number>,
     recallPerBucket: {
-      people: 3,
       conversations: 3,
       seen: 3,
       overheard: 2,
@@ -556,7 +554,21 @@ export const config = {
       maxLinesPerSummary: 30,
       maxChars: 500,
       retryAfterTicks: 30,
+      /** The agent's own `did` and `seen` memories from the conversation's span shown to the summary. */
+      meanwhileMemoriesShown: 12,
     },
+  },
+
+  /** One rewritable text per known person, kept by each agent. */
+  dossier: {
+    /** A rewritten entry over this length is rejected and retried, never cut. */
+    maxChars: 400,
+    /** The decision prompt's "People on your mind" lists at most this many. */
+    shownInDecision: 5,
+    /** Shown for a person in sight or in the conversation whom the agent has no entry for. */
+    unknownPersonText: "nothing known yet beyond what you see.",
+    /** The decision section's text when no one is on the agent's mind. */
+    nobodyOnMindText: "No one in particular.",
   },
 
   decision: {
@@ -589,7 +601,6 @@ export const config = {
       "did",
       "reflections",
       "conversations",
-      "people",
     ] satisfies Bucket[] as Bucket[],
   },
 
@@ -664,8 +675,6 @@ export const config = {
     nightMemoryWindowHours: 24,
     /** At most this many of the day's memories (strongest, then newest) reach the night prompt. */
     nightMemoriesShown: 40,
-    /** The night prompt shows up to this many current notes for each person met today. */
-    peopleNotesShownPerPerson: 3,
     /** Trait values are rounded to this many decimals after a weekly change. */
     traitValueDecimals: 3,
   },

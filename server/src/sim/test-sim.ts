@@ -80,9 +80,9 @@ export function buildEmptyItems(): ItemCatalog {
   );
 }
 
-/** A world with no agents, entities or memories beyond those given. */
+/** A world with no agents or entities beyond those given. */
 export function buildEmptySeededWorld(seeded: Partial<SeededWorld> = {}): SeededWorld {
-  return { agents: [], memories: [], entities: [], nextEntityId: 1, ...seeded };
+  return { agents: [], entities: [], nextEntityId: 1, ...seeded };
 }
 
 /** A placed map object by its label ("bakery door"). */

@@ -50,7 +50,7 @@ describe("reflection reply schemas", () => {
       summary: "A long day.",
       moodEntry: "Tired.",
       insights: manyInsights,
-      peopleNotes: [],
+      dossiers: [],
     });
     expect(parsed.insights.length).toBeLessThan(manyInsights.length);
   });

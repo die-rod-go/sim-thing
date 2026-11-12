@@ -37,7 +37,7 @@ describe("memoryView", () => {
   it("counts memories in every bucket, including empty ones", () => {
     const counts = countMemoriesByBucket(memories);
     expect(counts.seen).toBe(2);
-    expect(counts.people).toBe(0);
+    expect(counts.places).toBe(0);
   });
 
   it("counts tags, most common first", () => {

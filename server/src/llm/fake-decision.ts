@@ -109,7 +109,6 @@ export function buildDecisionReply(
     amount: null,
     query: null,
     minutes: null,
-    note: null,
     mood: null,
   };
   const meal = findMealToEat(choices);

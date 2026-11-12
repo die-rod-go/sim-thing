@@ -134,7 +134,6 @@ export const clientConfig = {
 
   ui: {
     maxPersonalityHistoryShown: 50,
-    maxPersonNotesShown: 3,
     maxTagChips: 30,
     /** Tallest a conversation card grows before it scrolls inside itself. */
     maxThreadHeightPx: 260,

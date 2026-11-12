@@ -49,6 +49,7 @@ const agent = {
   currentAction: null,
   workingMemory: [],
   awareness: {},
+  dossiers: {},
   lastThought: null,
 };
 

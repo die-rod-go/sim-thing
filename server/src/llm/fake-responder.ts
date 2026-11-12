@@ -79,7 +79,7 @@ function buildBuiltInAnswers(hitRollVerbs: ReadonlySet<string>): Record<string, 
       summary: "I went about my work and talked with a few people.",
       moodEntry: "tired but settled",
       insights: [{ text: "Keeping busy makes the day go well." }],
-      peopleNotes: [],
+      dossiers: [],
     }),
     conversation_summary_reply: () => ({
       summary: "I chatted with the people around me about the day's work. Nothing was settled.",

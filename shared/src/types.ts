@@ -97,8 +97,15 @@ export interface Agent {
   currentAction: CurrentAction | null;
   workingMemory: string[];
   awareness: Record<string, Awareness>;
+  /** What the agent holds about each other person, keyed by their agent id; rewritten whole. */
+  dossiers: Record<string, Dossier>;
   /** The `thought` from the agent's latest decision, for the viewer; never shown to agents. */
   lastThought: AgentThought | null;
+}
+
+export interface Dossier {
+  text: string;
+  updatedTick: number;
 }
 
 export interface AgentThought {
@@ -106,15 +113,13 @@ export interface AgentThought {
   tick: number;
 }
 
-export type Bucket =
-  "seen" | "conversations" | "overheard" | "did" | "people" | "places" | "reflections";
+export type Bucket = "seen" | "conversations" | "overheard" | "did" | "places" | "reflections";
 
 export const BUCKETS: readonly Bucket[] = [
   "seen",
   "conversations",
   "overheard",
   "did",
-  "people",
   "places",
   "reflections",
 ];

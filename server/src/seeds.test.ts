@@ -50,17 +50,17 @@ function makeSeedAgent(overrides: Partial<SeedAgent> = {}): SeedAgent {
     goals: [
       { text: "Bake every day", why: "It is my job", progress: "Not started", kind: "world" },
     ],
-    peopleNotes: {
-      Edwin: "Has farmed here all his life.",
-      Wren: "The young farmer.",
-    },
+    peopleNotes: {},
     ...overrides,
   };
 }
 
 describe("seeds", () => {
   const seedFile = parseSeedFile({
-    agents: [makeSeedAgent(), makeSeedAgent({ id: "ilsa", name: "Ilsa", peopleNotes: {} })],
+    agents: [
+      makeSeedAgent({ peopleNotes: { Ilsa: "Runs the square.", Bram: "  " } }),
+      makeSeedAgent({ id: "ilsa", name: "Ilsa" }),
+    ],
   });
   const world = buildSeededWorld(seedFile, map, items);
 
@@ -134,19 +134,17 @@ describe("seeds", () => {
     expect(() => buildSeededWorld(broken, map, items)).toThrow(/entity-/);
   });
 
-  it("files one people memory per seed note, tagged with the person", () => {
-    const maraMemories = world.memories.filter((memory) => memory.agentId === "mara");
-    expect(maraMemories).toHaveLength(2);
-    const aboutEdwin = maraMemories.find((memory) => memory.tags.includes("edwin"));
-    expect(aboutEdwin).toMatchObject({
-      bucket: "people",
-      tick: 0,
-      strength: config.memory.newMemoryStrength,
-      lastRecalledTick: null,
+  it("turns a seed note into the agent's dossier on that person", () => {
+    const mara = world.agents.find((agent) => agent.id === "mara");
+    expect(mara?.dossiers).toEqual({ ilsa: { text: "Runs the square.", updatedTick: 0 } });
+    expect(world.agents.find((agent) => agent.id === "ilsa")?.dossiers).toEqual({});
+  });
+
+  it("rejects a seed note about someone who is not in the village", () => {
+    const stranger = parseSeedFile({
+      agents: [makeSeedAgent({ peopleNotes: { Zed: "A drifter." } })],
     });
-    expect(aboutEdwin?.text).toBe("Edwin: Has farmed here all his life.");
-    const ids = world.memories.map((memory) => memory.id);
-    expect(new Set(ids).size).toBe(ids.length);
+    expect(() => buildSeededWorld(stranger, map, items)).toThrow(/Zed/);
   });
 
   it("rejects a seed agent with no start tile on the map", () => {
@@ -160,14 +158,5 @@ describe("seeds", () => {
       agents: [{ ...first, traits: { ...first.traits, openness: 3 } }],
     });
     expect(() => buildSeededWorld(broken, map, items)).toThrow(/traits.openness/);
-  });
-
-  it("files no people memory for a blank note", () => {
-    const withBlankNote = {
-      ...makeSeedAgent(),
-      peopleNotes: { Edwin: "  ", Wren: "Young farmer." },
-    };
-    const blankWorld = buildSeededWorld({ agents: [withBlankNote] }, map, items);
-    expect(blankWorld.memories.map((memory) => memory.text)).toEqual(["Wren: Young farmer."]);
   });
 });

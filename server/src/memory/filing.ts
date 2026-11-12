@@ -302,21 +302,3 @@ export function fileFirstVisit(
   };
   return createMemory(draft, tick, idGenerator);
 }
-
-/** A `people` memory from the agent's own note about a person, tagged with that person. */
-export function filePersonNote(
-  agentId: string,
-  person: string,
-  text: string,
-  tick: number,
-  idGenerator: MemoryIdGenerator,
-  knownNames: readonly string[] = [],
-): Memory {
-  const draft: MemoryDraft = {
-    agentId,
-    bucket: "people",
-    text: `About ${person}: ${text}`,
-    tags: uniqueTags([person, ...extractTags(text, knownNames)]),
-  };
-  return createMemory(draft, tick, idGenerator);
-}

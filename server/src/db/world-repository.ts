@@ -3,10 +3,12 @@ import type {
   Agent,
   Bucket,
   ComponentChanges,
+  Dossier,
   Entity,
   EntityLocation,
   Memory,
 } from "@village/shared";
+import { resolveName } from "../decision/resolve-name";
 import { simRuntimeSchema, type SimRuntime } from "../sim/agent-runtime";
 import type { Database } from "./database";
 
@@ -49,11 +51,39 @@ const currentAgentFieldsSchema = z.object({
   body: z.object({ strength: z.number(), agility: z.number() }),
 });
 
+/** A saved agent; saves from before dossiers lack them. */
+type SavedAgent = Omit<Agent, "dossiers"> & { dossiers?: Record<string, Dossier> };
+
 /** Agent rows were written by saveWorld from typed values, so a current-format row is trusted. */
-function parseSavedAgent(data: string): Agent {
+function parseSavedAgent(data: string): SavedAgent {
   const parsed: unknown = JSON.parse(data);
   if (!currentAgentFieldsSchema.safeParse(parsed).success) throw new Error(OLD_SAVE_MESSAGE);
-  return parsed as Agent;
+  return parsed as SavedAgent;
+}
+
+/** Saves from before dossiers kept a `people` bucket of memories. */
+const LEGACY_PEOPLE_BUCKET = "people";
+
+/**
+ * Dossiers for an agent saved without any, from its seed people notes: the `people` memories filed
+ * at tick 0, as "Name: note". Later people notes are dropped on purpose, since many recorded
+ * intended outcomes as facts. A note whose person is no longer in the village is dropped too.
+ */
+function buildDossiersFromLegacyNotes(
+  agent: SavedAgent,
+  agents: readonly SavedAgent[],
+  legacyRows: readonly MemoryRow[],
+): Record<string, Dossier> {
+  const dossiers: Record<string, Dossier> = {};
+  const seedNotes = legacyRows.filter((row) => row.agent_id === agent.id && row.tick === 0);
+  for (const row of seedNotes) {
+    const separatorIndex = row.text.indexOf(": ");
+    if (separatorIndex < 0) continue;
+    const personId = resolveName(row.text.slice(0, separatorIndex), agents);
+    if (personId === null || personId === agent.id) continue;
+    dossiers[personId] = { text: row.text.slice(separatorIndex + 2), updatedTick: 0 };
+  }
+  return dossiers;
 }
 
 interface EntityRow {
@@ -173,16 +203,20 @@ export function loadWorld(database: Database): SavedWorld | null {
     maxMomentId: number | null;
   };
 
-  const agents = database
+  const savedAgents = database
     .prepare("SELECT data FROM agents ORDER BY rowid")
     .all()
     .map((row) => parseSavedAgent((row as { data: string }).data));
   const entities = (
     database.prepare("SELECT * FROM entities ORDER BY rowid").all() as EntityRow[]
   ).map(toEntity);
-  const memories = (
-    database.prepare("SELECT * FROM memories ORDER BY rowid").all() as MemoryRow[]
-  ).map(toMemory);
+  const memoryRows = database.prepare("SELECT * FROM memories ORDER BY rowid").all() as MemoryRow[];
+  const legacyRows = memoryRows.filter((row) => row.bucket === LEGACY_PEOPLE_BUCKET);
+  const memories = memoryRows.filter((row) => row.bucket !== LEGACY_PEOPLE_BUCKET).map(toMemory);
+  const agents = savedAgents.map((agent): Agent => ({
+    ...agent,
+    dossiers: agent.dossiers ?? buildDossiersFromLegacyNotes(agent, savedAgents, legacyRows),
+  }));
 
   return {
     ...meta,

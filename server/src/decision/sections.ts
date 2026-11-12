@@ -7,6 +7,7 @@ import type {
   ConversationLine,
   CurrentActionSummary,
   DecisionTargets,
+  PersonOnMind,
   PromptEntityGroup,
   RecalledMemory,
 } from "./context";
@@ -68,6 +69,13 @@ export function describeBelongings(groups: PromptEntityGroup[], itemlessVerbs: s
 
 export function describeWorkingMemory(workingMemory: string[]): string {
   return bulletList(workingMemory, NOTHING);
+}
+
+export function describePeopleOnMind(people: PersonOnMind[]): string {
+  return bulletList(
+    people.map((person) => `${person.name}: ${person.text}`),
+    config.dossier.nobodyOnMindText,
+  );
 }
 
 export function describeConversation(lines: ConversationLine[]): string {

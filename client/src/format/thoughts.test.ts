@@ -49,7 +49,7 @@ describe("summarizeLlmCall", () => {
     expect(summarizeLlmCall(call).parts.map((entryPart) => entryPart.label)).toEqual(["intends"]);
   });
 
-  it("reads a night reflection's summary, insights and people notes", () => {
+  it("reads a night reflection's summary, insights and dossiers", () => {
     const call = {
       ...makeSampleLlmCall(2, "ada", 900),
       kind: "night" as const,
@@ -57,7 +57,7 @@ describe("summarizeLlmCall", () => {
         summary: "A long day at the oven.",
         moodEntry: "tired but proud",
         insights: [{ text: "Bob always pays late" }],
-        peopleNotes: [{ person: "Bob", text: "owes me two coins" }],
+        dossiers: [{ person: "Bob", text: "owes me two coins" }],
       },
     };
     const entry = summarizeLlmCall(call);

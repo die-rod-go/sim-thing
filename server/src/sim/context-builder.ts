@@ -6,7 +6,8 @@ import type {
   DecisionTargets,
   RecalledMemory,
 } from "../decision/context";
-import { currentConversation } from "../memory/conversation";
+import { listPeopleOnMind } from "../decision/people-on-mind";
+import { currentConversation, OWN_SPEAKER_NAME } from "../memory/conversation";
 import {
   buildCue,
   buildCueText,
@@ -192,6 +193,22 @@ export function buildDecisionContext(
       normalHearerIds: listeners.wouldHearNormal,
       whisperHearerIds: listeners.wouldHearWhisper,
     },
+    peopleOnMind: listPeopleOnMind({
+      others: state.agents
+        .filter((other) => other.id !== agentId)
+        .map((other) => ({ id: other.id, name: other.name })),
+      dossiers: agent.dossiers,
+      inSightIds: runtime.visibleAgentIds,
+      speakerNames: conversation
+        .map((line) => line.speakerName)
+        .filter((speakerName) => speakerName !== OWN_SPEAKER_NAME),
+      mentioningTexts: [
+        agent.intention,
+        agent.dailyPlan,
+        ...agent.goals.map((goal) => goal.text),
+        ...conversationLines,
+      ],
+    }),
     belongings: buildBelongings(state, agent),
     itemlessVerbs: listItemlessVerbNames(state),
     workingMemory: agent.workingMemory.filter(

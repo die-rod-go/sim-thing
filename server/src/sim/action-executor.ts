@@ -3,7 +3,6 @@ import { config } from "../config";
 import { normalizeDisplayName, resolveName } from "../decision/resolve-name";
 import { computeChebyshevDistance, executeGive } from "../economy/give";
 import { describeEntityName, listTileEntitiesAt } from "../items/entity-store";
-import { filePersonNote } from "../memory/filing";
 import { pushWorkingMemory } from "../memory/working-memory";
 import { isDead } from "../status/health";
 import { WAIT_ACTION } from "./action-phrases";
@@ -19,11 +18,9 @@ import { startWalk } from "./walk-start";
 import {
   describeAgentAsSeen,
   findAgent,
-  listKnownNames,
   listOthersAsSeen,
   markAgentChanged,
   markEntityChanged,
-  rememberBriefly,
   replaceAgent,
 } from "./world-access";
 
@@ -34,7 +31,7 @@ function chooseLastThought(agent: Agent, reply: DecisionReply, tick: number): Ag
   return text ? { text, tick } : agent.lastThought;
 }
 
-/** intention, mood and note: free mental acts that ride along with any action. */
+/** intention and mood: free mental acts that ride along with any action. */
 function applyFreeActs(context: TickContext, agentId: string, decided: DecidedReply): void {
   const { state } = context;
   const { reply } = decided;
@@ -45,20 +42,6 @@ function applyFreeActs(context: TickContext, agentId: string, decided: DecidedRe
     mood: reply.mood ?? agent.mood,
     lastThought: chooseLastThought(agent, reply, state.tick),
   });
-  if (reply.note) {
-    const personId = resolveName(reply.note.person, state.agents);
-    const personName = personId ? findAgent(state, personId).name : reply.note.person;
-    const memory = filePersonNote(
-      agentId,
-      personName,
-      reply.note.text,
-      state.tick,
-      state.memoryIds,
-      listKnownNames(state),
-    );
-    state.memoryStore.add(memory);
-    rememberBriefly(state, agentId, `I noted: ${memory.text}`);
-  }
 }
 
 function startWait(context: TickContext, agentId: string, minutes: number): void {

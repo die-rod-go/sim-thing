@@ -14,7 +14,7 @@ function nightReply(overrides: Record<string, unknown> = {}): string {
     summary: "I baked all day and Bob paid me.",
     moodEntry: "Tired but content.",
     insights: [{ text: "Bob keeps his word." }, { text: "Mornings are my best hours." }],
-    peopleNotes: [],
+    dossiers: [],
     ...overrides,
   });
 }
@@ -22,14 +22,20 @@ function nightReply(overrides: Record<string, unknown> = {}): string {
 function setUpNight(reply: string, store = new MemoryStore()) {
   const { client, callStructured } = makeFakeCaller([reply]);
   const input: NightPassInput = {
-    agent: makeAgent({ mood: "busy" }),
+    agent: makeAgent({
+      mood: "busy",
+      dossiers: { bob: { text: "owes me 3 coins", updatedTick: 10 } },
+    }),
     health: 1,
     store,
     idGenerator: new MemoryIdGenerator(),
     callStructured,
     tick: NIGHT_TICK,
     knownNames: ["Bob", "Clara", "bakery"],
-    otherAgentNames: ["Bob", "Clara"],
+    otherAgents: [
+      { id: "bob", name: "Bob" },
+      { id: "clara", name: "Clara" },
+    ],
   };
   return { client, input, store };
 }
@@ -65,7 +71,7 @@ describe("runNightPass", () => {
     }
   });
 
-  it("night pass rewrites people notes only for known people", async () => {
+  it("night pass rewrites dossiers only for known people", async () => {
     const store = new MemoryStore();
     store.addAll([
       makeMemory({
@@ -75,27 +81,25 @@ describe("runNightPass", () => {
         text: 'Bob said: "Here are your coins"',
         tags: ["bob"],
       }),
-      makeMemory({
-        id: "old-note",
-        bucket: "people",
-        tick: 10,
-        text: "About Bob: owes me 3 coins",
-        tags: ["bob"],
-      }),
     ]);
     const reply = nightReply({
-      peopleNotes: [
+      dossiers: [
         { person: "bob", text: "paid his debt; reliable" },
         { person: "Zed", text: "a stranger I made up" },
       ],
     });
     const { input, client } = setUpNight(reply, store);
     const result = await runNightPass(input);
-    expect(lastPrompt(client)).toContain("Bob: About Bob: owes me 3 coins");
-    const notes = store.listByAgentAndBucket("mara", "people");
-    expect(notes.map((note) => note.text)).toEqual(["About Bob: paid his debt; reliable"]);
-    expect(notes[0]?.tags).toEqual(["bob"]);
-    expect(result.deletedMemoryIds).toContain("old-note");
+    expect(lastPrompt(client)).toContain("Bob: owes me 3 coins");
+    expect(result.agent.dossiers).toEqual({
+      bob: { text: "paid his debt; reliable", updatedTick: NIGHT_TICK },
+    });
+  });
+
+  it("night pass keeps the dossiers it was not asked to change", async () => {
+    const { input } = setUpNight(nightReply());
+    const result = await runNightPass(input);
+    expect(result.agent.dossiers).toEqual({ bob: { text: "owes me 3 coins", updatedTick: 10 } });
   });
 
   it("night pass deletes faded memories", async () => {
