@@ -29,6 +29,7 @@ import {
   buildPerceptionWorld,
   describeAgentAsSeen,
   findAgent,
+  formatWorkingMemoryEntry,
   listKnownNames,
   listLivingAgents,
   toPerceiver,
@@ -97,13 +98,16 @@ function recallMemories(
     knownNames: listKnownNames(state),
   });
   const recalled = recallForDecision(state.memoryStore, agent.id, cue, state.tick);
+  const onMind = new Set(agent.workingMemory);
   return Object.fromEntries(
     BUCKETS.map((bucket) => [
       bucket,
-      recalled[bucket].map((memory) => ({
-        text: memory.text,
-        minutesAgo: minutesSince(memory.tick, state.tick),
-      })),
+      recalled[bucket]
+        .filter((memory) => !onMind.has(formatWorkingMemoryEntry(memory.tick, memory.text)))
+        .map((memory) => ({
+          text: memory.text,
+          minutesAgo: minutesSince(memory.tick, state.tick),
+        })),
     ]),
   );
 }
