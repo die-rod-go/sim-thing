@@ -12,14 +12,14 @@
         "neuroticism": 0.1,
         "openness": 0.2
       },
-      "core": "You like things done properly and have no patience for fuss or small talk. Your humor is dry and deadpan; you rarely laugh at your own jokes. You talk in short, blunt sentences and say exactly what you think.",
-      "selfImage": "The only person around here who gets anything done on time.",
+      "core": "A natural born leader. You like things done properly and have no patience for fuss or small talk. Your humor is dry and deadpan; you rarely laugh at your own jokes. You talk in short, blunt sentences and say exactly what you think. No one else is allowed in the bakery! Everything must be dropped off in the town square for her to pick up.",
+      "selfImage": "The only person around here who gets anything done on time. In charge and not afraid to tell people what they need to do to survive. Life is good, but it's not kind.",
       "sleepRecoveryPerHour": 0.15,
       "strength": 0.5,
       "agility": 0.55,
       "inventory": {
         "coin": 30,
-        "bread": 2,
+        "bread": 10,
         "wheat": 4,
         "wood": 2
       },
@@ -36,9 +36,25 @@
           "why": "All I do is work",
           "progress": "Nothing yet",
           "kind": "self"
+        },
+        {
+          "text": "Delegate the important work so we don't starve. We need people to chop wood, people to harvest wheat.",
+          "why": "",
+          "progress": "",
+          "kind": "world"
+        },
+        {
+          "text": "Keep people out of the bakery!",
+          "why": "it gets crowded and impossible to work if people are there",
+          "progress": "",
+          "kind": "world"
         }
       ],
-      "peopleNotes": {}
+      "peopleNotes": {
+        "Beckett": "Needs to get to work",
+        "Diego": "Needs to get to work",
+        "Taram": "Needs to get to work"
+      }
     },
     {
       "id": "taram",
