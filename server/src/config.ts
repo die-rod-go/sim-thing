@@ -415,6 +415,8 @@ export const config = {
   walking: {
     /** A walker whose way stays blocked by other agents this many ticks gives up the walk. */
     blockedGiveUpTicks: 5,
+    /** Walkers arriving at an indoor place stop at least this many steps from its doorways. */
+    arrivalDoorwayClearanceTiles: 2,
     blockedReason: "{agent} was in the way",
   },
 

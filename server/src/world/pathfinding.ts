@@ -103,16 +103,65 @@ export function listPlaceTiles(grid: TileGrid, place: PlaceArea): Position[] {
   return tiles;
 }
 
-/** Path to the nearest walkable tile inside the named place; null for an unknown place. */
+function isOnPlaceEdge(place: PlaceArea, position: Position): boolean {
+  const isInside =
+    position.x >= place.x &&
+    position.y >= place.y &&
+    position.x < place.x + place.width &&
+    position.y < place.y + place.height;
+  const isOnEdge =
+    position.x === place.x ||
+    position.y === place.y ||
+    position.x === place.x + place.width - 1 ||
+    position.y === place.y + place.height - 1;
+  return isInside && isOnEdge;
+}
+
+/** The gaps in an indoor place's walls: floor tiles on its edge. Outdoor places have none. */
+export function listDoorwayTiles(grid: TileGrid, place: PlaceArea): Position[] {
+  if (!place.isIndoor) return [];
+  const doorways: Position[] = [];
+  for (let y = place.y; y < place.y + place.height; y++) {
+    for (let x = place.x; x < place.x + place.width; x++) {
+      const position = { x, y };
+      if (isOnPlaceEdge(place, position) && isWalkable(grid, position)) doorways.push(position);
+    }
+  }
+  return doorways;
+}
+
+/**
+ * Tiles to arrive on inside a place: its free floor, leaving out tiles within `doorwayClearance`
+ * steps of a doorway while any others are free, so arrivals don't stop in the way in or out.
+ */
+export function listArrivalTiles(
+  map: WorldMap,
+  grid: TileGrid,
+  place: PlaceArea,
+  doorwayClearance: number,
+): Position[] {
+  const tiles = listPlaceTiles(grid, place);
+  const doorways = listDoorwayTiles(map.grid, place);
+  const clearTiles = tiles.filter((tile) =>
+    doorways.every((doorway) => manhattanDistance(tile, doorway) > doorwayClearance),
+  );
+  return clearTiles.length > 0 ? clearTiles : tiles;
+}
+
+/**
+ * Path to the nearest arrival tile inside the named place, kept `doorwayClearance` steps away
+ * from its doorways when there is room; null for an unknown place.
+ */
 export function findPathToPlace(
   map: WorldMap,
   grid: TileGrid,
   from: Position,
   placeName: string,
+  doorwayClearance = 0,
 ): Position[] | null {
   const place = map.places.find((area) => area.name === placeName);
   if (!place) return null;
-  return findPathToAny(grid, from, listPlaceTiles(grid, place));
+  return findPathToAny(grid, from, listArrivalTiles(map, grid, place, doorwayClearance));
 }
 
 /** Path onto the tile if it is walkable, otherwise to a walkable tile next to it. */
