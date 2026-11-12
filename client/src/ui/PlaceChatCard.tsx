@@ -1,10 +1,9 @@
-import { useState } from "react";
 import { formatSimTime } from "@village/shared";
 import { clientConfig } from "../client-config";
 import type { SpokenLine } from "../format/conversations";
 import type { PlaceChat } from "../format/story-feed";
 import { usePanelContext } from "./panel-context";
-import { ThreadBody } from "./ThreadCard";
+import { ThreadBody, useFoldState } from "./ThreadCard";
 import { ColorDot } from "./widgets";
 
 function findLatestLine(chat: PlaceChat): SpokenLine | null {
@@ -12,11 +11,10 @@ function findLatestLine(chat: PlaceChat): SpokenLine | null {
   return lines[lines.length - 1] ?? null;
 }
 
-/** One place's chat: open while people are talking there, folded to its latest line once quiet. */
+/** One place's chat: opens when people talk there; only the reader folds it to its latest line. */
 export function PlaceChatCard({ chat }: { chat: PlaceChat }) {
   const { state, focusThread, highlightAgents } = usePanelContext();
-  const [isExpandedByReader, setIsExpandedByReader] = useState<boolean | null>(null);
-  const isExpanded = isExpandedByReader ?? chat.isLive;
+  const [isExpanded, setIsExpanded] = useFoldState(chat.isLive);
   const latestLine = findLatestLine(chat);
 
   return (
@@ -28,7 +26,7 @@ export function PlaceChatCard({ chat }: { chat: PlaceChat }) {
       <header className="thread-header">
         <button
           className="thread-toggle"
-          onClick={() => setIsExpandedByReader(!isExpanded)}
+          onClick={() => setIsExpanded(!isExpanded)}
           aria-expanded={isExpanded}
           title={isExpanded ? "Fold" : "Unfold"}
         >
@@ -52,14 +50,10 @@ export function PlaceChatCard({ chat }: { chat: PlaceChat }) {
         </span>
       </header>
       {isExpanded ? (
-        <ThreadBody
-          entries={chat.entries}
-          isLive={chat.isLive}
-          maxGapTicks={clientConfig.conversations.maxGapTicks}
-        />
+        <ThreadBody entries={chat.entries} maxGapTicks={clientConfig.conversations.maxGapTicks} />
       ) : (
         latestLine && (
-          <button className="thread-preview" onClick={() => setIsExpandedByReader(true)}>
+          <button className="thread-preview" onClick={() => setIsExpanded(true)}>
             <strong>{latestLine.speakerName}:</strong> {latestLine.words}
           </button>
         )
