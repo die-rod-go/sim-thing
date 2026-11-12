@@ -95,7 +95,8 @@ export function progressActions(context: TickContext): void {
     if (action.kind === WALK_ACTION && getAgentRuntime(state, agentId).walk) {
       advanceWalk(context, agentId);
     } else if (isAsleep(agent)) {
-      if (findWakeReason(agent, state.tick) !== null) wakeAgent(context, agentId);
+      const wakeReason = findWakeReason(agent, state.tick);
+      if (wakeReason !== null) wakeAgent(context, agentId, wakeReason);
     } else if (action.verb !== undefined) {
       if (hasEnded(action.endsAtTick, state.tick)) resumeRunningVerb(context, agentId);
     } else if (action.kind !== WAIT_ACTION || hasEnded(action.endsAtTick, state.tick)) {

@@ -20,7 +20,9 @@ import {
 } from "./combat-test-kit";
 import { createTestSim, decisionReply, findEntityByLabel, scriptByAgent } from "./test-sim";
 import type { TestSim } from "./test-sim";
+import { progressActions } from "./tick-phases";
 import { advanceWalk } from "./walking";
+import { replaceAgent } from "./world-access";
 
 const ALWAYS_HIT = 0;
 const FOUR_TILES_AWAY = { x: 23, y: 15 };
@@ -78,6 +80,18 @@ describe("everyday verbs", () => {
     wakeAgent(contextOf(sim), "mara");
     expect(getAgentRuntime(sim.state, "mara").verbRun).toBeNull();
     expect(sim.agent("mara").currentAction).toBeNull();
+  });
+
+  it("tells a sleeper who wakes on their own why they woke", () => {
+    const sim = buildCombatSim(["mara"]);
+    standOn(sim, "mara", "rose cottage bed");
+    aim(sim, "mara", { verb: "sleep", itemName: "rose cottage bed" });
+    const sleeper = sim.agent("mara");
+    replaceAgent(sim.state, { ...sleeper, needs: { ...sleeper.needs, energy: 1 } });
+    const context = contextOf(sim);
+    progressActions(context);
+    const woke = context.result.events.find((event) => event.kind === "woke");
+    expect(woke?.description).toBe("woke up rested in the rose cottage bed");
   });
 
   it("walks to an item lying out of reach, then picks it up", () => {

@@ -1,4 +1,4 @@
-import { endSleep, isAsleep } from "../economy/sleep";
+import { endSleep, isAsleep, type WakeReason } from "../economy/sleep";
 import { findEntityIfPresent } from "../items/entity-store";
 import { getAgentRuntime } from "./agent-runtime";
 import { broadcastEvent } from "./event-broadcast";
@@ -19,12 +19,22 @@ function leaveSleepingPlace(context: TickContext, agentId: string): string | nul
   return sleepingPlace && run ? run.itemName : null;
 }
 
-/** Wakes a sleeping agent, frees what it slept in, broadcasts `woke` and tells the reflection hook. */
-export function wakeAgent(context: TickContext, agentId: string): void {
+const WAKE_REASON_WORDS: Record<WakeReason, string> = {
+  rested: "woke up rested",
+  hungry: "woke up hungry",
+  nap_over: "woke up from the planned nap",
+};
+
+/**
+ * Wakes a sleeping agent, frees what it slept in, broadcasts `woke` and tells the reflection hook.
+ * A `reason` is given when the sleep ended on its own, so the agent knows why it woke.
+ */
+export function wakeAgent(context: TickContext, agentId: string, reason?: WakeReason): void {
   const { state } = context;
   const startedAtTick = getAgentRuntime(state, agentId).verbRun?.startedAtTick ?? state.tick;
   const placeName = leaveSleepingPlace(context, agentId);
-  const description = placeName ? `woke up in the ${placeName}` : "woke up";
+  const wakeWords = reason ? WAKE_REASON_WORDS[reason] : "woke up";
+  const description = placeName ? `${wakeWords} in the ${placeName}` : wakeWords;
   const awake = findAgent(state, agentId);
   broadcastEvent(state, createEvent(state, awake, { kind: "woke", description }), context.result);
   context.dependencies.reflectionHook.onWoke(
