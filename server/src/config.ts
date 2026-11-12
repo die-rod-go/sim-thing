@@ -63,7 +63,7 @@ export const config = {
   },
 
   perception: {
-    sightRangeTiles: 12,
+    sightRangeTiles: 24,
     openTileSoundCost: 1,
     closedDoorSoundCost: 4,
     muffledReachMultiplier: 1.5,
@@ -86,7 +86,7 @@ export const config = {
 
   needs: {
     startValue: 0.8,
-    decayPerDayAwake: { hunger: 1.0, energy: 0.8, social: 0.8, fun: 0.6 } satisfies Record<
+    decayPerDayAwake: { hunger: 0.5, energy: 0.8, social: 0.8, fun: 0.6 } satisfies Record<
       NeedName,
       number
     >,
