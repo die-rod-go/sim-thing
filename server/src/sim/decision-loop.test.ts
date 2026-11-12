@@ -28,7 +28,7 @@ function findOven(sim: TestSim) {
 
 function loadOvenWithBakingSupplies(sim: TestSim): void {
   const oven = findOven(sim);
-  for (const definitionId of ["wheat", "wheat", "wood"]) {
+  for (const definitionId of ["flour", "flour", "water"]) {
     createEntity(sim.state, definitionId, locateInside(oven.id));
   }
 }
@@ -135,8 +135,8 @@ describe("decision loop", () => {
     expect(sim.client.requests[1]?.schemaName).toBe("interact_reply");
     expect(promptOf(sim.client.requests[1]!)).toContain("bake bread");
     expect(sim.agent("mara").currentAction).toMatchObject({ kind: "interact", verb: "bake bread" });
-    expect(countInOven(sim, "wheat")).toBe(0);
-    expect(countInOven(sim, "wood")).toBe(0);
+    expect(countInOven(sim, "flour")).toBe(0);
+    expect(countInOven(sim, "water")).toBe(0);
     expect(sim.results[0]?.events[0]?.description).toBe("started baking bread at the oven");
     await sim.advance(90);
     expect(countInOven(sim, "bread")).toBe(4);

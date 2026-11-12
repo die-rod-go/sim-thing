@@ -34,9 +34,9 @@ describe("persistence", () => {
     const saved = toSavedWorld(sim.state, createDefaultSettings());
     const [first, ...rest] = saved.entities;
     if (!first) throw new Error("the test world has no entities");
-    const orphaned = { ...saved, entities: [{ ...first, definitionId: "anvil" }, ...rest] };
+    const orphaned = { ...saved, entities: [{ ...first, definitionId: "windmill" }, ...rest] };
     expect(() => restoreWorldState(orphaned, sim.state.map, sim.state.items)).toThrow(
-      /anvil.*make reset/,
+      /windmill.*make reset/,
     );
   });
 });

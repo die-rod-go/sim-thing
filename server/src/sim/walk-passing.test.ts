@@ -28,15 +28,15 @@ function lockOpeningBehindACheck(sim: TestSim): void {
             {
               step: "check",
               on: "item",
-              if: { not: { has: "locked" } },
-              otherwise: "the door was locked",
+              if: { not: { has: "barred" } },
+              otherwise: "the door was barred",
             },
             ...verb.steps,
           ],
         }
       : verb,
   );
-  const components = { ...file.components, locked: { description: "Can't be opened." } };
+  const components = { ...file.components, barred: { description: "Can't be opened." } };
   sim.state.items = buildItemCatalog(parseItemFile({ ...file, components, verbs }));
 }
 
@@ -59,13 +59,13 @@ describe("walking into a blocked tile", () => {
     expect(sim.agent("mara").currentAction).toBeNull();
   });
 
-  it("turns the walker away from a locked door and leaves it closed", () => {
+  it("turns the walker away from a barred door and leaves it closed", () => {
     const sim = setUpSteps();
     const door = closeBakeryDoor(sim);
     lockOpeningBehindACheck(sim);
-    addComponent(contextOf(sim), entityThing(door), "locked", { minutes: null });
+    addComponent(contextOf(sim), entityThing(door), "barred", { minutes: null });
     const context = contextOf(sim);
-    expect(clearTileInPassing(context, "mara", door.location.pos)).toBe("the door was locked");
+    expect(clearTileInPassing(context, "mara", door.location.pos)).toBe("the door was barred");
     expect(isClosed(sim, door)).toBe(true);
     expect(context.result.events).toEqual([]);
   });

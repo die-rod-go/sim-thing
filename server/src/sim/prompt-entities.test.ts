@@ -61,12 +61,12 @@ describe("entities in prompts", () => {
     const sim = buildSim();
     const door = findEntityByLabel(sim.state, "bakery door");
     const field = findEntityByLabel(sim.state, "wheat field");
-    setField(sim, entityThing(field), "stock.amount", 0);
+    setField(sim, entityThing(field), "stock.amount", 2);
     expect(
       groupEntitiesForPrompt(sim.state, "mara", [door, findEntity(sim.state, field.id)]),
     ).toEqual([
       { text: "bakery door", details: [], verbs: ["close"], contents: [] },
-      { text: "wheat field", details: ["empty"], verbs: ["harvest wheat"], contents: [] },
+      { text: "wheat field", details: ["2 left"], verbs: ["harvest"], contents: [] },
     ]);
   });
 
@@ -82,7 +82,7 @@ describe("entities in prompts", () => {
     ]);
     expect(fieldGroup?.details).toEqual(["wet", "6 left"]);
     expect(knifeGroup?.details).toEqual(["on the floor"]);
-    setField(sim, entityThing(field), "stock.amount", 0);
+    setField(sim, entityThing(field), "stock.amount", 0.5);
     expect(
       groupEntitiesForPrompt(sim.state, "mara", [findEntity(sim.state, field.id)])[0]?.details,
     ).toEqual(["wet", "empty"]);

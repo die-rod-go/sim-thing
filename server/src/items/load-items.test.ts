@@ -24,8 +24,8 @@ describe("loading items.json", () => {
   });
 
   it("refuses a map object naming an unknown definition", () => {
-    expect(() => buildCheckedItemCatalog(itemsJson, [mapObject("anvil")])).toThrow(
-      /map object "anvil" uses "anvil", which has no definition/,
+    expect(() => buildCheckedItemCatalog(itemsJson, [mapObject("windmill")])).toThrow(
+      /map object "windmill" uses "windmill", which has no definition/,
     );
   });
 

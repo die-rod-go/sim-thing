@@ -81,12 +81,12 @@ describe("every rules", () => {
 
   it("adds a regrowing stock's hourly step on the tick that completes the hour", () => {
     const sim = setUpRules();
-    const field = placeThing(sim, "wheat_field", OPEN_GROUND);
-    setStock(sim, field, 2);
+    const tree = placeThing(sim, "apple_tree", OPEN_GROUND);
+    setStock(sim, tree, 2);
     runTicks(sim, 59);
-    expect(readNumberField(sim.state, field, "stock.amount")).toBe(2);
+    expect(readNumberField(sim.state, tree, "stock.amount")).toBe(2);
     runTicks(sim, 1);
-    expect(readNumberField(sim.state, field, "stock.amount")).toBe(2.5);
+    expect(readNumberField(sim.state, tree, "stock.amount")).toBe(2.2);
   });
 
   it("sees a component added during the phase first on the next tick", () => {

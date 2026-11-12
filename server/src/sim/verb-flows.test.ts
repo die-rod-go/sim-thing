@@ -53,18 +53,19 @@ describe("everyday verbs", () => {
     expect(memoryTexts(sim, "mara")).toContain("I finished eating bread");
   });
 
-  it("harvests wheat from the field: the stock drops at once and the wheat arrives at the end", () => {
+  it("harvests wheat from the field: the wheat arrives and the stock drops when the work ends", () => {
     const sim = buildCombatSim(["mara"]);
     standOn(sim, "mara", "wheat field");
     const field = findEntityByLabel(sim.state, "wheat field");
     const wheatBefore = countHeld(sim.state, "mara", "wheat");
-    aim(sim, "mara", { verb: "harvest wheat", itemName: "wheat field" });
+    aim(sim, "mara", { verb: "harvest", itemName: "wheat field" });
     const stock = (): unknown =>
       readField(sim.state, { kind: "entity", entityId: field.id }, "stock.amount");
-    expect(stock()).toBe(9);
+    expect(stock()).toBe(12);
     expect(countHeld(sim.state, "mara", "wheat")).toBe(wheatBefore);
     finish(sim, "mara");
     expect(countHeld(sim.state, "mara", "wheat")).toBe(wheatBefore + 3);
+    expect(stock()).toBe(9);
   });
 
   it("sleeps in the bed, which the run keeps until the sleeper wakes", () => {

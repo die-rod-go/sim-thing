@@ -33,14 +33,14 @@ describe("set", () => {
 describe("change", () => {
   it("adds a number read from the thing's own component to a field", () => {
     const sim = setUpRules();
-    const field = placeThing(sim, "wheat_field", OPEN_GROUND);
-    applyOn(sim, field, { step: "set", field: "stock.amount", to: 1 });
-    applyOn(sim, field, {
+    const tree = placeThing(sim, "apple_tree", OPEN_GROUND);
+    applyOn(sim, tree, { step: "set", field: "stock.amount", to: 1 });
+    applyOn(sim, tree, {
       step: "change",
       field: "stock.amount",
       by: { from: "self.regrows.perHour" },
     });
-    expect(readNumberField(sim.state, field, "stock.amount")).toBe(1.5);
+    expect(readNumberField(sim.state, tree, "stock.amount")).toBe(1.2);
   });
 
   it("skips a thing without the field and clamps to the field's maximum", () => {

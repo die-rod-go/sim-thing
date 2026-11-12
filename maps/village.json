@@ -639,7 +639,7 @@
     },
     {
      "id": 24,
-     "name": "trees",
+     "name": "tree",
      "type": "",
      "rotation": 0,
      "visible": true,
@@ -651,12 +651,12 @@
       {
        "name": "name",
        "type": "string",
-       "value": "trees"
+       "value": "tree"
       },
       {
        "name": "definition",
        "type": "string",
-       "value": "trees"
+       "value": "tree"
       }
      ]
     },
