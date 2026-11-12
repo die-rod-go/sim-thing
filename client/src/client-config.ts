@@ -229,7 +229,7 @@ export const clientConfig = {
     alertLevelIndex: 1,
     words: {
       hunger: ["starving", "hungry", "peckish", "fed", "full"],
-      energy: ["desperately sleepy", "tired", "drowsy", "rested", "lively"],
+      energy: ["exhausted", "tired", "drowsy", "rested", "lively"],
       social: ["desperately lonely", "lonely", "could use company", "connected", "fulfilled"],
       fun: ["miserably bored", "bored", "restless", "entertained", "delighted"],
     },
