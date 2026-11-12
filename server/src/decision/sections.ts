@@ -1,5 +1,6 @@
 import { BUCKETS } from "@village/shared";
-import type { Bucket, Goal } from "@village/shared";
+import type { Bucket, Goal, Plan } from "@village/shared";
+import { describePlanLines } from "../memory/plans";
 import { config } from "../config";
 import { fillStatusWords } from "../status/impairment";
 import { formatMinutesAgo } from "./around-you";
@@ -23,6 +24,14 @@ export function describeGoals(goals: Goal[]): string {
     goals.map((goal) => `${goal.text} (why: ${goal.why}; so far: ${goal.progress})`),
     "No particular goals right now.",
   );
+}
+
+const NO_PLANS = "No plans yet.";
+const NEWLINE = "\n";
+
+/** The numbered plans, one per line, or "No plans yet.". */
+export function describePlans(plans: Plan[]): string {
+  return plans.length > 0 ? describePlanLines(plans).join(NEWLINE) : NO_PLANS;
 }
 
 const NESTED_INDENT = "  ";

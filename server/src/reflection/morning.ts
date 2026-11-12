@@ -1,21 +1,25 @@
 import type { Agent, Memory } from "@village/shared";
-import { describeGoals } from "../decision/sections";
+import { config } from "../config";
+import { describeGoals, describePlans } from "../decision/sections";
 import { describeStats, describeStatus, describeTraits } from "../decision/words";
 import type { StructuredCaller, StructuredCallResult } from "../llm/call-structured";
 import { renderTemplate } from "../llm/templates";
-import { describeReflections } from "./prompt-sections";
+import type { NamedPerson } from "../memory/dossiers";
+import { describeDossiers, describeReflections } from "./prompt-sections";
+import { listAimTexts, listReflectionDossiers } from "./reflection-dossiers";
 import { buildMorningReplySchema, type MorningReply } from "./reply-schemas";
 
 const MORNING_TEMPLATE = "morning";
 
 export interface MorningPassInput {
   agent: Agent;
-  /** Words for the agent's conditions, shown with its status. */
   /** The agent's health, which the status line puts in words. */
   health: number;
   conditionWords?: readonly string[];
   /** Last night's summary, mood entry and insights; see `selectLatestNightReflections`. */
   recentReflections: readonly Memory[];
+  /** Every agent except this one; the dossiers of those named in goals or plans are shown. */
+  otherAgents: readonly NamedPerson[];
   callStructured: StructuredCaller;
   tick: number;
   /** The sim time as shown to the agent, e.g. from `formatSimTime`. */
@@ -34,6 +38,19 @@ export function buildMorningPrompt(input: MorningPassInput): string {
     body: describeStats(agent.body),
     status: describeStatus({ health: input.health, needs: agent.needs }, input.conditionWords),
     goals: describeGoals(agent.goals),
+    plans: describePlans(agent.plans),
+    dossiers: describeDossiers(
+      listReflectionDossiers({
+        agent,
+        others: input.otherAgents,
+        memories: [],
+        mentioningTexts: listAimTexts(agent),
+        limit: config.reflection.dossiersShown,
+      }),
+      "No one in particular.",
+    ),
+    maxPlans: String(config.plans.maxPlans),
+    maxSteps: String(config.plans.maxSteps),
     reflections: describeReflections(input.recentReflections, "Nothing in particular."),
     simTime: input.timeText,
   });
@@ -51,11 +68,11 @@ export function requestMorningReply(
   });
 }
 
-/** Writes the agent's `dailyPlan` (and mood, if given). Returns the agent unchanged if the call failed. */
+/** Writes the agent's `dailyPlan`, plans (if given) and mood (if given). Returns the agent unchanged if the call failed. */
 export function applyMorningReply(agent: Agent, result: StructuredCallResult<MorningReply>): Agent {
   if (!result.ok) return agent;
-  const { dailyPlan, mood } = result.value;
-  return { ...agent, dailyPlan, mood: mood ?? agent.mood };
+  const { dailyPlan, plans, mood } = result.value;
+  return { ...agent, dailyPlan, plans: plans ?? agent.plans, mood: mood ?? agent.mood };
 }
 
 export async function runMorningPass(input: MorningPassInput): Promise<Agent> {

@@ -16,6 +16,8 @@ export interface CueSources {
   intention: string;
   dailyPlan: string;
   goalsText: string;
+  /** Plan aims and next steps. */
+  plansText: string;
   knownNames: readonly string[];
 }
 
@@ -24,6 +26,7 @@ export interface CueTextSources {
   dailyPlan: string;
   decisionReason: string | null;
   goalsText: string;
+  plansText: string;
   conversationLines: readonly string[];
 }
 
@@ -43,6 +46,7 @@ export function buildCue(sources: CueSources): string[] {
     ...extractTags(sources.intention, sources.knownNames),
     ...extractTags(sources.dailyPlan, sources.knownNames),
     ...extractTags(sources.goalsText, sources.knownNames),
+    ...extractTags(sources.plansText, sources.knownNames),
   ]);
 }
 
@@ -53,6 +57,7 @@ export function buildCueText(sources: CueTextSources): string {
     sources.dailyPlan,
     sources.decisionReason ?? "",
     sources.goalsText,
+    sources.plansText,
     ...sources.conversationLines.slice(-config.memory.cueConversationLines),
   ].join("\n");
 }

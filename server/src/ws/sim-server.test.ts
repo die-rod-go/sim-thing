@@ -45,6 +45,7 @@ const agent = {
   mood: "",
   goals: [],
   dailyPlan: "",
+  plans: [],
   intention: "",
   currentAction: null,
   workingMemory: [],

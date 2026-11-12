@@ -7,6 +7,7 @@ import type {
   RecalledMemory,
 } from "../decision/context";
 import { listPeopleOnMind } from "../decision/people-on-mind";
+import { describePlanFocus, describePlanText } from "../memory/plans";
 import { currentConversation, OWN_SPEAKER_NAME } from "../memory/conversation";
 import {
   buildCue,
@@ -105,6 +106,7 @@ function recallMemories(
     intention: agent.intention,
     dailyPlan: agent.dailyPlan,
     goalsText,
+    plansText: describePlanFocus(agent.plans),
     knownNames: listKnownNames(state),
   });
   const cueText = buildCueText({
@@ -112,6 +114,7 @@ function recallMemories(
     dailyPlan: agent.dailyPlan,
     decisionReason,
     goalsText,
+    plansText: describePlanFocus(agent.plans),
     conversationLines,
   });
   const recalled = recallForDecision(state.memoryStore, agent.id, cue, state.tick, {
@@ -184,6 +187,7 @@ export function buildDecisionContext(
     body: agent.body,
     goals: agent.goals,
     dailyPlan: agent.dailyPlan,
+    plans: agent.plans,
     intention: agent.intention,
     simTime: formatSimTime(state.tick, config.clock),
     place: agent.place,
@@ -206,6 +210,7 @@ export function buildDecisionContext(
         agent.intention,
         agent.dailyPlan,
         ...agent.goals.map((goal) => goal.text),
+        ...describePlanText(agent.plans),
         ...conversationLines,
       ],
     }),

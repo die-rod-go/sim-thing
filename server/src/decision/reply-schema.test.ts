@@ -32,6 +32,7 @@ const nullReply = {
   query: null,
   minutes: null,
   mood: null,
+  stepDone: null,
 };
 
 describe("buildDecisionReplySchema", () => {
@@ -45,6 +46,12 @@ describe("buildDecisionReplySchema", () => {
       item: "bread",
       amount: 1,
     });
+  });
+
+  it("keeps stepDone when given and drops it when null", () => {
+    const { schema } = buildDecisionReplySchema(targets, items, holders);
+    expect(schema.parse({ ...nullReply, stepDone: 2 })).toMatchObject({ stepDone: 2 });
+    expect(schema.parse(nullReply)).not.toHaveProperty("stepDone");
   });
 
   it("has no note field in the reply or its JSON schema", () => {

@@ -1,7 +1,7 @@
 import { formatSimTime } from "@village/shared";
 import type { Agent, Memory } from "@village/shared";
 import { config } from "../config";
-import { describeGoals } from "../decision/sections";
+import { describePlans } from "../decision/sections";
 import { describeStats, describeStatus, describeTraits } from "../decision/words";
 import type { StructuredCaller, StructuredCallResult } from "../llm/call-structured";
 import { renderTemplate } from "../llm/templates";
@@ -9,7 +9,7 @@ import { rewriteDossiers } from "../memory/dossiers";
 import type { NamedPerson } from "../memory/dossiers";
 import { forgetMemories } from "../memory/forgetting";
 import type { MemoryIdGenerator, MemoryStore } from "../memory/memory-store";
-import { describeDossiers, describeTimedMemories } from "./prompt-sections";
+import { describeDossiers, describeGoalsWithKind, describeTimedMemories } from "./prompt-sections";
 import {
   createReflectionMemory,
   DAY_SUMMARY_TAG,
@@ -64,7 +64,7 @@ function listDossiersOfPeopleMetToday(input: NightPassInput, dayMemories: readon
     .filter((person) => metNames.has(person.name))
     .map((person) => ({
       person: person.name,
-      text: input.agent.dossiers[person.id]?.text ?? config.dossier.unknownPersonText,
+      text: input.agent.dossiers[person.id]?.text ?? config.dossier.reflectionUnknownPersonText,
     }));
 }
 
@@ -79,7 +79,8 @@ export function buildNightPrompt(input: NightPassInput, dayMemories: readonly Me
     mood: agent.mood,
     body: describeStats(agent.body),
     status: describeStatus({ health: input.health, needs: agent.needs }, input.conditionWords),
-    goals: describeGoals(agent.goals),
+    goals: describeGoalsWithKind(agent.goals),
+    plans: describePlans(agent.plans),
     dailyPlan: agent.dailyPlan || "none",
     dayMemories: describeTimedMemories(dayMemories, "Nothing stands out."),
     dossiers: describeDossiers(
@@ -90,6 +91,8 @@ export function buildNightPrompt(input: NightPassInput, dayMemories: readonly Me
     maxChars: String(config.memory.maxMemoryChars),
     maxInsights: String(config.reflection.maxInsights),
     maxDossierChars: String(config.dossier.maxChars),
+    maxPlans: String(config.plans.maxPlans),
+    maxSteps: String(config.plans.maxSteps),
   });
 }
 
@@ -157,6 +160,8 @@ export function applyNightReply(
     agent: {
       ...agent,
       mood: result.value.moodEntry,
+      goals: result.value.goals.length > 0 ? result.value.goals : agent.goals,
+      plans: result.value.plans ?? agent.plans,
       dossiers: rewriteDossiers(
         agent.dossiers,
         result.value.dossiers,

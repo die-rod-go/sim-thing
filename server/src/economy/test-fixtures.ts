@@ -26,6 +26,7 @@ export function makeAgent(overrides: Partial<Agent> = {}): Agent {
     mood: "calm",
     goals: [],
     dailyPlan: "",
+    plans: [],
     intention: "",
     currentAction: null,
     workingMemory: [],

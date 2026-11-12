@@ -110,6 +110,7 @@ export function buildDecisionReply(
     query: null,
     minutes: null,
     mood: null,
+    stepDone: null,
   };
   const meal = findMealToEat(choices);
   if (meal !== null) {

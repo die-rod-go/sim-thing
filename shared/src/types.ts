@@ -37,6 +37,16 @@ export interface Goal {
   kind: GoalKind;
 }
 
+/** A scheme the agent is carrying out over hours or days. */
+export interface Plan {
+  /** One line: what and why. */
+  aim: string;
+  /** Remaining steps in order; the first is the next one. */
+  steps: string[];
+  /** Who must not find out, in the agent's words; "" if no one. */
+  keepFrom: string;
+}
+
 export interface CurrentAction {
   kind: string;
   target?: string;
@@ -93,6 +103,7 @@ export interface Agent {
   mood: string;
   goals: Goal[];
   dailyPlan: string;
+  plans: Plan[];
   intention: string;
   currentAction: CurrentAction | null;
   workingMemory: string[];
@@ -157,6 +168,8 @@ export interface DecisionReply {
   minutes?: number;
   note?: { person: string; text: string };
   mood?: string;
+  /** The number of a plan whose next step is already done. */
+  stepDone?: number;
 }
 
 export interface EventSpeech {

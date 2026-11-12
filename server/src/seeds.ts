@@ -125,6 +125,7 @@ function buildAgent(
     mood: seed.mood,
     goals: seed.goals.map((goal) => ({ ...goal })),
     dailyPlan: "",
+    plans: [],
     intention: "",
     currentAction: null,
     workingMemory: [],

@@ -39,7 +39,8 @@ function buildDecisionJsonSchema(
     thought: { type: "string", description: "One or two short private sentences." },
     intention: {
       type: "string",
-      description: "One line: what you are trying to get done and why.",
+      description:
+        "One line: what you are trying to get done and why; usually the next step of one of your plans.",
     },
     say: nullableJsonString(),
     volume: nullableJsonEnum(VOLUMES),
@@ -53,6 +54,7 @@ function buildDecisionJsonSchema(
     query: nullableJsonString(),
     minutes: nullableJsonInteger(),
     mood: nullableJsonString(),
+    stepDone: nullableJsonInteger(),
   });
 }
 
@@ -105,6 +107,7 @@ export function buildDecisionReplySchema(
       query: z.string().trim().optional(),
       minutes: z.number().positive().optional(),
       mood: z.string().trim().optional(),
+      stepDone: z.number().int().optional(),
     })
     .superRefine(requireFieldsForAction);
   return {

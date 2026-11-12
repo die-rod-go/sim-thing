@@ -12,6 +12,8 @@ interface LlmRequestOptions {
   jsonSchema?: JsonSchema;
   schemaName?: string;
   maxTokens: number;
+  /** Overrides the client's own model for this call. */
+  model?: string;
   /** Left out of the request when undefined, so the provider default applies. */
   temperature?: number;
 }

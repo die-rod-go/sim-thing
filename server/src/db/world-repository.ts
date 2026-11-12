@@ -7,6 +7,7 @@ import type {
   Entity,
   EntityLocation,
   Memory,
+  Plan,
 } from "@village/shared";
 import { resolveName } from "../decision/resolve-name";
 import { simRuntimeSchema, type SimRuntime } from "../sim/agent-runtime";
@@ -52,7 +53,10 @@ const currentAgentFieldsSchema = z.object({
 });
 
 /** A saved agent; saves from before dossiers lack them. */
-type SavedAgent = Omit<Agent, "dossiers"> & { dossiers?: Record<string, Dossier> };
+type SavedAgent = Omit<Agent, "dossiers" | "plans"> & {
+  dossiers?: Record<string, Dossier>;
+  plans?: Plan[];
+};
 
 /** Agent rows were written by saveWorld from typed values, so a current-format row is trusted. */
 function parseSavedAgent(data: string): SavedAgent {
@@ -215,6 +219,7 @@ export function loadWorld(database: Database): SavedWorld | null {
   const memories = memoryRows.filter((row) => row.bucket !== LEGACY_PEOPLE_BUCKET).map(toMemory);
   const agents = savedAgents.map((agent): Agent => ({
     ...agent,
+    plans: agent.plans ?? [],
     dossiers: agent.dossiers ?? buildDossiersFromLegacyNotes(agent, savedAgents, legacyRows),
   }));
 

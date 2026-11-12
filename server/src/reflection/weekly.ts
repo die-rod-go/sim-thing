@@ -5,7 +5,8 @@ import { describeStats, describeStatus } from "../decision/words";
 import type { StructuredCaller, StructuredCallResult } from "../llm/call-structured";
 import { renderTemplate } from "../llm/templates";
 import type { MemoryReader } from "../memory/memory-store";
-import { describeGoalsWithKind, describeReflections, describeTraitValues } from "./prompt-sections";
+import { describeGoals } from "../decision/sections";
+import { describeReflections, describeTraitValues } from "./prompt-sections";
 import { DAY_SUMMARY_TAG, MOOD_ENTRY_TAG, selectTaggedReflections } from "./reflection-memories";
 import { buildWeeklyReplySchema } from "./reply-schemas";
 import type { WeeklyReply } from "./reply-schemas";
@@ -46,7 +47,7 @@ export function buildWeeklyPrompt(input: WeeklyPassInput): string {
     body: describeStats(agent.body),
     status: describeStatus({ health: input.health, needs: agent.needs }, input.conditionWords),
     traits: describeTraitValues(agent.personality.traits),
-    goals: describeGoalsWithKind(agent.goals),
+    goals: describeGoals(agent.goals),
     daySummaries: describeReflections(summaries, "No days recorded."),
     moodEntries: describeReflections(moods, "No moods recorded."),
     maxDelta: String(config.traits.weeklyDeltaClamp),
@@ -96,8 +97,7 @@ function proseChange(
 
 /**
  * The weekly pass: small, clamped trait changes, an optional new profession, core and self-image,
- * and the revised goal list (old goals kept if the reply has none). The agent is unchanged on
- * failure.
+ * The agent is unchanged on failure. Goals are kept up to date by the night pass.
  */
 export async function runWeeklyPass(input: WeeklyPassInput): Promise<WeeklyPassResult> {
   return applyWeeklyReply(input.agent, input.tick, await requestWeeklyReply(input));
@@ -149,7 +149,6 @@ export function applyWeeklyReply(
       core: reply.core ?? personality.core,
       selfImage: reply.selfImage ?? personality.selfImage,
     },
-    goals: reply.goals.length > 0 ? reply.goals : agent.goals,
   };
   return { agent: updatedAgent, changes };
 }

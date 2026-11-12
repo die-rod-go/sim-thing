@@ -145,6 +145,7 @@ interface Agent {
     kind: "world" | "social" | "self";
   }[];
   dailyPlan: string; // written each morning
+  plans: { aim: string; steps: string[]; keepFrom: string }[]; // schemes carried across hours and days; at most 3 plans of 5 steps; steps[0] is next
   intention: string; // from the last decision reply; see Decision reply
   currentAction: {
     kind: string;
@@ -159,7 +160,7 @@ interface Agent {
 - **Needs** decay every tick in code. Traits set the rates: e.g. social decays faster for high extraversion, and being in a crowd restores social for extroverts but costs energy for introverts. Needs reach the prompt as words ("quite hungry, a bit lonely"), never numbers. Default decay per sim-day awake: hunger 1.0, energy 0.8, social 0.8 (±50% by extraversion), fun 0.6. Needs start at 0.8. Sleep has no fixed length: it ends when energy reaches 1.0, when the agent is woken (its name, or a sound at shout level, gives it a decision to wake or keep sleeping), when hunger drops below 0.1, or when a nap length it chose runs out. So a well-fed agent with a fast recovery rate sleeps briefly, and a hungry, exhausted one sleeps long and wakes hungry. Social rises 0.05 for each line the agent says or hears while taking part in a conversation; fun and energy come from the interactions in the recipe table. Decay rates, thresholds and each interaction's need effects live in config.
 - **Traits** reach the prompt as words too ("quite introverted, very conscientious").
 - **Mood** is text the agent updates through its action output.
-- **Goals** are generated from personality at creation and revised at weekly reflection. Goals of `kind: 'self'` (e.g. become more outgoing) are allowed; they change nothing directly.
+- **Goals** are generated from personality at creation and revised at the night pass, and their progress at the daytime pass. Goals of `kind: 'self'` (e.g. become more outgoing) are allowed; they change nothing directly.
 - Seed the 6 agents from a `seeds/agents.json` file with hand-written personas, private goals and secrets that conflict with each other, and a few starting notes about each other, which become each agent's starting dossiers (it's a village, so they aren't strangers). Every agent starts knowing all place names. The implementing agent drafts the six personas; they live in the seed file for the user to edit.
 
 ## Memory
@@ -326,22 +327,26 @@ Resolved details:
 
 ## Reflection
 
-Three scheduled LLM passes per agent turn experience into plans, opinions and slow personality change.
+Four scheduled LLM passes per agent turn experience into plans, opinions and slow personality change. `LLM_REFLECTION_MODEL` (optional) sets a different model for all four; decisions, interactions and conversation summaries keep `LLM_MODEL`.
 
-**Morning (when the agent wakes from a sleep of 4 hours or more):** the agent writes its `dailyPlan` from its goals, needs and yesterday's reflection.
+**Morning (when the agent wakes from a sleep of 4 hours or more, and at the start of a new sim for every awake agent with no plan):** the agent writes its `dailyPlan` and the full list of its `plans` from its goals, current plans, the dossiers of people they name, its needs and yesterday's reflection. A decision reply's optional `stepDone` (a plan number) removes that plan's first step.
+
+**Daytime (every 2 sim-hours awake, if anything new was filed):** the main "think it over" pass. After a short private `thinking` field (kept only in the `llm_calls` log) the agent returns up to two insights, changed goal progress, its full plan list (or null to keep it) and rewritten dossiers.
 
 **Night (when the agent starts a sleep and hasn't had a night pass in the last 16 sim-hours, or at 02:00 if still awake):**
 
 1. Write a short summary of the day plus a one-line mood entry (both stored in `reflections`).
 2. Produce 1–3 insights from the day's memories, stored as high-strength `reflections` memories.
 3. Optionally rewrite its dossiers on the people it dealt with that day.
-4. Delete memories that have faded below the strength threshold.
+4. Revise its full goal list and its plans.
+5. Delete memories that have faded below the strength threshold.
 
-**Weekly (every 7th night, after the nightly pass):** show the agent its traits, core, self-image, goals, and the last 7 day summaries and mood entries (these survive because `reflections` has a 7-day half-life). It returns:
+**Weekly (every 7th night, after the nightly pass):** show the agent its traits, core, self-image, goals (as context), and the last 7 day summaries and mood entries (these survive because `reflections` has a 7-day half-life). It returns:
 
 - proposed trait deltas, each with a reason; code clamps each to ±0.05 per week and keeps traits within −1..1;
-- an optional revised `core` and `selfImage`;
-- goals to keep, revise, add or drop.
+- an optional revised `profession`, `core` and `selfImage`.
+
+Goals are no longer revised weekly; the night pass keeps them up to date.
 
 Wanting to change does nothing by itself: the prompt must ask the agent to base trait changes on what it actually did and felt, not on its goals. Log every personality change to a `personality_history` table for the UI.
 

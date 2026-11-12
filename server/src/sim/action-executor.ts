@@ -1,3 +1,4 @@
+import { completeNextStep } from "../memory/plans";
 import { findDefinition, type Agent, type AgentThought, type DecisionReply } from "@village/shared";
 import { config } from "../config";
 import { normalizeDisplayName, resolveName } from "../decision/resolve-name";
@@ -31,7 +32,7 @@ function chooseLastThought(agent: Agent, reply: DecisionReply, tick: number): Ag
   return text ? { text, tick } : agent.lastThought;
 }
 
-/** intention and mood: free mental acts that ride along with any action. */
+/** intention, mood and stepDone: free mental acts that ride along with any action. */
 function applyFreeActs(context: TickContext, agentId: string, decided: DecidedReply): void {
   const { state } = context;
   const { reply } = decided;
@@ -40,6 +41,8 @@ function applyFreeActs(context: TickContext, agentId: string, decided: DecidedRe
     ...agent,
     intention: reply.intention || agent.intention,
     mood: reply.mood ?? agent.mood,
+    plans:
+      reply.stepDone === undefined ? agent.plans : completeNextStep(agent.plans, reply.stepDone),
     lastThought: chooseLastThought(agent, reply, state.tick),
   });
 }

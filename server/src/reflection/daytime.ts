@@ -1,12 +1,20 @@
 import { formatSimTime } from "@village/shared";
 import type { Agent, Memory } from "@village/shared";
 import { config } from "../config";
-import { describeGoals } from "../decision/sections";
+import { describePlans } from "../decision/sections";
 import { describeStats, describeStatus, describeTraits } from "../decision/words";
 import type { StructuredCaller, StructuredCallResult } from "../llm/call-structured";
 import { renderTemplate } from "../llm/templates";
+import { rewriteDossiers, type NamedPerson } from "../memory/dossiers";
 import type { MemoryIdGenerator, MemoryStore } from "../memory/memory-store";
-import { describeReflections, describeTimedMemories } from "./prompt-sections";
+import { applyGoalProgress } from "./goals-schema";
+import {
+  describeDossiers,
+  describeNumberedGoals,
+  describeReflections,
+  describeTimedMemories,
+} from "./prompt-sections";
+import { listAimTexts, listReflectionDossiers } from "./reflection-dossiers";
 import {
   createReflectionMemory,
   INSIGHT_TAG,
@@ -19,7 +27,6 @@ const DAYTIME_TEMPLATE = "daytime";
 
 export interface DaytimePassInput {
   agent: Agent;
-  /** Words for the agent's conditions, shown with its status. */
   /** The agent's health, which the status line puts in words. */
   health: number;
   conditionWords?: readonly string[];
@@ -31,6 +38,8 @@ export interface DaytimePassInput {
   sinceTick: number;
   /** Agent, object and place names, used to tag the new memories. */
   knownNames: readonly string[];
+  /** Every agent except this one; dossier entries about anyone else are ignored. */
+  otherAgents: readonly NamedPerson[];
 }
 
 export interface DaytimePassResult {
@@ -61,13 +70,27 @@ export function buildDaytimePrompt(
     mood: agent.mood,
     body: describeStats(agent.body),
     status: describeStatus({ health: input.health, needs: agent.needs }, input.conditionWords),
-    goals: describeGoals(agent.goals),
+    goals: describeNumberedGoals(agent.goals),
+    plans: describePlans(agent.plans),
     dailyPlan: agent.dailyPlan || "none",
     intention: agent.intention || "nothing in particular",
+    dossiers: describeDossiers(
+      listReflectionDossiers({
+        agent,
+        others: input.otherAgents,
+        memories: recentMemories,
+        mentioningTexts: listAimTexts(agent),
+        limit: config.reflection.dossiersShown,
+      }),
+      "No one in particular.",
+    ),
     earlierThoughts: describeReflections(earlierThoughts, "Nothing in particular."),
     recentMemories: describeTimedMemories(recentMemories, "Nothing stands out."),
     simTime: formatSimTime(input.tick, config.clock),
-    maxInsights: String(config.reflection.maxInsights),
+    maxInsights: String(config.reflection.daytimeMaxInsights),
+    maxPlans: String(config.plans.maxPlans),
+    maxSteps: String(config.plans.maxSteps),
+    maxDossierChars: String(config.dossier.maxChars),
     maxChars: String(config.memory.maxMemoryChars),
   });
 }
@@ -87,7 +110,10 @@ export async function requestDaytimeReply(
   });
 }
 
-/** Files the reply's insights into `reflections` (and maybe a new mood); unchanged when there is none. */
+/**
+ * Files the reply's insights into `reflections`; the returned agent has the new goal progress,
+ * plans (kept when the reply gives none), dossiers and mood. Unchanged when there is no reply.
+ */
 export function applyDaytimeReply(
   input: DaytimePassInput,
   result: StructuredCallResult<DaytimeReply> | null,
@@ -110,7 +136,15 @@ export function applyDaytimeReply(
     ),
   );
   input.store.addAll(addedMemories);
-  return { agent: { ...agent, mood: result.value.mood ?? agent.mood }, addedMemories, insights };
+  const { value } = result;
+  const revised: Agent = {
+    ...agent,
+    mood: value.mood ?? agent.mood,
+    goals: applyGoalProgress(agent.goals, value.goalProgress),
+    plans: value.plans ?? agent.plans,
+    dossiers: rewriteDossiers(agent.dossiers, value.dossiers, input.otherAgents, input.tick),
+  };
+  return { agent: revised, addedMemories, insights };
 }
 
 /** The daytime pass: the agent thinks over what happened since its last reflection. */

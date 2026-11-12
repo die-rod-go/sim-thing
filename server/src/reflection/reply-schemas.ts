@@ -1,19 +1,27 @@
 import { TRAIT_NAMES } from "@village/shared";
-import type { GoalKind, TraitName } from "@village/shared";
+import type { Goal, Plan, TraitName } from "@village/shared";
 import { z } from "zod";
 import { config } from "../config";
 import type { ReplySchemas } from "../decision/reply-schema";
 import {
   dropEmptyFields,
   looseEnum,
+  nullableJsonObject,
   nullableJsonString,
   strictJsonObject,
 } from "../decision/schema-fields";
 import type { JsonSchema } from "../llm/types";
 import { dossierEntriesJsonSchema, dossierEntriesSchema } from "../memory/dossiers";
 import type { DossierEntry } from "../memory/dossiers";
+import { plansJsonSchema, plansSchema } from "../memory/plans";
+import {
+  goalProgressJsonSchema,
+  goalProgressSchema,
+  goalsJsonSchema,
+  goalsSchema,
+  type GoalProgressEntry,
+} from "./goals-schema";
 
-const GOAL_KINDS: readonly [GoalKind, ...GoalKind[]] = ["world", "social", "self"];
 const [FIRST_TRAIT = "extraversion", ...OTHER_TRAITS] = TRAIT_NAMES;
 const TRAIT_ENUM: readonly [TraitName, ...TraitName[]] = [FIRST_TRAIT, ...OTHER_TRAITS];
 
@@ -28,15 +36,22 @@ function jsonArray(items: JsonSchema, limits: { minItems?: 0 | 1 } = {}) {
 
 export interface MorningReply {
   dailyPlan: string;
+  /** The full list from now on; undefined keeps the current plans. */
+  plans?: Plan[];
   mood?: string;
 }
 
 export function buildMorningReplySchema(): ReplySchemas<MorningReply> {
-  const replyObject = z.object({ dailyPlan: requiredText(), mood: requiredText().optional() });
+  const replyObject = z.object({
+    dailyPlan: requiredText(),
+    plans: plansSchema(),
+    mood: requiredText().optional(),
+  });
   return {
     schema: z.preprocess(dropEmptyFields, replyObject),
     jsonSchema: strictJsonObject({
       dailyPlan: { type: "string", description: "Your plan for today in a few sentences." },
+      plans: plansJsonSchema(),
       mood: nullableJsonString("Your mood this morning in a few words, or null."),
     }),
     schemaName: "morning_reply",
@@ -44,23 +59,37 @@ export function buildMorningReplySchema(): ReplySchemas<MorningReply> {
 }
 
 export interface DaytimeReply {
+  /** Private; only the call log keeps it. */
+  thinking: string;
   insights: { text: string }[];
+  goalProgress: GoalProgressEntry[];
+  /** The full list from now on; undefined keeps the current plans. */
+  plans?: Plan[];
+  dossiers: DossierEntry[];
   mood?: string;
 }
 
 export function buildDaytimeReplySchema(): ReplySchemas<DaytimeReply> {
-  const { maxInsights } = config.reflection;
+  const { daytimeMaxInsights } = config.reflection;
   const replyObject = z.object({
+    thinking: requiredText(),
     insights: z
       .array(z.object({ text: memoryText() }))
       .optional()
-      .transform((insights) => (insights ?? []).slice(0, maxInsights)),
+      .transform((insights) => (insights ?? []).slice(0, daytimeMaxInsights)),
+    goalProgress: goalProgressSchema(),
+    plans: plansSchema(),
+    dossiers: dossierEntriesSchema(),
     mood: requiredText().optional(),
   });
   return {
     schema: z.preprocess(dropEmptyFields, replyObject),
     jsonSchema: strictJsonObject({
+      thinking: { type: "string" },
       insights: jsonArray(strictJsonObject({ text: { type: "string" } })),
+      goalProgress: goalProgressJsonSchema(),
+      plans: nullableJsonObject(plansJsonSchema()),
+      dossiers: dossierEntriesJsonSchema(),
       mood: nullableJsonString("Your mood now in a few words, or null."),
     }),
     schemaName: "daytime_reply",
@@ -72,6 +101,10 @@ export interface NightReply {
   moodEntry: string;
   insights: { text: string }[];
   dossiers: DossierEntry[];
+  /** The full list from now on; empty keeps the current goals. */
+  goals: Goal[];
+  /** The full list from now on; undefined keeps the current plans. */
+  plans?: Plan[];
 }
 
 export function buildNightReplySchema(): ReplySchemas<NightReply> {
@@ -85,6 +118,8 @@ export function buildNightReplySchema(): ReplySchemas<NightReply> {
       .min(1)
       .transform((insights) => insights.slice(0, maxInsights)),
     dossiers: dossierEntriesSchema(),
+    goals: goalsSchema(),
+    plans: plansSchema(),
   });
   return {
     schema: z.preprocess(dropEmptyFields, replyObject),
@@ -93,6 +128,8 @@ export function buildNightReplySchema(): ReplySchemas<NightReply> {
       moodEntry: { type: "string" },
       insights: jsonArray(strictJsonObject({ text: { type: "string" } }), { minItems: 1 }),
       dossiers: dossierEntriesJsonSchema(),
+      goals: goalsJsonSchema(),
+      plans: nullableJsonObject(plansJsonSchema()),
     }),
     schemaName: "night_reply",
   };
@@ -103,7 +140,6 @@ export interface WeeklyReply {
   profession?: string;
   core?: string;
   selfImage?: string;
-  goals: { text: string; why: string; progress: string; kind: GoalKind }[];
 }
 
 export function buildWeeklyReplySchema(): ReplySchemas<WeeklyReply> {
@@ -115,17 +151,6 @@ export function buildWeeklyReplySchema(): ReplySchemas<WeeklyReply> {
     profession: requiredText().optional(),
     core: requiredText().optional(),
     selfImage: requiredText().optional(),
-    goals: z
-      .array(
-        z.object({
-          text: requiredText(),
-          why: z.string().trim(),
-          progress: z.string().trim(),
-          kind: looseEnum(GOAL_KINDS),
-        }),
-      )
-      .optional()
-      .transform((goals) => goals ?? []),
   });
   return {
     schema: z.preprocess(dropEmptyFields, replyObject),
@@ -140,14 +165,6 @@ export function buildWeeklyReplySchema(): ReplySchemas<WeeklyReply> {
       profession: nullableJsonString(),
       core: nullableJsonString(),
       selfImage: nullableJsonString(),
-      goals: jsonArray(
-        strictJsonObject({
-          text: { type: "string" },
-          why: { type: "string" },
-          progress: { type: "string" },
-          kind: { type: "string", enum: [...GOAL_KINDS] },
-        }),
-      ),
     }),
     schemaName: "weekly_reply",
   };

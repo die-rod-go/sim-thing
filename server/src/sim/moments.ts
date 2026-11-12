@@ -63,7 +63,7 @@ export function buildPersonalityMoments(
 
 /**
  * Goals are matched by their text. A goal missing from the new list is reported as removed: the
- * weekly reply doesn't say whether it was reached or given up, so neither is claimed.
+ * reply doesn't say whether it was reached or given up, so neither is claimed.
  */
 export function buildGoalMoments(
   subject: MomentSubject,

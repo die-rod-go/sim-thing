@@ -31,6 +31,7 @@ describe("buildCue", () => {
       intention: "buy bread from Mara at the bakery",
       dailyPlan: "",
       goalsText: "",
+      plansText: "",
       knownNames,
     });
     expect(cue).toEqual(
@@ -50,6 +51,7 @@ describe("buildCue", () => {
       intention: "",
       dailyPlan: "",
       goalsText: "",
+      plansText: "",
       knownNames,
     });
     expect(cue).toEqual(expect.arrayContaining(["bakery", "oven", "bob", "tavern"]));
@@ -67,6 +69,23 @@ describe("buildCue goals", () => {
       intention: "",
       dailyPlan: "visit the tavern",
       goalsText: "get Bob to teach me",
+      plansText: "",
+      knownNames,
+    });
+    expect(cue).toEqual(expect.arrayContaining(["bob", "tavern"]));
+  });
+
+  it("adds names found in the plans", () => {
+    const cue = buildCue({
+      place: "village road",
+      aroundAgentNames: [],
+      nearbyEntityNames: [],
+      actionTarget: null,
+      conversationText: "",
+      intention: "",
+      dailyPlan: "",
+      goalsText: "",
+      plansText: "Ask Bob about the tavern lease",
       knownNames,
     });
     expect(cue).toEqual(expect.arrayContaining(["bob", "tavern"]));
@@ -80,12 +99,25 @@ describe("buildCueText", () => {
       dailyPlan: "bake",
       decisionReason: "someone arrived",
       goalsText: "be rich",
+      plansText: "",
       conversationLines: ["first", "second", "third", "fourth", "fifth"],
     });
     for (const part of ["fetch water", "bake", "someone arrived", "be rich", "fifth"]) {
       expect(text).toContain(part);
     }
     expect(text).not.toContain("first");
+  });
+
+  it("includes the plans' aims and next steps", () => {
+    const text = buildCueText({
+      intention: "",
+      dailyPlan: "",
+      decisionReason: null,
+      goalsText: "",
+      plansText: "Buy the mill Save coins",
+      conversationLines: [],
+    });
+    expect(text).toContain("Save coins");
   });
 });
 

@@ -29,6 +29,7 @@ import {
   type ReflectionSchedule,
 } from "../reflection/schedule";
 import { applyWeeklyReply, requestWeeklyReply, type WeeklyPassInput } from "../reflection/weekly";
+import type { NamedPerson } from "../memory/dossiers";
 import { BackgroundWork } from "./background-work";
 import {
   buildDailyPlanMoment,
@@ -82,6 +83,12 @@ function readOwnHealth(state: WorldState, agentId: string): number {
   return readAgentHealth(state.items, findAgent(state, agentId));
 }
 
+function listOtherAgents(state: WorldState, agentId: string): NamedPerson[] {
+  return state.agents
+    .filter((other) => other.id !== agentId)
+    .map((other) => ({ id: other.id, name: other.name }));
+}
+
 function isLiving(state: WorldState, agentId: string): boolean {
   return listLivingAgents(state).some((agent) => agent.id === agentId);
 }
@@ -94,13 +101,15 @@ function isLiving(state: WorldState, agentId: string): boolean {
  * tick: the same tick when the tick waits, else the first tick after the reply arrives. A pass's
  * memories, schedule entry and personality changes carry the tick it started on.
  * Passes in flight are not saved with the world: after a restart an unfinished night or daytime
- * pass is due again, and an unfinished morning pass is skipped.
+ * pass is due again, and an unfinished morning pass is skipped. When the hook first runs, an
+ * awake agent with no daily plan and no plans (a new sim) gets a morning pass.
  */
 export function createReflectionHook(dependencies: ReflectionPassDependencies): ReflectionHook {
   const { callStructured } = dependencies;
   const morningDue = new Set<string>();
   const nightDueOnSleep = new Set<string>();
   const work = new BackgroundWork<FinishedPass>("reflection pass");
+  let hasCheckedForUnplannedAgents = false;
 
   function buildMorningInput(state: WorldState, agentId: string): MorningPassInput {
     return {
@@ -108,6 +117,7 @@ export function createReflectionHook(dependencies: ReflectionPassDependencies): 
       health: readOwnHealth(state, agentId),
       conditionWords: describeOwnConditions(state, agentId),
       recentReflections: selectLatestNightReflections(state.memoryStore, agentId),
+      otherAgents: listOtherAgents(state, agentId),
       callStructured,
       tick: state.tick,
       timeText: formatSimTime(state.tick, config.clock),
@@ -135,9 +145,7 @@ export function createReflectionHook(dependencies: ReflectionPassDependencies): 
       callStructured,
       tick,
       knownNames: listKnownNames(state),
-      otherAgents: state.agents
-        .filter((other) => other.id !== agentId)
-        .map((other) => ({ id: other.id, name: other.name })),
+      otherAgents: listOtherAgents(state, agentId),
     };
   }
 
@@ -157,6 +165,7 @@ export function createReflectionHook(dependencies: ReflectionPassDependencies): 
       tick,
       sinceTick,
       knownNames: listKnownNames(state),
+      otherAgents: listOtherAgents(state, agentId),
     };
   }
 
@@ -167,7 +176,12 @@ export function createReflectionHook(dependencies: ReflectionPassDependencies): 
       apply(result) {
         const before = findAgent(state, agentId);
         const agent = applyMorningReply(before, reply);
-        replaceAgent(state, { ...before, dailyPlan: agent.dailyPlan, mood: agent.mood });
+        replaceAgent(state, {
+          ...before,
+          dailyPlan: agent.dailyPlan,
+          plans: agent.plans,
+          mood: agent.mood,
+        });
         markAgentChanged(result, agentId);
         if (agent.dailyPlan !== before.dailyPlan) {
           recordMoments(state, result, [buildDailyPlanMoment(before, state.tick, agent.dailyPlan)]);
@@ -188,14 +202,10 @@ export function createReflectionHook(dependencies: ReflectionPassDependencies): 
           ...current,
           profession: weekly.agent.profession,
           personality: weekly.agent.personality,
-          goals: weekly.agent.goals,
         });
         for (const change of weekly.changes) dependencies.recordPersonalityChange(change);
         markAgentChanged(result, agentId);
-        recordMoments(state, result, [
-          ...buildPersonalityMoments(current, weekly.changes),
-          ...buildGoalMoments(current, state.tick, current.goals, weekly.agent.goals),
-        ]);
+        recordMoments(state, result, buildPersonalityMoments(current, weekly.changes));
       },
     };
   }
@@ -213,11 +223,14 @@ export function createReflectionHook(dependencies: ReflectionPassDependencies): 
           ...sleeper,
           mood: night.agent.mood,
           dossiers: night.agent.dossiers,
+          goals: night.agent.goals,
+          plans: night.agent.plans,
         });
         markAgentChanged(result, agentId);
         if (night.reflection) {
           recordMoments(state, result, [
             buildNightReflectionMoment(sleeper, state.tick, night.reflection),
+            ...buildGoalMoments(sleeper, state.tick, sleeper.goals, night.agent.goals),
           ]);
         }
         const schedule = recordNightPass(getSchedule(state, agentId), startTick);
@@ -236,18 +249,21 @@ export function createReflectionHook(dependencies: ReflectionPassDependencies): 
     return {
       agentId,
       apply(result) {
-        const daytime = applyDaytimeReply(
-          buildDaytimeInput(state, agentId, startTick, sinceTick),
-          reply,
-        );
+        const input = buildDaytimeInput(state, agentId, startTick, sinceTick);
+        const daytime = applyDaytimeReply(input, reply);
         setSchedule(state, agentId, recordDaytimePass(getSchedule(state, agentId), startTick));
-        const current = findAgent(state, agentId);
-        if (daytime.agent.mood === current.mood && daytime.insights.length === 0) return;
-        replaceAgent(state, { ...current, mood: daytime.agent.mood });
+        const current = input.agent;
+        if (daytime.agent === current) return;
+        replaceAgent(state, daytime.agent);
         for (const insight of daytime.insights) {
           rememberBriefly(state, agentId, `I thought: ${insight}`);
         }
         markAgentChanged(result, agentId);
+        recordMoments(
+          state,
+          result,
+          buildGoalMoments(current, state.tick, current.goals, daytime.agent.goals),
+        );
       },
     };
   }
@@ -263,6 +279,16 @@ export function createReflectionHook(dependencies: ReflectionPassDependencies): 
       return () => runDaytime(state, agentId);
     }
     return null;
+  }
+
+  /** Once per run: an awake agent with no plan at all (a new sim) gets its morning pass now. */
+  function markUnplannedAgentsMorningDue(state: WorldState): void {
+    if (hasCheckedForUnplannedAgents) return;
+    hasCheckedForUnplannedAgents = true;
+    for (const agent of listLivingAgents(state)) {
+      const isAwake = getSchedule(state, agent.id).sleepStartedAtTick === null;
+      if (isAwake && agent.dailyPlan === "" && agent.plans.length === 0) morningDue.add(agent.id);
+    }
   }
 
   function startDuePasses(state: WorldState): void {
@@ -292,6 +318,7 @@ export function createReflectionHook(dependencies: ReflectionPassDependencies): 
     },
     async afterTick(state, result) {
       applyFinishedPasses(state, result);
+      markUnplannedAgentsMorningDue(state);
       startDuePasses(state);
       if (dependencies.shouldRunInBackground) return;
       while (work.hasAnyInFlight(state)) {

@@ -46,6 +46,7 @@ export function makeSampleAgent(id: string, name: string, x: number, y: number):
       },
     ],
     dailyPlan: "Bake in the morning, sell at the square, tavern in the evening.",
+    plans: [],
     intention: "Find someone who wants bread",
     currentAction: { kind: "walk_to", target: "square", endsAtTick: null },
     workingMemory: [],

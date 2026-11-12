@@ -11,8 +11,9 @@ How you see yourself: {{selfImage}}
 ## How you feel
 Mood: {{mood}}
 
-## Goals and plan
+## Goals and plans
 {{goals}}
+{{plans}}
 Today's plan: {{dailyPlan}}
 
 ## Now
@@ -65,8 +66,9 @@ Write every name exactly as it appears above.
 
 Free extras that go along with any action:
 - mood: your new mood in a few words, only if it changed.
+- stepDone: the number of a plan whose next step you can see is already done (not one you are only starting now).
 Leave out anything you don't use (null).
 
 ## Reply
 Reply with only a JSON object, fields in this order:
-thought (one or two short private sentences: what you notice and why you choose this), intention (one line: what you are trying to get done and why), say, volume, action, verb, item, from, target, text, amount, query, minutes, mood.
+thought (one or two short private sentences: what you notice and why you choose this), intention (one line: what you are trying to get done and why; usually the next step of one of your plans), say, volume, action, verb, item, from, target, text, amount, query, minutes, mood, stepDone.

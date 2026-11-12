@@ -139,4 +139,38 @@ describe("reflection hook", () => {
     expect(personalityMoments).toHaveLength(1);
     expect(personalityMoments[0]).toMatchObject({ agentId: "mara", reason: changes[0]?.reason });
   });
+
+  it("plans the first morning for an awake agent with no plan, but not after a restart when it has one", async () => {
+    const fresh = createTestSim({
+      agentIds: ["mara"],
+      reflection: () => undefined,
+      responder: createFakeResponder(),
+    });
+    await fresh.advance();
+    expect(fresh.records.filter((record) => record.kind === "morning")).toHaveLength(1);
+    expect(fresh.agent("mara").dailyPlan).not.toBe("");
+
+    const restarted = createTestSim({
+      agentIds: ["mara"],
+      reflection: () => undefined,
+      responder: createFakeResponder(),
+    });
+    const mara = restarted.agent("mara");
+    restarted.state.agents[0] = { ...mara, dailyPlan: "Bake, then rest." };
+    await restarted.advance();
+    expect(restarted.records.filter((record) => record.kind === "morning")).toHaveLength(0);
+
+    const planned = createTestSim({
+      agentIds: ["mara"],
+      reflection: () => undefined,
+      responder: createFakeResponder(),
+    });
+    const unplanned = planned.agent("mara");
+    planned.state.agents[0] = {
+      ...unplanned,
+      plans: [{ aim: "Buy the mill", steps: ["Save coins"], keepFrom: "" }],
+    };
+    await planned.advance();
+    expect(planned.records.filter((record) => record.kind === "morning")).toHaveLength(0);
+  });
 });

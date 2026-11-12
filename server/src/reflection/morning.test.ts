@@ -32,6 +32,7 @@ describe("runMorningPass", () => {
       agent: makeAgent({ needs: { hunger: 0.4, energy: 1, social: 0.5, fun: 0.8 } }),
       health: 1,
       recentReflections,
+      otherAgents: [],
       callStructured,
       tick: 1500,
       timeText: "Day 2, 07:00",
@@ -51,11 +52,41 @@ describe("runMorningPass", () => {
       agent: makeAgent({ mood: "calm" }),
       health: 1,
       recentReflections: [],
+      otherAgents: [],
       callStructured,
       tick: 0,
       timeText: "Day 1, 06:00",
     });
     expect(agent).toMatchObject({ dailyPlan: "Rest.", mood: "calm" });
+  });
+
+  it("shows plans and the dossier of a person named in a goal, and takes the revised plans", async () => {
+    const { client, callStructured } = makeFakeCaller([
+      JSON.stringify({
+        dailyPlan: "Court Bob.",
+        plans: [{ aim: "Buy the mill", steps: ["Save coins", "Ask Bob"], keepFrom: "Clara" }],
+        mood: null,
+      }),
+    ]);
+    const agent = await runMorningPass({
+      agent: makeAgent({
+        goals: [{ text: "Befriend Bob", why: "lonely", progress: "none", kind: "social" }],
+        plans: [{ aim: "Old scheme", steps: ["Wait"], keepFrom: "" }],
+        dossiers: { bob: { text: "Owns the mill.", updatedTick: 1 } },
+      }),
+      health: 1,
+      recentReflections: [],
+      otherAgents: [{ id: "bob", name: "Bob" }],
+      callStructured,
+      tick: 0,
+      timeText: "Day 1, 06:00",
+    });
+    const prompt = lastPrompt(client);
+    expect(prompt).toContain("Plan 1: Old scheme. Next: Wait.");
+    expect(prompt).toContain("Bob: Owns the mill.");
+    expect(agent.plans).toEqual([
+      { aim: "Buy the mill", steps: ["Save coins", "Ask Bob"], keepFrom: "Clara" },
+    ]);
   });
 });
 
@@ -67,6 +98,7 @@ describe("failed reflection calls", () => {
       agent,
       health: 1,
       recentReflections: [],
+      otherAgents: [],
       callStructured: morning.callStructured,
       tick: 0,
       timeText: "Day 1, 06:00",

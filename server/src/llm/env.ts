@@ -9,6 +9,13 @@ export interface LlmEnv {
 
 const REQUIRED_VARIABLES = ["LLM_BASE_URL", "LLM_API_KEY", "LLM_MODEL"] as const;
 
+/** The model for the reflection passes, or undefined to use `LLM_MODEL` for them too. */
+export function readReflectionModel(
+  environment: NodeJS.ProcessEnv = process.env,
+): string | undefined {
+  return environment.LLM_REFLECTION_MODEL?.trim() || undefined;
+}
+
 /** Reads the LLM settings from the environment; throws naming every missing variable. */
 export function readLlmEnv(environment: NodeJS.ProcessEnv = process.env): LlmEnv {
   const missingVariables = REQUIRED_VARIABLES.filter((name) => !environment[name]?.trim());

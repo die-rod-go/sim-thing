@@ -40,6 +40,37 @@ function setUpNight(reply: string, store = new MemoryStore()) {
   return { client, input, store };
 }
 
+describe("runNightPass goals and plans", () => {
+  const goal = {
+    text: "Befriend Bob",
+    why: "lonely",
+    progress: "met once",
+    kind: "social" as const,
+  };
+
+  it("revises the goals and plans from the reply", async () => {
+    const { input } = setUpNight(
+      nightReply({
+        goals: [{ ...goal, progress: "traded twice" }],
+        plans: [{ aim: "Win Bob over", steps: ["Bring bread"], keepFrom: "" }],
+      }),
+    );
+    const result = await runNightPass({ ...input, agent: makeAgent({ goals: [goal] }) });
+    expect(result.agent.goals).toEqual([{ ...goal, progress: "traded twice" }]);
+    expect(result.agent.plans).toEqual([
+      { aim: "Win Bob over", steps: ["Bring bread"], keepFrom: "" },
+    ]);
+  });
+
+  it("keeps goals when the reply has none and plans when it gives null", async () => {
+    const plans = [{ aim: "Win Bob over", steps: ["Bring bread"], keepFrom: "" }];
+    const { input } = setUpNight(nightReply({ goals: [], plans: null }));
+    const result = await runNightPass({ ...input, agent: makeAgent({ goals: [goal], plans }) });
+    expect(result.agent.goals).toEqual([goal]);
+    expect(result.agent.plans).toEqual(plans);
+  });
+});
+
 describe("runNightPass", () => {
   it("night pass stores summary, mood entry and insights as reflections", async () => {
     const { input, store } = setUpNight(nightReply());

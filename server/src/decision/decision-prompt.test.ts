@@ -29,6 +29,7 @@ function buildContext(overrides: Partial<DecisionContext> = {}): DecisionContext
       { text: "Bake every day", why: "people rely on me", progress: "on track", kind: "world" },
     ],
     dailyPlan: "Bake at dawn, sell at the square.",
+    plans: [],
     intention: "going to buy wheat from Tom, offering 2 coins",
     simTime: "Day 1, 06:30",
     place: "bakery",
@@ -122,6 +123,27 @@ describe("buildDecisionPrompt", () => {
     expect(describeTraits(buildContext().personality.traits)).toBe(
       "quite introverted, quite agreeable, very conscientious, moderately anxious, very traditional",
     );
+  });
+
+  it("numbers the plans with their next step, later steps and who to keep them from", () => {
+    const prompt = buildDecisionPrompt(
+      buildContext({
+        plans: [
+          { aim: "Buy the mill", steps: ["Save coins", "Ask Bob"], keepFrom: "Clara" },
+          { aim: "Rest more", steps: [], keepFrom: "" },
+        ],
+      }),
+    );
+    expect(prompt).toContain("## Goals and plans");
+    expect(prompt).toContain(
+      "Plan 1: Buy the mill. Next: Save coins. Then: Ask Bob. Keep it from: Clara.",
+    );
+    expect(prompt).toContain("Plan 2: Rest more.");
+    expect(prompt).toContain("stepDone");
+  });
+
+  it("says when there are no plans", () => {
+    expect(buildDecisionPrompt(buildContext())).toContain("No plans yet.");
   });
 
   it("includes the intention as 'You were:'", () => {

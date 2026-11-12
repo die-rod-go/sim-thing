@@ -14,6 +14,7 @@ import {
 } from "./db/log-repository";
 import { loadWorld, saveWorld } from "./db/world-repository";
 import { listItemReferences, loadItemCatalog } from "./items/load-items";
+import { readReflectionModel } from "./llm/env";
 import { buildLlmStack, llmProviderSchema } from "./llm/llm-stack";
 import { listHitRollVerbNames } from "./items/verb-offers";
 import type { TokenBudget } from "./llm/token-budget";
@@ -137,8 +138,11 @@ async function run(): Promise<void> {
     tokenUsageStore: createTokenUsageStore(database),
     dailyTokenBudget: settings.dailyTokenBudget,
     recordLlmCall: (record) => appendLlmCall(database, record),
+    reflectionModel: readReflectionModel(),
   });
-  logger.info(`LLM provider: ${environment.LLM_PROVIDER} (model ${llm.client.model})`);
+  logger.info(
+    `LLM provider: ${environment.LLM_PROVIDER} (model ${llm.client.model}, reflection model ${readReflectionModel() ?? "same"})`,
+  );
   const findPauseReason = () => describeBudgetPause(llm.budget);
 
   const loop = new SimLoop({

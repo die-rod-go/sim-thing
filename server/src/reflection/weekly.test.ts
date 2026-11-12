@@ -13,7 +13,7 @@ const OLD_GOALS: Agent["goals"] = [
 ];
 
 function weeklyReply(overrides: Record<string, unknown> = {}): string {
-  return JSON.stringify({ traitChanges: [], core: null, selfImage: null, goals: [], ...overrides });
+  return JSON.stringify({ traitChanges: [], core: null, selfImage: null, ...overrides });
 }
 
 function traitChange(trait: string, delta: number, reason = "I spoke up more") {
@@ -125,16 +125,13 @@ describe("runWeeklyPass", () => {
     expect(result.changes).toEqual([]);
   });
 
-  it("keeps the old goals when the reply has none", async () => {
-    const { result } = await runWeekly(weeklyReply({ goals: [] }));
-    expect(result.agent.goals).toEqual(OLD_GOALS);
-  });
-
-  it("replaces the goals with the revised list", async () => {
+  it("leaves the goals alone even when the reply lists some", async () => {
     const newGoals = [
       { text: "Teach Clara to bake", why: "she asked", progress: "just started", kind: "social" },
     ];
-    const { result } = await runWeekly(weeklyReply({ goals: newGoals }));
-    expect(result.agent.goals).toEqual(newGoals);
+    const { result, prompt } = await runWeekly(weeklyReply({ goals: newGoals }));
+    expect(result.agent.goals).toEqual(OLD_GOALS);
+    expect(prompt).toContain("Run the best bakery");
+    expect(prompt).not.toContain("full goal list");
   });
 });

@@ -14,6 +14,7 @@ import {
   describeMemories,
   describeNearbyEntities,
   describePeopleOnMind,
+  describePlans,
   describeWorkingMemory,
 } from "./sections";
 import { describeStats, describeStatus, describeTraits } from "./words";
@@ -55,6 +56,7 @@ function buildTemplateValues(
     body: describeStats(context.body),
     status: describeStatus(context, context.conditionWords),
     goals: describeGoals(context.goals),
+    plans: describePlans(context.plans),
     dailyPlan: context.dailyPlan || "none yet",
     simTime: context.simTime,
     intention: context.intention || "nothing in particular",

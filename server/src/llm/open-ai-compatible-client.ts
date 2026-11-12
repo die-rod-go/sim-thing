@@ -64,7 +64,7 @@ export class OpenAiCompatibleClient implements LlmClient {
         promptTokens: completion.usage?.prompt_tokens ?? estimateTokens(promptText),
         completionTokens: completion.usage?.completion_tokens ?? estimateTokens(text),
         latencyMs,
-        model: completion.model ?? this.model,
+        model: completion.model ?? request.model ?? this.model,
         wasCutOff: completion.choices[0]?.finish_reason === "length",
       };
     } catch (error) {
@@ -96,7 +96,7 @@ export class OpenAiCompatibleClient implements LlmClient {
         }
       : {};
     return {
-      model: this.model,
+      model: request.model ?? this.model,
       messages: toMessages(request),
       max_tokens: request.maxTokens,
       ...(request.temperature === undefined ? {} : { temperature: request.temperature }),

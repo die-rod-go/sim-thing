@@ -10,7 +10,7 @@ import { InMemoryTokenUsageStore, TokenBudget } from "./token-budget";
 const replySchema = z.object({ answer: z.string() });
 const NOON = new Date(2026, 10, 10, 12, 0, 0);
 
-function setUp(replies: FakeReply[], dailyTokenBudget = 1_000_000) {
+function setUp(replies: FakeReply[], dailyTokenBudget = 1_000_000, reflectionModel?: string) {
   const client = new FakeLlmClient(replies);
   const records: LlmCallDraft[] = [];
   const pauses: number[] = [];
@@ -21,6 +21,7 @@ function setUp(replies: FakeReply[], dailyTokenBudget = 1_000_000) {
     limiter: new ConcurrencyLimiter(2),
     budget,
     recordLlmCall: (record) => records.push(record),
+    reflectionModel,
     pause: async (milliseconds) => {
       pauses.push(milliseconds);
     },
@@ -34,6 +35,20 @@ function setUp(replies: FakeReply[], dailyTokenBudget = 1_000_000) {
   };
   return { client, records, pauses, budget, callStructured, request };
 }
+
+describe("callStructured with a reflection model", () => {
+  it("sends reflection calls to the reflection model and decisions to the client's own", async () => {
+    const { client, records, callStructured, request } = setUp(
+      ['{"answer":"a"}', '{"answer":"b"}'],
+      1_000_000,
+      "stronger-model",
+    );
+    await callStructured({ ...request, kind: "daytime" });
+    await callStructured(request);
+    expect(client.requests.map((sent) => sent.model)).toEqual(["stronger-model", undefined]);
+    expect(records.map((record) => record.model)).toEqual(["stronger-model", "fake-model"]);
+  });
+});
 
 describe("callStructured", () => {
   it("returns the validated value from a fake client reply", async () => {

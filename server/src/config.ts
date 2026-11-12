@@ -1,4 +1,4 @@
-import type { Bucket, NeedName, StatName, TraitName, Volume } from "@village/shared";
+import type { Bucket, LlmCallKind, NeedName, StatName, TraitName, Volume } from "@village/shared";
 
 /**
  * Every global tunable in the sim lives here: rates, caps, weights, loudness and budgets. Item
@@ -560,6 +560,14 @@ export const config = {
   },
 
   /** One rewritable text per known person, kept by each agent. */
+  plans: {
+    maxPlans: 3,
+    maxSteps: 5,
+    maxAimChars: 200,
+    maxStepChars: 200,
+    maxKeepFromChars: 200,
+  },
+
   dossier: {
     /** A rewritten entry over this length is rejected and retried, never cut. */
     maxChars: 400,
@@ -569,6 +577,8 @@ export const config = {
     unknownPersonText: "nothing known yet beyond what you see.",
     /** The decision section's text when no one is on the agent's mind. */
     nobodyOnMindText: "No one in particular.",
+    /** Shown in a reflection prompt for a person the agent has no entry for. */
+    reflectionUnknownPersonText: "nothing written down about them yet.",
   },
 
   decision: {
@@ -618,11 +628,13 @@ export const config = {
       decision: 1500,
       interact: 500,
       morning: 1500,
-      daytime: 1500,
-      night: 3000,
+      daytime: 3000,
+      night: 4500,
       weekly: 3000,
       conversation_summary: 1000,
     },
+    /** Calls of these kinds use `LLM_REFLECTION_MODEL` when it is set. */
+    reflectionKinds: ["morning", "daytime", "night", "weekly"] as LlmCallKind[],
     dailyTokenBudget: 100_000_000,
     /**
      * Tries per call, the first included. A rejected reply (bad JSON, failed validation, too long)
@@ -663,6 +675,10 @@ export const config = {
     nightCooldownHours: 16,
     nightForcedHour: 2,
     maxInsights: 3,
+    /** The daytime pass files at most this many insights. */
+    daytimeMaxInsights: 2,
+    /** The morning and daytime prompts show at most this many dossiers (people in the memories, then people named in goals and plans). */
+    dossiersShown: 6,
     /** An awake agent thinks things over (the daytime pass) this many sim-hours after its last reflection. */
     daytimeEveryHours: 2,
     /** At most this many memories since the last reflection (strongest, then newest) reach the daytime prompt. */

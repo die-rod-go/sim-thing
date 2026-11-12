@@ -1,4 +1,12 @@
-import type { AgentBody, AwarenessVia, Bucket, Goal, Needs, Personality } from "@village/shared";
+import type {
+  AgentBody,
+  AwarenessVia,
+  Bucket,
+  Goal,
+  Needs,
+  Personality,
+  Plan,
+} from "@village/shared";
 
 /** Names the agent may use as an action `target` right now. */
 export interface DecisionTargets {
@@ -101,6 +109,7 @@ export interface DecisionContext {
   body: AgentBody;
   goals: Goal[];
   dailyPlan: string;
+  plans: Plan[];
   intention: string;
   /** e.g. "Day 1, 06:30" from `formatSimTime`. */
   simTime: string;

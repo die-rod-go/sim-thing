@@ -5,6 +5,7 @@ import type { DossierEntry } from "../memory/dossiers";
 import { describeReflectionKind } from "./reflection-memories";
 
 const TRAIT_VALUE_DECIMALS_SHOWN = 2;
+const LINE_BREAK = "\n";
 
 function bulletList(lines: readonly string[], emptyText: string): string {
   return lines.length > 0 ? lines.map((line) => `- ${line}`).join("\n") : emptyText;
@@ -40,7 +41,15 @@ export function describeDossiers(entries: readonly DossierEntry[], emptyText: st
   );
 }
 
-/** Goals with their kind, as the weekly pass must return them. */
+/** "1. text (why: ...; so far: ...)": goals numbered as the daytime reply refers to them. */
+export function describeNumberedGoals(goals: readonly Goal[]): string {
+  if (goals.length === 0) return "No goals right now.";
+  return goals
+    .map((goal, index) => `${index + 1}. ${goal.text} (why: ${goal.why}; so far: ${goal.progress})`)
+    .join(LINE_BREAK);
+}
+
+/** Goals with their kind, as the night pass must return them. */
 export function describeGoalsWithKind(goals: readonly Goal[]): string {
   return bulletList(
     goals.map((goal) => `[${goal.kind}] ${goal.text} (why: ${goal.why}; so far: ${goal.progress})`),

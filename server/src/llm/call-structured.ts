@@ -39,6 +39,8 @@ export interface StructuredCallerDependencies {
   recordLlmCall: LlmCallSink;
   /** Waits between attempts; injectable so tests don't sleep. */
   pause?: (milliseconds: number) => Promise<void>;
+  /** Used instead of the client's model for the reflection passes (`config.llm.reflectionKinds`). */
+  reflectionModel?: string;
 }
 
 type AttemptOutcome<Value> =
@@ -105,6 +107,7 @@ async function attemptCall<Value>(
   client: LlmClient,
   request: StructuredCallRequest<Value>,
   prompt: string,
+  model: string | undefined,
 ): Promise<AttemptOutcome<Value>> {
   const baseRecord = {
     agentId: request.agentId,
@@ -119,6 +122,7 @@ async function attemptCall<Value>(
       jsonSchema: request.jsonSchema,
       schemaName: request.schemaName,
       maxTokens: request.maxTokens ?? config.llm.maxReplyTokens[request.kind],
+      model,
       temperature: request.temperature ?? config.llm.temperature ?? undefined,
     });
     const parseResult = describeCutOff(
@@ -143,7 +147,7 @@ async function attemptCall<Value>(
     const message = `API error: ${describeError(error)}`;
     const record: LlmCallDraft = {
       ...baseRecord,
-      model: client.model,
+      model: model ?? client.model,
       reply: "",
       parsed: null,
       promptTokens: 0,
@@ -165,6 +169,9 @@ export function createStructuredCaller(
 ): StructuredCaller {
   const pause = dependencies.pause ?? pauseFor;
   return async <Value>(request: StructuredCallRequest<Value>) => {
+    const model = config.llm.reflectionKinds.includes(request.kind)
+      ? dependencies.reflectionModel
+      : undefined;
     let lastError = BUDGET_REACHED_ERROR;
     let rejection: string | null = null;
     for (let attempt = 1; attempt <= config.llm.attemptsPerCall; attempt += 1) {
@@ -175,7 +182,7 @@ export function createStructuredCaller(
       }
       const prompt = buildRetryPrompt(request, rejection);
       const outcome = await dependencies.limiter.run(() =>
-        attemptCall(dependencies.client, request, prompt),
+        attemptCall(dependencies.client, request, prompt, model),
       );
       const callId = dependencies.recordLlmCall(outcome.record);
       dependencies.budget.addTokens(outcome.record.promptTokens + outcome.record.completionTokens);

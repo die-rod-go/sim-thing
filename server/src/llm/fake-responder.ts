@@ -69,10 +69,15 @@ function buildBuiltInAnswers(hitRollVerbs: ReadonlySet<string>): Record<string, 
     }),
     morning_reply: () => ({
       dailyPlan: "Work in the morning, eat at midday, see who is around in the afternoon.",
+      plans: [],
       mood: "ready for the day",
     }),
     daytime_reply: () => ({
+      thinking: "Nothing is in the way; I keep at my work.",
       insights: [{ text: "The work goes better when I keep at it." }],
+      goalProgress: [],
+      plans: null,
+      dossiers: [],
       mood: null,
     }),
     night_reply: () => ({
@@ -80,6 +85,8 @@ function buildBuiltInAnswers(hitRollVerbs: ReadonlySet<string>): Record<string, 
       moodEntry: "tired but settled",
       insights: [{ text: "Keeping busy makes the day go well." }],
       dossiers: [],
+      goals: [],
+      plans: null,
     }),
     conversation_summary_reply: () => ({
       summary: "I chatted with the people around me about the day's work. Nothing was settled.",
@@ -95,7 +102,6 @@ function buildBuiltInAnswers(hitRollVerbs: ReadonlySet<string>): Record<string, 
       profession: null,
       core: null,
       selfImage: null,
-      goals: [],
     }),
   };
 }
