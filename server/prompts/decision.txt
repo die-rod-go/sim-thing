@@ -45,15 +45,19 @@ Places you know: {{knownPlaces}}
 ## What you can do
 Actions: {{actions}}
 - walk_to: go to a place you know, or to someone in sight. Needs target.
-- interact: do something with a thing, using one of the verbs listed beside it. Set item to the thing the verb is listed beside: something you carry, something here, or something listed inside another thing. A verb that needs a tool is listed beside the thing it is done on, and beside the tool after "lets you" ("lets you chop down the tree"): set item to that thing (the tree), and the tool you carry is used by itself. If it is inside something, set from to that holder (needed only when more than one holder has one). Set target to who or what the verb is aimed at: a person, a thing, or yourself. Verbs under "You can also" need no item, only a target. Add amount for how many; text for verbs that take words, like posting a note; minutes for a nap.
+- interact: use a verb shown in brackets beside a thing.
+  item: that thing (something you carry, something here, or something inside a holder).
+  from: the holder, only if more than one holds it.
+  target: who or what the verb is aimed at, if anyone.
+  A tool you carry works by itself: for "lets you chop down the tree", set item to the tree.
+  Verbs under "You can also" need only a target.
+  amount: how many. text: words, e.g. for a note. minutes: for a nap.
 - give: hand things you carry, coins included, to someone within reach. Needs target (the person), item and amount.
 - say: speak aloud, then stay where you are for minutes to hear any answer (default {{sayWaitMinutes}}). Needs say (your words); set volume to whisper, normal or shout (default normal). Only people in earshot hear you; the Around you section says who obviously would. Anything new you notice ends the wait early. Words are only spoken with this action.
 - recall: search your memory. Needs query (the people, places or things you want to remember). You decide again right after.
 - wait: stay where you are for up to minutes. Anything new you notice ends the wait early.
-- continue: keep doing what you are in the middle of. Only possible when you were interrupted mid-action.
-Valid targets: {{targets}}
-Valid items: {{items}}
-Valid holders (from): {{holders}}
+{{continueAction}}
+Write every name exactly as it appears above.
 
 Free extras that go along with any action:
 - note: {"person", "text"} to write down something you want to remember about a person.

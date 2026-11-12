@@ -1,4 +1,5 @@
 import { afterEach, describe, expect, it, vi } from "vitest";
+import { config } from "../config";
 import type { LlmEnv } from "./env";
 import { readLlmEnv } from "./env";
 import { OpenAiCompatibleClient } from "./open-ai-compatible-client";
@@ -97,8 +98,8 @@ describe("OpenAiCompatibleClient", () => {
     stubFetch({ choices: [{ message: { content: "12345678" } }] });
     const client = new OpenAiCompatibleClient(settings);
     const response = await client.complete({ prompt: "abcd", maxTokens: 50, temperature: 0 });
-    expect(response.promptTokens).toBe(1);
-    expect(response.completionTokens).toBe(2);
+    expect(response.promptTokens).toBe(Math.ceil(4 / config.decision.charsPerToken));
+    expect(response.completionTokens).toBe(Math.ceil(8 / config.decision.charsPerToken));
     expect(response.model).toBe("test/model");
   });
 

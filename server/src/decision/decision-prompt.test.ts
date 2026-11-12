@@ -159,6 +159,7 @@ describe("buildDecisionPrompt", () => {
   it("offers continue only when interrupted mid-action", () => {
     const calm = buildDecisionPrompt(buildContext());
     expect(calm).toMatch(/^Actions: walk_to, interact, give, say, recall, wait$/m);
+    expect(calm).not.toMatch(/^- continue:/m);
     const interrupted = buildDecisionPrompt(
       buildContext({
         currentAction: {
@@ -170,6 +171,7 @@ describe("buildDecisionPrompt", () => {
       }),
     );
     expect(interrupted).toMatch(/^Actions: .*continue$/m);
+    expect(interrupted).toMatch(/^- continue:/m);
     expect(interrupted).toContain("You are in the middle of: baking bread at the oven");
   });
 

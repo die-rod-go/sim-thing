@@ -466,8 +466,8 @@ export const config = {
     conversationLines: 12,
     conversationWindowTicks: 30,
     promptTokenTarget: 3000,
-    /** Rough characters-per-token used to estimate prompt size before trimming memories. */
-    charsPerToken: 4,
+    /** Rough characters-per-token used to estimate prompt size before trimming memories. Measured from logged Haiku calls: about 1.9. */
+    charsPerToken: 2,
     defaultWaitMinutes: 10,
     /** How long a speaker stays to hear an answer when the reply names no minutes. */
     sayWaitMinutes: 5,

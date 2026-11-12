@@ -13,11 +13,11 @@ import {
   describeMemories,
   describeNearbyEntities,
   describeWorkingMemory,
-  listTargetNames,
 } from "./sections";
 import { describeStats, describeStatus, describeTraits } from "./words";
 
 const DECISION_TEMPLATE = "decision";
+const CONTINUE_ACTION_TEMPLATE = "decision-continue";
 const BASE_ACTIONS: readonly DecisionAction[] = [
   "walk_to",
   "interact",
@@ -37,7 +37,11 @@ export function estimatePromptTokens(prompt: string): number {
   return Math.ceil(prompt.length / config.decision.charsPerToken);
 }
 
-function buildTemplateValues(context: DecisionContext, memories: RecalledMemories): TemplateValues {
+function buildTemplateValues(
+  context: DecisionContext,
+  memories: RecalledMemories,
+  continueAction: string,
+): TemplateValues {
   const { personality } = context;
   return {
     name: context.name,
@@ -64,9 +68,7 @@ function buildTemplateValues(context: DecisionContext, memories: RecalledMemorie
     memories: describeMemories(memories, context.foggedBy),
     actions: listOfferedActions(context.isMidActionInterrupt).join(", "),
     sayWaitMinutes: String(config.decision.sayWaitMinutes),
-    targets: listTargetNames(context.validTargets).join(", "),
-    items: context.validItems.map((item) => item.name).join(", ") || "none",
-    holders: context.validHolders.join(", ") || "none",
+    continueAction: context.isMidActionInterrupt ? continueAction : "",
   };
 }
 
@@ -94,13 +96,20 @@ function withoutOneMemory(memories: RecalledMemories): RecalledMemories | null {
  */
 export function buildDecisionPrompt(context: DecisionContext, promptsDirectory?: string): string {
   const template = loadTemplate(DECISION_TEMPLATE, promptsDirectory);
+  const continueAction = loadTemplate(CONTINUE_ACTION_TEMPLATE, promptsDirectory).trim();
+  const fillDecisionTemplate = (memories: RecalledMemories): string =>
+    fillTemplate(
+      template,
+      buildTemplateValues(context, memories, continueAction),
+      DECISION_TEMPLATE,
+    );
   let memories: RecalledMemories = context.recalledMemories;
-  let prompt = fillTemplate(template, buildTemplateValues(context, memories), DECISION_TEMPLATE);
+  let prompt = fillDecisionTemplate(memories);
   while (estimatePromptTokens(prompt) > config.decision.promptTokenTarget) {
     const trimmedMemories = withoutOneMemory(memories);
     if (!trimmedMemories) break;
     memories = trimmedMemories;
-    prompt = fillTemplate(template, buildTemplateValues(context, memories), DECISION_TEMPLATE);
+    prompt = fillDecisionTemplate(memories);
   }
   return prompt;
 }
