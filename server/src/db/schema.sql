@@ -54,6 +54,8 @@ CREATE TABLE IF NOT EXISTS llm_calls (
   parsed TEXT,
   prompt_tokens INTEGER NOT NULL,
   completion_tokens INTEGER NOT NULL,
+  cache_read_tokens INTEGER,
+  cache_write_tokens INTEGER,
   latency_ms INTEGER NOT NULL,
   error TEXT,
   created_at TEXT NOT NULL

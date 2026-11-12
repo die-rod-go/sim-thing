@@ -97,10 +97,10 @@ export function loadTestSeeds() {
   return loadSeedFile(resolve(import.meta.dirname, "test-seeds.json"));
 }
 
-/** Who a prompt is for: every prompt opens with "You are <name>," or "You are <name>.". */
+/** Who a prompt is for: the first line starting "You are <name>," or "You are <name>.". */
 export function findPromptAgentName(request: LlmRequest): string {
   const prompt = "prompt" in request ? request.prompt : (request.messages[0]?.content ?? "");
-  return /^You are ([^,.]+)[,.]/.exec(prompt)?.[1] ?? "";
+  return /^You are ([^,.]+)[,.]/m.exec(prompt)?.[1] ?? "";
 }
 
 export function promptOf(request: LlmRequest): string {

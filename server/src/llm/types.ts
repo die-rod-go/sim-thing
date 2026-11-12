@@ -16,14 +16,19 @@ interface LlmRequestOptions {
   model?: string;
   /** Left out of the request when undefined, so the provider default applies. */
   temperature?: number;
+  /** Character offsets into the prompt after which a provider with prompt caching may cache the prefix. */
+  cacheBreakpoints?: number[];
 }
 
 export type LlmRequest = LlmRequestOptions & ({ prompt: string } | { messages: LlmMessage[] });
 
 export interface LlmResponse {
   text: string;
+  /** Total input tokens, cached or not. */
   promptTokens: number;
   completionTokens: number;
+  cacheReadTokens?: number;
+  cacheWriteTokens?: number;
   latencyMs: number;
   model: string;
   /** The provider stopped because the reply reached `maxTokens`. */

@@ -1,7 +1,7 @@
 import type { Agent, DecisionReply, Volume } from "@village/shared";
 import { config } from "../config";
 import { formatMinutesAgo } from "../decision/around-you";
-import { buildDecisionPrompt } from "../decision/decision-prompt";
+import { buildCacheableDecisionPrompt } from "../decision/decision-prompt";
 import { buildDecisionReplySchema } from "../decision/reply-schema";
 import { searchMemories } from "../memory/recall";
 import { fillStatusWords, findFailedRecall, readStatusView } from "../status/impairment";
@@ -67,18 +67,25 @@ async function askForDecision(
     decisionReason: request.reason,
     ...(agentOverride ? { agentOverride } : {}),
   });
-  const prompt = buildDecisionPrompt(context, dependencies.promptsDirectory);
+  const { text: prompt, cacheBreakpoints } = buildCacheableDecisionPrompt(
+    context,
+    dependencies.promptsDirectory,
+  );
   const schemas = buildDecisionReplySchema(
     context.validTargets,
     context.validItems,
     context.validHolders,
-    { isMidActionInterrupt: request.isMidActionInterrupt },
+    {
+      isMidActionInterrupt: request.isMidActionInterrupt,
+      isReplySchemaStable: dependencies.isReplySchemaStable,
+    },
   );
   const reply = await dependencies.callStructured({
     kind: "decision",
     agentId: request.agentId,
     tick: state.tick,
     prompt,
+    cacheBreakpoints,
     ...schemas,
   });
   return reply.ok

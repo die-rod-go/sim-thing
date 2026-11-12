@@ -4,11 +4,12 @@ import { ConcurrencyLimiter } from "./concurrency-limiter";
 import { readLlmEnv } from "./env";
 import { FakeLlmClient } from "./fake-llm-client";
 import { createFakeResponder, type FakeResponderOptions } from "./fake-responder";
+import { AnthropicClient } from "./anthropic-client";
 import { OpenAiCompatibleClient } from "./open-ai-compatible-client";
 import { TokenBudget } from "./token-budget";
 import type { LlmCallSink, LlmClient, TokenUsageStore } from "./types";
 
-export const llmProviderSchema = z.enum(["openai", "fake"]).default("openai");
+export const llmProviderSchema = z.enum(["openai", "anthropic", "fake"]).default("openai");
 
 export type LlmProvider = z.infer<typeof llmProviderSchema>;
 
@@ -34,7 +35,7 @@ export interface LlmStack {
   callStructured: StructuredCaller;
 }
 
-/** `fake` runs offline with a seeded responder; `openai` reads LLM_* from the environment. */
+/** `fake` runs offline with a seeded responder; `openai` and `anthropic` read LLM_* from the environment. */
 export function createLlmClient(
   provider: LlmProvider,
   fakeResponderOptions: FakeResponderOptions = {},
@@ -43,7 +44,9 @@ export function createLlmClient(
     ? new FakeLlmClient(createFakeResponder({}, undefined, fakeResponderOptions), {
         isKeepingRequests: false,
       })
-    : new OpenAiCompatibleClient(readLlmEnv());
+    : provider === "anthropic"
+      ? new AnthropicClient(readLlmEnv())
+      : new OpenAiCompatibleClient(readLlmEnv());
 }
 
 export function buildLlmStack(options: LlmStackOptions): LlmStack {

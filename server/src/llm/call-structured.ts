@@ -20,6 +20,8 @@ export interface StructuredCallRequest<Value> {
   /** Defaults to `config.llm.maxReplyTokens[kind]`. */
   maxTokens?: number;
   temperature?: number;
+  /** Offsets into `prompt` where the provider may cache the prefix. */
+  cacheBreakpoints?: number[];
 }
 
 export type LlmCallDraft = Omit<LlmCallRecord, "id">;
@@ -124,6 +126,7 @@ async function attemptCall<Value>(
       maxTokens: request.maxTokens ?? config.llm.maxReplyTokens[request.kind],
       model,
       temperature: request.temperature ?? config.llm.temperature ?? undefined,
+      cacheBreakpoints: request.cacheBreakpoints,
     });
     const parseResult = describeCutOff(
       parseReply(response.text, request.schema),
@@ -137,6 +140,8 @@ async function attemptCall<Value>(
       parsed: parseResult.parsed,
       promptTokens: response.promptTokens,
       completionTokens: response.completionTokens,
+      cacheReadTokens: response.cacheReadTokens ?? null,
+      cacheWriteTokens: response.cacheWriteTokens ?? null,
       latencyMs: response.latencyMs,
       error: parseResult.ok ? null : parseResult.error,
     };
@@ -152,6 +157,8 @@ async function attemptCall<Value>(
       parsed: null,
       promptTokens: 0,
       completionTokens: 0,
+      cacheReadTokens: null,
+      cacheWriteTokens: null,
       latencyMs: Math.round(performance.now() - startedAt),
       error: message,
     };

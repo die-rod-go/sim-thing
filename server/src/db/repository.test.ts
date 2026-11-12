@@ -58,6 +58,8 @@ function buildLlmCall(agentId: string, tick: number) {
     parsed: { action: "wait" },
     promptTokens: 120,
     completionTokens: 12,
+    cacheReadTokens: 80,
+    cacheWriteTokens: null,
     latencyMs: 340,
     error: null,
   };
@@ -179,6 +181,26 @@ describe("database repositories", () => {
       reopened.close();
       expect(columns.map((column) => column.name)).toContain("changes");
       expect(columns.map((column) => column.name)).not.toContain("state");
+    } finally {
+      rmSync(directory, { recursive: true, force: true });
+    }
+  });
+
+  it("adds the cache token columns to an llm_calls table from before prompt caching", () => {
+    const directory = mkdtempSync(join(tmpdir(), "village-old-calls-"));
+    try {
+      const path = join(directory, "sim.db");
+      const old = new BetterSqlite3(path);
+      old.exec(
+        "CREATE TABLE llm_calls (id INTEGER PRIMARY KEY, agent_id TEXT, prompt_tokens INTEGER)",
+      );
+      old.close();
+      const reopened = openDatabase(path);
+      const columns = reopened.prepare("PRAGMA table_info(llm_calls)").all() as { name: string }[];
+      reopened.close();
+      expect(columns.map((column) => column.name)).toEqual(
+        expect.arrayContaining(["cache_read_tokens", "cache_write_tokens"]),
+      );
     } finally {
       rmSync(directory, { recursive: true, force: true });
     }

@@ -8,6 +8,8 @@ export interface SimDependencies {
   reflectionHook: ReflectionHook;
   /** Overrides `config.server.promptsDirectory`, e.g. in tests. */
   promptsDirectory?: string;
+  /** Keeps the decision reply's JSON schema identical across calls, so prompt caching can match. */
+  isReplySchemaStable?: boolean;
   /**
    * Lets the clock run on while decisions, conversation summaries and reflection passes wait for the
    * LLM, applying each on the first tick after it returns. Off (each tick waits for all of them)

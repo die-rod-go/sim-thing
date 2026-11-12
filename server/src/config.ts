@@ -618,6 +618,9 @@ export const config = {
     concurrency: 8,
     retryBackoffMs: 1500,
     requestTimeoutMs: 15000,
+    /** Anthropic's native API: the required version header and the cache lifetime of each breakpoint. */
+    anthropicVersion: "2023-06-01",
+    anthropicCacheType: "ephemeral",
     /**
      * Written text may run this much over the length a prompt asks for before the reply is
      * rejected: models can't count characters, and a retry costs a whole second call.

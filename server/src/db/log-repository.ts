@@ -13,6 +13,8 @@ interface LlmCallRow {
   parsed: string | null;
   prompt_tokens: number;
   completion_tokens: number;
+  cache_read_tokens: number | null;
+  cache_write_tokens: number | null;
   latency_ms: number;
   error: string | null;
 }
@@ -72,8 +74,8 @@ export function appendLlmCall(database: Database, call: Omit<LlmCallRecord, "id"
   const result = database
     .prepare(
       `INSERT INTO llm_calls (agent_id, tick, kind, model, prompt, reply, parsed, prompt_tokens,
-         completion_tokens, latency_ms, error, created_at)
-       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+         completion_tokens, cache_read_tokens, cache_write_tokens, latency_ms, error, created_at)
+       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
     )
     .run(
       call.agentId,
@@ -85,6 +87,8 @@ export function appendLlmCall(database: Database, call: Omit<LlmCallRecord, "id"
       call.parsed === undefined ? null : JSON.stringify(call.parsed),
       call.promptTokens,
       call.completionTokens,
+      call.cacheReadTokens ?? null,
+      call.cacheWriteTokens ?? null,
       call.latencyMs,
       call.error,
       new Date().toISOString(),
@@ -104,6 +108,8 @@ function toLlmCallRecord(row: LlmCallRow): LlmCallRecord {
     parsed: row.parsed === null ? null : (JSON.parse(row.parsed) as unknown),
     promptTokens: row.prompt_tokens,
     completionTokens: row.completion_tokens,
+    cacheReadTokens: row.cache_read_tokens,
+    cacheWriteTokens: row.cache_write_tokens,
     latencyMs: row.latency_ms,
     error: row.error,
   };

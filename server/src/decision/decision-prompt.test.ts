@@ -2,7 +2,11 @@ import { describe, expect, it } from "vitest";
 import { config } from "../config";
 import { describeAroundYou } from "./around-you";
 import type { DecisionContext, RecalledMemory } from "./context";
-import { buildDecisionPrompt, estimatePromptTokens } from "./decision-prompt";
+import {
+  buildCacheableDecisionPrompt,
+  buildDecisionPrompt,
+  estimatePromptTokens,
+} from "./decision-prompt";
 import { describeStats, describeStatus, describeTraits } from "./words";
 
 function buildContext(overrides: Partial<DecisionContext> = {}): DecisionContext {
@@ -429,5 +433,26 @@ describe("describeAroundYou", () => {
     expect(describeAroundYou({ entries: [], normalHearerIds: [], whisperHearerIds: [] })).toBe(
       "No one else is around.",
     );
+  });
+});
+
+describe("buildCacheableDecisionPrompt", () => {
+  it("puts what is the same for every agent before the first cache breakpoint", () => {
+    const { text, cacheBreakpoints } = buildCacheableDecisionPrompt(buildContext());
+    const [sharedEnd, perAgentEnd] = cacheBreakpoints;
+    expect(cacheBreakpoints).toHaveLength(2);
+    expect(text.slice(0, sharedEnd)).toContain("## What you can do");
+    expect(text.slice(0, sharedEnd)).toContain("## Reply");
+    expect(text.slice(0, sharedEnd)).not.toContain("## Who you are");
+    expect(text.slice(sharedEnd, perAgentEnd)).toContain("## Goals and plans");
+    expect(text.slice(perAgentEnd)).toContain("## Now");
+    expect(text).not.toContain("<<<cache>>>");
+  });
+
+  it("keeps the shared part identical between mid-action interrupts and calm decisions", () => {
+    const calm = buildCacheableDecisionPrompt(buildContext());
+    const interrupted = buildCacheableDecisionPrompt(buildContext({ isMidActionInterrupt: true }));
+    const sharedEnd = calm.cacheBreakpoints[0] ?? 0;
+    expect(interrupted.text.slice(0, sharedEnd)).toBe(calm.text.slice(0, sharedEnd));
   });
 });

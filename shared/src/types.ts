@@ -243,6 +243,8 @@ export interface LlmCallRecord {
   parsed: unknown;
   promptTokens: number;
   completionTokens: number;
+  cacheReadTokens?: number | null;
+  cacheWriteTokens?: number | null;
   latencyMs: number;
   error: string | null;
 }

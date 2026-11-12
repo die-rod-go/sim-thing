@@ -21,6 +21,8 @@ import { describeStats, describeStatus, describeTraits } from "./words";
 
 const DECISION_TEMPLATE = "decision";
 const CONTINUE_ACTION_TEMPLATE = "decision-continue";
+/** Marks the end of a part of the template that is stable enough for the provider to cache. */
+const CACHE_BREAKPOINT_MARKER = "<<<cache>>>\n";
 const BASE_ACTIONS: readonly DecisionAction[] = [
   "walk_to",
   "interact",
@@ -96,11 +98,32 @@ function withoutOneMemory(memories: RecalledMemories): RecalledMemories | null {
   };
 }
 
+export interface DecisionPrompt {
+  text: string;
+  /** Offsets into `text` ending the part shared by all agents and the part stable per agent. */
+  cacheBreakpoints: number[];
+}
+
+/** Removes the markers from a filled template and returns where each one was. */
+function extractCacheBreakpoints(filledTemplate: string): DecisionPrompt {
+  const pieces = filledTemplate.split(CACHE_BREAKPOINT_MARKER);
+  const cacheBreakpoints: number[] = [];
+  let length = 0;
+  for (const piece of pieces.slice(0, -1)) {
+    length += piece.length;
+    cacheBreakpoints.push(length);
+  }
+  return { text: pieces.join(""), cacheBreakpoints };
+}
+
 /**
  * Renders `decision.txt` for one agent. When the prompt is over `config.decision.promptTokenTarget`,
  * recalled memories are trimmed first: lowest-priority buckets, oldest first.
  */
-export function buildDecisionPrompt(context: DecisionContext, promptsDirectory?: string): string {
+export function buildCacheableDecisionPrompt(
+  context: DecisionContext,
+  promptsDirectory?: string,
+): DecisionPrompt {
   const template = loadTemplate(DECISION_TEMPLATE, promptsDirectory);
   const continueAction = loadTemplate(CONTINUE_ACTION_TEMPLATE, promptsDirectory).trim();
   const fillDecisionTemplate = (memories: RecalledMemories): string =>
@@ -117,5 +140,9 @@ export function buildDecisionPrompt(context: DecisionContext, promptsDirectory?:
     memories = trimmedMemories;
     prompt = fillDecisionTemplate(memories);
   }
-  return prompt;
+  return extractCacheBreakpoints(prompt);
+}
+
+export function buildDecisionPrompt(context: DecisionContext, promptsDirectory?: string): string {
+  return buildCacheableDecisionPrompt(context, promptsDirectory).text;
 }

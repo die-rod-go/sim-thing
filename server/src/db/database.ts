@@ -16,6 +16,7 @@ export function openDatabase(databasePath: string): Database {
   database.pragma("journal_mode = WAL");
   dropEntitiesFromBeforeComponents(database);
   database.exec(readFileSync(schemaPath, "utf8"));
+  addCacheTokenColumns(database);
   return database;
 }
 
@@ -23,6 +24,16 @@ export function openDatabase(databasePath: string): Database {
 function dropEntitiesFromBeforeComponents(database: Database): void {
   const columns = database.prepare("PRAGMA table_info(entities)").all() as { name: string }[];
   if (columns.some((column) => column.name === "state")) database.exec("DROP TABLE entities");
+}
+
+/** `llm_calls` rows from before prompt caching lack the cache token columns; they stay null there. */
+function addCacheTokenColumns(database: Database): void {
+  const columns = database.prepare("PRAGMA table_info(llm_calls)").all() as { name: string }[];
+  for (const name of ["cache_read_tokens", "cache_write_tokens"]) {
+    if (!columns.some((column) => column.name === name)) {
+      database.exec(`ALTER TABLE llm_calls ADD COLUMN ${name} INTEGER`);
+    }
+  }
 }
 
 /**

@@ -27,6 +27,11 @@ export interface ReplySchemas<Value> {
 export interface DecisionSchemaOptions {
   /** Offer `continue`: only for a perception interrupt mid-action. */
   isMidActionInterrupt?: boolean;
+  /**
+   * Leave the names and actions as plain strings in the JSON schema (zod still checks them). A
+   * schema that changes per call stops a provider's prompt cache from matching.
+   */
+  isReplySchemaStable?: boolean;
 }
 
 function buildDecisionJsonSchema(
@@ -34,7 +39,10 @@ function buildDecisionJsonSchema(
   targetNames: string[],
   itemNames: string[],
   holderNames: string[],
+  isStable: boolean,
 ): JsonSchema {
+  const nameField = (names: string[]) =>
+    isStable ? nullableJsonString() : nullableJsonEnum(names);
   return strictJsonObject({
     thought: { type: "string", description: "One or two short private sentences." },
     intention: {
@@ -44,11 +52,11 @@ function buildDecisionJsonSchema(
     },
     say: nullableJsonString(),
     volume: nullableJsonEnum(VOLUMES),
-    action: { type: "string", enum: [...actions] },
+    action: isStable ? { type: "string" } : { type: "string", enum: [...actions] },
     verb: nullableJsonString(),
-    item: nullableJsonEnum(itemNames),
-    from: nullableJsonEnum(holderNames),
-    target: nullableJsonEnum(targetNames),
+    item: nameField(itemNames),
+    from: nameField(holderNames),
+    target: nameField(targetNames),
     text: nullableJsonString(),
     amount: nullableJsonInteger(),
     query: nullableJsonString(),
@@ -112,7 +120,13 @@ export function buildDecisionReplySchema(
     .superRefine(requireFieldsForAction);
   return {
     schema: z.preprocess(dropEmptyFields, replyObject),
-    jsonSchema: buildDecisionJsonSchema(actions, targetNames, itemNames, validHolders),
+    jsonSchema: buildDecisionJsonSchema(
+      actions,
+      targetNames,
+      itemNames,
+      validHolders,
+      options.isReplySchemaStable ?? false,
+    ),
     schemaName: "decision_reply",
   };
 }

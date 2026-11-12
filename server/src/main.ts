@@ -149,6 +149,7 @@ async function run(): Promise<void> {
     state: initialState,
     advanceTick: createDecisionStrategy({
       callStructured: llm.callStructured,
+      isReplySchemaStable: environment.LLM_PROVIDER === "anthropic",
       shouldCallLlmInBackground: config.decision.shouldCallLlmInBackground,
       idleDecisionWaitMs: config.decision.idleDecisionWaitMs,
       reflectionHook: createReflectionHook({
