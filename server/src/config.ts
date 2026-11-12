@@ -86,7 +86,7 @@ export const config = {
 
   needs: {
     startValue: 0.8,
-    decayPerDayAwake: { hunger: 0.5, energy: 0.8, social: 0.8, fun: 0.6 } satisfies Record<
+    decayPerDayAwake: { hunger: 0.25, energy: 0.8, social: 0.8, fun: 0.6 } satisfies Record<
       NeedName,
       number
     >,
