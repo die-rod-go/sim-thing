@@ -1,8 +1,10 @@
 import { describe, expect, it } from "vitest";
 import {
+  findNearestFreeTile,
   findPath,
   findPathToPlace,
   findPathToTile,
+  listDoorwayTiles,
   listPlaceTiles,
   withBlockedTiles,
 } from "./pathfinding";
@@ -69,6 +71,18 @@ describe("findPathToPlace", () => {
     expect(path).toHaveLength(2);
   });
 
+  it("stops away from the doorway when there is room further in", () => {
+    const map = buildRoomMap();
+    const path = findPathToPlace(map, map.grid, { x: 4, y: 0 }, "hut", 2);
+    expect(path?.at(-1)).toEqual({ x: 2, y: 2 });
+  });
+
+  it("stops by the doorway when every tile is that close to it", () => {
+    const map = buildRoomMap();
+    const path = findPathToPlace(map, map.grid, { x: 4, y: 0 }, "hut", 3);
+    expect(path?.at(-1)).toEqual({ x: 4, y: 2 });
+  });
+
   it("returns null for an unknown place", () => {
     const map = buildRoomMap();
     expect(findPathToPlace(map, map.grid, { x: 0, y: 0 }, "castle")).toBeNull();
@@ -83,6 +97,14 @@ describe("findPathToPlace", () => {
       { x: 3, y: 2 },
       { x: 4, y: 2 },
     ]);
+  });
+
+  it("finds the gap in an indoor place's walls as its doorway", () => {
+    const map = buildRoomMap();
+    const hut = map.places[0];
+    if (!hut) throw new Error("no hut");
+    expect(listDoorwayTiles(map.grid, hut)).toEqual([{ x: 4, y: 1 }]);
+    expect(listDoorwayTiles(map.grid, { ...hut, isIndoor: false })).toEqual([]);
   });
 });
 
@@ -102,5 +124,17 @@ describe("findPathToTile", () => {
     const path = findPathToTile(grid, { x: 0, y: 0 }, { x: 2, y: 0 });
     expect(path?.at(-1)).toEqual({ x: 1, y: 0 });
     expect(findPath(grid, { x: 0, y: 0 }, { x: 4, y: 0 })).not.toContainEqual({ x: 2, y: 0 });
+  });
+});
+
+describe("findNearestFreeTile", () => {
+  it("returns the start tile when nothing stands on it", () => {
+    const grid = buildGrid(["...", "..."]);
+    expect(findNearestFreeTile(grid, { x: 1, y: 0 }, new Set())).toEqual({ x: 1, y: 0 });
+  });
+
+  it("steps to the nearest free floor tile past taken ones and walls", () => {
+    const grid = buildGrid([".#..", "...."]);
+    expect(findNearestFreeTile(grid, { x: 0, y: 0 }, new Set([0, 4]))).toEqual({ x: 1, y: 1 });
   });
 });

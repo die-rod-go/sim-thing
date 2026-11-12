@@ -106,21 +106,26 @@ describe("walking through a closed door", () => {
     const sim = buildCombatSim(["mara"]);
     sim.placeAgent("mara", BEHIND_BAKERY_DOOR);
     const door = closeDoor(sim);
-    const context = contextOf(sim);
-    startWalk(context, "mara", { kind: "place", placeName: "town square" }, null);
+    // One context per tick, as the loop makes: a walker steps at most once per tick's result.
+    const contexts = [contextOf(sim)];
+    startWalk(contexts[0]!, "mara", { kind: "place", placeName: "town square" }, null);
     for (let tick = 0; tick < TICKS_TO_CROSS; tick += 1) {
+      const context = contextOf(sim);
+      contexts.push(context);
       advanceWalk(context, "mara");
       sim.state.tick += 1;
     }
+    const events = contexts.flatMap((context) => context.result.events);
+    const changedEntityIds = contexts.flatMap((context) => context.result.changedEntityIds);
     expect(Object.hasOwn(findEntity(sim.state, door.id).changes, "closed")).toBe(false);
-    expect(context.result.events).toContainEqual(
+    expect(events).toContainEqual(
       expect.objectContaining({
         kind: "action_finished",
         description: "opened the bakery door",
         loudness: 3,
       }),
     );
-    expect(context.result.changedEntityIds).toContain(door.id);
+    expect(changedEntityIds).toContain(door.id);
     expect(sim.agent("mara").place).toBe("town square");
   });
 });

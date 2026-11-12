@@ -6,16 +6,20 @@ import { findMissingChoiceName, readThingName, resolveNumber, scopeOf } from "..
 import { computeHitChance, type Defender } from "../../status/combat";
 import { broadcastEvent } from "../event-broadcast";
 import { createEvent } from "../event-factory";
+import { stretchWaitMinutes } from "../verb-slowdown";
 import { findAgent, markAgentChanged, replaceAgent } from "../world-access";
 import { findRoleThing, requireVerbRun } from "./step-roles";
 import { DONE, type StepHandler, type StepOutcome, type StepRun } from "./step-run";
 
-/** Pauses the verb for `minutes`, rounded up to whole ticks and at least one; in passing it takes none. */
+/**
+ * Pauses the verb for `minutes` (longer for a slowed run), rounded up to whole ticks and at least
+ * one; in passing it takes none.
+ */
 export const waitStep: StepHandler<"wait"> = {
   isVerbOnly: true,
   run(run, step): StepOutcome {
     if (run.isInPassing) return DONE;
-    const minutes = resolveNumber(scopeOf(run), step.minutes);
+    const minutes = stretchWaitMinutes(run.verbRun, resolveNumber(scopeOf(run), step.minutes));
     const ticks = Math.max(1, Math.ceil(minutes / config.clock.minutesPerTick));
     return { kind: "pause", untilTick: run.context.state.tick + ticks };
   },

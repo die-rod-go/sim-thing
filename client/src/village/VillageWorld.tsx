@@ -4,13 +4,13 @@ import { clientConfig } from "../client-config";
 import { buildAgentColors } from "../format/agent-colors";
 import { listVisibleBodyComponents } from "../format/conditions";
 import type { SpeechBubble } from "../state/client-state";
-import { pickActivityCue, type ConversationLink } from "./activity-cues";
+import { pickActivityCue } from "./activity-cues";
 import { retargetMotion, type AgentMotion } from "./agent-motion";
 import { AgentMarker } from "./AgentMarker";
 import { HoverCard } from "./HoverCard";
 import type { MutedSpeakers } from "./muted-speakers";
 import { PerceptionOverlay, type PerceptionView } from "./perception-overlay";
-import { ConversationLinks, PlaceLabels } from "./screen-overlays";
+import { PlaceLabels } from "./screen-overlays";
 import { groupBubblesBySpeaker, SpeechBubbleStack, useLiveSpeechBubbles } from "./SpeechBubbles";
 import type { VisibleThought } from "./thought-bubbles";
 import { EntityConditionOverlays } from "./EntityConditionOverlays";
@@ -45,7 +45,6 @@ interface VillageWorldProps {
   inspectedAgentId: string | null;
   highlightedAgentIds: readonly string[];
   perceptionView: PerceptionView;
-  conversationLinks: readonly ConversationLink[];
   daylightTint: string;
   isPlaceLabelsOn: boolean;
   moveDurationMs: number;
@@ -77,7 +76,6 @@ function useWorldElements(): WorldElements {
   const bubbleStacks = useElementRegistry();
   const leaderLines = useElementRegistry();
   const placeLabels = useElementRegistry();
-  const linkLines = useElementRegistry<SVGLineElement>();
   const mapLayer = useRef<HTMLDivElement | null>(null);
   const hoverCard = useRef<HTMLElement | null>(null);
   const tileCard = useRef<HTMLElement | null>(null);
@@ -90,11 +88,10 @@ function useWorldElements(): WorldElements {
       bubbleStacks,
       leaderLines,
       placeLabels,
-      linkLines,
       hoverCard,
       tileCard,
     }),
-    [motions, markers, bubbleStacks, leaderLines, placeLabels, linkLines],
+    [motions, markers, bubbleStacks, leaderLines, placeLabels],
   );
 }
 
@@ -121,7 +118,7 @@ function useAgentMotions(
 
 /**
  * The village: a camera-scaled map layer (tiles, tint, debug overlay) under a screen-space layer
- * (conversation links, place names, agents, speech bubbles) that the frame loop keeps aligned.
+ * (place names, agents, speech bubbles) that the frame loop keeps aligned.
  */
 export function VillageWorld(props: VillageWorldProps) {
   const { map, agents, inspectedAgentId, camera } = props;
@@ -163,7 +160,6 @@ export function VillageWorld(props: VillageWorldProps) {
   );
   const sceneRef = useRef<WorldScene>({
     places: [],
-    links: [],
     hoveredAgentId: null,
     inspectedTile: null,
     tileSize: map.tileWidth,
@@ -194,7 +190,6 @@ export function VillageWorld(props: VillageWorldProps) {
     camera.mapSizeRef.current = { width: mapPixelWidth, height: mapPixelHeight };
     sceneRef.current = {
       places: visiblePlaces,
-      links: props.conversationLinks,
       hoveredAgentId: hoveredAgent?.id ?? null,
       inspectedTile: shownTile,
       tileSize: map.tileWidth,
@@ -241,7 +236,6 @@ export function VillageWorld(props: VillageWorldProps) {
         )}
       </div>
       <div className="village-screen">
-        <ConversationLinks links={props.conversationLinks} lineRegistry={world.linkLines} />
         <PlaceLabels places={visiblePlaces} labelRegistry={world.placeLabels} />
         {agents.map((agent) => (
           <AgentMarker

@@ -127,3 +127,45 @@ describe("a destroyed item", () => {
     expect(finished.result.events[0]?.description).toBe("finished eating bread");
   });
 });
+
+function exhaust(sim: TestSim, agentId: string): void {
+  const agent = sim.agent(agentId);
+  replaceAgent(sim.state, { ...agent, needs: { ...agent.needs, energy: 0.05 } });
+}
+
+function minutesUntilDone(sim: TestSim, agentId: string): number {
+  const endsAtTick = sim.agent(agentId).currentAction?.endsAtTick ?? sim.state.tick;
+  return (endsAtTick - sim.state.tick) * config.clock.minutesPerTick;
+}
+
+function startBaking(sim: TestSim): void {
+  const oven = placeEntity(sim, "oven", OPEN_GROUND);
+  giveBakingSupplies(sim);
+  startVerb(sim, "mara", "bake bread", { items: [oven] });
+}
+
+describe("slowed by pressing needs", () => {
+  it("takes longer when exhausted and tells the agent why as it starts", () => {
+    const rested = setUpSteps();
+    startBaking(rested);
+    const tired = setUpSteps();
+    exhaust(tired, "mara");
+    startBaking(tired);
+    expect(minutesUntilDone(tired, "mara")).toBeGreaterThan(minutesUntilDone(rested, "mara"));
+    expect(tired.agent("mara").workingMemory.at(-1)).toContain(
+      "This will take longer than usual because I'm exhausted",
+    );
+    expect(rested.agent("mara").workingMemory.join(" ")).not.toContain("longer than usual");
+  });
+
+  it("tells only the agent itself that it finished slowly", () => {
+    const sim = setUpSteps();
+    exhaust(sim, "mara");
+    startBaking(sim);
+    const finishEvent = resumeVerb(sim, "mara").result.events.at(-1);
+    expect(finishEvent?.description).toBe("finished baking bread at the oven, making 4 bread");
+    expect(finishEvent?.actorDescription).toBe(
+      "finished baking bread at the oven, making 4 bread, slowly, because I was exhausted",
+    );
+  });
+});

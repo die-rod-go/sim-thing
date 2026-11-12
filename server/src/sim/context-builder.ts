@@ -11,6 +11,7 @@ import { buildCue, recallForDecision } from "../memory/recall";
 import { findObviousListeners } from "../perception/listeners";
 import { listBodyWords } from "../status/conditions";
 import { describeHealthAsSeen, isDead } from "../status/health";
+import { findFailedRecall, readStatusView } from "../status/impairment";
 import { describeDoing } from "./action-phrases";
 import { getAgentRuntime } from "./agent-runtime";
 import {
@@ -107,18 +108,31 @@ function recallMemories(
   );
 }
 
+export interface DecisionContextOptions {
+  /** Lets a re-decision after `recall` see the updated working memory. */
+  agentOverride?: Agent;
+  /** Below the agent's recall fog chance, no memories come to mind; left out, they always do. */
+  passiveRecallRoll?: number;
+}
+
+/** A roll no chance is above, for a context built without one. */
+const CLEAR_MIND_ROLL = 1;
+
 /**
  * Step 1 of a decision: everything the agent knows right now, from its own state, its awareness,
- * the current conversation and recalled memories. `agentOverride` lets a re-decision after
- * `recall` see the updated working memory.
+ * the current conversation and recalled memories (unless a pressing need or wound fogs them out).
  */
 export function buildDecisionContext(
   state: WorldState,
   agentId: string,
   isMidActionInterrupt: boolean,
-  agentOverride?: Agent,
+  options: DecisionContextOptions = {},
 ): DecisionContext {
-  const agent = agentOverride ?? findAgent(state, agentId);
+  const agent = options.agentOverride ?? findAgent(state, agentId);
+  const fog = findFailedRecall(
+    readStatusView(state.items, agent),
+    options.passiveRecallRoll ?? CLEAR_MIND_ROLL,
+  );
   const runtime = getAgentRuntime(state, agentId);
   const world = buildPerceptionWorld(state);
   const listeners = findObviousListeners(
@@ -161,13 +175,17 @@ export function buildDecisionContext(
       words: line.words,
       minutesAgo: minutesSince(line.tick, state.tick),
     })),
-    recalledMemories: recallMemories(
-      state,
-      agent,
-      aroundYouEntries,
-      listNearbyThingNames(state, agent),
-      conversationText,
-    ),
+    recalledMemories:
+      fog === null
+        ? recallMemories(
+            state,
+            agent,
+            aroundYouEntries,
+            listNearbyThingNames(state, agent),
+            conversationText,
+          )
+        : {},
+    foggedBy: fog?.statusWords ?? null,
     knownPlaces: state.map.places.map((place) => place.name),
     currentAction:
       action === null
@@ -176,6 +194,7 @@ export function buildDecisionContext(
             description: describeDoing(state, agent, runtime),
             minutesLeft:
               action.endsAtTick === null ? null : minutesSince(state.tick, action.endsAtTick),
+            slowedBy: runtime.verbRun?.slowedBy ?? null,
           },
     isMidActionInterrupt,
     lastFailure: runtime.lastFailure,

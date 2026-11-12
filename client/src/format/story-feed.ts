@@ -1,5 +1,5 @@
 import type { Moment, WorldEvent } from "@village/shared";
-import { isThreadOngoing, type ConversationThread } from "./conversations";
+import { isGiftOrNote, isThreadOngoing, type ConversationThread } from "./conversations";
 import { categorizeEvent, type EventCategory } from "./event-feed";
 import { isStoryMoment } from "./moments";
 
@@ -28,6 +28,17 @@ export interface StoryFilter {
   categories: ReadonlySet<EventCategory>;
   /** Big beats in the villagers' inner lives; off unless the reader asks for them. */
   isShowingMoments: boolean;
+  /** Speakers' doings (of the shown categories) appear inside their conversations. */
+  isShowingActionsInThreads: boolean;
+}
+
+/**
+ * Which events fold into a conversation as stage directions: gifts and notes always, and with
+ * actions in threads on, anything else of a shown category.
+ */
+export function pickStageEvents(filter: StoryFilter): (event: WorldEvent) => boolean {
+  if (!filter.isShowingActionsInThreads) return isGiftOrNote;
+  return (event) => isGiftOrNote(event) || filter.categories.has(categorizeEvent(event));
 }
 
 function threadEventIds(threads: ConversationThread[]): Set<number> {

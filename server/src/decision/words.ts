@@ -17,13 +17,13 @@ function describeCondition(text: string): NeedWord {
   return { below: Infinity, text };
 }
 
-function findNeedWord(needName: NeedName, value: number): NeedWord {
+export function findNeedWord(needName: NeedName, value: number): NeedWord {
   const levels = config.needs.words[needName];
   const level = levels.find((candidate) => value < candidate.below) ?? levels[levels.length - 1];
   return level ?? { below: Infinity, text: needName };
 }
 
-function joinWithAnd(phrases: string[]): string {
+export function joinWithAnd(phrases: string[]): string {
   if (phrases.length <= 1) return phrases.join("");
   return `${phrases.slice(0, -1).join(", ")} and ${phrases[phrases.length - 1]}`;
 }

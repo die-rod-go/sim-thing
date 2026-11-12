@@ -1,5 +1,7 @@
 import { BUCKETS } from "@village/shared";
 import type { Bucket, Goal } from "@village/shared";
+import { config } from "../config";
+import { fillStatusWords } from "../status/impairment";
 import { formatMinutesAgo } from "./around-you";
 import type {
   ConversationLine,
@@ -73,9 +75,14 @@ export function describeCurrentAction(
   isMidActionInterrupt: boolean,
 ): string {
   if (!currentAction || !isMidActionInterrupt) return "";
-  const timeLeft =
-    currentAction.minutesLeft === null ? "" : ` (about ${currentAction.minutesLeft} min left)`;
-  return `You are in the middle of: ${currentAction.description}${timeLeft}.`;
+  const notes = [
+    currentAction.slowedBy === null
+      ? null
+      : fillStatusWords(config.impairment.slowOngoingText, currentAction.slowedBy),
+    currentAction.minutesLeft === null ? null : `about ${currentAction.minutesLeft} min left`,
+  ].filter((note) => note !== null);
+  const aside = notes.length === 0 ? "" : ` (${notes.join(", ")})`;
+  return `You are in the middle of: ${currentAction.description}${aside}.`;
 }
 
 export function describeLastFailure(lastFailure: string | null): string {
@@ -83,7 +90,11 @@ export function describeLastFailure(lastFailure: string | null): string {
 }
 
 /** One `## Memories: <bucket>` section per bucket with recalled memories, in bucket order. */
-export function describeMemories(memories: Partial<Record<Bucket, RecalledMemory[]>>): string {
+export function describeMemories(
+  memories: Partial<Record<Bucket, RecalledMemory[]>>,
+  foggedBy: string | null,
+): string {
+  if (foggedBy !== null) return fillStatusWords(config.impairment.foggyMindText, foggedBy);
   return BUCKETS.flatMap((bucket) => {
     const bucketMemories = memories[bucket] ?? [];
     if (bucketMemories.length === 0) return [];

@@ -18,7 +18,14 @@ import {
 import { describeStats, describeStatus, describeTraits } from "./words";
 
 const DECISION_TEMPLATE = "decision";
-const BASE_ACTIONS: readonly DecisionAction[] = ["walk_to", "interact", "give", "recall", "wait"];
+const BASE_ACTIONS: readonly DecisionAction[] = [
+  "walk_to",
+  "interact",
+  "give",
+  "say",
+  "recall",
+  "wait",
+];
 
 type RecalledMemories = Partial<Record<Bucket, RecalledMemory[]>>;
 
@@ -54,8 +61,9 @@ function buildTemplateValues(context: DecisionContext, memories: RecalledMemorie
     belongings: describeBelongings(context.belongings, context.itemlessVerbs),
     workingMemory: describeWorkingMemory(context.workingMemory),
     conversation: describeConversation(context.conversation),
-    memories: describeMemories(memories),
+    memories: describeMemories(memories, context.foggedBy),
     actions: listOfferedActions(context.isMidActionInterrupt).join(", "),
+    sayWaitMinutes: String(config.decision.sayWaitMinutes),
     targets: listTargetNames(context.validTargets).join(", "),
     items: context.validItems.map((item) => item.name).join(", ") || "none",
     holders: context.validHolders.join(", ") || "none",

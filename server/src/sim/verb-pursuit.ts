@@ -48,7 +48,8 @@ export function pursuePendingVerb(context: TickContext, agentId: string): boolea
     return true;
   }
   if (walk.remainingSteps.length === 0) {
-    walk.remainingSteps = computePath(state, findAgent(state, agentId).pos, walk.destination) ?? [];
+    walk.remainingSteps =
+      computePath(state, agentId, findAgent(state, agentId).pos, walk.destination) ?? [];
   }
   return false;
 }

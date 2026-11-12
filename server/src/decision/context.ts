@@ -76,6 +76,8 @@ export interface CurrentActionSummary {
   /** e.g. "baking bread at the oven". */
   description: string;
   minutesLeft: number | null;
+  /** What is making it take longer than usual ("exhausted"), or null. */
+  slowedBy: string | null;
 }
 
 /** Everything step 1 of a decision puts in front of the agent. Filled by the tick loop. */
@@ -104,6 +106,8 @@ export interface DecisionContext {
   workingMemory: string[];
   conversation: ConversationLine[];
   recalledMemories: Partial<Record<Bucket, RecalledMemory[]>>;
+  /** What kept memories from coming to mind this decision ("exhausted"), or null. */
+  foggedBy: string | null;
   knownPlaces: string[];
   currentAction: CurrentActionSummary | null;
   /** True for a perception interrupt during an action; only then is `continue` offered. */

@@ -4,7 +4,7 @@ import { describeEntityName, listTileEntitiesAt } from "../items/entity-store";
 import { fileFirstVisit } from "../memory/filing";
 import { canSee } from "../perception/sight";
 import { findPlaceAt } from "../world/map-loader";
-import { getAgentRuntime } from "./agent-runtime";
+import { getAgentRuntime, type Walk } from "./agent-runtime";
 import { broadcastEvent } from "./event-broadcast";
 import { createEvent } from "./event-factory";
 import { failAction } from "./failure";
@@ -14,12 +14,14 @@ import { computePath, describeDestination, destinationName } from "./walk-start"
 import { pursuePendingVerb } from "./verb-pursuit";
 import {
   buildPerceptionWorld,
+  describeAgentAsSeen,
   findAgent,
+  findAgentBlockingTile,
   markAgentChanged,
   rememberBriefly,
   replaceAgent,
 } from "./world-access";
-import type { Position } from "@village/shared";
+import type { Agent, Position } from "@village/shared";
 
 function noteFirstVisit(context: TickContext, agentId: string, place: string): void {
   const { state } = context;
@@ -90,20 +92,80 @@ function refreshAgentPath(context: TickContext, agentId: string): void {
   const other = findAgent(state, walk.destination.agentId);
   const world = buildPerceptionWorld(state);
   if (!canSee(world, walker.pos, other.pos, config.perception.sightRangeTiles)) return;
-  walk.remainingSteps = computePath(state, walker.pos, walk.destination) ?? walk.remainingSteps;
+  walk.remainingSteps =
+    computePath(state, agentId, walker.pos, walk.destination) ?? walk.remainingSteps;
+}
+
+function hasSteppedThisTick(context: TickContext, agentId: string): boolean {
+  return context.result.moves.some((move) => move.agentId === agentId);
 }
 
 /**
- * One tile per tick along the stored path, doing what is needed in passing; ends on arrival. A
- * walk towards a verb ends as soon as the verb can start.
+ * Two walkers each about to step onto the other's tile trade places in one tick, so neither
+ * blocks the other in a doorway. Moves the oncoming walker; true when the swap happened.
+ */
+function swapWithOncomingWalker(context: TickContext, agentId: string, blocker: Agent): boolean {
+  const { state } = context;
+  const blockerWalk = getAgentRuntime(state, blocker.id).walk;
+  const blockerNextStep = blockerWalk?.remainingSteps[0];
+  const position = findAgent(state, agentId).pos;
+  const isComingAtUs =
+    blockerNextStep !== undefined &&
+    blockerNextStep.x === position.x &&
+    blockerNextStep.y === position.y;
+  if (!blockerWalk || !isComingAtUs || hasSteppedThisTick(context, blocker.id)) return false;
+  blockerWalk.remainingSteps.shift();
+  delete blockerWalk.blockedTicks;
+  return stepOnce(context, blocker.id, blockerNextStep);
+}
+
+/**
+ * The next step: swapping places with a walker coming the other way, or rerouted around another
+ * agent standing on it. Null when there is no way around this tick; after waiting too long the
+ * walk fails.
+ */
+function takeNextStep(context: TickContext, agentId: string, walk: Walk): Position | null {
+  const { state, result } = context;
+  const plannedStep = walk.remainingSteps[0];
+  if (!plannedStep) return null;
+  const blocker = findAgentBlockingTile(state, agentId, plannedStep);
+  if (!blocker || swapWithOncomingWalker(context, agentId, blocker)) {
+    delete walk.blockedTicks;
+    return walk.remainingSteps.shift() ?? null;
+  }
+  const from = findAgent(state, agentId).pos;
+  const detour = computePath(state, agentId, from, walk.destination);
+  if (detour !== null) {
+    delete walk.blockedTicks;
+    walk.remainingSteps = detour;
+    return walk.remainingSteps.shift() ?? null;
+  }
+  walk.blockedTicks = (walk.blockedTicks ?? 0) + 1;
+  if (walk.blockedTicks >= config.walking.blockedGiveUpTicks) {
+    const where = describeDestination(state, walk.destination);
+    const reason = config.walking.blockedReason.split("{agent}").join(describeAgentAsSeen(blocker));
+    failAction(state, result, agentId, `walk to ${where}`, reason);
+  }
+  return null;
+}
+
+/**
+ * One tile per tick along the stored path, doing what is needed in passing and never onto a tile
+ * another living agent stands on; ends on arrival. A walk towards a verb ends as soon as the verb
+ * can start. A walker already moved this tick by a swap doesn't step again.
  */
 export function advanceWalk(context: TickContext, agentId: string): void {
   if (pursuePendingVerb(context, agentId)) return;
-  refreshAgentPath(context, agentId);
+  const wasSwapped = hasSteppedThisTick(context, agentId);
+  if (!wasSwapped) refreshAgentPath(context, agentId);
   const walk = getAgentRuntime(context.state, agentId).walk;
   if (!walk) return;
-  const nextStep = walk.remainingSteps.shift();
-  if (nextStep && !stepOnce(context, agentId, nextStep)) return;
+  if (!wasSwapped) {
+    const nextStep = takeNextStep(context, agentId, walk);
+    if (getAgentRuntime(context.state, agentId).walk === null) return;
+    if (nextStep && !stepOnce(context, agentId, nextStep)) return;
+    if (!nextStep && walk.remainingSteps.length > 0) return;
+  }
   if (pursuePendingVerb(context, agentId)) return;
   if (walk.remainingSteps.length === 0 && walk.pendingVerb === null) arrive(context, agentId);
 }

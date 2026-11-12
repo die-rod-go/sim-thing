@@ -10,7 +10,13 @@ import {
   type EventCategory,
 } from "../format/event-feed";
 import { describeMomentDetail, MOMENT_GLYPHS, MOMENT_LABELS } from "../format/moments";
-import { buildStory, countStoryThreads, type StoryFilter } from "../format/story-feed";
+import { groupConversations } from "../format/conversations";
+import {
+  buildStory,
+  countStoryThreads,
+  pickStageEvents,
+  type StoryFilter,
+} from "../format/story-feed";
 import { parseStoredStoryFilter, serializeStoryFilter } from "../format/stored-preferences";
 import { usePanelContext } from "./panel-context";
 import { ThreadCard } from "./ThreadCard";
@@ -33,6 +39,7 @@ const DEFAULT_FILTER: StoryFilter = {
   place: null,
   categories: new Set(EVENT_CATEGORIES.filter((category) => category !== "movement")),
   isShowingMoments: false,
+  isShowingActionsInThreads: false,
 };
 
 function toggleCategory(
@@ -140,6 +147,15 @@ function StoryFilters({
         >
           ✦ moments
         </button>
+        <button
+          className={filter.isShowingActionsInThreads ? "chip is-active" : "chip"}
+          onClick={() =>
+            onChange({ ...filter, isShowingActionsInThreads: !filter.isShowingActionsInThreads })
+          }
+          title="Show what speakers do (of the categories shown) inside their conversations"
+        >
+          ⚒ in talk
+        </button>
       </div>
     </div>
   );
@@ -154,17 +170,18 @@ export function StoryFeed() {
     parseStoredStoryFilter,
     serializeStoryFilter,
   );
+  const { maxGapTicks } = clientConfig.conversations;
+  const storyThreads = useMemo(
+    () =>
+      filter.isShowingActionsInThreads
+        ? groupConversations(state.events, maxGapTicks, pickStageEvents(filter))
+        : threads,
+    [state.events, threads, filter, maxGapTicks],
+  );
   const items = useMemo(
     () =>
-      buildStory(
-        state.events,
-        threads,
-        filter,
-        state.clock.tick,
-        clientConfig.conversations.maxGapTicks,
-        state.moments,
-      ),
-    [state.events, state.moments, threads, filter, state.clock.tick],
+      buildStory(state.events, storyThreads, filter, state.clock.tick, maxGapTicks, state.moments),
+    [state.events, state.moments, storyThreads, filter, state.clock.tick, maxGapTicks],
   );
   const threadCount = countStoryThreads(items);
 

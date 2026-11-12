@@ -13,6 +13,7 @@ import type { VerbRun } from "./agent-runtime";
 import { broadcastEvent } from "./event-broadcast";
 import { createEvent } from "./event-factory";
 import type { StepRun } from "./steps/step-run";
+import { addSlowFinish } from "./verb-slowdown";
 import { findAgent } from "./world-access";
 import type { WorldState } from "./world-state";
 
@@ -122,14 +123,17 @@ export function announceFinished(run: StepRun, verb: Verb): void {
   if (verbRun === null) return;
   const { state, result } = context;
   const phrases = verbRun.hasWaited
-    ? prefixPhrases(
-        describeAimedPhrases(
-          state,
-          verbRun,
-          (names) =>
-            `${describeOngoingVerb(state.items, verb.name, names)}${describeMade(state, verbRun)}`,
+    ? addSlowFinish(
+        prefixPhrases(
+          describeAimedPhrases(
+            state,
+            verbRun,
+            (names) =>
+              `${describeOngoingVerb(state.items, verb.name, names)}${describeMade(state, verbRun)}`,
+          ),
+          "finished ",
         ),
-        "finished ",
+        verbRun,
       )
     : describeAimedPhrases(state, verbRun, (names) => describeVerbPhrase(verb, "done", names));
   const event = createEvent(state, findAgent(state, verbRun.agentId), {

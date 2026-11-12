@@ -18,6 +18,7 @@ import { NO_RULE_CAUSE } from "./rule-cause";
 import { expireComponents, runEveryRules } from "./rule-timers";
 import type { TickContext } from "./tick-context";
 import { resumeRunningVerb } from "./verb-runner";
+import type { WorldState } from "./world-state";
 import { advanceWalk } from "./walking";
 import {
   buildPerceptionWorld,
@@ -143,10 +144,26 @@ export function flagCrossedNeeds(context: TickContext, needsBefore: Map<string, 
   }
 }
 
+/**
+ * Rolls in [0, 1) for whether recall fails, drawn while requests are picked in agent order, so the
+ * seeded sequence doesn't depend on which LLM call returns first.
+ */
+export interface RecallRolls {
+  /** For the memories that come to mind on their own. */
+  passive: number;
+  /** For a `recall` action. */
+  explicit: number;
+}
+
 export interface DecisionRequest {
   agentId: string;
   /** Interrupted while doing something, so `continue` is offered. */
   isMidActionInterrupt: boolean;
+  recallRolls: RecallRolls;
+}
+
+function rollRecall(state: WorldState): RecallRolls {
+  return { passive: state.random.next(), explicit: state.random.next() };
 }
 
 /**
@@ -166,13 +183,12 @@ export function selectDecisionRequests(
     const runtime = getAgentRuntime(state, agent.id);
     const pending = runtime.pendingDecision;
     runtime.pendingDecision = null;
-    if (agent.currentAction === null) {
-      requests.push({ agentId: agent.id, isMidActionInterrupt: false });
-    } else if (pending?.isUrgent) {
-      requests.push({ agentId: agent.id, isMidActionInterrupt: true });
+    const isMidActionInterrupt = agent.currentAction !== null;
+    if (agent.currentAction === null || pending?.isUrgent) {
+      requests.push({ agentId: agent.id, isMidActionInterrupt, recallRolls: rollRecall(state) });
     } else if (pending && canInterrupt(runtime.lastInterruptTick, state.tick)) {
       runtime.lastInterruptTick = state.tick;
-      requests.push({ agentId: agent.id, isMidActionInterrupt: true });
+      requests.push({ agentId: agent.id, isMidActionInterrupt, recallRolls: rollRecall(state) });
     }
   }
   return requests;

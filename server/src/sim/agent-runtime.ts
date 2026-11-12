@@ -34,6 +34,8 @@ const walkSchema = z.object({
   pendingVerb: interactRequestSchema.nullable(),
   /** For a walk after an aimed verb's target: the tick the agent stops following and gives up. */
   giveUpAtTick: z.number().int().optional(),
+  /** Consecutive ticks the next step has been blocked by another agent. */
+  blockedTicks: z.number().int().optional(),
 });
 
 const thingRefSchema = z.discriminatedUnion("kind", [
@@ -86,6 +88,10 @@ const verbRunSchema = z.object({
   /** Whether a `wait` has been reached, so `action_started` was announced. */
   hasWaited: z.boolean(),
   startedAtTick: z.number().int(),
+  /** What made the verb take longer than usual ("exhausted"); absent when nothing did. */
+  slowedBy: z.string().optional(),
+  /** How much longer each `wait` takes than written (0.5 = half as long again). */
+  slowdownShare: z.number().nonnegative().optional(),
 });
 
 const pendingDecisionSchema = z.object({

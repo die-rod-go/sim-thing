@@ -42,6 +42,7 @@ function buildContext(overrides: Partial<DecisionContext> = {}): DecisionContext
     workingMemory: ["I baked bread at the oven."],
     conversation: [{ speakerName: "Tom", words: "Morning, Mara!", minutesAgo: 2 }],
     recalledMemories: {},
+    foggedBy: null,
     knownPlaces: ["bakery", "farm", "town square"],
     currentAction: null,
     isMidActionInterrupt: false,
@@ -74,7 +75,7 @@ describe("buildDecisionPrompt", () => {
   it("puts pressing needs first, lowest first, each with how it feels", () => {
     const needs = { hunger: 0.25, energy: 0.05, social: 0.9, fun: 0.45 };
     expect(describeStatus({ health: 0.7, needs })).toBe(
-      "You are exhausted: you can barely keep your eyes open and need to sleep now. " +
+      "You are exhausted: you can barely keep your eyes open and need to find a bed to sleep. " +
         "You are very hungry: your stomach aches and you need to eat soon. " +
         "Otherwise you are bruised, socially fulfilled and a bit bored.",
     );
@@ -149,15 +150,46 @@ describe("buildDecisionPrompt", () => {
 
   it("offers continue only when interrupted mid-action", () => {
     const calm = buildDecisionPrompt(buildContext());
-    expect(calm).toMatch(/^Actions: walk_to, interact, give, recall, wait$/m);
+    expect(calm).toMatch(/^Actions: walk_to, interact, give, say, recall, wait$/m);
     const interrupted = buildDecisionPrompt(
       buildContext({
-        currentAction: { description: "baking bread at the oven", minutesLeft: 40 },
+        currentAction: {
+          description: "baking bread at the oven",
+          minutesLeft: 40,
+          slowedBy: null,
+        },
         isMidActionInterrupt: true,
       }),
     );
     expect(interrupted).toMatch(/^Actions: .*continue$/m);
     expect(interrupted).toContain("You are in the middle of: baking bread at the oven");
+  });
+
+  it("says why an interrupted action is going slowly", () => {
+    const prompt = buildDecisionPrompt(
+      buildContext({
+        currentAction: {
+          description: "chopping wood at the trees",
+          minutesLeft: 40,
+          slowedBy: "exhausted",
+        },
+        isMidActionInterrupt: true,
+      }),
+    );
+    expect(prompt).toContain(
+      "You are in the middle of: chopping wood at the trees (slow going because you are exhausted, about 40 min left).",
+    );
+  });
+
+  it("replaces recalled memories with a foggy mind and its cause", () => {
+    const prompt = buildDecisionPrompt(
+      buildContext({
+        recalledMemories: { people: [{ text: "Tom owes me 3 coins.", minutesAgo: 600 }] },
+        foggedBy: "exhausted",
+      }),
+    );
+    expect(prompt).toContain("Your thoughts are foggy because you are exhausted");
+    expect(prompt).not.toContain("Tom owes me 3 coins.");
   });
 
   it("groups recalled memories by bucket in their own sections", () => {

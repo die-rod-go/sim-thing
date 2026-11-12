@@ -1,4 +1,4 @@
-import { toSimTime, type Agent, type Entity } from "@village/shared";
+import { toSimTime, type Agent, type Entity, type Position } from "@village/shared";
 import { config } from "../config";
 import type { NamedCandidate } from "../decision/resolve-name";
 import { isAsleep } from "../economy/sleep";
@@ -65,10 +65,33 @@ export function buildPerceptionWorld(state: WorldState): PerceptionWorld {
  * walker can deal with in passing (one it clears on the way) stays walkable.
  */
 export function buildWalkingGrid(state: WorldState): TileGrid {
-  const blocked = collectTiles(
+  return withBlockedTiles(state.map.grid, collectMovementBlockingTiles(state));
+}
+
+function collectMovementBlockingTiles(state: WorldState): Set<number> {
+  return collectTiles(
     state,
     (entity) => blocksMovement(state, entity) && !isPassableInPassing(state, entity),
   );
+}
+
+/** The living agent other than this one standing on the tile, if any. Bodies don't block. */
+export function findAgentBlockingTile(
+  state: WorldState,
+  agentId: string,
+  tile: Position,
+): Agent | undefined {
+  return listLivingAgents(state).find(
+    (other) => other.id !== agentId && other.pos.x === tile.x && other.pos.y === tile.y,
+  );
+}
+
+/** The walking grid with the tiles of the other living agents walled off as well. */
+export function buildWalkingGridFor(state: WorldState, agentId: string): TileGrid {
+  const blocked = collectMovementBlockingTiles(state);
+  for (const other of listLivingAgents(state)) {
+    if (other.id !== agentId) blocked.add(tileIndex(state.map.grid, other.pos));
+  }
   return withBlockedTiles(state.map.grid, blocked);
 }
 

@@ -135,11 +135,6 @@ export function buildDecisionReply(
     return true;
   });
   const action = pickWeighted(random, weights);
-  if (random.next() < tuning.sayChance) {
-    const line = random.pick(tuning.lines);
-    const say = choices.inSight.length > 0 ? `${random.pick(choices.inSight)}! ${line}` : line;
-    Object.assign(reply, { say, volume: "normal" });
-  }
   if (action === ATTACK_CHOICE && attack !== null) {
     return { ...reply, action: "interact", ...attack, intention: "settling a score" };
   }
@@ -160,6 +155,12 @@ export function buildDecisionReply(
   if (action === "give") {
     const target = random.pick(choices.inSight);
     return { ...reply, action, target, item: random.pick(choices.items), amount: 1 };
+  }
+  if (action === "say") {
+    const line = random.pick(tuning.lines);
+    const say = choices.inSight.length > 0 ? `${random.pick(choices.inSight)}! ${line}` : line;
+    const { min, max } = tuning.waitMinutes;
+    return { ...reply, action, say, volume: "normal", minutes: random.nextInt(min, max) };
   }
   if (action === "recall") {
     return {

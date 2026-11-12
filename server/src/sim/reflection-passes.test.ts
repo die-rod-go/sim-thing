@@ -63,7 +63,7 @@ describe("reflection hook", () => {
       reflection: () => undefined,
       responder: (request, callIndex) =>
         request.schemaName === "decision_reply"
-          ? decisionReply({ action: "wait", minutes: 60, say: "Is anyone about?" })
+          ? decisionReply({ action: "say", minutes: 60, say: "Is anyone about?" })
           : fake(request, callIndex),
     });
     await sim.advance(2 * 60 + 1);

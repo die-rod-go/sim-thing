@@ -11,6 +11,10 @@ export interface NeedWord {
   text: string;
   /** What a pressing need feels like; only the low levels have one. */
   urge?: string;
+  /** Extra share of time a verb takes at this level (0.5 = half as long again). */
+  slowdown?: number;
+  /** Chance, per decision, that recall fails at this level. */
+  recallFailureChance?: number;
 }
 
 /** A health level: what the agent feels about itself, and what others see once it shows. */
@@ -21,6 +25,10 @@ export interface HealthWord {
   looks: string;
   /** What a serious wound feels like; a level with one is put first in the prompt, like a need. */
   urge?: string;
+  /** Extra share of time a verb takes at this level, as for needs. */
+  slowdown?: number;
+  /** Chance, per decision, that recall fails at this level, as for needs. */
+  recallFailureChance?: number;
 }
 
 export const config = {
@@ -106,8 +114,20 @@ export const config = {
      */
     words: {
       hunger: [
-        { below: 0.1, text: "starving", urge: "you feel weak and shaky and need food now" },
-        { below: 0.3, text: "very hungry", urge: "your stomach aches and you need to eat soon" },
+        {
+          below: 0.1,
+          text: "starving",
+          urge: "you feel weak and shaky and need food now",
+          slowdown: 0.5,
+          recallFailureChance: 0.3,
+        },
+        {
+          below: 0.3,
+          text: "very hungry",
+          urge: "your stomach aches and you need to eat soon",
+          slowdown: 0.2,
+          recallFailureChance: 0.1,
+        },
         { below: 0.5, text: "quite hungry" },
         { below: 0.7, text: "a little peckish" },
         { below: Infinity, text: "well fed" },
@@ -116,16 +136,35 @@ export const config = {
         {
           below: 0.1,
           text: "exhausted",
-          urge: "you can barely keep your eyes open and need to sleep now",
+          urge: "you can barely keep your eyes open and need to find a bed to sleep",
+          slowdown: 0.6,
+          recallFailureChance: 0.35,
         },
-        { below: 0.3, text: "very tired", urge: "your body is heavy and you need sleep soon" },
+        {
+          below: 0.3,
+          text: "very tired",
+          urge: "your body is heavy and you need sleep soon",
+          slowdown: 0.3,
+          recallFailureChance: 0.15,
+        },
         { below: 0.5, text: "tired" },
         { below: 0.7, text: "a bit tired" },
         { below: Infinity, text: "rested" },
       ],
       social: [
-        { below: 0.1, text: "desperately lonely", urge: "you ache for real company" },
-        { below: 0.3, text: "lonely", urge: "you want someone to really talk to" },
+        {
+          below: 0.1,
+          text: "desperately lonely",
+          urge: "you ache for real company",
+          slowdown: 0.1,
+          recallFailureChance: 0.1,
+        },
+        {
+          below: 0.3,
+          text: "lonely",
+          urge: "you want someone to really talk to",
+          recallFailureChance: 0.05,
+        },
         { below: 0.5, text: "a bit lonely" },
         { below: 0.7, text: "content with company" },
         { below: Infinity, text: "socially fulfilled" },
@@ -135,6 +174,8 @@ export const config = {
           below: 0.1,
           text: "miserably bored",
           urge: "you badly need something enjoyable to do",
+          slowdown: 0.1,
+          recallFailureChance: 0.05,
         },
         { below: 0.3, text: "bored", urge: "you want something enjoyable to do" },
         { below: 0.5, text: "a bit bored" },
@@ -142,6 +183,18 @@ export const config = {
         { below: Infinity, text: "having a good time" },
       ],
     } satisfies Record<NeedName, NeedWord[]>,
+  },
+
+  /**
+   * How pressing needs and wounds get in the way, using the `slowdown` and `recallFailureChance` of
+   * each level above. `{status}` becomes the words for what is getting in the way.
+   */
+  impairment: {
+    slowStartText: "This will take longer than usual because I'm {status}",
+    slowOngoingText: "slow going because you are {status}",
+    slowFinishText: "slowly, because I was {status}",
+    recallFailedText: `I tried to recall "{query}" but couldn't think straight because I'm {status}`,
+    foggyMindText: "Your thoughts are foggy because you are {status}; little comes to mind.",
   },
 
   health: {
@@ -167,12 +220,16 @@ export const config = {
         text: "near death",
         looks: "looks near death",
         urge: "you can barely stand and feel your life slipping away",
+        slowdown: 0.8,
+        recallFailureChance: 0.3,
       },
       {
         below: 0.35,
         text: "badly wounded",
         looks: "looks badly wounded",
         urge: "your wounds throb and you feel faint",
+        slowdown: 0.4,
+        recallFailureChance: 0.1,
       },
       { below: 0.6, text: "hurt", looks: "looks hurt" },
       { below: 0.9, text: "bruised", looks: "looks bruised" },
@@ -341,6 +398,14 @@ export const config = {
     nothingToRead: "There was nothing to read on the {thing}",
   },
 
+  walking: {
+    /** A walker whose way stays blocked by other agents this many ticks gives up the walk. */
+    blockedGiveUpTicks: 5,
+    /** Walkers arriving at an indoor place stop at least this many steps from its doorways. */
+    arrivalDoorwayClearanceTiles: 2,
+    blockedReason: "{agent} was in the way",
+  },
+
   memory: {
     maxMemoryChars: 200,
     bucketCap: 60,
@@ -400,6 +465,8 @@ export const config = {
     /** Rough characters-per-token used to estimate prompt size before trimming memories. */
     charsPerToken: 4,
     defaultWaitMinutes: 10,
+    /** How long a speaker stays to hear an answer when the reply names no minutes. */
+    sayWaitMinutes: 5,
     maxWaitMinutes: 240,
     /** Recalled memories are trimmed from these buckets first (oldest first) when over the token target. */
     memoryTrimOrder: [
@@ -432,7 +499,7 @@ export const config = {
       weekly: 3000,
       conversation_summary: 1000,
     },
-    dailyTokenBudget: 10_000_000,
+    dailyTokenBudget: 100_000_000,
     /** One first try plus one retry on invalid output or an API error. */
     attemptsPerCall: 2,
     /** How much of a failed HTTP response body is kept in the error message. */
@@ -442,11 +509,10 @@ export const config = {
     /** The offline `LLM_PROVIDER=fake` responder: seeded, and weights for the actions it picks. */
     fakeResponder: {
       seed: 7,
-      actionWeights: { walk_to: 3, interact: 4, wait: 2, give: 0.5, recall: 0.5 },
+      actionWeights: { walk_to: 3, interact: 4, say: 2, wait: 2, give: 0.5, recall: 0.5 },
       /** Verbs with a hit roll are picked this rarely, so soak runs see fights without a massacre. */
       attackWeight: 0.05,
       continueChance: 0.5,
-      sayChance: 0.3,
       omitVerbChance: 0.25,
       /** A carried item with this verb is eaten whenever the status line holds a hungry word. */
       eatVerb: "eat",

@@ -1,5 +1,6 @@
 import { describe, expect, it } from "vitest";
 import { addComponent } from "../items/thing-writes";
+import { config } from "../config";
 import type { LlmRequest } from "../llm/types";
 import { contextOf, entityThing } from "./combat-test-kit";
 import { buildRunRecord } from "./verb-run-test-kit";
@@ -30,11 +31,11 @@ describe("talking and perception", () => {
       responder: scriptByAgent({
         Ilsa: (request) =>
           promptOf(request).includes("No one has been talking with you.")
-            ? decisionReply({ say: "Morning, Mara", action: "wait", minutes: 60 })
+            ? decisionReply({ say: "Morning, Mara", action: "say", minutes: 60 })
             : undefined,
         Mara: (request) =>
           promptOf(request).includes('"Morning, Mara"')
-            ? decisionReply({ say: "Morning, Ilsa", action: "wait", minutes: 30 })
+            ? decisionReply({ say: "Morning, Ilsa", action: "say", minutes: 30 })
             : undefined,
       }),
     });
@@ -81,9 +82,9 @@ describe("talking and perception", () => {
         Ilsa: () => {
           ilsaCalls += 1;
           if (ilsaCalls === 1)
-            return decisionReply({ say: "Lovely morning in here", action: "wait", minutes: 1 });
+            return decisionReply({ say: "Lovely morning in here", action: "say", minutes: 1 });
           if (ilsaCalls === 2)
-            return decisionReply({ say: "Mara, wake up!", action: "wait", minutes: 240 });
+            return decisionReply({ say: "Mara, wake up!", action: "say", minutes: 240 });
           return undefined;
         },
         Mara: (request) => keepGoing(request),
@@ -108,7 +109,7 @@ describe("talking and perception", () => {
     const sim = createTestSim({
       agentIds: ["mara", "ilsa"],
       responder: scriptByAgent({
-        Ilsa: () => decisionReply({ say: "La la la", action: "wait", minutes: 1 }),
+        Ilsa: () => decisionReply({ say: "La la la", action: "say", minutes: 1 }),
         Mara: (request) => keepGoing(request),
       }),
     });
@@ -143,5 +144,49 @@ describe("talking and perception", () => {
       expect.objectContaining({ kind: "action_finished", description: "opened the bakery door" }),
     );
     expect(sim.results.flatMap((result) => result.changedEntityIds)).toContain(door.id);
+  });
+
+  it("speaks only when say is the chosen action", async () => {
+    const sim = createTestSim({
+      agentIds: ["mara", "ilsa"],
+      responder: scriptByAgent({
+        Ilsa: () => decisionReply({ say: "Off I go", action: "walk_to", target: "bakery" }),
+        Mara: () => decisionReply({ action: "wait", minutes: 240 }),
+      }),
+    });
+    sim.placeAgent("ilsa", SQUARE);
+    sim.placeAgent("mara", { x: SQUARE.x + 1, y: SQUARE.y });
+    await sim.advance(1);
+    const said = sim.results
+      .flatMap((result) => result.events)
+      .filter((event) => event.kind === "said");
+    expect(said).toEqual([]);
+  });
+
+  it("waits the minutes the speaker chose after speaking", async () => {
+    const sim = createTestSim({
+      agentIds: ["ilsa"],
+      responder: scriptByAgent({
+        Ilsa: () => decisionReply({ say: "Anyone about?", action: "say", minutes: 20 }),
+      }),
+    });
+    sim.placeAgent("ilsa", SQUARE);
+    await sim.advance(1);
+    expect(sim.agent("ilsa").currentAction).toEqual({ kind: "wait", endsAtTick: 20 });
+  });
+
+  it("waits the default minutes after speaking when none are chosen", async () => {
+    const sim = createTestSim({
+      agentIds: ["ilsa"],
+      responder: scriptByAgent({
+        Ilsa: () => decisionReply({ say: "Anyone about?", action: "say" }),
+      }),
+    });
+    sim.placeAgent("ilsa", SQUARE);
+    await sim.advance(1);
+    expect(sim.agent("ilsa").currentAction).toEqual({
+      kind: "wait",
+      endsAtTick: config.decision.sayWaitMinutes / config.clock.minutesPerTick,
+    });
   });
 });

@@ -13,21 +13,36 @@ import { broadcastEvent } from "./event-broadcast";
 import { createEvent } from "./event-factory";
 import { failAction } from "./failure";
 import type { TickContext } from "./tick-context";
-import { buildWalkingGrid, findAgent, markAgentChanged, replaceAgent } from "./world-access";
+import type { TileGrid } from "../world/types";
+import {
+  buildWalkingGrid,
+  buildWalkingGridFor,
+  findAgent,
+  markAgentChanged,
+  replaceAgent,
+} from "./world-access";
 import type { WorldState } from "./world-state";
 
 const SURROUNDING_OFFSETS: readonly Position[] = [-1, 0, 1].flatMap((offsetY) =>
   [-1, 0, 1].map((offsetX) => ({ x: offsetX, y: offsetY })),
 );
 
+/** A path around other agents, or with `grid` given, one that only avoids walls and objects. */
 export function computePath(
   state: WorldState,
+  agentId: string,
   from: Position,
   destination: WalkDestination,
+  grid: TileGrid = buildWalkingGridFor(state, agentId),
 ): Position[] | null {
-  const grid = buildWalkingGrid(state);
   if (destination.kind === "place") {
-    return findPathToPlace(state.map, grid, from, destination.placeName);
+    return findPathToPlace(
+      state.map,
+      grid,
+      from,
+      destination.placeName,
+      config.walking.arrivalDoorwayClearanceTiles,
+    );
   }
   if (destination.kind === "entity") {
     const entity = findEntityIfPresent(state, destination.entityId);
@@ -71,7 +86,10 @@ export function startWalk(
 ): boolean {
   const { state, result } = context;
   const agent = findAgent(state, agentId);
-  const path = computePath(state, agent.pos, destination);
+  // Agents in the way now may move on, so the walk starts if only they block it.
+  const path =
+    computePath(state, agentId, agent.pos, destination) ??
+    computePath(state, agentId, agent.pos, destination, buildWalkingGrid(state));
   const where = describeDestination(state, destination);
   if (path === null) {
     failAction(state, result, agentId, `walk to ${where}`, "I couldn't find a way there");
@@ -118,7 +136,9 @@ export function retargetWalk(
   const walk = getAgentRuntime(state, agentId).walk;
   if (!walk) return false;
   const agent = findAgent(state, agentId);
-  const path = computePath(state, agent.pos, destination);
+  const path =
+    computePath(state, agentId, agent.pos, destination) ??
+    computePath(state, agentId, agent.pos, destination, buildWalkingGrid(state));
   if (path === null) {
     const where = describeDestination(state, destination);
     failAction(state, result, agentId, `walk to ${where}`, "I couldn't find a way there");

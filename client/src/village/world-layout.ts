@@ -1,9 +1,12 @@
 import { useEffect, useState } from "react";
 import type { Position } from "@village/shared";
 import { clientConfig } from "../client-config";
-import type { ConversationLink } from "./activity-cues";
 import { computeMotionPosition, type AgentMotion } from "./agent-motion";
-import { layOutBubbleStacks, type BubbleStackBox } from "./bubble-layout";
+import {
+  layOutBubbleStacks,
+  type BubbleStackBox,
+  type BubbleStackPlacement,
+} from "./bubble-layout";
 import { computeWorldTransform, mapToScreen, type Camera, type Size } from "./camera";
 import type { TiledPlace } from "./tiled-map";
 import { tileCenter } from "./village-geometry";
@@ -50,7 +53,6 @@ export interface WorldElements {
   bubbleStacks: ElementRegistry;
   leaderLines: ElementRegistry;
   placeLabels: ElementRegistry;
-  linkLines: ElementRegistry<SVGLineElement>;
   hoverCard: { current: HTMLElement | null };
   tileCard: { current: HTMLElement | null };
 }
@@ -58,7 +60,6 @@ export interface WorldElements {
 /** What the frame loop needs from the latest render. */
 export interface WorldScene {
   places: readonly TiledPlace[];
-  links: readonly ConversationLink[];
   hoveredAgentId: string | null;
   /** The tile whose card is shown, in tile coordinates. */
   inspectedTile: Position | null;
@@ -97,25 +98,6 @@ function layOutMarkers(
   }
 }
 
-function layOutLinks(
-  world: WorldElements,
-  scene: WorldScene,
-  screenPositions: ReadonlyMap<string, Position>,
-): void {
-  for (const link of scene.links) {
-    const line = world.linkLines.elements.get(link.key);
-    if (!line) continue;
-    const from = screenPositions.get(link.fromAgentId);
-    const to = screenPositions.get(link.toAgentId);
-    line.style.visibility = from && to ? "visible" : "hidden";
-    if (!from || !to) continue;
-    line.setAttribute("x1", String(from.x));
-    line.setAttribute("y1", String(from.y));
-    line.setAttribute("x2", String(to.x));
-    line.setAttribute("y2", String(to.y));
-  }
-}
-
 function layOutPlaceLabels(world: WorldElements, scene: WorldScene, frame: WorldFrame): void {
   for (const place of scene.places) {
     const label = world.placeLabels.elements.get(place.name);
@@ -127,16 +109,52 @@ function layOutPlaceLabels(world: WorldElements, scene: WorldScene, frame: World
 }
 
 /**
- * Places bubble stacks above their speakers so none overlap; a lifted stack shows a leader line
- * back down to its speaker. All reads happen before any writes so the browser lays out once.
+ * Points a stack's leader line from its bottom edge, as near above the speaker as the stack
+ * reaches, down to the top of the speaker's figure. Hidden while the stack sits in its own spot.
+ */
+function placeLeaderLine(
+  leaderLine: HTMLElement,
+  stack: BubbleStackBox,
+  placement: BubbleStackPlacement,
+  figureTop: number,
+): void {
+  const { speechBubbleGap, speechBubbleLeaderLineInset } = clientConfig.village;
+  const isDisplaced =
+    Math.abs(placement.centerX - stack.anchorX) > speechBubbleGap ||
+    stack.anchorBottom - placement.bottom > speechBubbleGap;
+  leaderLine.style.display = isDisplaced ? "block" : "none";
+  if (!isDisplaced) return;
+  const stackLeft = placement.centerX - stack.width / 2;
+  const startX = clampIntoView(
+    stack.anchorX - stackLeft,
+    0,
+    stack.width,
+    Math.min(speechBubbleLeaderLineInset, stack.width / 2),
+  );
+  const run = stack.anchorX - (stackLeft + startX);
+  const drop = figureTop - placement.bottom;
+  leaderLine.style.left = `${startX}px`;
+  leaderLine.style.height = `${Math.hypot(run, drop)}px`;
+  leaderLine.style.transform = `translateX(-50%) rotate(${Math.atan2(-run, drop)}rad)`;
+}
+
+/**
+ * Places bubble stacks above their speakers so none overlap; a moved stack shows a leader line
+ * back to its speaker. All reads happen before any writes so the browser lays out once.
  */
 function layOutBubbles(
   world: WorldElements,
   screenPositions: ReadonlyMap<string, Position>,
   scale: number,
 ): void {
-  const { speechBubbleGap, speechBubbleOffsetAboveFigure } = clientConfig.village;
-  const lift = (FIGURE_SIZE / 2) * scale + speechBubbleOffsetAboveFigure;
+  const {
+    speechBubbleGap,
+    speechBubbleOffsetAboveFigure,
+    speechBubbleMaxSideShiftFraction,
+    speechBubbleSameColumnTolerance,
+  } = clientConfig.village;
+  const figureHalfHeight = (FIGURE_SIZE / 2) * scale;
+  const lift = figureHalfHeight + speechBubbleOffsetAboveFigure;
   const stacks: BubbleStackBox[] = [];
   for (const [agentId, stackElement] of world.bubbleStacks.elements) {
     const anchor = screenPositions.get(agentId);
@@ -149,21 +167,31 @@ function layOutBubbles(
       height: stackElement.offsetHeight,
     });
   }
-  const bottomsByAgent = layOutBubbleStacks(stacks, speechBubbleGap);
+  const placementsByAgent = layOutBubbleStacks(stacks, {
+    gap: speechBubbleGap,
+    maxSideShiftFraction: speechBubbleMaxSideShiftFraction,
+    sameColumnTolerance: speechBubbleSameColumnTolerance,
+  });
   for (const [agentId, stackElement] of world.bubbleStacks.elements) {
     stackElement.style.visibility = screenPositions.has(agentId) ? "visible" : "hidden";
   }
   for (const stack of stacks) {
-    const bottom = bottomsByAgent.get(stack.agentId) ?? stack.anchorBottom;
+    const placement = placementsByAgent.get(stack.agentId) ?? {
+      centerX: stack.anchorX,
+      bottom: stack.anchorBottom,
+    };
     const stackElement = world.bubbleStacks.elements.get(stack.agentId);
     if (stackElement) {
-      placeElement(stackElement, stack.anchorX - stack.width / 2, bottom - stack.height);
+      placeElement(
+        stackElement,
+        placement.centerX - stack.width / 2,
+        placement.bottom - stack.height,
+      );
     }
     const leaderLine = world.leaderLines.elements.get(stack.agentId);
     if (!leaderLine) continue;
-    const leaderLength = stack.anchorBottom - bottom;
-    leaderLine.style.display = leaderLength > speechBubbleGap ? "block" : "none";
-    leaderLine.style.height = `${leaderLength}px`;
+    const figureTop = stack.anchorBottom + speechBubbleOffsetAboveFigure;
+    placeLeaderLine(leaderLine, stack, placement, figureTop);
   }
 }
 
@@ -233,7 +261,6 @@ export function layOutWorld(world: WorldElements, scene: WorldScene, frame: Worl
   }
   layOutBubbles(world, screenPositions, scale);
   layOutMarkers(world, screenPositions, scale);
-  layOutLinks(world, scene, screenPositions);
   layOutPlaceLabels(world, scene, frame);
   layOutHoverCard(world, scene, frame, screenPositions);
   layOutTileCard(world, scene, frame);

@@ -3,7 +3,7 @@ import type { Moment, WorldEvent } from "@village/shared";
 import { makeSampleAgent, makeSampleEvent, makeSampleMoment } from "../fixtures/sample-data";
 import { groupConversations } from "./conversations";
 import { EVENT_CATEGORIES } from "./event-feed";
-import { buildStory, type StoryFilter } from "./story-feed";
+import { buildStory, pickStageEvents, type StoryFilter } from "./story-feed";
 
 const MAX_GAP_TICKS = 10;
 const ada = makeSampleAgent("ada", "Ada", 0, 0);
@@ -15,6 +15,7 @@ const SHOW_ALL: StoryFilter = {
   place: null,
   categories: new Set(EVENT_CATEGORIES),
   isShowingMoments: false,
+  isShowingActionsInThreads: false,
 };
 
 function makeAction(
@@ -94,8 +95,33 @@ describe("buildStory", () => {
       place: null,
       categories: new Set(EVENT_CATEGORIES.filter((category) => category !== "movement")),
       isShowingMoments: false,
+      isShowingActionsInThreads: false,
     };
     expect(storyKeys(events, filter, 100)).toEqual(["event-3"]);
+  });
+
+  it("folds speakers' actions into their conversation when actions in talk is on", () => {
+    const events = [
+      makeSampleEvent(1, ada, 1),
+      makeAction(2, { actor: ada, tick: 2 }, "action_started"),
+      makeAction(3, { actor: ada, tick: 3 }, "walk_started"),
+      makeSampleEvent(4, bob, 4),
+    ];
+    const filter: StoryFilter = {
+      ...SHOW_ALL,
+      categories: new Set(EVENT_CATEGORIES.filter((category) => category !== "movement")),
+      isShowingActionsInThreads: true,
+    };
+    const threads = groupConversations(events, MAX_GAP_TICKS, pickStageEvents(filter));
+    expect(threads[0]?.entries.map((entry) => entry.eventId)).toEqual([1, 2, 4]);
+    const story = buildStory(events, threads, filter, 100, MAX_GAP_TICKS);
+    expect(story.map((item) => item.kind)).toEqual(["thread"]);
+  });
+
+  it("keeps actions out of conversations when actions in talk is off", () => {
+    const events = [makeSampleEvent(1, ada, 1), makeAction(2, { actor: ada, tick: 2 }, "hurt")];
+    const threads = groupConversations(events, MAX_GAP_TICKS, pickStageEvents(SHOW_ALL));
+    expect(threads[0]?.entries.map((entry) => entry.eventId)).toEqual([1]);
   });
 
   it("drops conversations when talk is filtered out", () => {

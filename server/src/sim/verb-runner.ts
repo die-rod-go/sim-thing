@@ -17,6 +17,7 @@ import {
   describeKilledPhrase,
   describeVerbAttempt,
 } from "./verb-run-events";
+import { findVerbSlowdown, noteSlowStart, withSlowdown } from "./verb-slowdown";
 import { findAgent, markAgentChanged, replaceAgent } from "./world-access";
 import type { WorldState } from "./world-state";
 
@@ -208,14 +209,17 @@ export function startVerbRun(context: TickContext, agentId: string, start: VerbS
   const { state, result } = context;
   const verb = requireVerb(state, start.verbIndex);
   const verbRun = buildVerbRun(state, agentId, start);
-  const run = buildStepRun(context, verbRun, verb, false);
+  const slowdown = findVerbSlowdown(state, findAgent(state, agentId), verb);
+  const slowedRun = withSlowdown(verbRun, slowdown);
+  const run = buildStepRun(context, slowedRun, verb, false);
   const refusal = findStepsRefusal(run, verb, 0);
   if (refusal !== null) {
-    failAction(state, result, agentId, describeVerbAttempt(state, verbRun, verb), refusal);
+    failAction(state, result, agentId, describeVerbAttempt(state, slowedRun, verb), refusal);
     return;
   }
-  beginRun(context, verbRun);
+  beginRun(context, slowedRun);
   settle(run, verb, executeSteps(run, verb));
+  noteSlowStart(state, slowedRun);
 }
 
 /**

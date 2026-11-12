@@ -63,11 +63,16 @@ export function SpeechBubbleStack({
     speechBubbleLeaderLineWidth,
     speechBubbleLeaderLineAlpha,
     speechBubbleSpeakerTint,
+    speechBubbleFontSizes,
     thoughtBubbleWrapWidth,
+    thoughtBubbleFontSize,
   } = clientConfig.village;
   const speakerTintStyle = {
     "--speaker-color": speakerColor,
     "--speaker-tint": `${speechBubbleSpeakerTint * 100}%`,
+    "--font-size-whisper": `${speechBubbleFontSizes.whisper}px`,
+    "--font-size-normal": `${speechBubbleFontSizes.normal}px`,
+    "--font-size-shout": `${speechBubbleFontSizes.shout}px`,
   } as CSSProperties;
   return (
     <div
@@ -78,7 +83,7 @@ export function SpeechBubbleStack({
       {thought && (
         <div
           className="thought-bubble"
-          style={{ maxWidth: thoughtBubbleWrapWidth }}
+          style={{ maxWidth: thoughtBubbleWrapWidth, fontSize: thoughtBubbleFontSize }}
           title={`${speakerName} thinks: ${thought.fullText}`}
         >
           {thought.shortText}
@@ -95,7 +100,7 @@ export function SpeechBubbleStack({
           }}
           onAnimationEnd={() => onExpire(bubble)}
         >
-          {speakerName}: {bubble.text}
+          {bubble.text}
         </div>
       ))}
       <div
