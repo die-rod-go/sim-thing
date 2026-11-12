@@ -465,7 +465,8 @@ export const config = {
     shouldDecideInBackground: true,
     conversationLines: 12,
     conversationWindowTicks: 30,
-    promptTokenTarget: 3000,
+    /** Sized so a typical prompt keeps its recalled memories; only unusually long ones get trimmed. */
+    promptTokenTarget: 4500,
     /** Rough characters-per-token used to estimate prompt size before trimming memories. Measured from logged Haiku calls: about 1.9. */
     charsPerToken: 2,
     defaultWaitMinutes: 10,
