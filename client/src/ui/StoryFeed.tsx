@@ -147,7 +147,7 @@ function StoryFilters({
 }
 
 /**
- * The village as one story: a chat per place pinned on top (live ones first, in a fixed order),
+ * The village as one story: a chat per place pinned on top (in a fixed place-name order),
  * and below it a log of every action, newest first.
  */
 export function StoryFeed() {

@@ -57,14 +57,14 @@ const planMoment: Moment = {
 };
 
 describe("buildPlaceChats", () => {
-  it("puts live chats above quiet ones and keeps each group in place-name order", () => {
+  it("keeps chats in place-name order whether live or quiet", () => {
     const events = [
       makeSampleEvent(1, clara, 1),
       makeSampleEvent(2, dora, 2),
       makeSampleEvent(3, ada, 95),
       makeSampleEvent(4, clara, 96),
     ];
-    expect(chatSummaries(events, SHOW_ALL, 100)).toEqual(["square live", "tavern live", "bakery"]);
+    expect(chatSummaries(events, SHOW_ALL, 100)).toEqual(["bakery", "square live", "tavern live"]);
   });
 
   it("does not move a chat when it gets a new line", () => {

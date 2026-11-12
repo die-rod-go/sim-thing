@@ -78,15 +78,9 @@ function addSpeech(
   };
 }
 
-function compareChats(first: PlaceChat, second: PlaceChat): number {
-  if (first.isLive !== second.isLive) return first.isLive ? -1 : 1;
-  return first.place.localeCompare(second.place);
-}
-
 /**
  * One chat per place where someone has spoken, holding its talk and the shown actions taken there.
- * Live chats come first; within live and quiet, places keep a fixed alphabetical order so new
- * lines never move a chat.
+ * Places keep a fixed alphabetical order, so neither new lines nor a chat going quiet move it.
  */
 export function buildPlaceChats(
   events: WorldEvent[],
@@ -112,7 +106,7 @@ export function buildPlaceChats(
     .filter((chat) => chat.speakerIds.length > 0)
     .filter((chat) => filter.agentId === null || chat.speakerIds.includes(filter.agentId))
     .map((chat) => ({ ...chat, isLive: currentTick - chat.lastSpokenTick <= maxGapTicks }))
-    .sort(compareChats);
+    .sort((first, second) => first.place.localeCompare(second.place));
 }
 
 function itemTick(item: StoryLogItem): number {
