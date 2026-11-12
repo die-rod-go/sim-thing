@@ -11,7 +11,7 @@
  "tilewidth": 16,
  "tileheight": 16,
  "nextlayerid": 7,
- "nextobjectid": 431,
+ "nextobjectid": 446,
  "layers": [
   {
    "id": 1,
@@ -9942,6 +9942,121 @@
        "value": "bench"
       }
      ]
+    },
+    {
+     "id": 426,
+     "name": "weaver's bed",
+     "type": "",
+     "rotation": 0,
+     "visible": true,
+     "x": 1088,
+     "y": 80,
+     "width": 16,
+     "height": 16,
+     "properties": [
+      {
+       "name": "name",
+       "type": "string",
+       "value": "weaver's bed"
+      },
+      {
+       "name": "definition",
+       "type": "string",
+       "value": "bed"
+      }
+     ]
+    },
+    {
+     "id": 427,
+     "name": "apothecary bed",
+     "type": "",
+     "rotation": 0,
+     "visible": true,
+     "x": 1360,
+     "y": 80,
+     "width": 16,
+     "height": 16,
+     "properties": [
+      {
+       "name": "name",
+       "type": "string",
+       "value": "apothecary bed"
+      },
+      {
+       "name": "definition",
+       "type": "string",
+       "value": "bed"
+      }
+     ]
+    },
+    {
+     "id": 428,
+     "name": "butcher's bed",
+     "type": "",
+     "rotation": 0,
+     "visible": true,
+     "x": 928,
+     "y": 256,
+     "width": 16,
+     "height": 16,
+     "properties": [
+      {
+       "name": "name",
+       "type": "string",
+       "value": "butcher's bed"
+      },
+      {
+       "name": "definition",
+       "type": "string",
+       "value": "bed"
+      }
+     ]
+    },
+    {
+     "id": 429,
+     "name": "miner's bed",
+     "type": "",
+     "rotation": 0,
+     "visible": true,
+     "x": 1376,
+     "y": 1536,
+     "width": 16,
+     "height": 16,
+     "properties": [
+      {
+       "name": "name",
+       "type": "string",
+       "value": "miner's bed"
+      },
+      {
+       "name": "definition",
+       "type": "string",
+       "value": "bed"
+      }
+     ]
+    },
+    {
+     "id": 430,
+     "name": "chapel keeper's bed",
+     "type": "",
+     "rotation": 0,
+     "visible": true,
+     "x": 1328,
+     "y": 288,
+     "width": 16,
+     "height": 16,
+     "properties": [
+      {
+       "name": "name",
+       "type": "string",
+       "value": "chapel keeper's bed"
+      },
+      {
+       "name": "definition",
+       "type": "string",
+       "value": "bed"
+      }
+     ]
     }
    ]
   },
@@ -9956,7 +10071,7 @@
    "visible": true,
    "objects": [
     {
-     "id": 426,
+     "id": 431,
      "name": "jess",
      "type": "",
      "rotation": 0,
@@ -9968,7 +10083,7 @@
      "point": true
     },
     {
-     "id": 427,
+     "id": 432,
      "name": "taram",
      "type": "",
      "rotation": 0,
@@ -9980,7 +10095,7 @@
      "point": true
     },
     {
-     "id": 428,
+     "id": 433,
      "name": "beckett",
      "type": "",
      "rotation": 0,
@@ -9992,7 +10107,7 @@
      "point": true
     },
     {
-     "id": 429,
+     "id": 434,
      "name": "diego",
      "type": "",
      "rotation": 0,
@@ -10004,13 +10119,133 @@
      "point": true
     },
     {
-     "id": 430,
+     "id": 435,
      "name": "tony",
      "type": "",
      "rotation": 0,
      "visible": true,
      "x": 968,
      "y": 904,
+     "width": 0,
+     "height": 0,
+     "point": true
+    },
+    {
+     "id": 436,
+     "name": "hilda",
+     "type": "",
+     "rotation": 0,
+     "visible": true,
+     "x": 712,
+     "y": 56,
+     "width": 0,
+     "height": 0,
+     "point": true
+    },
+    {
+     "id": 437,
+     "name": "oren",
+     "type": "",
+     "rotation": 0,
+     "visible": true,
+     "x": 920,
+     "y": 56,
+     "width": 0,
+     "height": 0,
+     "point": true
+    },
+    {
+     "id": 438,
+     "name": "maeve",
+     "type": "",
+     "rotation": 0,
+     "visible": true,
+     "x": 1064,
+     "y": 56,
+     "width": 0,
+     "height": 0,
+     "point": true
+    },
+    {
+     "id": 439,
+     "name": "pell",
+     "type": "",
+     "rotation": 0,
+     "visible": true,
+     "x": 1208,
+     "y": 72,
+     "width": 0,
+     "height": 0,
+     "point": true
+    },
+    {
+     "id": 440,
+     "name": "agnes",
+     "type": "",
+     "rotation": 0,
+     "visible": true,
+     "x": 1336,
+     "y": 56,
+     "width": 0,
+     "height": 0,
+     "point": true
+    },
+    {
+     "id": 441,
+     "name": "bruno",
+     "type": "",
+     "rotation": 0,
+     "visible": true,
+     "x": 984,
+     "y": 232,
+     "width": 0,
+     "height": 0,
+     "point": true
+    },
+    {
+     "id": 442,
+     "name": "wil",
+     "type": "",
+     "rotation": 0,
+     "visible": true,
+     "x": 552,
+     "y": 568,
+     "width": 0,
+     "height": 0,
+     "point": true
+    },
+    {
+     "id": 443,
+     "name": "nell",
+     "type": "",
+     "rotation": 0,
+     "visible": true,
+     "x": 104,
+     "y": 1512,
+     "width": 0,
+     "height": 0,
+     "point": true
+    },
+    {
+     "id": 444,
+     "name": "cobb",
+     "type": "",
+     "rotation": 0,
+     "visible": true,
+     "x": 1336,
+     "y": 1512,
+     "width": 0,
+     "height": 0,
+     "point": true
+    },
+    {
+     "id": 445,
+     "name": "ambrose",
+     "type": "",
+     "rotation": 0,
+     "visible": true,
+     "x": 1272,
+     "y": 248,
      "width": 0,
      "height": 0,
      "point": true
