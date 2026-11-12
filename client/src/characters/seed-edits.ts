@@ -19,15 +19,6 @@ function findUnusedId(seedFile: SeedFile, baseId: string): string {
   return `${baseId}-${suffix}`;
 }
 
-/** The first spawn place no character starts at yet, so new characters don't share a home. */
-function pickFreeSpawnPlace(
-  seedFile: SeedFile,
-  spawnPlaces: readonly string[],
-): string | undefined {
-  const takenPlaces = new Set(seedFile.agents.map((agent) => agent.spawnPlace));
-  return spawnPlaces.find((place) => !takenPlaces.has(place));
-}
-
 export function updateAgent(
   seedFile: SeedFile,
   agentIndex: number,
@@ -38,16 +29,8 @@ export function updateAgent(
   return replaceAgentAt(seedFile, agentIndex, { ...agent, ...changes });
 }
 
-export function addAgent(
-  seedFile: SeedFile,
-  template: SeedAgent,
-  spawnPlaces: readonly string[],
-): SeedFile {
-  const agent: SeedAgent = {
-    ...structuredClone(template),
-    spawnPlace: pickFreeSpawnPlace(seedFile, spawnPlaces) ?? template.spawnPlace,
-  };
-  return { ...seedFile, agents: [...seedFile.agents, agent] };
+export function addAgent(seedFile: SeedFile, template: SeedAgent): SeedFile {
+  return { ...seedFile, agents: [...seedFile.agents, structuredClone(template)] };
 }
 
 export function duplicateAgent(seedFile: SeedFile, agentIndex: number): SeedFile {

@@ -36,12 +36,11 @@ export function listInventoryItems(items: ItemCatalog): { id: string; name: stri
 }
 
 /** A blank character for the editor: no name or persona yet, with the usual starting state. */
-export function buildNewAgentTemplate(rules: SeedRules): SeedAgent {
+export function buildNewAgentTemplate(): SeedAgent {
   return {
     id: "",
     name: "",
     profession: "",
-    spawnPlace: rules.spawnPlaces[0] ?? "",
     traits: {
       extraversion: 0,
       agreeableness: 0,
@@ -66,7 +65,7 @@ export function buildSeedRules(map: WorldMap, items: ItemCatalog): SeedRules {
     traitRange: { min: config.traits.min, max: config.traits.max },
     statRange: { min: config.stats.min, max: config.stats.max },
     sleepRecoveryRange: { ...config.seeds.sleepRecoveryRange },
-    spawnPlaces: Object.keys(map.spawnPoints).sort(),
+    agentsWithStartTiles: Object.keys(map.startTiles).sort(),
     inventoryItems: listInventoryItems(items),
   };
 }
@@ -83,13 +82,16 @@ function buildStartingNeeds(): Needs {
   return needs;
 }
 
-/** The agent's spawn point, or the nearest free tile when another agent already stands there. */
-function findSpawnTile(seed: SeedAgent, map: WorldMap, takenIndexes: Set<number>): Position {
-  const spawn = map.spawnPoints[seed.spawnPlace];
-  if (!spawn) throw new Error(`Seed agent ${seed.id} spawns at unknown place "${seed.spawnPlace}"`);
-  const tile = findNearestFreeTile(map.grid, spawn, takenIndexes);
-  if (!tile)
-    throw new Error(`No free tile to spawn seed agent ${seed.id} near "${seed.spawnPlace}"`);
+/** The agent's start tile, or the nearest free tile when it is a wall or someone stands there. */
+function findStartTile(seed: SeedAgent, map: WorldMap, takenIndexes: Set<number>): Position {
+  const start = map.startTiles[seed.id];
+  if (!start) {
+    throw new Error(
+      `Seed agent ${seed.id} has no start tile on the map; place them in the map editor`,
+    );
+  }
+  const tile = findNearestFreeTile(map.grid, start, takenIndexes);
+  if (!tile) throw new Error(`No free tile to start seed agent ${seed.id} near their start tile`);
   takenIndexes.add(tileIndex(map.grid, tile));
   return { ...tile };
 }
@@ -173,7 +175,7 @@ export function buildSeededWorld(
   }
   const takenIndexes = new Set<number>();
   const agents = seedFile.agents.map((seed) =>
-    buildAgent(seed, map, findSpawnTile(seed, map, takenIndexes)),
+    buildAgent(seed, map, findStartTile(seed, map, takenIndexes)),
   );
   const world: EntityWorld = { agents, entities: [], nextEntityId: 1, items };
   seedEntities(seedFile, map, world);

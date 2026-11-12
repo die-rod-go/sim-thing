@@ -9,7 +9,7 @@ const INTERVAL_AT_1X_MS = 1000 / config.clock.baseTicksPerSecond;
 
 function buildEmptyState(): WorldState {
   return createWorldState(
-    { grid: { width: 1, height: 1, isWall: [false] }, places: [], placements: [], spawnPoints: {} },
+    { grid: { width: 1, height: 1, isWall: [false] }, places: [], placements: [], startTiles: {} },
     buildEmptySeededWorld(),
     buildEmptyItems(),
   );

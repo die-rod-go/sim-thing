@@ -4,7 +4,6 @@
       "id": "mara",
       "name": "Mara",
       "profession": "baker; works at the bakery",
-      "spawnPlace": "rose cottage",
       "traits": {
         "extraversion": 0.1,
         "agreeableness": 0.4,
@@ -56,7 +55,6 @@
       "id": "edwin",
       "name": "Edwin",
       "profession": "farmer; works the wheat field at the farm",
-      "spawnPlace": "ivy cottage",
       "traits": {
         "extraversion": -0.2,
         "agreeableness": -0.4,
@@ -100,7 +98,6 @@
       "id": "wren",
       "name": "Wren",
       "profession": "farmer; works the wheat field at the farm",
-      "spawnPlace": "stone cottage",
       "traits": {
         "extraversion": 0.6,
         "agreeableness": 0.3,
@@ -150,7 +147,6 @@
       "id": "bram",
       "name": "Bram",
       "profession": "woodcutter; chops wood at the woodlot",
-      "spawnPlace": "hill cottage",
       "traits": {
         "extraversion": -0.6,
         "agreeableness": 0.7,
@@ -194,7 +190,6 @@
       "id": "tobias",
       "name": "Tobias",
       "profession": "tavern keeper; brews ale and runs the tavern",
-      "spawnPlace": "willow cottage",
       "traits": {
         "extraversion": 0.8,
         "agreeableness": -0.1,
@@ -245,7 +240,6 @@
       "id": "ilsa",
       "name": "Ilsa",
       "profession": "newcomer with no trade yet",
-      "spawnPlace": "town square",
       "traits": {
         "extraversion": 0,
         "agreeableness": 0.5,

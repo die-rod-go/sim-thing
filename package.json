@@ -19,8 +19,7 @@
     "check": "npm run typecheck && npm run lint && npm run format:check",
     "test": "vitest run",
     "reset": "npm run reset -w @village/server",
-    "build": "npm run build -w @village/client",
-    "generate-map": "tsx scripts/generate-map.ts"
+    "build": "npm run build -w @village/client"
   },
   "devDependencies": {
     "@eslint/js": "^10.0.1",

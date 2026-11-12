@@ -1,6 +1,7 @@
 import type { ClientMessage, ServerMessage } from "@village/shared";
 import { createLogger } from "../logger";
 import type { ItemEditor } from "../item-editor";
+import type { MapEditor } from "../map-editor";
 import type { SeedEditor } from "../seed-editor";
 import { buildAgentDetail, buildSettingsMessage, type SimServerContext } from "./message-builders";
 
@@ -26,6 +27,7 @@ export interface ControlDependencies {
   resetWorld: () => Promise<void>;
   seedEditor: SeedEditor;
   itemEditor: ItemEditor;
+  mapEditor: MapEditor;
 }
 
 export function sendAgentDetail(session: ConnectionSession, context: SimServerContext): void {
@@ -101,5 +103,15 @@ export async function handleClientMessage(
         ...dependencies.itemEditor.saveItemFile(message.itemFile),
       });
       return;
+    case "load_map_file":
+      session.send(dependencies.mapEditor.describeMapFile());
+      return;
+    case "save_map_file": {
+      const result = dependencies.mapEditor.saveMapFile(message.mapFile);
+      const shouldResetWorld = result.isSaved && message.shouldResetWorld;
+      if (shouldResetWorld) await resetAndAnnounce(dependencies);
+      session.send({ type: "map_file_saved", ...result, isWorldReset: shouldResetWorld });
+      return;
+    }
   }
 }

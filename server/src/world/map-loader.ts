@@ -1,6 +1,6 @@
 import { readFileSync } from "node:fs";
 import { z } from "zod";
-import type { Position } from "@village/shared";
+import { MAP_LAYER_NAMES, type Position } from "@village/shared";
 import { config } from "../config";
 import type { MapPlacement, PlaceArea, WorldMap } from "./types";
 
@@ -48,11 +48,10 @@ const tiledMapSchema = z.looseObject({
 type TiledMapJson = z.infer<typeof tiledMapSchema>;
 type TiledObjectJson = z.infer<typeof tiledObjectSchema>;
 
-/** A map object names the item definition it places; `items.json` must have it as a placeable. */
+/** A map object names the item definition it places and the name the item goes by. */
 const objectPropertiesSchema = z.object({
   name: z.string().min(1),
   definition: z.string().min(1),
-  place: z.string().min(1),
 });
 
 function readProperties(object: TiledObjectJson): Record<string, unknown> {
@@ -87,13 +86,22 @@ function buildPlace(object: TiledObjectJson, tileSize: number): PlaceArea {
   };
 }
 
-function buildPlacement(object: TiledObjectJson, tileSize: number): MapPlacement {
+function findTileOf(object: TiledObjectJson, tileSize: number): Position {
+  return { x: Math.floor(object.x / tileSize), y: Math.floor(object.y / tileSize) };
+}
+
+function buildPlacement(
+  object: TiledObjectJson,
+  tileSize: number,
+  places: readonly PlaceArea[],
+): MapPlacement {
   const properties = objectPropertiesSchema.parse(readProperties(object));
+  const pos = findTileOf(object, tileSize);
   return {
     label: properties.name,
     definitionId: properties.definition,
-    place: properties.place,
-    pos: { x: Math.floor(object.x / tileSize), y: Math.floor(object.y / tileSize) },
+    place: findPlaceIn(places, pos),
+    pos,
   };
 }
 
@@ -109,13 +117,16 @@ function assertUnique(names: string[], what: string): void {
 export function parseWorldMap(json: unknown): WorldMap {
   const tiledMap = tiledMapSchema.parse(json);
   const tileSize = tiledMap.tilewidth;
-  const walls = findTileLayer(tiledMap, "walls");
-  findTileLayer(tiledMap, "ground");
+  const walls = findTileLayer(tiledMap, MAP_LAYER_NAMES.walls);
+  findTileLayer(tiledMap, MAP_LAYER_NAMES.ground);
 
-  const places = findObjectLayer(tiledMap, "places").map((object) => buildPlace(object, tileSize));
-  const placements = findObjectLayer(tiledMap, "objects").map((object) =>
-    buildPlacement(object, tileSize),
+  const places = findObjectLayer(tiledMap, MAP_LAYER_NAMES.places).map((object) =>
+    buildPlace(object, tileSize),
   );
+  const placements = findObjectLayer(tiledMap, MAP_LAYER_NAMES.objects).map((object) =>
+    buildPlacement(object, tileSize, places),
+  );
+  const starts = findObjectLayer(tiledMap, MAP_LAYER_NAMES.starts);
   assertUnique(
     places.map((place) => place.name),
     "place",
@@ -125,13 +136,13 @@ export function parseWorldMap(json: unknown): WorldMap {
     "object",
   );
 
-  const spawnPoints: Record<string, Position> = {};
-  for (const spawn of findObjectLayer(tiledMap, "spawns")) {
-    spawnPoints[spawn.name] = {
-      x: Math.floor(spawn.x / tileSize),
-      y: Math.floor(spawn.y / tileSize),
-    };
-  }
+  assertUnique(
+    starts.map((start) => start.name),
+    "start tile for",
+  );
+  const startTiles = Object.fromEntries(
+    starts.map((start) => [start.name, findTileOf(start, tileSize)]),
+  );
 
   return {
     grid: {
@@ -141,7 +152,7 @@ export function parseWorldMap(json: unknown): WorldMap {
     },
     places,
     placements,
-    spawnPoints,
+    startTiles,
   };
 }
 
@@ -155,7 +166,11 @@ export function loadWorldMap(filePath: string): WorldMap {
 }
 
 export function findPlaceAt(map: WorldMap, position: Position): string {
-  const place = map.places.find(
+  return findPlaceIn(map.places, position);
+}
+
+function findPlaceIn(places: readonly PlaceArea[], position: Position): string {
+  const place = places.find(
     (area) =>
       position.x >= area.x &&
       position.y >= area.y &&

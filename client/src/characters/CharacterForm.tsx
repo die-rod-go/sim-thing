@@ -49,9 +49,7 @@ function FormSection({
 }
 
 function IdentitySection({ agent, rules, problems, onChange, onRename }: SectionProps) {
-  const spawnPlaces = rules.spawnPlaces.includes(agent.spawnPlace)
-    ? rules.spawnPlaces
-    : [agent.spawnPlace, ...rules.spawnPlaces];
+  const hasStartTile = rules.agentsWithStartTiles.includes(agent.id);
   return (
     <FormSection title="Identity">
       <div className="field-grid">
@@ -93,25 +91,15 @@ function IdentitySection({ agent, rules, problems, onChange, onRename }: Section
           />
         )}
       </Field>
-      <Field
-        label="Starts at"
-        hint="Where they wake on day 1. Which cottage is whose home is only what the text says."
-        problems={selectFieldProblems(problems, "spawnPlace")}
-      >
-        {(inputId) => (
-          <select
-            id={inputId}
-            value={agent.spawnPlace}
-            onChange={(event) => onChange({ ...agent, spawnPlace: event.target.value })}
-          >
-            {spawnPlaces.map((place) => (
-              <option key={place} value={place}>
-                {place}
-              </option>
-            ))}
-          </select>
-        )}
-      </Field>
+      <p className="field-hint">
+        {hasStartTile ? "Has a start tile on the map. " : ""}
+        Where they wake on day 1 is set in the{" "}
+        <a href="/maps.html" target="_blank" rel="noreferrer">
+          map editor
+        </a>
+        . Which cottage is whose home is only what the text says.
+      </p>
+      <ProblemList problems={selectFieldProblems(problems, "start")} />
     </FormSection>
   );
 }

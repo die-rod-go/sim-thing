@@ -27,13 +27,15 @@ export interface SeedEditor {
 
 export function createSeedEditor(options: {
   seedFilePath: string;
-  map: WorldMap;
+  /** The current map: it is reloaded on reset, and start tiles come from it. */
+  getMap: () => WorldMap;
   items: ItemCatalog;
 }): SeedEditor {
-  const rules = buildSeedRules(options.map, options.items);
-  const newAgentTemplate = buildNewAgentTemplate(rules);
+  const buildRules = () => buildSeedRules(options.getMap(), options.items);
   return {
     describeSeedFile() {
+      const rules = buildRules();
+      const newAgentTemplate = buildNewAgentTemplate();
       try {
         const seedFile = loadSeedFile(options.seedFilePath);
         return { type: "seed_file", seedFile, loadError: null, rules, newAgentTemplate };
@@ -49,7 +51,7 @@ export function createSeedEditor(options: {
       }
     },
     saveSeedFile(seedFile) {
-      const problems = findSeedFileProblems(seedFile, rules);
+      const problems = findSeedFileProblems(seedFile, buildRules());
       if (hasSeedErrors(problems)) return { isSaved: false, problems };
       const text = `${JSON.stringify(seedFile, null, config.seeds.jsonIndent)}\n`;
       try {

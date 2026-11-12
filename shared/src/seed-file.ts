@@ -8,7 +8,6 @@ export const seedAgentSchema = z.object({
   id: z.string(),
   name: z.string(),
   profession: z.string(),
-  spawnPlace: z.string(),
   traits: z.object({
     extraversion: traitValueSchema,
     agreeableness: traitValueSchema,
@@ -46,7 +45,8 @@ export interface SeedRules {
   traitRange: { min: number; max: number };
   statRange: { min: number; max: number };
   sleepRecoveryRange: { min: number; max: number };
-  spawnPlaces: string[];
+  /** Seed agent ids that have a start tile on the map. */
+  agentsWithStartTiles: string[];
   /** What an inventory may hold: every definition in `items.json` but the agents' body. */
   inventoryItems: { id: string; name: string }[];
 }
@@ -125,8 +125,8 @@ function findStartingStateProblems(
   const problems: SeedProblem[] = [];
   const add = (severity: SeedProblemSeverity, field: string, message: string) =>
     problems.push({ severity, agentIndex, field, message });
-  if (!rules.spawnPlaces.includes(agent.spawnPlace)) {
-    add("error", "spawnPlace", `"${agent.spawnPlace}" is not a place on the map.`);
+  if (!rules.agentsWithStartTiles.includes(agent.id)) {
+    add("warning", "start", "No start tile on the map yet. Place them in the map editor.");
   }
   if (agent.sleepRecoveryPerHour <= 0) {
     add("error", "sleepRecoveryPerHour", "Sleep recovery must be above 0.");

@@ -6,11 +6,6 @@ export default defineConfig({
     // module state within a worker, so tests must not mutate module-level values such as config.
     pool: "threads",
     isolate: false,
-    include: [
-      "shared/src/**/*.test.ts",
-      "server/src/**/*.test.ts",
-      "client/src/**/*.test.ts",
-      "scripts/**/*.test.ts",
-    ],
+    include: ["shared/src/**/*.test.ts", "server/src/**/*.test.ts", "client/src/**/*.test.ts"],
   },
 });

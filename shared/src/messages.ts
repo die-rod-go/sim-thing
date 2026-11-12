@@ -15,6 +15,7 @@ import type { Entity } from "./items/entity";
 import type { ComponentDeclarations } from "./items/component-schema";
 import type { ItemDefinition, ItemFile, WorldSettings } from "./items/item-file";
 import type { ItemProblem, ItemReference } from "./items/item-problems";
+import type { MapProblem, MapReferences } from "./map-file";
 import {
   seedFileSchema,
   type SeedAgent,
@@ -44,6 +45,13 @@ export const clientMessageSchema = z.discriminatedUnion("type", [
   z.object({ type: z.literal("load_item_file") }),
   /** Checked by the server's item editor, which reports schema errors as problems. */
   z.object({ type: z.literal("save_item_file"), itemFile: z.unknown() }),
+  z.object({ type: z.literal("load_map_file") }),
+  /** Checked by the server's map editor, which reports a malformed map as a problem. */
+  z.object({
+    type: z.literal("save_map_file"),
+    mapFile: z.unknown(),
+    shouldResetWorld: z.boolean(),
+  }),
 ]);
 
 export type ClientMessage = z.infer<typeof clientMessageSchema>;
@@ -181,6 +189,23 @@ export interface ItemFileSavedMessage {
   problems: ItemProblem[];
 }
 
+/** Sent in reply to load_map_file: the Tiled map as it is on disk, and what it may name. */
+export interface MapFileMessage {
+  type: "map_file";
+  /** The Tiled JSON, or null when the file could not be read; `loadError` says why. */
+  mapFile: unknown;
+  loadError: string | null;
+  references: MapReferences;
+}
+
+/** Sent in reply to save_map_file. Nothing is written when `problems` has an error. */
+export interface MapFileSavedMessage {
+  type: "map_file_saved";
+  isSaved: boolean;
+  isWorldReset: boolean;
+  problems: MapProblem[];
+}
+
 export type ServerMessage =
   | SnapshotMessage
   | TickMessage
@@ -197,7 +222,9 @@ export type ServerMessage =
   | SeedFileMessage
   | SeedFileSavedMessage
   | ItemFileMessage
-  | ItemFileSavedMessage;
+  | ItemFileSavedMessage
+  | MapFileMessage
+  | MapFileSavedMessage;
 
 export const SERVER_MESSAGE_TYPES = [
   "snapshot",
@@ -216,6 +243,8 @@ export const SERVER_MESSAGE_TYPES = [
   "seed_file_saved",
   "item_file",
   "item_file_saved",
+  "map_file",
+  "map_file_saved",
 ] as const satisfies readonly ServerMessage["type"][];
 
 const serverEnvelopeSchema = z.looseObject({ type: z.enum(SERVER_MESSAGE_TYPES) });

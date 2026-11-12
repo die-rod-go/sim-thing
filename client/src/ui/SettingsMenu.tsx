@@ -109,6 +109,9 @@ export function SettingsMenu(props: SettingsMenuProps) {
             <a className="menu-link" href="/items.html" target="_blank" rel="noreferrer">
               Edit items ↗
             </a>
+            <a className="menu-link" href="/maps.html" target="_blank" rel="noreferrer">
+              Edit map ↗
+            </a>
           </section>
           <section className="menu-section">
             <button className="danger menu-danger" disabled={!isLive} onClick={confirmReset}>

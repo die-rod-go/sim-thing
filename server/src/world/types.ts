@@ -30,8 +30,8 @@ export interface WorldMap {
   places: PlaceArea[];
   /** Placed objects, loaded as tile entities when a world is seeded. Doors are placements too. */
   placements: MapPlacement[];
-  /** Named spawn tiles from the map, used by seeds ("rose cottage", "tavern", ...). */
-  spawnPoints: Record<string, Position>;
+  /** Each character's start tile, by seed agent id. */
+  startTiles: Record<string, Position>;
 }
 
 export function tileIndex(grid: TileGrid, position: Position): number {

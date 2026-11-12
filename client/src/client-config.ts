@@ -194,6 +194,37 @@ export const clientConfig = {
     maxListedRuleMatches: 12,
   },
 
+  mapEditor: {
+    /** Screen pixels per map pixel. */
+    zoomLevels: [1, 1.5, 2, 3, 4],
+    defaultZoom: 2,
+    maxUndoSteps: 200,
+    /** Largest width or height the size fields accept, in tiles. */
+    maxMapSide: 256,
+    newPlaceName: "new place",
+    placeOutlineColor: "rgba(255, 207, 90, 0.85)",
+    placeFillColor: "rgba(255, 207, 90, 0.08)",
+    indoorPlaceOutlineColor: "rgba(106, 167, 255, 0.9)",
+    indoorPlaceFillColor: "rgba(106, 167, 255, 0.1)",
+    placeLabelFont: "11px system-ui, sans-serif",
+    placeLabelColor: "#ffffff",
+    placeLabelBackground: "rgba(0, 0, 0, 0.6)",
+    placeLabelPadding: 3,
+    placeLabelHeight: 14,
+    selectionColor: "#ffffff",
+    selectionLineWidth: 2,
+    hoverColor: "rgba(255, 255, 255, 0.35)",
+    previewColor: "rgba(106, 167, 255, 0.35)",
+    gridColor: "rgba(255, 255, 255, 0.07)",
+    /** Size of the square drawn at a place's bottom-right corner to show it can be resized. */
+    resizeHandleFraction: 0.35,
+    emptyTileColor: "#000000",
+    /** Drawn for an item whose definition items.json no longer has. */
+    unknownItemGlyph: { index: 63, color: "#ff6b6b" },
+    /** Start tiles of characters missing from agents.json are drawn in this color. */
+    unknownCharacterColor: "#8a91a0",
+  },
+
   conversations: {
     /** A line more than this many ticks after the previous one at the same place opens a new thread. */
     maxGapTicks: 10,

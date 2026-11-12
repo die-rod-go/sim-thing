@@ -15,14 +15,13 @@ const map: WorldMap = {
   placements: [
     { label: "bakery oven", definitionId: "oven", place: "bakery", pos: { x: 1, y: 0 } },
   ],
-  spawnPoints: { bakery: { x: 0, y: 0 } },
+  startTiles: { mara: { x: 0, y: 0 } },
 };
 
 const seedAgent = {
   id: "mara",
   name: "Mara",
   profession: "baker",
-  spawnPlace: "bakery",
   traits: { extraversion: 0, agreeableness: 0, conscientiousness: 0, neuroticism: 0, openness: 0 },
   core: "",
   selfImage: "",
@@ -53,7 +52,7 @@ describe("item editor", () => {
     copyFileSync(resolve(repositoryRoot, config.server.itemsPath), itemFilePath);
     const seedFilePath = join(directory, "agents.json");
     writeFileSync(seedFilePath, JSON.stringify({ agents: [seedAgent] }));
-    editor = createItemEditor({ itemFilePath, seedFilePath, map });
+    editor = createItemEditor({ itemFilePath, seedFilePath, getMap: () => map });
   });
 
   afterEach(() => rmSync(directory, { recursive: true, force: true }));

@@ -41,20 +41,21 @@ function buildFileProblem(message: string): ItemProblem {
 export function createItemEditor(options: {
   itemFilePath: string;
   seedFilePath: string;
-  map: WorldMap;
+  /** The current map: it is reloaded on reset, and its placed items use definitions. */
+  getMap: () => WorldMap;
 }): ItemEditor {
   // Re-read on every request: the character editor may have changed the seed inventories since.
   const readReferences = (): ReferenceReading => {
     try {
       return {
         kind: "read",
-        references: listItemReferences(options.map, loadSeedFile(options.seedFilePath)),
+        references: listItemReferences(options.getMap(), loadSeedFile(options.seedFilePath)),
       };
     } catch (error) {
       logger.warn("could not read the seed file to find the items it uses", error);
       return {
         kind: "failed",
-        mapReferences: listItemReferences(options.map, { agents: [] }),
+        mapReferences: listItemReferences(options.getMap(), { agents: [] }),
         message: `Could not read the seed file to check its inventories: ${describeError(error)}`,
       };
     }

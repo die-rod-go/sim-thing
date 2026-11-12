@@ -11,7 +11,7 @@ const rules: SeedRules = {
   traitRange: { min: -1, max: 1 },
   statRange: { min: 0, max: 1 },
   sleepRecoveryRange: { min: 0.12, max: 0.18 },
-  spawnPlaces: ["bakery", "rose cottage"],
+  agentsWithStartTiles: ["mara"],
   inventoryItems: [
     { id: "bread", name: "bread" },
     { id: "coin", name: "coin" },
@@ -23,7 +23,6 @@ function buildSeedAgent(overrides: Partial<SeedAgent> = {}): SeedAgent {
     id: "mara",
     name: "Mara",
     profession: "baker",
-    spawnPlace: "rose cottage",
     traits: {
       extraversion: 0,
       agreeableness: 0,
@@ -44,8 +43,11 @@ function buildSeedAgent(overrides: Partial<SeedAgent> = {}): SeedAgent {
   };
 }
 
+/** Fields with problems, leaving out start tiles, which depend on the map rather than the agent. */
 function listFields(agents: SeedAgent[]): string[] {
-  return findSeedFileProblems({ agents }, rules).map((problem) => problem.field);
+  return findSeedFileProblems({ agents }, rules)
+    .map((problem) => problem.field)
+    .filter((field) => field !== "start");
 }
 
 describe("findSeedFileProblems", () => {
@@ -87,8 +89,12 @@ describe("findSeedFileProblems", () => {
     expect(listFields([buildSeedAgent({ strength: 0, agility: 1 })])).toEqual([]);
   });
 
-  it("rejects a spawn place that is not on the map", () => {
-    expect(listFields([buildSeedAgent({ spawnPlace: "the moon" })])).toEqual(["spawnPlace"]);
+  it("warns about a character with no start tile on the map", () => {
+    const problems = findSeedFileProblems({ agents: [buildSeedAgent({ id: "ilsa" })] }, rules);
+    expect(problems).toContainEqual(
+      expect.objectContaining({ severity: "warning", field: "start" }),
+    );
+    expect(hasSeedErrors(problems)).toBe(false);
   });
 
   it("rejects fractional or negative inventory amounts, coins included", () => {

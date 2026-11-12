@@ -28,8 +28,20 @@ import { createWorldState, type TickResult, type WorldState } from "./world-stat
 
 const repositoryRoot = resolve(import.meta.dirname, "../../..");
 
+/** Where the fixed test cast starts: their cottages, and Ilsa in the town square. */
+const TEST_START_TILES = {
+  mara: { x: 5, y: 4 },
+  edwin: { x: 12, y: 4 },
+  wren: { x: 19, y: 4 },
+  tobias: { x: 26, y: 4 },
+  bram: { x: 33, y: 4 },
+  ilsa: { x: 19, y: 15 },
+};
+
+/** The project map, with start tiles for the test cast instead of the project's characters. */
 export function loadTestMap() {
-  return loadWorldMap(resolve(repositoryRoot, config.server.mapPath));
+  const map = loadWorldMap(resolve(repositoryRoot, config.server.mapPath));
+  return { ...map, startTiles: structuredClone(TEST_START_TILES) };
 }
 
 /** The project's `items.json`: the verbs and definitions the map's objects need. */

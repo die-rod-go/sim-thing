@@ -142,6 +142,9 @@ export function ItemEditor() {
           <a className="link-button" href="/characters.html">
             Characters
           </a>
+          <a className="link-button" href="/maps.html">
+            Map
+          </a>
           <a className="link-button" href="/">
             Back to the village
           </a>

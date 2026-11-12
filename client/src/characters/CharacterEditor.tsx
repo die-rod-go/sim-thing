@@ -165,12 +165,7 @@ export function CharacterEditor() {
             />
             <button
               className="add-button"
-              onClick={() =>
-                editor.edit(
-                  addAgent(draft, newAgentTemplate, rules.spawnPlaces),
-                  draft.agents.length,
-                )
-              }
+              onClick={() => editor.edit(addAgent(draft, newAgentTemplate), draft.agents.length)}
             >
               + New character
             </button>

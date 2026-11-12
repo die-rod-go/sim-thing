@@ -7,7 +7,7 @@ import { createWorldState, type WorldState } from "./world-state";
 
 function buildStateWithMemories(memories: Memory[]): WorldState {
   return createWorldState(
-    { grid: { width: 1, height: 1, isWall: [false] }, places: [], placements: [], spawnPoints: {} },
+    { grid: { width: 1, height: 1, isWall: [false] }, places: [], placements: [], startTiles: {} },
     buildEmptySeededWorld({ memories }),
     buildEmptyItems(),
   );

@@ -7,7 +7,25 @@ import { loadTestItems } from "./sim/test-sim";
 import { loadWorldMap } from "./world/map-loader";
 
 const repositoryRoot = resolve(import.meta.dirname, "../..");
-const map = loadWorldMap(resolve(repositoryRoot, config.server.mapPath));
+const projectMap = loadWorldMap(resolve(repositoryRoot, config.server.mapPath));
+
+function findPlaceCenter(placeName: string) {
+  const place = projectMap.places.find((area) => area.name === placeName);
+  if (!place) throw new Error(`The project map has no place "${placeName}"`);
+  return {
+    x: place.x + Math.floor(place.width / 2),
+    y: place.y + Math.floor(place.height / 2),
+  };
+}
+
+const map = {
+  ...projectMap,
+  startTiles: {
+    ...projectMap.startTiles,
+    mara: findPlaceCenter("rose cottage"),
+    ilsa: findPlaceCenter("town square"),
+  },
+};
 const items = loadTestItems();
 
 function makeSeedAgent(overrides: Partial<SeedAgent> = {}): SeedAgent {
@@ -15,7 +33,6 @@ function makeSeedAgent(overrides: Partial<SeedAgent> = {}): SeedAgent {
     id: "mara",
     name: "Mara",
     profession: "baker; works at the bakery",
-    spawnPlace: "rose cottage",
     traits: {
       extraversion: 0.1,
       agreeableness: 0.4,
@@ -43,23 +60,15 @@ function makeSeedAgent(overrides: Partial<SeedAgent> = {}): SeedAgent {
 
 describe("seeds", () => {
   const seedFile = parseSeedFile({
-    agents: [
-      makeSeedAgent(),
-      makeSeedAgent({ id: "ilsa", name: "Ilsa", spawnPlace: "town square", peopleNotes: {} }),
-    ],
+    agents: [makeSeedAgent(), makeSeedAgent({ id: "ilsa", name: "Ilsa", peopleNotes: {} })],
   });
   const world = buildSeededWorld(seedFile, map, items);
 
-  it("spawns an agent beside one already standing on its spawn point", () => {
-    const crowded = buildSeededWorld(
-      parseSeedFile({
-        agents: [makeSeedAgent(), makeSeedAgent({ id: "ilsa", name: "Ilsa", peopleNotes: {} })],
-      }),
-      map,
-      items,
-    );
+  it("starts an agent beside one already standing on its start tile", () => {
+    const crowdedMap = { ...map, startTiles: { ...map.startTiles, ilsa: map.startTiles.mara } };
+    const crowded = buildSeededWorld(seedFile, crowdedMap, items);
     const [mara, ilsa] = crowded.agents;
-    expect(mara?.pos).toEqual(map.spawnPoints["rose cottage"]);
+    expect(mara?.pos).toEqual(map.startTiles.mara);
     expect(ilsa?.pos).not.toEqual(mara?.pos);
     expect(ilsa?.place).toBe("rose cottage");
   });
@@ -72,11 +81,11 @@ describe("seeds", () => {
     );
   });
 
-  it("builds every seeded agent at its spawn place with fresh state", () => {
+  it("builds every seeded agent at its start tile with fresh state", () => {
     expect(world.agents.map((agent) => agent.id)).toEqual(["mara", "ilsa"]);
     const mara = world.agents[0];
     expect(mara?.place).toBe("rose cottage");
-    expect(mara?.pos).toEqual(map.spawnPoints["rose cottage"]);
+    expect(mara?.pos).toEqual(map.startTiles.mara);
     expect(mara?.needs).toEqual({ hunger: 0.8, energy: 0.8, social: 0.8, fun: 0.8 });
     expect(mara).toMatchObject({
       dailyPlan: "",
@@ -140,11 +149,9 @@ describe("seeds", () => {
     expect(new Set(ids).size).toBe(ids.length);
   });
 
-  it("rejects a seed agent that spawns at an unknown place", () => {
-    const broken = parseSeedFile({
-      agents: seedFile.agents.map((agent) => ({ ...agent, spawnPlace: "the moon" })),
-    });
-    expect(() => buildSeededWorld(broken, map, items)).toThrow(/the moon/);
+  it("rejects a seed agent with no start tile on the map", () => {
+    const broken = parseSeedFile({ agents: [makeSeedAgent({ id: "nobody", name: "Nobody" })] });
+    expect(() => buildSeededWorld(broken, map, items)).toThrow(/nobody has no start tile/);
   });
 
   it("rejects a seed file with out-of-range traits", () => {

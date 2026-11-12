@@ -11,7 +11,7 @@
  "tilewidth": 16,
  "tileheight": 16,
  "nextlayerid": 7,
- "nextobjectid": 43,
+ "nextobjectid": 47,
  "layers": [
   {
    "id": 1,
@@ -358,11 +358,6 @@
        "name": "definition",
        "type": "string",
        "value": "bed"
-      },
-      {
-       "name": "place",
-       "type": "string",
-       "value": "rose cottage"
       }
      ]
     },
@@ -386,11 +381,6 @@
        "name": "definition",
        "type": "string",
        "value": "bed"
-      },
-      {
-       "name": "place",
-       "type": "string",
-       "value": "ivy cottage"
       }
      ]
     },
@@ -414,11 +404,6 @@
        "name": "definition",
        "type": "string",
        "value": "bed"
-      },
-      {
-       "name": "place",
-       "type": "string",
-       "value": "stone cottage"
       }
      ]
     },
@@ -442,11 +427,6 @@
        "name": "definition",
        "type": "string",
        "value": "bed"
-      },
-      {
-       "name": "place",
-       "type": "string",
-       "value": "willow cottage"
       }
      ]
     },
@@ -470,11 +450,6 @@
        "name": "definition",
        "type": "string",
        "value": "bed"
-      },
-      {
-       "name": "place",
-       "type": "string",
-       "value": "hill cottage"
       }
      ]
     },
@@ -498,11 +473,6 @@
        "name": "definition",
        "type": "string",
        "value": "oven"
-      },
-      {
-       "name": "place",
-       "type": "string",
-       "value": "bakery"
       }
      ]
     },
@@ -526,11 +496,6 @@
        "name": "definition",
        "type": "string",
        "value": "brew_kettle"
-      },
-      {
-       "name": "place",
-       "type": "string",
-       "value": "tavern"
       }
      ]
     },
@@ -554,11 +519,6 @@
        "name": "definition",
        "type": "string",
        "value": "card_table"
-      },
-      {
-       "name": "place",
-       "type": "string",
-       "value": "tavern"
       }
      ]
     },
@@ -582,11 +542,6 @@
        "name": "definition",
        "type": "string",
        "value": "bed"
-      },
-      {
-       "name": "place",
-       "type": "string",
-       "value": "tavern"
       }
      ]
     },
@@ -610,11 +565,6 @@
        "name": "definition",
        "type": "string",
        "value": "chest"
-      },
-      {
-       "name": "place",
-       "type": "string",
-       "value": "tavern"
       }
      ]
     },
@@ -638,11 +588,6 @@
        "name": "definition",
        "type": "string",
        "value": "notice_board"
-      },
-      {
-       "name": "place",
-       "type": "string",
-       "value": "town square"
       }
      ]
     },
@@ -666,11 +611,6 @@
        "name": "definition",
        "type": "string",
        "value": "bench"
-      },
-      {
-       "name": "place",
-       "type": "string",
-       "value": "town square"
       }
      ]
     },
@@ -694,11 +634,6 @@
        "name": "definition",
        "type": "string",
        "value": "wheat_field"
-      },
-      {
-       "name": "place",
-       "type": "string",
-       "value": "farm"
       }
      ]
     },
@@ -722,11 +657,6 @@
        "name": "definition",
        "type": "string",
        "value": "trees"
-      },
-      {
-       "name": "place",
-       "type": "string",
-       "value": "woodlot"
       }
      ]
     },
@@ -750,11 +680,6 @@
        "name": "definition",
        "type": "string",
        "value": "door"
-      },
-      {
-       "name": "place",
-       "type": "string",
-       "value": "rose cottage"
       }
      ]
     },
@@ -778,11 +703,6 @@
        "name": "definition",
        "type": "string",
        "value": "door"
-      },
-      {
-       "name": "place",
-       "type": "string",
-       "value": "ivy cottage"
       }
      ]
     },
@@ -806,11 +726,6 @@
        "name": "definition",
        "type": "string",
        "value": "door"
-      },
-      {
-       "name": "place",
-       "type": "string",
-       "value": "stone cottage"
       }
      ]
     },
@@ -834,11 +749,6 @@
        "name": "definition",
        "type": "string",
        "value": "door"
-      },
-      {
-       "name": "place",
-       "type": "string",
-       "value": "willow cottage"
       }
      ]
     },
@@ -862,11 +772,6 @@
        "name": "definition",
        "type": "string",
        "value": "door"
-      },
-      {
-       "name": "place",
-       "type": "string",
-       "value": "hill cottage"
       }
      ]
     },
@@ -890,11 +795,6 @@
        "name": "definition",
        "type": "string",
        "value": "door"
-      },
-      {
-       "name": "place",
-       "type": "string",
-       "value": "bakery"
       }
      ]
     },
@@ -918,11 +818,6 @@
        "name": "definition",
        "type": "string",
        "value": "door"
-      },
-      {
-       "name": "place",
-       "type": "string",
-       "value": "tavern"
       }
      ]
     },
@@ -946,11 +841,6 @@
        "name": "definition",
        "type": "string",
        "value": "door"
-      },
-      {
-       "name": "place",
-       "type": "string",
-       "value": "tavern"
       }
      ]
     }
@@ -958,7 +848,7 @@
   },
   {
    "id": 6,
-   "name": "spawns",
+   "name": "starts",
    "type": "objectgroup",
    "draworder": "topdown",
    "x": 0,
@@ -967,8 +857,8 @@
    "visible": true,
    "objects": [
     {
-     "id": 33,
-     "name": "rose cottage",
+     "id": 43,
+     "name": "jess",
      "type": "",
      "rotation": 0,
      "visible": true,
@@ -979,56 +869,8 @@
      "point": true
     },
     {
-     "id": 34,
-     "name": "ivy cottage",
-     "type": "",
-     "rotation": 0,
-     "visible": true,
-     "x": 200,
-     "y": 72,
-     "width": 0,
-     "height": 0,
-     "point": true
-    },
-    {
-     "id": 35,
-     "name": "stone cottage",
-     "type": "",
-     "rotation": 0,
-     "visible": true,
-     "x": 312,
-     "y": 72,
-     "width": 0,
-     "height": 0,
-     "point": true
-    },
-    {
-     "id": 36,
-     "name": "willow cottage",
-     "type": "",
-     "rotation": 0,
-     "visible": true,
-     "x": 424,
-     "y": 72,
-     "width": 0,
-     "height": 0,
-     "point": true
-    },
-    {
-     "id": 37,
-     "name": "hill cottage",
-     "type": "",
-     "rotation": 0,
-     "visible": true,
-     "x": 536,
-     "y": 72,
-     "width": 0,
-     "height": 0,
-     "point": true
-    },
-    {
-     "id": 38,
-     "name": "bakery",
+     "id": 44,
+     "name": "taram",
      "type": "",
      "rotation": 0,
      "visible": true,
@@ -1039,32 +881,8 @@
      "point": true
     },
     {
-     "id": 39,
-     "name": "tavern",
-     "type": "",
-     "rotation": 0,
-     "visible": true,
-     "x": 520,
-     "y": 216,
-     "width": 0,
-     "height": 0,
-     "point": true
-    },
-    {
-     "id": 40,
-     "name": "town square",
-     "type": "",
-     "rotation": 0,
-     "visible": true,
-     "x": 312,
-     "y": 248,
-     "width": 0,
-     "height": 0,
-     "point": true
-    },
-    {
-     "id": 41,
-     "name": "farm",
+     "id": 45,
+     "name": "beckett",
      "type": "",
      "rotation": 0,
      "visible": true,
@@ -1075,13 +893,13 @@
      "point": true
     },
     {
-     "id": 42,
-     "name": "woodlot",
+     "id": 46,
+     "name": "diego",
      "type": "",
      "rotation": 0,
      "visible": true,
-     "x": 472,
-     "y": 392,
+     "x": 520,
+     "y": 216,
      "width": 0,
      "height": 0,
      "point": true

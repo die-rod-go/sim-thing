@@ -7,6 +7,7 @@ import type { ServerMessage } from "@village/shared";
 import { IN_MEMORY_DATABASE, openDatabase, type Database } from "../db/database";
 import { InMemoryTokenUsageStore, TokenBudget } from "../llm/token-budget";
 import { createItemEditor } from "../item-editor";
+import { createMapEditor } from "../map-editor";
 import { createSeedEditor } from "../seed-editor";
 import { SimLoop } from "../sim/loop";
 import { buildEmptySeededWorld, loadTestItems } from "../sim/test-sim";
@@ -55,7 +56,6 @@ const seedAgent = {
   id: "mara",
   name: "Mara",
   profession: "baker",
-  spawnPlace: "bakery",
   traits: agent.personality.traits,
   core: "",
   selfImage: "",
@@ -134,7 +134,7 @@ describe("sim WebSocket server", () => {
       grid: { width: 2, height: 1, isWall: [false, false] },
       places: [],
       placements: [],
-      spawnPoints: { bakery: { x: 0, y: 0 } },
+      startTiles: { mara: { x: 0, y: 0 } },
     };
     const items = loadTestItems();
     const state = createWorldState(
@@ -166,11 +166,16 @@ describe("sim WebSocket server", () => {
       countInFlightLlmCalls: () => 0,
       tokenBudget,
       findPauseReason: () => (tokenBudget.isOverBudget() ? "Daily token budget reached" : null),
-      seedEditor: createSeedEditor({ seedFilePath, map, items }),
+      seedEditor: createSeedEditor({ seedFilePath, getMap: () => map, items }),
       itemEditor: createItemEditor({
         itemFilePath: join(seedDirectory, "items.json"),
         seedFilePath,
-        map,
+        getMap: () => map,
+      }),
+      mapEditor: createMapEditor({
+        mapFilePath: join(seedDirectory, "village.json"),
+        itemFilePath: join(seedDirectory, "items.json"),
+        seedFilePath,
       }),
       resetWorld: () => {
         resetCount += 1;
@@ -265,7 +270,7 @@ describe("sim WebSocket server", () => {
     const message = await client.waitFor("seed_file");
     expect(message.loadError).toBeNull();
     expect(message.seedFile?.agents[0]?.name).toBe("Mara");
-    expect(message.rules.spawnPlaces).toEqual(["bakery"]);
+    expect(message.rules.agentsWithStartTiles).toEqual(["mara"]);
     expect(message.rules.inventoryItems).toContainEqual({ id: "bread", name: "bread" });
     expect(message.newAgentTemplate.inventory).toMatchObject({ coin: 30 });
   });
@@ -290,17 +295,17 @@ describe("sim WebSocket server", () => {
 
   it("refuses to save a seed file with errors and leaves the file alone", async () => {
     const client = await connect();
-    const homeless = { ...seedAgent, spawnPlace: "the moon" };
+    const nameless = { ...seedAgent, name: "" };
     client.send({
       type: "save_seed_file",
-      seedFile: { agents: [homeless] },
+      seedFile: { agents: [nameless] },
       shouldResetWorld: true,
     });
     const reply = await client.waitFor("seed_file_saved");
     expect(reply).toMatchObject({ isSaved: false, isWorldReset: false });
-    expect(reply.problems.map((problem) => problem.field)).toContain("spawnPlace");
+    expect(reply.problems.map((problem) => problem.field)).toContain("name");
     expect(resetCount).toBe(0);
-    expect(readFileSync(seedFilePath, "utf8")).toContain('"bakery"');
+    expect(readFileSync(seedFilePath, "utf8")).toContain('"name":"Mara"');
   });
 
   it("answers the item editor's save with the problems that stopped it", async () => {

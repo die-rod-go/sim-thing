@@ -185,7 +185,7 @@ export function findNearestFreeTile(
   const seen = new Set<number>([tileIndex(grid, start)]);
   for (let queueIndex = 0; queueIndex < queue.length; queueIndex++) {
     const current = queue[queueIndex]!;
-    if (!takenIndexes.has(tileIndex(grid, current))) return current;
+    if (isWalkable(grid, current) && !takenIndexes.has(tileIndex(grid, current))) return current;
     for (const offset of NEIGHBOR_OFFSETS) {
       const neighbor = { x: current.x + offset.x, y: current.y + offset.y };
       if (!isWalkable(grid, neighbor) || seen.has(tileIndex(grid, neighbor))) continue;

@@ -16,7 +16,6 @@ function buildSeedAgent(name: string, overrides: Partial<SeedAgent> = {}): SeedA
     id: name.toLowerCase(),
     name,
     profession: "",
-    spawnPlace: "rose cottage",
     traits: {
       extraversion: 0,
       agreeableness: 0,
@@ -40,8 +39,8 @@ function buildSeedAgent(name: string, overrides: Partial<SeedAgent> = {}): SeedA
 const village: SeedFile = {
   agents: [
     buildSeedAgent("Mara", { peopleNotes: { Edwin: "Stubborn.", Wren: "Eager." } }),
-    buildSeedAgent("Edwin", { spawnPlace: "ivy cottage", peopleNotes: { mara: "Fair dealer." } }),
-    buildSeedAgent("Wren", { spawnPlace: "stone cottage" }),
+    buildSeedAgent("Edwin", { peopleNotes: { mara: "Fair dealer." } }),
+    buildSeedAgent("Wren"),
   ],
 };
 
@@ -71,12 +70,12 @@ describe("removeAgent", () => {
 });
 
 describe("addAgent", () => {
-  it("starts a new character at a spawn place nobody uses yet", () => {
-    const template = buildSeedAgent("", { id: "", spawnPlace: "rose cottage" });
-    const spawnPlaces = ["ivy cottage", "rose cottage", "stone cottage", "town square"];
-    const added = addAgent(village, template, spawnPlaces);
+  it("appends a copy of the template, not the template itself", () => {
+    const template = buildSeedAgent("", { id: "" });
+    const added = addAgent(village, template);
     expect(added.agents).toHaveLength(4);
-    expect(added.agents[3]?.spawnPlace).toBe("town square");
+    expect(added.agents[3]).toEqual(template);
+    expect(added.agents[3]).not.toBe(template);
   });
 });
 

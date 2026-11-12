@@ -19,6 +19,7 @@ import { listHitRollVerbNames } from "./items/verb-offers";
 import type { TokenBudget } from "./llm/token-budget";
 import { createLogger } from "./logger";
 import { createItemEditor } from "./item-editor";
+import { createMapEditor } from "./map-editor";
 import { createSeedEditor } from "./seed-editor";
 import { buildSeededWorld, loadSeedFile } from "./seeds";
 import { SimLoop } from "./sim/loop";
@@ -110,7 +111,9 @@ async function run(): Promise<void> {
       ? environment.SIM_DATABASE_PATH
       : resolve(repositoryRoot, environment.SIM_DATABASE_PATH);
   const database = openDatabase(databasePath);
-  const map = loadWorldMap(resolve(repositoryRoot, config.server.mapPath));
+  const mapFilePath = resolve(repositoryRoot, config.server.mapPath);
+  // Replaced on every reset, so a map saved in the map editor is used from then on.
+  let map = loadWorldMap(mapFilePath);
   const { items } = loadContent(map);
 
   if (process.argv.includes("--reset-only")) {
@@ -171,16 +174,25 @@ async function run(): Promise<void> {
     findPauseReason,
     seedEditor: createSeedEditor({
       seedFilePath: resolve(repositoryRoot, config.server.seedsPath),
-      map,
+      getMap: () => map,
       items,
     }),
     itemEditor: createItemEditor({
       itemFilePath: resolve(repositoryRoot, config.server.itemsPath),
       seedFilePath: resolve(repositoryRoot, config.server.seedsPath),
-      map,
+      getMap: () => map,
+    }),
+    mapEditor: createMapEditor({
+      mapFilePath,
+      itemFilePath: resolve(repositoryRoot, config.server.itemsPath),
+      seedFilePath: resolve(repositoryRoot, config.server.seedsPath),
     }),
     resetWorld: () =>
-      loop.runBetweenTicks(() => loop.replaceState(resetDatabase(database, map, settings))),
+      loop.runBetweenTicks(() => {
+        const reloadedMap = loadWorldMap(mapFilePath);
+        loop.replaceState(resetDatabase(database, reloadedMap, settings));
+        map = reloadedMap;
+      }),
   });
   loop.start();
   const startupPauseReason = findPauseReason();

@@ -44,8 +44,8 @@ function buildTinyTiledMap(objectProperties: { name: string; type: string; value
       },
       {
         type: "objectgroup",
-        name: "spawns",
-        objects: [{ id: 3, name: "shed", x: 40, y: 8, point: true }],
+        name: "starts",
+        objects: [{ id: 3, name: "mara", x: 40, y: 8, point: true }],
       },
     ],
   };
@@ -54,11 +54,10 @@ function buildTinyTiledMap(objectProperties: { name: string; type: string; value
 const benchProperties = [
   { name: "name", type: "string", value: "Old Bench" },
   { name: "definition", type: "string", value: "bench" },
-  { name: "place", type: "string", value: "shed" },
 ];
 
 describe("parseWorldMap", () => {
-  it("reads walls, places, objects and spawn tiles from Tiled JSON", () => {
+  it("reads walls, places, objects and start tiles from Tiled JSON", () => {
     const map = parseWorldMap(buildTinyTiledMap(benchProperties));
     expect(map.grid.isWall[tileIndex(map.grid, { x: 1, y: 0 })]).toBe(true);
     expect(map.grid.isWall[tileIndex(map.grid, { x: 0, y: 0 })]).toBe(false);
@@ -66,7 +65,7 @@ describe("parseWorldMap", () => {
     expect(map.placements).toEqual([
       { label: "Old Bench", definitionId: "bench", place: "shed", pos: { x: 3, y: 1 } },
     ]);
-    expect(map.spawnPoints).toEqual({ shed: { x: 2, y: 0 } });
+    expect(map.startTiles).toEqual({ mara: { x: 2, y: 0 } });
   });
 
   it("rejects an object that names no item definition", () => {
@@ -87,7 +86,6 @@ describe("findPlaceAt", () => {
   it("names the place whose area holds the tile", () => {
     const bed = map.placements.find((placement) => placement.label === "rose cottage bed");
     expect(bed && findPlaceAt(map, bed.pos)).toBe("rose cottage");
-    expect(findPlaceAt(map, map.spawnPoints["tavern"] ?? { x: -1, y: -1 })).toBe("tavern");
   });
 
   it("falls back to the village road outside every place", () => {

@@ -27,7 +27,7 @@ function buildRoomMap(): WorldMap {
     grid,
     places: [{ name: "hut", isIndoor: true, x: 1, y: 1, width: 5, height: 3 }],
     placements: [],
-    spawnPoints: {},
+    startTiles: {},
   };
 }
 
@@ -136,5 +136,10 @@ describe("findNearestFreeTile", () => {
   it("steps to the nearest free floor tile past taken ones and walls", () => {
     const grid = buildGrid([".#..", "...."]);
     expect(findNearestFreeTile(grid, { x: 0, y: 0 }, new Set([0, 4]))).toEqual({ x: 1, y: 1 });
+  });
+
+  it("moves a start tile that is a wall onto the nearest floor", () => {
+    const grid = buildGrid(["#..", "..."]);
+    expect(findNearestFreeTile(grid, { x: 0, y: 0 }, new Set())).toEqual({ x: 1, y: 0 });
   });
 });
