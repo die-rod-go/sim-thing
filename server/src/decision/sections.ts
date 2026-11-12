@@ -26,10 +26,19 @@ export function describeGoals(goals: Goal[]): string {
 
 const NESTED_INDENT = "  ";
 
-/** "tavern chest, holding 2 coins (take)": name, details, then verbs in parentheses. */
+function describeToolUses(toolUses: string[]): string[] {
+  if (toolUses.length === 0) return [];
+  return [config.verbs.toolUsesWords.split("{uses}").join(toolUses.join(", "))];
+}
+
+/**
+ * "tavern chest, holding 2 coins (take)": name, details, then verbs in parentheses, and for a
+ * carried tool what it lets the agent do here after a semicolon.
+ */
 function describeEntityLine(group: PromptEntityGroup): string {
   const line = [group.text, ...group.details].join(", ");
-  return group.verbs.length > 0 ? `${line} (${group.verbs.join(", ")})` : line;
+  const verbs = [group.verbs.join(", "), ...describeToolUses(group.toolUses)].filter(Boolean);
+  return verbs.length > 0 ? `${line} (${verbs.join("; ")})` : line;
 }
 
 function listEntityLines(groups: PromptEntityGroup[], depth: number): string[] {

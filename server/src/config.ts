@@ -379,6 +379,8 @@ export const config = {
     selfTargetWords: { others: "themselves", own: "myself" },
     /** How `{target}` reads in the target's own memory ("Tobias hit me"). */
     targetOwnWord: "me",
+    /** After a carried tool's verbs: what it lets the agent do here. `{uses}` lists the phrases. */
+    toolUsesWords: "lets you {uses}",
     /** The longest `choice.text` a verb gets (a note's words); longer text is cut. */
     maxTextChars: 200,
   },

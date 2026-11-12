@@ -305,6 +305,7 @@ describe("seeing what containers and bodies hold", () => {
       text: "a knife",
       details: ["on the floor"],
       verbs: ["pick up"],
+      toolUses: [],
       contents: [],
     });
   });

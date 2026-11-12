@@ -46,9 +46,11 @@ function readListedName(line: string, itemNames: string[]): string {
   );
 }
 
+/** "(attack, drop; lets you chop down the tree)" → the verbs before the tool uses. */
 function readListedVerbs(line: string): string[] {
   const match = line.match(/\(([^()]*)\)$/);
-  return (match?.[1] ?? "").split(", ").filter(Boolean);
+  const [verbs] = (match?.[1] ?? "").split("; ");
+  return (verbs ?? "").split(", ").filter(Boolean);
 }
 
 /** The bullet list that follows the line starting with `header`, nested bullets knowing their holder. */

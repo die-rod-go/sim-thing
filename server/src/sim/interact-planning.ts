@@ -5,7 +5,7 @@ import { describeEntityName } from "../items/entity-store";
 import type { PlannedAction } from "./decision-runner";
 import type { InteractRequest } from "./agent-runtime";
 import type { SimDependencies } from "./tick-context";
-import { resolveInteract, type VerbFollowUp } from "./verb-resolve";
+import { resolveInteract, type VerbChoice, type VerbFollowUp } from "./verb-resolve";
 import type { WorldState } from "./world-state";
 
 /** The reply's words for an interact, which are resolved to things when the verb starts. */
@@ -21,6 +21,15 @@ function buildInteractRequest(reply: DecisionReply): InteractRequest {
   };
 }
 
+/** The request with the chosen verb; a tool use moves the item to the thing it is done on. */
+function applyVerbChoice(request: InteractRequest, choice: VerbChoice): InteractRequest {
+  if (choice.itemName === undefined) return { ...request, verb: choice.verbName };
+  const moved: InteractRequest = { ...request, verb: choice.verbName, itemName: choice.itemName };
+  delete moved.targetName;
+  delete moved.fromName;
+  return moved;
+}
+
 async function askWhichVerb(
   state: WorldState,
   dependencies: SimDependencies,
@@ -29,14 +38,14 @@ async function askWhichVerb(
   request: InteractRequest,
   followUp: VerbFollowUp,
 ): Promise<PlannedAction> {
-  const { verbNames } = followUp;
+  const labels = followUp.choices.map((choice) => choice.label);
   const prompt = buildInteractPrompt(
     {
       agentName: agent.name,
       objectName: describeEntityName(state, followUp.item),
       ...(followUp.targetName === undefined ? {} : { targetName: followUp.targetName }),
       intention: reply.intention,
-      options: verbNames.map((name) => ({ name, description: "" })),
+      options: labels.map((name) => ({ name, description: "" })),
     },
     dependencies.promptsDirectory,
   );
@@ -45,16 +54,16 @@ async function askWhichVerb(
     agentId: agent.id,
     tick: state.tick,
     prompt,
-    ...buildInteractReplySchema(verbNames),
+    ...buildInteractReplySchema(labels),
   });
   if (!answer.ok) return { kind: "wait", minutes: config.decision.defaultWaitMinutes };
+  const choice = followUp.choices.find((candidate) => candidate.label === answer.value.verb);
   // Declining keeps the original request so it fails at the start and the agent learns why.
-  if (answer.value.verb === config.verbs.declineVerbName) return { kind: "interact", request };
+  if (choice === undefined) return { kind: "interact", request };
   const text = answer.value.text ?? reply.text;
   const minutes = answer.value.minutes ?? reply.minutes;
   const chosen: InteractRequest = {
-    ...request,
-    verb: answer.value.verb,
+    ...applyVerbChoice(request, choice),
     ...(text ? { text } : {}),
     ...(minutes ? { minutes } : {}),
   };
@@ -64,7 +73,7 @@ async function askWhichVerb(
 /**
  * Plans an interact from the reply's words. When the item offers some verbs but not the one asked
  * for, or the target refuses it but other verbs of the item could aim at it, a second call lists
- * them; anything else is resolved, or failed, when the verb starts.
+ * them, with what the item is the tool for; anything else is resolved, or failed, when it starts.
  */
 export async function planInteract(
   state: WorldState,

@@ -1,4 +1,4 @@
-import {
+﻿import {
   compareEntityAge,
   describeCount,
   findDefinition,
@@ -10,9 +10,16 @@ import {
 } from "@village/shared";
 import { describeEntityName } from "../items/entity-store";
 import type { ThingRef } from "../items/things";
-import { buildEntityView, listVerbsForEntity, normalizeVerbName } from "../items/verb-offers";
+import { buildEntityView, listVerbsForEntity } from "../items/verb-offers";
 import { describeAttempt, describeHolderName } from "./action-phrases";
 import type { InteractRequest } from "./agent-runtime";
+import { listToolUses, type ToolUse } from "./tool-uses";
+import {
+  listVerbsNamed,
+  pickVerb,
+  repairInteractRequest,
+  type NamedVerb,
+} from "./interact-request-repair";
 import { listItemCandidates, type ItemCandidate } from "./verb-candidates";
 import type { VerbStart } from "./verb-runner";
 import { viewThingFrom } from "./thing-where";
@@ -25,11 +32,20 @@ export interface ReadyInteract {
   verb: Verb;
 }
 
+/** One answer to the follow-up: a verb of the item, or a verb the item is the tool for. */
+export interface VerbChoice {
+  /** What the agent picks: the verb's name, or a tool use's phrase ("chop down the tree"). */
+  label: string;
+  verbName: string;
+  /** For a tool use, the thing that becomes the item; the tool is found when the verb runs. */
+  itemName?: string;
+}
+
 /** A second question that gives the agent another try in the same tick: which of these verbs. */
 export interface VerbFollowUp {
-  /** The item the verbs are done with. */
+  /** The item the agent named. */
   item: Entity;
-  verbNames: string[];
+  choices: VerbChoice[];
   /** The target the verbs were narrowed to, when the one asked for couldn't aim at it. */
   targetName?: string;
 }
@@ -44,40 +60,23 @@ export interface FailedInteract {
 
 export type InteractResolution = ReadyInteract | FailedInteract;
 
-interface NamedVerb {
-  verb: Verb;
-  index: number;
-}
-
 function fail(attempt: string, reason: string, followUp?: VerbFollowUp): FailedInteract {
   return { kind: "failed", attempt, reason, ...(followUp ? { followUp } : {}) };
 }
 
-function listUniqueVerbNames(verbs: readonly Verb[]): string[] {
-  return [...new Set(verbs.map((verb) => verb.name))];
+function listVerbChoices(verbs: readonly Verb[]): VerbChoice[] {
+  return [...new Set(verbs.map((verb) => verb.name))].map((name) => ({
+    label: name,
+    verbName: name,
+  }));
 }
 
-function listVerbsNamed(state: WorldState, verbName: string): NamedVerb[] {
-  const wanted = normalizeVerbName(verbName);
-  return state.items.verbs
-    .map((verb, index) => ({ verb, index }))
-    .filter(({ verb }) => normalizeVerbName(verb.name) === wanted);
-}
-
-/** The first verb in file order that applies to some candidate, with the first such candidate. */
-function pickVerb(
-  state: WorldState,
-  agentId: string,
-  named: readonly NamedVerb[],
-  candidates: readonly ItemCandidate[],
-): { entry: NamedVerb; candidate: ItemCandidate } | null {
-  for (const entry of named) {
-    const candidate = candidates.find(({ entity }) =>
-      matchesAppliesTo(entry.verb, buildEntityView(state, agentId, entity)),
-    );
-    if (candidate) return { entry, candidate };
-  }
-  return null;
+function listToolUseChoices(state: WorldState, uses: readonly ToolUse[]): VerbChoice[] {
+  return uses.map((use) => ({
+    label: use.phrase,
+    verbName: use.verb.name,
+    itemName: describeEntityName(state, use.thing),
+  }));
 }
 
 function isInSamePlace(first: Entity, second: Entity): boolean {
@@ -143,11 +142,17 @@ function describeNotOffered(
   const name = describeEntityName(state, first);
   const isHeld = buildEntityView(state, agentId, first).where === "held";
   const reason = isHeld ? `I can't '${verbName}' ${name}` : `The ${name} doesn't do '${verbName}'`;
-  const verbNames = listUniqueVerbNames(listVerbsForEntity(state, agentId, first));
-  return fail(`use the ${name}`, reason, { item: first, verbNames });
+  const choices = [
+    ...listVerbChoices(listVerbsForEntity(state, agentId, first)),
+    ...listToolUseChoices(state, listToolUses(state, agentId, first)),
+  ];
+  return fail(`use the ${name}`, reason, { item: first, choices });
 }
 
-/** The item's other verbs that can aim at the target the asked-for verb refused, if any. */
+/**
+ * The item's other verbs that can aim at the target the asked-for verb refused, and the verbs the
+ * item is the tool for that are done on that target, if any.
+ */
 function buildTargetFollowUp(
   state: WorldState,
   agentId: string,
@@ -160,9 +165,13 @@ function buildTargetFollowUp(
   const fitting = listVerbsForEntity(state, agentId, item).filter(
     (verb) => verb.target !== undefined && matchesThing(verb.target, targetView),
   );
-  if (fitting.length === 0) return undefined;
+  const toolUses = listToolUses(state, agentId, item).filter(
+    (use) => target.kind === "entity" && use.thing.id === target.entityId,
+  );
+  const choices = [...listVerbChoices(fitting), ...listToolUseChoices(state, toolUses)];
+  if (choices.length === 0) return undefined;
   const targetName = describeTargetName(state, agentId, target);
-  return { item, verbNames: listUniqueVerbNames(fitting), targetName };
+  return { item, choices, targetName };
 }
 
 /** The attempt phrase with the names the reply used, before its target is settled. */
@@ -200,30 +209,6 @@ function buildChoice(request: InteractRequest): VerbStart["choice"] {
 
 function findBareHandedVerb(named: readonly NamedVerb[]): NamedVerb | undefined {
   return named.find(({ verb }) => isBareHanded(verb));
-}
-
-function namesThingHere(state: WorldState, agentId: string, name: string): boolean {
-  const listed = listItemCandidates(state, agentId, name);
-  return listed.kind === "found" && listed.candidates.length > 0;
-}
-
-/**
- * A reply that names only a target, for verbs that take an item and are never aimed ("read" with
- * target "notice board"), means that thing as the item: the reply put it in the wrong field. Only
- * when the name is a thing here or carried, so "play cards" with "Beckett" still fails honestly.
- */
-function moveLoneTargetToItem(
-  state: WorldState,
-  agentId: string,
-  request: InteractRequest,
-): InteractRequest {
-  const { targetName, ...rest } = request;
-  if (request.itemName !== undefined || targetName === undefined) return request;
-  const named = listVerbsNamed(state, request.verb);
-  const isUnaimedWithItem =
-    named.length > 0 && named.every(({ verb }) => verb.target === undefined && !isBareHanded(verb));
-  if (!isUnaimedWithItem || !namesThingHere(state, agentId, targetName)) return request;
-  return { ...rest, itemName: targetName };
 }
 
 interface ItemChoice {
@@ -272,7 +257,7 @@ export function resolveInteract(
   agentId: string,
   reply: InteractRequest,
 ): InteractResolution {
-  const request = moveLoneTargetToItem(state, agentId, reply);
+  const request = repairInteractRequest(state, agentId, reply);
   const choice = chooseVerbAndItem(state, agentId, request);
   if ("kind" in choice) return choice;
   const { entry, candidate } = choice;

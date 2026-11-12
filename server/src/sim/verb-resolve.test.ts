@@ -266,8 +266,9 @@ describe("resolving the target", () => {
       targetName: "tavern chest",
     });
     expect(followUp?.item.id).toBe(bandage.id);
-    expect(followUp?.verbNames).toContain("put");
-    expect(followUp?.verbNames).not.toContain("use");
+    const labels = followUp?.choices.map((choice) => choice.label);
+    expect(labels).toContain("put");
+    expect(labels).not.toContain("use");
     expect(followUp?.targetName).toBe("the tavern chest");
   });
 

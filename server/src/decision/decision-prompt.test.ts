@@ -32,11 +32,13 @@ function buildContext(overrides: Partial<DecisionContext> = {}): DecisionContext
     intention: "going to buy wheat from Tom, offering 2 coins",
     simTime: "Day 1, 06:30",
     place: "bakery",
-    nearbyEntities: [{ text: "oven", details: [], verbs: ["bake bread"], contents: [] }],
+    nearbyEntities: [
+      { text: "oven", details: [], verbs: ["bake bread"], toolUses: [], contents: [] },
+    ],
     aroundYou: { entries: [], normalHearerIds: [], whisperHearerIds: [] },
     belongings: [
-      { text: "30 coins", details: [], verbs: [], contents: [] },
-      { text: "2 bread", details: [], verbs: ["eat"], contents: [] },
+      { text: "30 coins", details: [], verbs: [], toolUses: [], contents: [] },
+      { text: "2 bread", details: [], verbs: ["eat"], toolUses: [], contents: [] },
     ],
     itemlessVerbs: [],
     workingMemory: ["I baked bread at the oven."],
@@ -129,8 +131,14 @@ describe("buildDecisionPrompt", () => {
     const prompt = buildDecisionPrompt(
       buildContext({
         nearbyEntities: [
-          { text: "wheat field", details: ["empty"], verbs: ["harvest wheat"], contents: [] },
-          { text: "bench", details: [], verbs: ["sit"], contents: [] },
+          {
+            text: "wheat field",
+            details: ["empty"],
+            verbs: ["harvest wheat"],
+            toolUses: [],
+            contents: [],
+          },
+          { text: "bench", details: [], verbs: ["sit"], toolUses: [], contents: [] },
         ],
       }),
     );

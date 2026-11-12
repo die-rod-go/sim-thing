@@ -29,6 +29,8 @@ export interface PromptEntityGroup {
   details: string[];
   /** The verbs it offers this agent, each once. */
   verbs: string[];
+  /** For a carried tool, what it lets the agent do to things here: "chop down the tree". */
+  toolUses: string[];
   /** What the agent can see inside it. */
   contents: PromptEntityGroup[];
 }

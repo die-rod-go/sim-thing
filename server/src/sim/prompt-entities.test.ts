@@ -51,9 +51,21 @@ describe("entities in prompts", () => {
   it("groups identical stateless entities and lists their verbs inline", () => {
     const sim = buildSim();
     expect(buildBelongings(sim.state, sim.agent("mara"))).toEqual([
-      { text: "30 coins", details: [], verbs: ["drop", "throw", "put"], contents: [] },
-      { text: "3 bread", details: [], verbs: ["eat", "drop", "throw", "put"], contents: [] },
-      { text: "1 wood", details: [], verbs: ["drop", "throw", "put"], contents: [] },
+      {
+        text: "30 coins",
+        details: [],
+        verbs: ["drop", "throw", "put"],
+        toolUses: [],
+        contents: [],
+      },
+      {
+        text: "3 bread",
+        details: [],
+        verbs: ["eat", "drop", "throw", "put"],
+        toolUses: [],
+        contents: [],
+      },
+      { text: "1 wood", details: [], verbs: ["drop", "throw", "put"], toolUses: [], contents: [] },
     ]);
   });
 
@@ -65,8 +77,8 @@ describe("entities in prompts", () => {
     expect(
       groupEntitiesForPrompt(sim.state, "mara", [door, findEntity(sim.state, field.id)]),
     ).toEqual([
-      { text: "bakery door", details: [], verbs: ["close"], contents: [] },
-      { text: "wheat field", details: ["2 left"], verbs: ["harvest"], contents: [] },
+      { text: "bakery door", details: [], verbs: ["close"], toolUses: [], contents: [] },
+      { text: "wheat field", details: ["2 left"], verbs: ["harvest"], toolUses: [], contents: [] },
     ]);
   });
 

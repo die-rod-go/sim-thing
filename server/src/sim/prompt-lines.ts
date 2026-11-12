@@ -11,6 +11,7 @@ import { getDefinition } from "../items/entity-store";
 import type { ThingRef } from "../items/things";
 import { isLyingWhenOnTile } from "../items/world-physics";
 import { listVerbsForEntity } from "../items/verb-offers";
+import { listToolUses } from "./tool-uses";
 import { listBodyWords } from "../status/conditions";
 import { describeItemCounts } from "./action-phrases";
 import { listVisibleContents } from "./reachable-contents";
@@ -47,8 +48,13 @@ interface EntityEntry {
   entity: Entity;
   details: string[];
   verbs: string[];
+  toolUses: string[];
   contents: PromptEntityGroup[];
   hasVisibleContents: boolean;
+}
+
+function isCarriedBy(entity: Entity, agentId: string): boolean {
+  return entity.location.kind === "inside" && entity.location.holderId === agentId;
 }
 
 function buildEntityEntry(state: WorldState, agentId: string, entity: Entity): EntityEntry {
@@ -67,6 +73,9 @@ function buildEntityEntry(state: WorldState, agentId: string, entity: Entity): E
       ...listHoldingWords(state, contentEntities),
     ],
     verbs: [...new Set(verbNames)],
+    toolUses: isCarriedBy(entity, agentId)
+      ? listToolUses(state, agentId, entity).map((use) => use.phrase)
+      : [],
     contents: groupEntitiesForPrompt(state, agentId, contentEntities),
     hasVisibleContents: contentEntities.length > 0,
   };
@@ -75,7 +84,7 @@ function buildEntityEntry(state: WorldState, agentId: string, entity: Entity): E
 function buildGroupKey(entry: EntityEntry): string {
   const { entity } = entry;
   if (entity.label !== null || entry.hasVisibleContents) return `entity:${entity.id}`;
-  return `definition:${entity.definitionId}:${entry.details.join("|")}:${entry.verbs.join("|")}`;
+  return `definition:${entity.definitionId}:${entry.details.join("|")}:${entry.verbs.join("|")}:${entry.toolUses.join("|")}`;
 }
 
 /**
@@ -99,7 +108,8 @@ export function groupEntitiesForPrompt(
     if (!first) return [];
     const text =
       first.entity.label ?? describeCount(getDefinition(state, first.entity), members.length);
-    return [{ text, details: first.details, verbs: first.verbs, contents: first.contents }];
+    const { details, verbs, toolUses, contents } = first;
+    return [{ text, details, verbs, toolUses, contents }];
   });
 }
 
@@ -117,6 +127,7 @@ export function describeBodyForPrompt(
       ...listHoldingWords(state, contentEntities),
     ],
     verbs: [],
+    toolUses: [],
     contents: groupEntitiesForPrompt(state, agentId, contentEntities),
   };
 }
