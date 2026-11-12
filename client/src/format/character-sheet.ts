@@ -1,7 +1,7 @@
 import {
   describeCount,
   isDirectlyInside,
-  formatSimTime,
+  formatTimeOfDay,
   toSimTime,
   type AgentDeath,
   type CurrentAction,
@@ -31,11 +31,10 @@ export function describeHealth(value: number): NeedLevel {
   };
 }
 
-/** "Died day 3, 14:20: stabbed by Tobias" */
+/** "Died day 3, 2:20 pm: stabbed by Tobias" */
 export function describeDeath(death: AgentDeath, timeSettings: SimTimeSettings): string {
   const time = toSimTime(death.tick, timeSettings);
-  const clock = `${String(time.hour).padStart(2, "0")}:${String(time.minute).padStart(2, "0")}`;
-  return `Died day ${time.day}, ${clock}: ${death.cause}`;
+  return `Died day ${time.day}, ${formatTimeOfDay(time)}: ${death.cause}`;
 }
 
 export function describeNeed(needName: NeedName, value: number): NeedLevel {
@@ -101,10 +100,9 @@ export function describeActivity(
   }
 }
 
-/** "08:05", without the day; for timestamps inside a list already grouped by day. */
+/** "8:05 am", without the day; for timestamps inside a list already grouped by day. */
 export function formatClockTime(tick: number, timeSettings: SimTimeSettings): string {
-  const full = formatSimTime(tick, timeSettings);
-  return full.slice(full.indexOf(", ") + 2);
+  return formatTimeOfDay(toSimTime(tick, timeSettings));
 }
 
 /** "30 coins", "2 bread", "a knife": what the agent carries, counted by definition. */

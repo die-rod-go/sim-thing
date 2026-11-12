@@ -1,4 +1,10 @@
-import { toSimTime, type Agent, type Entity, type Position } from "@village/shared";
+import {
+  formatTimeOfDay,
+  toSimTime,
+  type Agent,
+  type Entity,
+  type Position,
+} from "@village/shared";
 import { config } from "../config";
 import type { NamedCandidate } from "../decision/resolve-name";
 import { isAsleep } from "../economy/sleep";
@@ -145,11 +151,10 @@ export function listKnownNames(state: WorldState): string[] {
 }
 
 function formatClock(tick: number): string {
-  const time = toSimTime(tick, config.clock);
-  return `${String(time.hour).padStart(2, "0")}:${String(time.minute).padStart(2, "0")}`;
+  return formatTimeOfDay(toSimTime(tick, config.clock));
 }
 
-/** A raw working-memory entry, stamped with the sim clock: "[06:32] I saw that ...". */
+/** A raw working-memory entry, stamped with the sim clock: "[6:32 am] I saw that ...". */
 export function formatWorkingMemoryEntry(tick: number, text: string): string {
   return `[${formatClock(tick)}] ${text}`;
 }

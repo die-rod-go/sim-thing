@@ -50,7 +50,7 @@ describe("eventFeed", () => {
   it("groups consecutive events by sim day and hour", () => {
     const late = makeSampleEvent(5, ada, 61);
     const groups = groupEventsByHour([...events, late], { minutesPerTick: 1, startHour: 6 });
-    expect(groups.map((group) => group.label)).toEqual(["Day 1 · 06:00", "Day 1 · 07:00"]);
+    expect(groups.map((group) => group.label)).toEqual(["Day 1 · 6:00 am", "Day 1 · 7:00 am"]);
     expect(groups[0]?.events).toHaveLength(3);
   });
 

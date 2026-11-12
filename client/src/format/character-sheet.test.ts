@@ -37,14 +37,14 @@ describe("characterSheet", () => {
         { kind: "interact", target: "oven", verb: "bake bread", endsAtTick: 30 },
         timeSettings,
       ),
-    ).toBe("bake bread at oven until 06:30");
+    ).toBe("bake bread at oven until 6:30 am");
     expect(describeActivity({ kind: "sleep", target: "bed", endsAtTick: null }, timeSettings)).toBe(
       "asleep in bed",
     );
   });
 
   it("shows the clock time without the day", () => {
-    expect(formatClockTime(65, timeSettings)).toBe("07:05");
+    expect(formatClockTime(65, timeSettings)).toBe("7:05 am");
   });
 
   it("counts what the agent carries by definition, coins included", () => {

@@ -17,7 +17,7 @@ const MINUTES_PER_HOUR = 60;
 describe("describeClockFace", () => {
   it("labels the day and time and shows the sun by day", () => {
     expect(describeClockFace(0, TIME_SETTINGS, DAYLIGHT)).toEqual({
-      label: "Day 1 · 06:00",
+      label: "Day 1 · 6:00 am",
       isDaytime: true,
     });
   });

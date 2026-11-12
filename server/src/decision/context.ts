@@ -111,7 +111,7 @@ export interface DecisionContext {
   dailyPlan: string;
   plans: Plan[];
   intention: string;
-  /** e.g. "Day 1, 06:30" from `formatSimTime`. */
+  /** e.g. "Day 1, 6:30 am" from `formatSimTime`. */
   simTime: string;
   place: string;
   /** What is here: placed objects and ground items. */

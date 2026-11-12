@@ -1,4 +1,5 @@
 import {
+  formatTimeOfDay,
   toSimTime,
   type SimTimeSettings,
   type WorldEvent,
@@ -83,7 +84,7 @@ export function groupEventsByHour(
   const groups: EventHourGroup[] = [];
   for (const event of events) {
     const time = toSimTime(event.tick, timeSettings);
-    const label = `Day ${time.day} · ${String(time.hour).padStart(2, "0")}:00`;
+    const label = `Day ${time.day} · ${formatTimeOfDay({ hour: time.hour, minute: 0 })}`;
     const lastGroup = groups[groups.length - 1];
     if (lastGroup && lastGroup.label === label) lastGroup.events.push(event);
     else groups.push({ label, events: [event] });

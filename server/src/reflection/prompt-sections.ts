@@ -15,7 +15,7 @@ function describeTick(tick: number): string {
   return formatSimTime(tick, config.clock);
 }
 
-/** "- Day 3, 08:15 (did): I baked bread" */
+/** "- Day 3, 8:15 am (did): I baked bread" */
 export function describeTimedMemories(memories: readonly Memory[], emptyText: string): string {
   return bulletList(
     memories.map((memory) => `${describeTick(memory.tick)} (${memory.bucket}): ${memory.text}`),
@@ -23,7 +23,7 @@ export function describeTimedMemories(memories: readonly Memory[], emptyText: st
   );
 }
 
-/** "- Day 3, 02:00, Summary: ..." */
+/** "- Day 3, 2:00 am, Summary: ..." */
 export function describeReflections(memories: readonly Memory[], emptyText: string): string {
   return bulletList(
     memories.map(
