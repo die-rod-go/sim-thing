@@ -40,7 +40,22 @@ function findPhrase(verb: Verb | undefined, kind: PhraseKind): string {
   return verb?.phrases[kind] ?? config.verbs.defaultPhrases[kind];
 }
 
-function fillPhrase(phrase: string, verbName: string, names: PhraseNames): string {
+function lacksNamedRole(phrase: string, names: PhraseNames): boolean {
+  const isMissing = (placeholder: string, value: string | undefined) =>
+    phrase.includes(placeholder) && !value;
+  return isMissing(PLACEHOLDERS.target, names.target) || isMissing(PLACEHOLDERS.from, names.from);
+}
+
+/** An attempt whose roles are unknown ("take bandage from ...") reads as plain "take bandage". */
+function fillPhrase(
+  phrase: string,
+  verbName: string,
+  names: PhraseNames,
+  kind: PhraseKind,
+): string {
+  if (kind === "attempt" && lacksNamedRole(phrase, names)) {
+    return `${verbName} ${names.item}`.trim();
+  }
   return phrase
     .split(PLACEHOLDERS.item)
     .join(names.item)
@@ -56,7 +71,7 @@ function fillPhrase(phrase: string, verbName: string, names: PhraseNames): strin
 
 /** The verb's phrase of that kind with the names filled in: "hit Tobias with knife". */
 export function describeVerbPhrase(verb: Verb, kind: PhraseKind, names: PhraseNames): string {
-  return fillPhrase(findPhrase(verb, kind), verb.name, names);
+  return fillPhrase(findPhrase(verb, kind), verb.name, names, kind);
 }
 
 function describeByName(
@@ -65,7 +80,7 @@ function describeByName(
   kind: PhraseKind,
   names: PhraseNames,
 ): string {
-  return fillPhrase(findPhrase(findVerbByName(items.verbs, verbName), kind), verbName, names);
+  return fillPhrase(findPhrase(findVerbByName(items.verbs, verbName), kind), verbName, names, kind);
 }
 
 /** "baking bread at the oven" */

@@ -14,6 +14,7 @@ function buildInteractRequest(reply: DecisionReply): InteractRequest {
   return {
     verb: reply.verb ?? "",
     ...(reply.item ? { itemName: reply.item } : {}),
+    ...(reply.from ? { fromName: reply.from } : {}),
     ...(reply.target ? { targetName: reply.target } : {}),
     ...(reply.amount === undefined || reply.amount === null ? {} : { amount: reply.amount }),
     ...(reply.text ? { text: reply.text } : {}),

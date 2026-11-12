@@ -24,7 +24,8 @@ You were: {{intention}}
 
 ## Where you are
 You are at the {{place}}.
-Here: {{here}}
+Here:
+{{here}}
 Places you know: {{knownPlaces}}
 
 ## Around you
@@ -44,13 +45,14 @@ Places you know: {{knownPlaces}}
 ## What you can do
 Actions: {{actions}}
 - walk_to: go to a place you know, or to someone in sight. Needs target.
-- interact: use something here or something you carry, with one of the verbs listed beside it. For something here, set target to it; for something you carry, set item to it. Verbs done to someone or something (and those under "You can also", which need nothing carried) take a target: the person or thing, or yourself. Add verb if you know which one; add text for verbs that take words, like posting a note; add minutes for a nap.
+- interact: do something with a thing, using one of the verbs listed beside it. Set item to the thing the verb is done with: something you carry, something here, or something listed inside another thing. If it is inside something, set from to that holder (needed only when more than one holder has one). Set target to who or what the verb is aimed at: a person, a thing, or yourself. Verbs under "You can also" need no item, only a target. Add amount for how many; text for verbs that take words, like posting a note; minutes for a nap.
 - give: hand things you carry, coins included, to someone within reach. Needs target (the person), item and amount.
 - recall: search your memory. Needs query (the people, places or things you want to remember). You decide again right after.
 - wait: stay where you are for up to minutes. Anything new you notice ends the wait early.
 - continue: keep doing what you are in the middle of. Only possible when you were interrupted mid-action.
 Valid targets: {{targets}}
 Valid items: {{items}}
+Valid holders (from): {{holders}}
 
 Free extras that go along with any action:
 - say: words you speak aloud as the action starts. Only people in earshot hear them; the Around you section says who obviously would. Set volume to whisper, normal or shout (default normal). To just talk, say something and wait.
@@ -60,4 +62,4 @@ Leave out anything you don't use (null).
 
 ## Reply
 Reply with only a JSON object, fields in this order:
-thought (one or two short private sentences: what you notice and why you choose this), intention (one line: what you are trying to get done and why), say, volume, action, target, verb, text, item, amount, query, minutes, note, mood.
+thought (one or two short private sentences: what you notice and why you choose this), intention (one line: what you are trying to get done and why), say, volume, action, target, verb, text, item, from, amount, query, minutes, note, mood.

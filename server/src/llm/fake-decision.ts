@@ -4,6 +4,8 @@ import { findMealToEat, type DecisionChoices, type JsonRecord } from "./fake-cho
 
 /** The responder's own pseudo-action for an interact with a hit-roll verb. */
 const ATTACK_CHOICE = "attack";
+/** The target name meaning the acting agent itself. */
+const YOURSELF = "yourself";
 
 function pickWeighted(random: SeededRandom, weights: [string, number][]): string {
   const total = weights.reduce((sum, [, weight]) => sum + weight, 0);
@@ -20,75 +22,52 @@ function withoutVerbs(uses: Map<string, string[]>, excluded: ReadonlySet<string>
   );
 }
 
-/**
- * What a verb that moves things (`put`, `take`) moves: something carried, or something the enum
- * offers that isn't carried (inside a container or body in reach). Null for other verbs.
- */
-function pickChosenItem(
-  random: SeededRandom,
-  choices: DecisionChoices,
-  verb: string,
-): string | null {
-  const source = config.llm.fakeResponder.itemChoosingVerbs[verb];
-  if (source === undefined) return null;
-  const carried = [...choices.heldItems.keys()];
-  const options =
-    source === "carried" ? carried : choices.items.filter((name) => !carried.includes(name));
-  return options.length > 0 ? random.pick(options) : null;
-}
-
-/** Things here that show what they hold, by offering to give it up: where a carried thing can be put. */
-function listHolders(choices: DecisionChoices): string[] {
-  const { itemChoosingVerbs } = config.llm.fakeResponder;
-  const takeVerbs = Object.keys(itemChoosingVerbs).filter(
-    (verb) => itemChoosingVerbs[verb] === "inside",
-  );
-  return [...choices.objects]
-    .filter(
-      ([name, verbs]) =>
-        choices.targets.has(name) && verbs.some((verb) => takeVerbs.includes(verb)),
-    )
-    .map(([name]) => name);
+/** Where a verb used with a carried item may be aimed: something here, or the agent itself. */
+function pickAim(random: SeededRandom, choices: DecisionChoices): string | null {
+  if (random.next() >= config.llm.fakeResponder.aimChance) return null;
+  const aims = [...choices.objects.keys()].filter((name) => choices.targets.has(name));
+  if (choices.targets.has(YOURSELF)) aims.push(YOURSELF);
+  return aims.length > 0 ? random.pick(aims) : null;
 }
 
 /**
- * A thing here, named as `target`, with a verb it offers (`take` moves what is inside it); or
- * something carried, named as `item`, with a verb it offers (`put` also names the holder).
+ * A thing here or something carried, named as `item`, with a verb it offers; or something inside
+ * a holder here, named as `item` with the holder as `from`.
  */
 function buildInteractFields(
   random: SeededRandom,
   choices: DecisionChoices,
   hitRollVerbs: ReadonlySet<string>,
 ): { fields: JsonRecord; usedName: string } | null {
-  const tuning = config.llm.fakeResponder;
-  const holders = listHolders(choices);
-  const canBePut = (verb: string) =>
-    tuning.itemChoosingVerbs[verb] !== "carried" || holders.length > 0;
   const here = withoutVerbs(choices.objects, hitRollVerbs).filter(
-    ([name, verbs]) => choices.targets.has(name) && verbs.length > 0,
+    ([name, verbs]) => choices.items.includes(name) && verbs.length > 0,
   );
-  const carried = withoutVerbs(choices.heldItems, hitRollVerbs)
-    .map(([name, verbs]) => [name, verbs.filter(canBePut)] as const)
-    .filter(([, verbs]) => verbs.length > 0);
+  const carried = withoutVerbs(choices.heldItems, hitRollVerbs).filter(
+    ([, verbs]) => verbs.length > 0,
+  );
+  const fromHolders = choices.insideThings
+    .filter(
+      (thing) =>
+        thing.from !== null &&
+        choices.holders.includes(thing.from) &&
+        choices.items.includes(thing.name) &&
+        thing.verbs.length > 0,
+    )
+    .map((thing) => ({ name: thing.name, verbs: thing.verbs, from: thing.from }));
   const usable = [
-    ...here.map(([name, verbs]) => ({ field: "target", name, verbs })),
-    ...carried.map(([name, verbs]) => ({ field: "item", name, verbs })),
+    ...here.map(([name, verbs]) => ({ name, verbs, from: null, isCarried: false })),
+    ...carried.map(([name, verbs]) => ({ name, verbs, from: null, isCarried: true })),
+    ...fromHolders.map((entry) => ({ ...entry, isCarried: false })),
   ];
   if (usable.length === 0) return null;
   const chosen = random.pick(usable);
-  const verb = random.next() < tuning.omitVerbChance ? null : random.pick(chosen.verbs);
-  const source = verb === null ? undefined : tuning.itemChoosingVerbs[verb];
-  if (verb !== null && source === "carried" && chosen.field === "item") {
-    return {
-      fields: { item: chosen.name, verb, target: random.pick(holders) },
-      usedName: chosen.name,
-    };
-  }
-  const item =
-    verb === null || chosen.field !== "target" ? null : pickChosenItem(random, choices, verb);
-  const fields =
-    item === null ? { [chosen.field]: chosen.name, verb } : { target: chosen.name, verb, item };
-  return { fields, usedName: chosen.name };
+  const verb =
+    random.next() < config.llm.fakeResponder.omitVerbChance ? null : random.pick(chosen.verbs);
+  const target = verb !== null && chosen.isCarried ? pickAim(random, choices) : null;
+  return {
+    fields: { item: chosen.name, from: chosen.from, verb, target },
+    usedName: chosen.name,
+  };
 }
 
 /** A hit-roll verb aimed at someone in sight: with something carried, or bare-handed. */
@@ -126,6 +105,7 @@ export function buildDecisionReply(
     verb: null,
     text: null,
     item: null,
+    from: null,
     amount: null,
     query: null,
     minutes: null,

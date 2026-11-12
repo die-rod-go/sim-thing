@@ -21,6 +21,7 @@ import {
   listVisibleCarried,
   listNearbyEntityNames,
   listNearbyThingNames,
+  listValidHolders,
   listValidItems,
 } from "./prompt-entities";
 import {
@@ -180,5 +181,6 @@ export function buildDecisionContext(
     lastFailure: runtime.lastFailure,
     validTargets: buildValidTargets(state, agent),
     validItems: listValidItems(state, agent),
+    validHolders: listValidHolders(state, agent),
   };
 }

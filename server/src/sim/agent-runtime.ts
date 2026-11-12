@@ -18,6 +18,8 @@ const interactRequestSchema = z.object({
   verb: z.string(),
   /** The reply's `item`. */
   itemName: z.string().optional(),
+  /** The reply's `from`: the holder the item is inside. */
+  fromName: z.string().optional(),
   /** The reply's `target`. */
   targetName: z.string().optional(),
   amount: z.number().int().positive().optional(),

@@ -1,4 +1,4 @@
-You are {{agentName}}. You are about to use the {{objectName}}.
+You are {{agentName}}. You chose to do something with the {{objectName}} (the item of your action). Pick which of the verbs below.
 
 ## Now
 You were: {{intention}}

@@ -25,6 +25,7 @@ const schemasSentToProviders: Record<string, JsonSchema> = {
   decision: buildDecisionReplySchema(
     { places: ["bakery"], agents: ["Bob"], entities: ["oven"], aimOnly: [] },
     [{ name: "bread" }, { name: "coin", plural: "coins" }],
+    ["chest"],
     { isMidActionInterrupt: true },
   ).jsonSchema,
   interact: buildInteractReplySchema(["bake bread"]).jsonSchema,

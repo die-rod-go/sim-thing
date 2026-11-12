@@ -12,16 +12,9 @@ import type { ThingRef } from "../items/things";
 import { buildEntityView, listVerbsForEntity, normalizeVerbName } from "../items/verb-offers";
 import { describeAttempt, describeHolderName } from "./action-phrases";
 import type { InteractRequest } from "./agent-runtime";
-import { resolveName } from "../decision/resolve-name";
-import {
-  findHiddenHolder,
-  isEntityNamed,
-  listItemCandidates,
-  type ItemCandidate,
-} from "./verb-candidates";
+import { listItemCandidates, type ItemCandidate } from "./verb-candidates";
 import type { VerbStart } from "./verb-runner";
-import { describeTargetName, resolveTarget } from "./verb-target";
-import { listOthersAsSeen } from "./world-access";
+import { resolveTarget } from "./verb-target";
 import type { WorldState } from "./world-state";
 
 export interface ReadyInteract {
@@ -57,17 +50,18 @@ function listVerbsNamed(state: WorldState, verbName: string): NamedVerb[] {
     .filter(({ verb }) => normalizeVerbName(verb.name) === wanted);
 }
 
-/** The first candidate some verb applies to, with the first such verb in file order. */
-function pickCandidate(
+/** The first verb in file order that applies to some candidate, with the first such candidate. */
+function pickVerb(
   state: WorldState,
   agentId: string,
   named: readonly NamedVerb[],
   candidates: readonly ItemCandidate[],
 ): { entry: NamedVerb; candidate: ItemCandidate } | null {
-  for (const candidate of candidates) {
-    const view = buildEntityView(state, agentId, candidate.entity);
-    const entry = named.find(({ verb }) => matchesAppliesTo(verb, view));
-    if (entry) return { entry, candidate };
+  for (const entry of named) {
+    const candidate = candidates.find(({ entity }) =>
+      matchesAppliesTo(entry.verb, buildEntityView(state, agentId, entity)),
+    );
+    if (candidate) return { entry, candidate };
   }
   return null;
 }
@@ -116,47 +110,23 @@ function describeItemName(state: WorldState, stack: readonly Entity[]): string {
   return describeCount(findDefinition(state.items, first.definitionId), stack.length);
 }
 
-/** The first candidate that answers to the name the reply gave for the item, else for the target. */
-function findNamedCandidate(
-  state: WorldState,
-  request: InteractRequest,
-  candidates: readonly ItemCandidate[],
-): Entity | undefined {
-  const name = request.itemName ?? request.targetName;
-  if (name === undefined) return undefined;
-  return candidates.find(({ entity }) => isEntityNamed(state, entity, name))?.entity;
-}
-
-/** Why no verb of that name could be done with what the reply named. */
+/** Why no verb of that name applies to anything the reply named for the item. */
 function describeNotOffered(
   state: WorldState,
   agentId: string,
-  request: InteractRequest,
+  verbName: string,
   candidates: readonly ItemCandidate[],
 ): FailedInteract {
-  const verbName = request.verb;
-  const named = request.itemName ?? request.targetName;
-  if (named === undefined) return fail(verbName, `I don't know how to '${verbName}'`);
-  const hiddenHolder = findHiddenHolder(state, agentId, request);
-  if (hiddenHolder !== null) {
-    const holderName = describeTargetName(state, agentId, hiddenHolder);
-    const attempt = describeAttempt(state.items, verbName, {
-      item: request.itemName ?? "",
-      from: holderName,
-    });
-    return fail(attempt, `I can't see what ${holderName} carries`);
-  }
-  const first = findNamedCandidate(state, request, candidates);
-  if (first === undefined) {
-    const isPerson = resolveName(named, listOthersAsSeen(state, agentId)) !== null;
-    if (isPerson)
-      return fail(`${verbName} ${named}`, `I have nothing to ${verbName} ${named} with`);
-    return fail(`use the ${named}`, `there is no ${named} here for me to use`);
-  }
-  const name = describeEntityName(state, first);
-  if (listVerbsForEntity(state, agentId, first).length === 0) {
+  const first = candidates.find(
+    ({ entity }) => listVerbsForEntity(state, agentId, entity).length > 0,
+  )?.entity;
+  const [firstCandidate] = candidates;
+  if (first === undefined && firstCandidate !== undefined) {
+    const name = describeEntityName(state, firstCandidate.entity);
     return fail(`use the ${name}`, "there is nothing I can do with it");
   }
+  if (first === undefined) return fail(verbName, `I don't know how to '${verbName}'`);
+  const name = describeEntityName(state, first);
   const isHeld = buildEntityView(state, agentId, first).where === "held";
   const reason = isHeld ? `I can't '${verbName}' ${name}` : `The ${name} doesn't do '${verbName}'`;
   return fail(`use the ${name}`, reason, first);
@@ -195,32 +165,65 @@ function buildChoice(request: InteractRequest): VerbStart["choice"] {
   };
 }
 
+function findBareHandedVerb(named: readonly NamedVerb[]): NamedVerb | undefined {
+  return named.find(({ verb }) => isBareHanded(verb));
+}
+
+interface ItemChoice {
+  entry: NamedVerb;
+  candidate: ItemCandidate | null;
+}
+
+/** The verb and item the reply means, or why it can't be done. */
+function chooseVerbAndItem(
+  state: WorldState,
+  agentId: string,
+  request: InteractRequest,
+): ItemChoice | FailedInteract {
+  const named = listVerbsNamed(state, request.verb);
+  if (request.itemName === undefined) {
+    const entry = findBareHandedVerb(named);
+    return entry
+      ? { entry, candidate: null }
+      : fail(request.verb, `I don't know how to '${request.verb}'`);
+  }
+  const listed = listItemCandidates(state, agentId, request.itemName, request.fromName);
+  const attempt = describeAttempt(state.items, request.verb, {
+    item: request.itemName,
+    ...(request.fromName === undefined ? {} : { from: request.fromName }),
+  });
+  if (listed.kind === "failed") return fail(attempt, listed.reason);
+  const { candidates } = listed;
+  if (candidates.length === 0) return fail(attempt, `there was no ${request.itemName} here`);
+  const picked = pickVerb(state, agentId, named, candidates);
+  if (picked) return picked;
+  const bareHanded = findBareHandedVerb(named);
+  if (bareHanded) return { entry: bareHanded, candidate: null };
+  return describeNotOffered(state, agentId, request.verb, candidates);
+}
+
 /**
  * Turns a reply's words into the things a verb works on: the verb (the first in file order that
- * applies), its item and stack, where the item came from, and its target. Nothing is changed;
- * whether they are in sight and reach is judged separately.
+ * applies to some candidate for the item), its item and stack, where the item came from, and its
+ * target. Nothing is changed; whether they are in sight and reach is judged separately.
  */
 export function resolveInteract(
   state: WorldState,
   agentId: string,
   request: InteractRequest,
 ): InteractResolution {
-  const named = listVerbsNamed(state, request.verb);
-  const candidates = listItemCandidates(state, agentId, request);
-  const picked = pickCandidate(state, agentId, named, candidates);
-  const entry = picked?.entry ?? named.find(({ verb }) => isBareHanded(verb));
-  if (entry === undefined) {
-    return describeNotOffered(state, agentId, request, candidates);
-  }
+  const choice = chooseVerbAndItem(state, agentId, request);
+  if ("kind" in choice) return choice;
+  const { entry, candidate } = choice;
   const { verb, index } = entry;
   const amount = request.amount ?? 1;
-  const items = picked ? buildStack(state, agentId, verb, picked.candidate.entity, amount) : [];
+  const items = candidate ? buildStack(state, agentId, verb, candidate.entity, amount) : [];
   const itemName = describeItemName(state, items);
-  const from = picked?.candidate.from ?? null;
+  const from = candidate?.from ?? null;
   let target: ThingRef | null = null;
   let targetName: string | null = null;
+  const itemIds = items.map((item) => item.id);
   if (verb.target !== undefined) {
-    const itemIds = items.map((item) => item.id);
     const resolved = resolveTarget(state, agentId, verb, request.targetName, itemIds);
     if (resolved.kind === "failed") {
       const attempt = describeRequestAttempt(state, verb, itemName, from, request.targetName);
@@ -229,7 +232,6 @@ export function resolveInteract(
     target = resolved.target;
     targetName = resolved.name;
   }
-  const itemIds = items.map((item) => item.id);
   const start = { verbIndex: index, itemIds, itemName, from, target, targetName };
   return { kind: "ready", verb, start: { ...start, choice: buildChoice(request) } };
 }

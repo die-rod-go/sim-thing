@@ -4,7 +4,7 @@ import { normalizeDisplayName, resolveName } from "../decision/resolve-name";
 import { describeEntityName } from "../items/entity-store";
 import type { ThingRef } from "../items/things";
 import { listHeldEntities } from "../items/entity-store";
-import { listHere, isEntityNamed } from "./verb-candidates";
+import { listHereNearestFirst, isEntityNamed } from "./verb-candidates";
 import { viewThingFrom } from "./thing-where";
 import { describeAgentAsSeen, findAgent, listOthersAsSeen } from "./world-access";
 import type { WorldState } from "./world-state";
@@ -45,7 +45,7 @@ function findNamedTarget(
   const carried = listHeldEntities(state, agentId).filter(
     (entity) => !itemIds.includes(entity.id) && isEntityNamed(state, entity, targetName),
   );
-  const [entity] = [...listHere(state, agentId, targetName), ...carried];
+  const [entity] = [...listHereNearestFirst(state, agentId, targetName), ...carried];
   return entity ? { kind: "entity", entityId: entity.id } : null;
 }
 

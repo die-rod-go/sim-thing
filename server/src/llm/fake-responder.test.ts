@@ -1,24 +1,33 @@
 import { describe, expect, it } from "vitest";
-import { buildDecisionReplySchema } from "../decision/reply-schema";
+import { config } from "../config";
+import { nullableJsonEnum, strictJsonObject } from "../decision/schema-fields";
 import { createFakeResponder } from "./fake-responder";
 
-const ATTEMPTS = 200;
+const ATTEMPTS = 300;
 
 function buildTavernRequest() {
-  const { jsonSchema } = buildDecisionReplySchema(
-    { places: ["tavern"], agents: [], entities: ["tavern chest"], aimOnly: [] },
-    [{ name: "bread" }, { name: "bandage", plural: "bandages" }],
-  );
+  const jsonSchema = strictJsonObject({
+    action: { type: "string", enum: ["interact", "wait"] },
+    target: nullableJsonEnum(["tavern chest", "Tobias", "yourself"]),
+    verb: { type: ["string", "null"] },
+    item: nullableJsonEnum(["bread", "coin", "oven", "tavern chest"]),
+    from: nullableJsonEnum(["tavern chest"]),
+  });
   const prompt = [
     "You are Mara, the baker.",
     "You are at the tavern.",
-    "Here: tavern chest (take; holding 2 bandages)",
-    "You carry: 2 bread (eat, drop, put).",
+    "Here:",
+    "- oven (bake bread)",
+    "- tavern chest, holding 2 coins, 3 bread",
+    "  - 2 coins (take)",
+    "  - 3 bread (take)",
+    "You carry:",
+    "- 2 bread (eat, drop)",
   ].join("\n");
   return { prompt, jsonSchema, schemaName: "decision_reply", maxTokens: 500 };
 }
 
-async function collectInteractReplies(): Promise<Record<string, unknown>[]> {
+async function collectReplies(): Promise<Record<string, unknown>[]> {
   const responder = createFakeResponder();
   const request = buildTavernRequest();
   const replies: Record<string, unknown>[] = [];
@@ -26,23 +35,34 @@ async function collectInteractReplies(): Promise<Record<string, unknown>[]> {
     const answer = await responder(request, attempt);
     const text = typeof answer === "string" || answer instanceof Error ? null : answer.text;
     if (typeof text !== "string") throw new Error("the fake responder should answer with text");
-    const reply: unknown = JSON.parse(text);
-    if (typeof reply === "object" && reply !== null) replies.push(reply as Record<string, unknown>);
+    replies.push(JSON.parse(text) as Record<string, unknown>);
   }
-  return replies.filter((reply) => reply.target === "tavern chest");
+  return replies;
 }
 
-describe("the fake responder with containers", () => {
-  it("takes something that is inside the chest", async () => {
-    const takes = (await collectInteractReplies()).filter((reply) => reply.verb === "take");
-    expect(takes.length).toBeGreaterThan(0);
-    expect(new Set(takes.map((reply) => reply.item))).toEqual(new Set(["bandage"]));
+describe("the fake responder", () => {
+  it("names a thing here in item, not in target", async () => {
+    const bakes = (await collectReplies()).filter((reply) => reply.verb === "bake bread");
+    expect(bakes.length).toBeGreaterThan(0);
+    expect(new Set(bakes.map((reply) => reply.item))).toEqual(new Set(["oven"]));
+    expect(bakes.every((reply) => reply.from === null)).toBe(true);
   });
 
-  it("puts something it carries into the chest", async () => {
-    const puts = (await collectInteractReplies()).filter((reply) => reply.verb === "put");
-    expect(puts.length).toBeGreaterThan(0);
-    expect(new Set(puts.map((reply) => reply.item))).toEqual(new Set(["bread"]));
-    expect(new Set(puts.map((reply) => reply.target))).toEqual(new Set(["tavern chest"]));
+  it("names a holder's content in item with the holder in from", async () => {
+    const takes = (await collectReplies()).filter((reply) => reply.verb === "take");
+    expect(takes.length).toBeGreaterThan(0);
+    expect(new Set(takes.map((reply) => reply.item))).toEqual(new Set(["coin", "bread"]));
+    expect(new Set(takes.map((reply) => reply.from))).toEqual(new Set(["tavern chest"]));
+  });
+
+  it("sometimes aims a carried item's verb at something here or itself", async () => {
+    const eats = (await collectReplies()).filter((reply) => reply.verb === "drop");
+    const aims = new Set(eats.map((reply) => reply.target));
+    expect(aims.has(null)).toBe(true);
+    expect([...aims].some((aim) => aim === "yourself" || aim === "tavern chest")).toBe(true);
+  });
+
+  it("has no per-verb item rules in config", () => {
+    expect("itemChoosingVerbs" in config.llm.fakeResponder).toBe(false);
   });
 });

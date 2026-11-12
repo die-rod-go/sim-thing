@@ -145,6 +145,7 @@ export interface DecisionReply {
   verb?: string;
   text?: string;
   item?: string;
+  from?: string;
   amount?: number;
   query?: string;
   minutes?: number;

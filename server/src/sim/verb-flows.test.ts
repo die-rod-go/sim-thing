@@ -58,7 +58,7 @@ describe("everyday verbs", () => {
     standOn(sim, "mara", "wheat field");
     const field = findEntityByLabel(sim.state, "wheat field");
     const wheatBefore = countHeld(sim.state, "mara", "wheat");
-    aim(sim, "mara", { verb: "harvest wheat", targetName: "wheat field" });
+    aim(sim, "mara", { verb: "harvest wheat", itemName: "wheat field" });
     const stock = (): unknown =>
       readField(sim.state, { kind: "entity", entityId: field.id }, "stock.amount");
     expect(stock()).toBe(9);
@@ -71,7 +71,7 @@ describe("everyday verbs", () => {
     const sim = buildCombatSim(["mara"]);
     standOn(sim, "mara", "rose cottage bed");
     const bed = findEntityByLabel(sim.state, "rose cottage bed");
-    aim(sim, "mara", { verb: "sleep", targetName: "rose cottage bed" });
+    aim(sim, "mara", { verb: "sleep", itemName: "rose cottage bed" });
     expect(sim.agent("mara").currentAction?.kind).toBe("sleep");
     expect(getAgentRuntime(sim.state, "mara").verbRun?.itemIds).toEqual([bed.id]);
     wakeAgent(contextOf(sim), "mara");
@@ -87,7 +87,7 @@ describe("everyday verbs", () => {
       place: "town square",
       pos: FOUR_TILES_AWAY,
     });
-    aim(sim, "mara", { verb: "pick up", targetName: "knife" });
+    aim(sim, "mara", { verb: "pick up", itemName: "knife" });
     expect(sim.agent("mara").currentAction?.kind).toBe("walk_to");
     for (let count = 0; count < 4; count += 1) {
       advanceWalk(contextOf(sim), "mara");
@@ -149,7 +149,7 @@ describe("choosing the item", () => {
     const chest = findEntityByLabel(sim.state, "tavern chest");
     const held = handOver(sim, "mara", "bandage");
     const inChest = createEntity(sim.state, "bandage", { kind: "inside", holderId: chest.id });
-    aim(sim, "mara", { verb: "take", itemName: "bandage", targetName: "tavern chest" });
+    aim(sim, "mara", { verb: "take", itemName: "bandage", fromName: "tavern chest" });
     expect(findEntity(sim.state, inChest.id).location).toEqual({
       kind: "inside",
       holderId: "mara",
@@ -165,7 +165,7 @@ describe("choosing the item", () => {
     const gun = handOver(sim, "mara", "gun");
     const chestBullet = createEntity(sim.state, "bullet", { kind: "inside", holderId: chest.id });
     const gunBullet = createEntity(sim.state, "bullet", { kind: "inside", holderId: gun.id });
-    aim(sim, "mara", { verb: "take", itemName: "bullet", targetName: "gun" });
+    aim(sim, "mara", { verb: "take", itemName: "bullet", fromName: "gun" });
     expect(findEntity(sim.state, gunBullet.id).location.kind).toBe("inside");
     expect(findEntity(sim.state, gunBullet.id).location).toEqual({
       kind: "inside",
@@ -182,7 +182,7 @@ describe("choosing the item", () => {
     place(sim, { mara: { x: 29, y: 17 } });
     const chest = findEntityByLabel(sim.state, "tavern chest");
     createEntity(sim.state, "bandage", { kind: "inside", holderId: chest.id });
-    aim(sim, "mara", { verb: "take", itemName: "bandages", targetName: "tavern chest", amount: 5 });
+    aim(sim, "mara", { verb: "take", itemName: "bandages", fromName: "tavern chest", amount: 5 });
     expect(countHeld(sim.state, "mara", "bandage")).toBe(1);
     expect(memoryTexts(sim, "mara")).toContain("I took bandage from the tavern chest");
   });
@@ -203,7 +203,7 @@ describe("notes on the board", () => {
 
   function postNote(sim: TestSim, text: string): void {
     standOn(sim, "mara", BOARD);
-    aim(sim, "mara", { verb: "post a note", targetName: BOARD, text });
+    aim(sim, "mara", { verb: "post a note", itemName: BOARD, text });
     finish(sim, "mara");
   }
 
@@ -213,7 +213,7 @@ describe("notes on the board", () => {
     const board = findEntityByLabel(sim.state, BOARD);
     expect(listContents(sim.state, board.id)).toHaveLength(1);
     standOn(sim, "tobias", BOARD);
-    aim(sim, "tobias", { verb: "read", targetName: BOARD });
+    aim(sim, "tobias", { verb: "read", itemName: BOARD });
     finish(sim, "tobias");
     expect(memoryTexts(sim, "tobias").some((text) => text.includes("Bread at noon"))).toBe(true);
   });
@@ -221,7 +221,7 @@ describe("notes on the board", () => {
   it("takes a note off the board", () => {
     const sim = buildCombatSim();
     postNote(sim, "Bread at noon");
-    aim(sim, "mara", { verb: "take", itemName: "note", targetName: BOARD });
+    aim(sim, "mara", { verb: "take", itemName: "note", fromName: BOARD });
     const board = findEntityByLabel(sim.state, BOARD);
     expect(listContents(sim.state, board.id)).toHaveLength(0);
     expect(countHeld(sim.state, "mara", "note")).toBe(1);
@@ -239,9 +239,9 @@ describe("notes on the board", () => {
     });
     standOn(sim, "mara", BOARD);
     sim.placeAgent("tobias", positionOf(sim, BOARD));
-    aim(sim, "mara", { verb: "post a note", targetName: BOARD, text: "Meet at the well" });
+    aim(sim, "mara", { verb: "post a note", itemName: BOARD, text: "Meet at the well" });
     finish(sim, "mara");
-    aim(sim, "mara", { verb: "take", itemName: "note", targetName: BOARD });
+    aim(sim, "mara", { verb: "take", itemName: "note", fromName: BOARD });
     await sim.advance();
     expect(countHeld(sim.state, "tobias", "note")).toBe(1);
     aim(sim, "tobias", { verb: "read", itemName: "note" });

@@ -115,6 +115,13 @@ describe("as names", () => {
     ).toBe(true);
   });
 
+  it.each(["user", "item", "target", "self", "choice", "nearby"])(
+    "refuses to parse a pick named %s",
+    (name) => {
+      expect(() => inVerb([{ ...pick, as: name }])).toThrow("That name is taken by a role.");
+    },
+  );
+
   it("rejects naming two picks the same", () => {
     expect(inVerb([pick, pick])).toContain(
       'error: verbs.2 (tinker).steps.1.as: "meal" is already used.',
@@ -249,6 +256,34 @@ describe("verb-only steps and settings in a rule", () => {
     );
   });
 
+  it("rejects a verb-only step in a rule", () => {
+    expect(inRule({ step: "wait", minutes: 1 })).toContain(
+      `${RULE_STEP}: \`wait\` only works in verbs: a rule has no verb run.`,
+    );
+  });
+
+  it("rejects in: item or in: target in a verb without them", () => {
+    const messages = messagesFor(
+      buildFile({
+        verbs: [
+          {
+            name: "tinker",
+            steps: [
+              { step: "require", in: "item", rule: { has: "food" } },
+              { step: "use_up", in: "target", rule: { has: "food" } },
+            ],
+          },
+        ],
+      }),
+    );
+    expect(messages).toContain(
+      "error: verbs.2 (tinker).steps.0.in: `item` needs the verb to have `appliesTo`.",
+    );
+    expect(messages).toContain(
+      "error: verbs.2 (tinker).steps.1.in: `target` needs the verb to have a `target`.",
+    );
+  });
+
   it("rejects scaledByStrength and evenOnMiss in a rule", () => {
     expect(
       inRule({ step: "damage", field: "lamp.glow", amount: 1, scaledByStrength: true }),
@@ -267,6 +302,12 @@ describe("the order of steps in a verb", () => {
     const message = `${VERB_STEP}: \`evenOnMiss\` needs a \`roll_hit\` above it.`;
     expect(inVerb([{ step: "destroy", on: "item", evenOnMiss: true }])).toContain(message);
     expect(inVerb([{ step: "destroy", on: "item", evenOnMiss: true }, roll])).toContain(message);
+  });
+
+  it("rejects evenOnMiss on a move to the target with no roll_hit above it", () => {
+    expect(inVerb([{ step: "move", on: "item", at: "target", evenOnMiss: true }])).toContain(
+      `${VERB_STEP}: \`evenOnMiss\` needs a \`roll_hit\` above it.`,
+    );
   });
 
   it("accepts evenOnMiss below a roll_hit", () => {

@@ -1,15 +1,8 @@
 import type { Agent, Entity } from "@village/shared";
-import { config } from "../config";
 import { computeChebyshevDistance } from "../economy/give";
-import {
-  findEntityIfPresent,
-  isHeldBy,
-  listContents,
-  listHeldEntities,
-  listTileEntitiesAt,
-} from "../items/entity-store";
-import { locateThing, readThingId, refThingById, type ThingRef } from "../items/things";
-import { hidesContents } from "../items/world-physics";
+import { listContents, listHeldEntities, listTileEntitiesAt } from "../items/entity-store";
+import { locateThing, readThingId, type ThingRef } from "../items/things";
+import { canSeeInto } from "../items/world-physics";
 import { isDead } from "../status/health";
 import { getAgentRuntime } from "./agent-runtime";
 import { findAgent } from "./world-access";
@@ -19,33 +12,6 @@ import type { WorldState } from "./world-state";
 export interface SeenInside {
   entity: Entity;
   holder: ThingRef;
-}
-
-function isWithinContentsReach(state: WorldState, agentId: string, thing: ThingRef): boolean {
-  const position = locateThing(state, thing);
-  if (position === null) return false;
-  const distance = computeChebyshevDistance(findAgent(state, agentId).pos, position.pos);
-  return distance <= config.perception.contentsReachTiles;
-}
-
-/**
- * Whether the agent sees what is directly inside the thing: it is the agent's own body, or the
- * agent holds it or stands close to it, and the world's `contentsHiddenBy` doesn't match it. Every
- * holder on the way down must pass the same test.
- */
-export function canSeeInto(state: WorldState, agentId: string, thing: ThingRef): boolean {
-  if (thing.kind === "agent" && thing.agentId === agentId) return true;
-  if (hidesContents(state, thing)) return false;
-  if (thing.kind === "entity") {
-    const entity = findEntityIfPresent(state, thing.entityId);
-    if (!entity) return false;
-    if (isHeldBy(entity, agentId)) return true;
-    if (entity.location.kind === "inside") {
-      const outer = refThingById(entity.location.holderId);
-      if (!canSeeInto(state, agentId, outer)) return false;
-    }
-  }
-  return isWithinContentsReach(state, agentId, thing);
 }
 
 /** What is directly inside the thing, when the agent can see in; empty otherwise. */

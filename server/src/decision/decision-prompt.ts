@@ -58,6 +58,7 @@ function buildTemplateValues(context: DecisionContext, memories: RecalledMemorie
     actions: listOfferedActions(context.isMidActionInterrupt).join(", "),
     targets: listTargetNames(context.validTargets).join(", "),
     items: context.validItems.map((item) => item.name).join(", ") || "none",
+    holders: context.validHolders.join(", ") || "none",
   };
 }
 

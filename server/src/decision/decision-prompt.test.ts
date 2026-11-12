@@ -32,11 +32,11 @@ function buildContext(overrides: Partial<DecisionContext> = {}): DecisionContext
     intention: "going to buy wheat from Tom, offering 2 coins",
     simTime: "Day 1, 06:30",
     place: "bakery",
-    nearbyEntities: [{ text: "oven", verbs: ["bake bread"], condition: null }],
+    nearbyEntities: [{ text: "oven", details: [], verbs: ["bake bread"], contents: [] }],
     aroundYou: { entries: [], normalHearerIds: [], whisperHearerIds: [] },
     belongings: [
-      { text: "30 coins", verbs: [], condition: null },
-      { text: "2 bread", verbs: ["eat"], condition: null },
+      { text: "30 coins", details: [], verbs: [], contents: [] },
+      { text: "2 bread", details: [], verbs: ["eat"], contents: [] },
     ],
     itemlessVerbs: [],
     workingMemory: ["I baked bread at the oven."],
@@ -48,6 +48,7 @@ function buildContext(overrides: Partial<DecisionContext> = {}): DecisionContext
     lastFailure: null,
     validTargets: { places: ["bakery", "farm"], agents: ["Tom"], entities: ["oven"], aimOnly: [] },
     validItems: [{ name: "coin", plural: "coins" }, { name: "bread" }],
+    validHolders: [],
     ...overrides,
   };
 }
@@ -123,27 +124,27 @@ describe("buildDecisionPrompt", () => {
     expect(prompt).toContain("You were: going to buy wheat from Tom, offering 2 coins");
   });
 
-  it("shows what can be seen of each nearby object after its verbs", () => {
+  it("shows what can be seen of each nearby object before its verbs", () => {
     const prompt = buildDecisionPrompt(
       buildContext({
         nearbyEntities: [
-          { text: "wheat field", verbs: ["harvest wheat"], condition: "empty" },
-          { text: "bench", verbs: ["sit"], condition: null },
+          { text: "wheat field", details: ["empty"], verbs: ["harvest wheat"], contents: [] },
+          { text: "bench", details: [], verbs: ["sit"], contents: [] },
         ],
       }),
     );
-    expect(prompt).toContain("Here: wheat field (harvest wheat; empty), bench (sit)");
+    expect(prompt).toContain("Here:\n- wheat field, empty (harvest wheat)\n- bench (sit)");
   });
 
   it("lists belongings with their verbs inline, coins included", () => {
     const prompt = buildDecisionPrompt(buildContext());
-    expect(prompt).toContain("You carry: 30 coins, 2 bread (eat).");
+    expect(prompt).toContain("You carry:\n- 30 coins\n- 2 bread (eat)");
     expect(prompt).not.toContain("You can also:");
   });
 
   it("lists verbs that need no item after belongings", () => {
     const prompt = buildDecisionPrompt(buildContext({ itemlessVerbs: ["punch"] }));
-    expect(prompt).toContain("You carry: 30 coins, 2 bread (eat).\nYou can also: punch.");
+    expect(prompt).toContain("You carry:\n- 30 coins\n- 2 bread (eat)\nYou can also: punch.");
   });
 
   it("offers continue only when interrupted mid-action", () => {

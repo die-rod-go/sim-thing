@@ -1,6 +1,8 @@
 import { matchesThing, resolveEntityComponents, type Entity, type Matcher } from "@village/shared";
-import type { EntityWorld } from "./entity-store";
-import { viewThing, type ThingRef } from "./things";
+import { config } from "../config";
+import { computeChebyshevDistance } from "../economy/give";
+import { findEntityIfPresent, isHeldBy, type EntityWorld } from "./entity-store";
+import { locateThing, refThingById, viewThing, type ThingRef } from "./things";
 
 /*
  * What the world settings in `items.json` make of an entity: whether it stops sight, walking or
@@ -47,8 +49,36 @@ export function isLyingWhenOnTile(world: EntityWorld, entity: Entity): boolean {
 }
 
 /** Whether nobody but its own agent sees what is inside the thing (a living person's pockets). */
-export function hidesContents(world: EntityWorld, thing: ThingRef): boolean {
+function hidesContents(world: EntityWorld, thing: ThingRef): boolean {
   const matcher = world.items.world.contentsHiddenBy;
   const view = viewThing(world, thing);
   return matcher !== undefined && view !== null && matchesThing(matcher, view);
+}
+
+function isWithinContentsReach(world: EntityWorld, agentId: string, thing: ThingRef): boolean {
+  const agentPosition = locateThing(world, { kind: "agent", agentId });
+  const position = locateThing(world, thing);
+  if (agentPosition === null || position === null) return false;
+  if (position.place !== agentPosition.place) return false;
+  const distance = computeChebyshevDistance(agentPosition.pos, position.pos);
+  return distance <= config.perception.contentsReachTiles;
+}
+
+/**
+ * Whether the agent sees what is directly inside the thing: it is the agent's own body, or the
+ * agent holds it or stands close to it, and the world's `contentsHiddenBy` doesn't match it. Every
+ * holder on the way down must pass the same test.
+ */
+export function canSeeInto(world: EntityWorld, agentId: string, thing: ThingRef): boolean {
+  if (thing.kind === "agent" && thing.agentId === agentId) return true;
+  if (hidesContents(world, thing)) return false;
+  if (thing.kind === "entity") {
+    const entity = findEntityIfPresent(world, thing.entityId);
+    if (!entity) return false;
+    if (isHeldBy(entity, agentId)) return true;
+    const { location } = entity;
+    const holder = location.kind === "inside" ? refThingById(location.holderId) : null;
+    if (holder !== null && !canSeeInto(world, agentId, holder)) return false;
+  }
+  return isWithinContentsReach(world, agentId, thing);
 }

@@ -6,7 +6,7 @@ import {
   type FieldValue,
   type Position,
 } from "@village/shared";
-import { createEntity, describeEntityName, isHeldBy, locateInside } from "../items/entity-store";
+import { createEntity, describeEntityName, locateInside } from "../items/entity-store";
 import { writeField } from "../items/thing-writes";
 import { readField, type ThingRef } from "../items/things";
 import { withAgentHealth } from "../status/health";
@@ -59,10 +59,7 @@ export function aim(sim: TestSim, agentId: string, request: InteractRequest): Ti
   return context;
 }
 
-/**
- * Applies an interact with the entity as the reply would name it: a carried one as the `item`, a
- * placed one as the `target`.
- */
+/** Applies an interact with the entity named as the reply's `item`, carried or placed. */
 export function aimWith(
   sim: TestSim,
   agentId: string,
@@ -71,11 +68,11 @@ export function aimWith(
   targetName?: string,
 ): TickContext {
   const name = describeEntityName(sim.state, entity);
-  const isCarried = isHeldBy(entity, agentId);
-  const request: InteractRequest = isCarried
-    ? { verb, itemName: name, ...(targetName === undefined ? {} : { targetName }) }
-    : { verb, targetName: name };
-  return aim(sim, agentId, request);
+  return aim(sim, agentId, {
+    verb,
+    itemName: name,
+    ...(targetName === undefined ? {} : { targetName }),
+  });
 }
 
 export function finish(sim: TestSim, agentId: string): TickContext {

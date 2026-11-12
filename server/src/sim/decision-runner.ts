@@ -61,9 +61,12 @@ async function askForDecision(
     agentOverride,
   );
   const prompt = buildDecisionPrompt(context, dependencies.promptsDirectory);
-  const schemas = buildDecisionReplySchema(context.validTargets, context.validItems, {
-    isMidActionInterrupt: request.isMidActionInterrupt,
-  });
+  const schemas = buildDecisionReplySchema(
+    context.validTargets,
+    context.validItems,
+    context.validHolders,
+    { isMidActionInterrupt: request.isMidActionInterrupt },
+  );
   const reply = await dependencies.callStructured({
     kind: "decision",
     agentId: request.agentId,

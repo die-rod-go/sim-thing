@@ -70,7 +70,7 @@ describe("dropping and picking up", () => {
       kind: "inside",
       holderId: "mara",
     });
-    expect(lastFailure(sim, "tobias")).toContain("there is no knife here");
+    expect(lastFailure(sim, "tobias")).toContain("there was no knife here");
   });
 });
 

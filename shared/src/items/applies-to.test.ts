@@ -61,13 +61,11 @@ describe("where things can be met", () => {
     expect(isLyingWhenOnTile(file, "oven", oven)).toBe(false);
   });
 
-  it("lists every definition but the body in each place, and a dead body here", () => {
+  it("lists every definition but the body in each place", () => {
     const described = listAllVerbViews(file).map(describeThingView);
     expect(described).toContain("knife (held)");
     expect(described).toContain("chest (here)");
-    expect(described).toContain("person (here)");
-    expect(described).not.toContain("person (held)");
-    expect(described.filter((entry) => entry.startsWith("person"))).toHaveLength(1);
+    expect(described.filter((entry) => entry.startsWith("person"))).toEqual([]);
   });
 });
 

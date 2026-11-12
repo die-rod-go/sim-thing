@@ -1,19 +1,17 @@
-import { findDefinitionByName, type Entity } from "@village/shared";
+import { compareEntityAge, findDefinitionByName, type Entity } from "@village/shared";
+import { computeChebyshevDistance } from "../economy/give";
 import { normalizeDisplayName, resolveName } from "../decision/resolve-name";
 import {
   describeEntityName,
+  listContents,
   listHeldEntities,
   listTileEntitiesAt,
   type EntityWorld,
 } from "../items/entity-store";
-import type { ThingRef } from "../items/things";
-import type { InteractRequest } from "./agent-runtime";
-import {
-  canSeeInto,
-  listAllSeenInside,
-  listSeenInside,
-  type SeenInside,
-} from "./reachable-contents";
+import { readThingId, type ThingRef } from "../items/things";
+import { canSeeInto } from "../items/world-physics";
+import { listAllSeenInside } from "./reachable-contents";
+import { describeTargetName } from "./verb-target";
 import { findAgent, listOthersAsSeen } from "./world-access";
 import type { WorldState } from "./world-state";
 
@@ -22,6 +20,9 @@ export interface ItemCandidate {
   entity: Entity;
   from: ThingRef | null;
 }
+
+export type ItemCandidates =
+  { kind: "found"; candidates: ItemCandidate[] } | { kind: "failed"; reason: string };
 
 /** Whether the entity answers to the name: its label or name, or (unlabelled) its definition's. */
 export function isEntityNamed(world: EntityWorld, entity: Entity, name: string): boolean {
@@ -32,76 +33,85 @@ export function isEntityNamed(world: EntityWorld, entity: Entity, name: string):
 }
 
 function listHeld(state: WorldState, agentId: string, name: string | undefined): Entity[] {
-  return listHeldEntities(state, agentId).filter(
-    (entity) => name === undefined || isEntityNamed(state, entity, name),
-  );
+  return listHeldEntities(state, agentId)
+    .filter((entity) => name === undefined || isEntityNamed(state, entity, name))
+    .sort(compareEntityAge);
 }
 
-/** Entities at the agent's place that answer to the name, or all of them without one. */
-export function listHere(state: WorldState, agentId: string, name?: string): Entity[] {
-  const { place } = findAgent(state, agentId);
-  return listTileEntitiesAt(state, place).filter(
-    (entity) => name === undefined || isEntityNamed(state, entity, name),
-  );
+/** Entities at the agent's place that answer to the name (or all of them), nearest first. */
+export function listHereNearestFirst(state: WorldState, agentId: string, name?: string): Entity[] {
+  const { place, pos } = findAgent(state, agentId);
+  return listTileEntitiesAt(state, place)
+    .filter((entity) => name === undefined || isEntityNamed(state, entity, name))
+    .map((entity) => ({
+      entity,
+      distance:
+        entity.location.kind === "tile"
+          ? computeChebyshevDistance(pos, entity.location.pos)
+          : Number.POSITIVE_INFINITY,
+    }))
+    .sort(
+      (first, second) =>
+        first.distance - second.distance || compareEntityAge(first.entity, second.entity),
+    )
+    .map(({ entity }) => entity);
 }
 
-/** The holder the reply's `target` names: a body in sight, a thing here, or a thing carried. */
-export function findNamedHolder(state: WorldState, agentId: string, name: string): ThingRef | null {
-  const holderAgentId = resolveName(name, listOthersAsSeen(state, agentId));
+function findHolderByName(state: WorldState, agentId: string, fromName: string): ThingRef | null {
+  const holderAgentId = resolveName(fromName, listOthersAsSeen(state, agentId));
   if (holderAgentId !== null) return { kind: "agent", agentId: holderAgentId };
-  const [entity] = [...listHere(state, agentId, name), ...listHeld(state, agentId, name)];
+  const nested = listAllSeenInside(state, agentId)
+    .map(({ entity }) => entity)
+    .filter((entity) => isEntityNamed(state, entity, fromName));
+  const [entity] = [
+    ...listHeld(state, agentId, fromName),
+    ...listHereNearestFirst(state, agentId, fromName),
+    ...nested,
+  ];
   return entity ? { kind: "entity", entityId: entity.id } : null;
 }
 
-function listInside(
+function listFromHolder(
   state: WorldState,
   agentId: string,
   itemName: string,
-  targetName: string | undefined,
-): SeenInside[] {
-  const holder = targetName === undefined ? null : findNamedHolder(state, agentId, targetName);
-  const seen =
-    holder === null ? listAllSeenInside(state, agentId) : listSeenInside(state, agentId, holder);
-  return seen.filter(({ entity }) => isEntityNamed(state, entity, itemName));
-}
-
-/** The holder the reply's `target` names when nobody can see what it holds, or null. */
-export function findHiddenHolder(
-  state: WorldState,
-  agentId: string,
-  request: InteractRequest,
-): ThingRef | null {
-  if (request.itemName === undefined || request.targetName === undefined) return null;
-  const holder = findNamedHolder(state, agentId, request.targetName);
-  return holder !== null && !canSeeInto(state, agentId, holder) ? holder : null;
+  fromName: string,
+): ItemCandidates {
+  const holder = findHolderByName(state, agentId, fromName);
+  if (holder === null) return { kind: "failed", reason: `there was no ${fromName} here` };
+  if (!canSeeInto(state, agentId, holder)) {
+    const holderName = describeTargetName(state, agentId, holder);
+    return { kind: "failed", reason: `I can't see what ${holderName} carries` };
+  }
+  const candidates = listContents(state, readThingId(holder))
+    .filter((entity) => isEntityNamed(state, entity, itemName))
+    .sort(compareEntityAge)
+    .map((entity) => ({ entity, from: holder }));
+  return { kind: "found", candidates };
 }
 
 /**
  * Everything the reply might mean as the verb's item, best first: what is carried (oldest first),
- * then the thing the `target` names here (a placed oven), then what is inside things the agent can
- * see into. With no `item`, the thing here comes first and then whatever is carried.
+ * what is at the agent's place (nearest first), then what is inside things the agent can see into
+ * (nearest holder first). With `fromName`, only what is directly inside that holder.
  */
 export function listItemCandidates(
   state: WorldState,
   agentId: string,
-  request: InteractRequest,
-): ItemCandidate[] {
-  const { itemName, targetName } = request;
+  itemName: string,
+  fromName?: string,
+): ItemCandidates {
+  if (fromName !== undefined) return listFromHolder(state, agentId, itemName, fromName);
   const toCandidate = (entity: Entity): ItemCandidate => ({ entity, from: null });
-  if (itemName !== undefined) {
-    const placed = targetName === undefined ? [] : listHere(state, agentId, targetName);
-    return [
-      ...[...listHeld(state, agentId, itemName), ...placed].map(toCandidate),
-      ...listInside(state, agentId, itemName, targetName).map(({ entity, holder }) => ({
-        entity,
-        from: holder,
-      })),
-    ];
-  }
-  if (targetName !== undefined) {
-    return [...listHere(state, agentId, targetName), ...listHeld(state, agentId, undefined)].map(
-      toCandidate,
-    );
-  }
-  return [...listHeld(state, agentId, undefined), ...listHere(state, agentId)].map(toCandidate);
+  const inside = listAllSeenInside(state, agentId)
+    .filter(({ entity }) => isEntityNamed(state, entity, itemName))
+    .map(({ entity, holder }) => ({ entity, from: holder }));
+  return {
+    kind: "found",
+    candidates: [
+      ...listHeld(state, agentId, itemName).map(toCandidate),
+      ...listHereNearestFirst(state, agentId, itemName).map(toCandidate),
+      ...inside,
+    ],
+  };
 }

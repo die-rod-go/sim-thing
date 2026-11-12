@@ -28,25 +28,71 @@ export function readLineAfter(prompt: string, prefix: string): string {
   return index === -1 ? "" : (lines[index + 1] ?? "");
 }
 
-/** "oven (bake bread), 3 bread (eat), a knife (attack)" → names with their verbs. */
-export function parseNamedUses(text: string | null): Map<string, string[]> {
-  const uses = new Map<string, string[]>();
-  if (text === null) return uses;
-  for (const match of text.matchAll(/(?:^|, )(?:\d+ |an? )?([^,()]+?) \(([^)]*)\)/g)) {
-    const name = match[1]?.trim();
-    const verbList = (match[2] ?? "").split("; ")[0] ?? "";
-    if (name) uses.set(name, verbList.split(", ").filter(Boolean));
-  }
-  return uses;
+export interface ListedThing {
+  name: string;
+  verbs: string[];
+  /** The holder it is listed under; null at the top level. */
+  from: string | null;
 }
+
+const BULLET_PATTERN = /^( *)- (.*)$/;
+const INDENT_WIDTH = 2;
+
+/** "3 bread, wet (eat, drop)" → "bread": the name part, without its count or article. */
+function readListedName(line: string, itemNames: string[]): string {
+  const name = (line.split(/, | \(/)[0] ?? "").replace(/^(?:\d+|an?) /, "").trim();
+  return (
+    itemNames.find((itemName) => [itemName, `${itemName}s`, `${itemName}es`].includes(name)) ?? name
+  );
+}
+
+function readListedVerbs(line: string): string[] {
+  const match = line.match(/\(([^()]*)\)$/);
+  return (match?.[1] ?? "").split(", ").filter(Boolean);
+}
+
+/** The bullet list that follows the line starting with `header`, nested bullets knowing their holder. */
+export function parseThingList(prompt: string, header: string, itemNames: string[]): ListedThing[] {
+  const lines = prompt.split("\n");
+  const start = lines.findIndex((candidate) => candidate.startsWith(header));
+  if (start === -1) return [];
+  const holdersByDepth: string[] = [];
+  const things: ListedThing[] = [];
+  for (const line of lines.slice(start + 1)) {
+    const match = line.match(BULLET_PATTERN);
+    if (match === null) break;
+    const depth = (match[1] ?? "").length / INDENT_WIDTH;
+    const text = match[2] ?? "";
+    const name = readListedName(text, itemNames);
+    holdersByDepth.length = depth;
+    holdersByDepth[depth] = name;
+    things.push({
+      name,
+      verbs: readListedVerbs(text),
+      from: depth > 0 ? (holdersByDepth[depth - 1] ?? null) : null,
+    });
+  }
+  return things;
+}
+
+function groupVerbsByName(things: ListedThing[]): Map<string, string[]> {
+  return new Map(
+    things.filter((thing) => thing.from === null).map((thing) => [thing.name, thing.verbs]),
+  );
+}
+
 export interface DecisionChoices {
   actions: string[];
   targets: Set<string>;
-  /** What `item` may name: things carried. */
+  /** What `item` may name: things carried, here or inside a holder. */
   items: string[];
+  /** What `from` may name: holders that items can be taken out of. */
+  holders: string[];
+  /** Things listed inside a holder, here or carried, with their own verbs. */
+  insideThings: ListedThing[];
   places: string[];
   currentPlace: string;
-  /** Things here, named as `target`, with their verbs. */
+  /** Things here, named as `item`, with their verbs. */
   objects: Map<string, string[]>;
   /** Things carried, named as `item`, with their verbs. */
   heldItems: Map<string, string[]>;
@@ -55,19 +101,25 @@ export interface DecisionChoices {
   itemlessVerbs: string[];
   isHungry: boolean;
 }
+
 export function readDecisionChoices(schema: JsonSchema, prompt: string): DecisionChoices {
   const targets = new Set(readEnum(schema, "target"));
+  const items = readEnum(schema, "item");
+  const hereThings = parseThingList(prompt, "Here:", items);
+  const carriedThings = parseThingList(prompt, "You carry:", items);
   const heard = readLine(prompt, "In sight, would hear you: ") ?? "";
   return {
     actions: readEnum(schema, "action"),
     targets,
-    items: readEnum(schema, "item"),
+    items,
+    holders: readEnum(schema, "from"),
+    insideThings: [...hereThings, ...carriedThings].filter((thing) => thing.from !== null),
     places: (readLine(prompt, "Places you know: ") ?? "")
       .split(", ")
       .filter((name) => targets.has(name)),
     currentPlace: (readLine(prompt, "You are at the ") ?? "").replace(/\.$/, ""),
-    objects: parseNamedUses(readLine(prompt, "Here: ")),
-    heldItems: parseNamedUses(readLine(prompt, "You carry: ")),
+    objects: groupVerbsByName(hereThings),
+    heldItems: groupVerbsByName(carriedThings),
     inSight: heard
       .replace(/\.$/, "")
       .split(", ")

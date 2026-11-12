@@ -1,6 +1,7 @@
-import { listAllVerbViews, matchesAppliesTo } from "./applies-to";
+import { listAllVerbViews, matchesAppliesTo, resolveBodyDefaults } from "./applies-to";
 import type { ItemDefinition, Verb } from "./item-file";
 import type { ValidationContext } from "./item-problems";
+import type { ThingView } from "./matchers";
 import { checkMatcher, couldMatchAnyView, listViewsAfterSteps } from "./matcher-validation";
 import { checkSteps, isDamagingBodies } from "./step-validation";
 
@@ -14,6 +15,23 @@ function checkReach(verb: Verb, path: string, context: ValidationContext) {
   const views = listAllVerbViews(context.file);
   const couldMatch = couldMatchAnyView(appliesTo, listViewsAfterSteps(context.file, views));
   if (!couldMatch) context.problems.warning(path, "appliesTo matches nothing.");
+}
+
+function checkNotBody(verb: Verb, path: string, context: ValidationContext) {
+  const { appliesTo } = verb;
+  const { file } = context;
+  if (appliesTo === undefined) return;
+  const body: ThingView = {
+    definitionId: file.world.agentBody,
+    components: resolveBodyDefaults(file),
+    where: "here",
+  };
+  if (couldMatchAnyView(appliesTo, listViewsAfterSteps(file, [body]))) {
+    context.problems.error(
+      path,
+      `appliesTo can match an agent's body ("${file.world.agentBody}"); a verb's item is always an entity.`,
+    );
+  }
 }
 
 function checkPhrases(
@@ -79,6 +97,7 @@ export function checkVerbs(
       checkMatcher(verb.target, `${path}.target`, context, { isTarget: true });
     }
     checkReach(verb, `${path}.appliesTo`, context);
+    checkNotBody(verb, `${path}.appliesTo`, context);
     const scope = checkSteps({ kind: "verb", verb }, path, definitionsById, context);
     const isDamagingBody = verb.steps.some((step) => isDamagingBodies(step, scope));
     checkPhrases(verb, `${path}.phrases`, isDamagingBody, context);

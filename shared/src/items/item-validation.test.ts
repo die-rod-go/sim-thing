@@ -83,6 +83,25 @@ describe("item file validation", () => {
     expect(messages).toContain("warning: verbs.2 (polish).appliesTo: appliesTo matches nothing.");
   });
 
+  it.each([{ has: "flesh" }, { has: "health" }])(
+    "rejects an appliesTo that can match an agent's body: %j",
+    (appliesTo) => {
+      const messages = messagesFor(withVerbs({ name: "prod", appliesTo, steps: [] }));
+      expect(messages).toContain(
+        "error: verbs.2 (prod).appliesTo: appliesTo can match an agent's body (\"person\"); a verb's item is always an entity.",
+      );
+    },
+  );
+
+  it.each([
+    { allOf: [{ has: "flesh" }, { where: "held" }] },
+    { allOf: [{ has: "flesh" }, { where: "inside" }] },
+    { allOf: [{ has: "flesh" }, { not: { definition: "person" } }] },
+  ])("accepts an appliesTo that excludes the agent body: %j", (appliesTo) => {
+    const messages = messagesFor(withVerbs({ name: "prod", appliesTo, steps: [] }));
+    expect(messages.filter((message) => message.includes("agent's body"))).toEqual([]);
+  });
+
   it("rejects reading a component appliesTo doesn't guarantee", () => {
     const messages = messagesFor(
       withVerbs({

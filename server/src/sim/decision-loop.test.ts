@@ -103,7 +103,7 @@ describe("decision loop", () => {
       responder: (request, callIndex) => {
         if (request.schemaName === "interact_reply") return JSON.stringify({ verb: "bake bread" });
         return callIndex === 0
-          ? decisionReply({ action: "interact", target: "oven" })
+          ? decisionReply({ action: "interact", item: "oven" })
           : decisionReply({ action: "continue" });
       },
     });
@@ -149,7 +149,7 @@ describe("decision loop", () => {
       responder: scriptByAgent({
         Mara: (_request, callIndex) =>
           callIndex === 0
-            ? decisionReply({ action: "interact", target: "oven", verb: "bake bread" })
+            ? decisionReply({ action: "interact", item: "oven", verb: "bake bread" })
             : undefined,
       }),
     });

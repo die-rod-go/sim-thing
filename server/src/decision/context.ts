@@ -19,15 +19,18 @@ export interface ValidItem {
 }
 
 /**
- * One entry in Belongings or Here. Identical, stateless entities are grouped ("3 bread"), and
- * each lists the verbs it offers.
+ * One entry in Belongings or Here. Unlabelled entities whose whole line is identical are grouped
+ * ("3 bread"). Contents the agent can see are nested entries, each with its own verbs.
  */
 export interface PromptEntityGroup {
   /** "3 bread", "a knife", "tavern chest". */
   text: string;
+  /** What shows of it: component and field words, ground words, what it holds. */
+  details: string[];
+  /** The verbs it offers this agent, each once. */
   verbs: string[];
-  /** What can be seen of its state, the words of its visible components; null when nothing shows. */
-  condition: string | null;
+  /** What the agent can see inside it. */
+  contents: PromptEntityGroup[];
 }
 
 /** One awareness record, already joined with the other agent's display name. */
@@ -108,4 +111,6 @@ export interface DecisionContext {
   lastFailure: string | null;
   validTargets: DecisionTargets;
   validItems: ValidItem[];
+  /** Things the agent can see into that hold something: what `from` may name. */
+  validHolders: string[];
 }

@@ -34,6 +34,7 @@ function buildDecisionJsonSchema(
   actions: readonly string[],
   targetNames: string[],
   itemNames: string[],
+  holderNames: string[],
 ): JsonSchema {
   return strictJsonObject({
     thought: { type: "string", description: "One or two short private sentences." },
@@ -48,6 +49,7 @@ function buildDecisionJsonSchema(
     verb: nullableJsonString(),
     text: nullableJsonString(),
     item: nullableJsonEnum(itemNames),
+    from: nullableJsonEnum(holderNames),
     amount: nullableJsonInteger(),
     query: nullableJsonString(),
     minutes: nullableJsonInteger(),
@@ -74,12 +76,13 @@ function requireFieldsForAction(reply: DecisionReply, context: z.RefinementCtx):
 
 /**
  * The decision reply as a zod schema plus the matching strict JSON schema. `action`, `target` and
- * `item` are enums of what is valid right now, so a structured-output provider can't produce
+ * `item` and `from` are enums of what is valid right now, so a structured-output provider can't produce
  * anything else; `item` also accepts plurals ("coins").
  */
 export function buildDecisionReplySchema(
   validTargets: DecisionTargets,
   validItems: ValidItem[],
+  validHolders: string[],
   options: DecisionSchemaOptions = {},
 ): ReplySchemas<DecisionReply> {
   const [firstAction, ...otherActions] = listOfferedActions(options.isMidActionInterrupt ?? false);
@@ -100,6 +103,7 @@ export function buildDecisionReplySchema(
       verb: z.string().trim().optional(),
       text: z.string().trim().optional(),
       item: aliasedNameEnum(itemNames, itemAliases, "item").optional(),
+      from: displayNameEnum(validHolders, "from").optional(),
       amount: z.number().int().positive().optional(),
       query: z.string().trim().optional(),
       minutes: z.number().positive().optional(),
@@ -111,7 +115,7 @@ export function buildDecisionReplySchema(
     .superRefine(requireFieldsForAction);
   return {
     schema: z.preprocess(dropEmptyFields, replyObject),
-    jsonSchema: buildDecisionJsonSchema(actions, targetNames, itemNames),
+    jsonSchema: buildDecisionJsonSchema(actions, targetNames, itemNames, validHolders),
     schemaName: "decision_reply",
   };
 }

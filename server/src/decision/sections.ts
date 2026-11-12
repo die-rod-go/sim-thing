@@ -22,22 +22,34 @@ export function describeGoals(goals: Goal[]): string {
   );
 }
 
-/** "wheat field (harvest wheat; empty)": verbs first, then what can be seen of it. */
-function describeEntityGroup(group: PromptEntityGroup): string {
-  const details = [group.verbs.join(", "), group.condition ?? ""].filter(Boolean);
-  return details.length > 0 ? `${group.text} (${details.join("; ")})` : group.text;
+const NESTED_INDENT = "  ";
+
+/** "tavern chest, holding 2 coins (take)": name, details, then verbs in parentheses. */
+function describeEntityLine(group: PromptEntityGroup): string {
+  const line = [group.text, ...group.details].join(", ");
+  return group.verbs.length > 0 ? `${line} (${group.verbs.join(", ")})` : line;
 }
 
-/** "oven (bake bread), tavern chest (take; holding 2 coins)" */
+function listEntityLines(groups: PromptEntityGroup[], depth: number): string[] {
+  return groups.flatMap((group) => [
+    `${NESTED_INDENT.repeat(depth)}- ${describeEntityLine(group)}`,
+    ...listEntityLines(group.contents, depth + 1),
+  ]);
+}
+
+function describeEntityList(groups: PromptEntityGroup[]): string {
+  return listEntityLines(groups, 0).join("\n");
+}
+
+/** The bullet list under "Here:", or "Nothing." */
 export function describeNearbyEntities(groups: PromptEntityGroup[]): string {
-  if (groups.length === 0) return NOTHING;
-  return groups.map(describeEntityGroup).join(", ");
+  return groups.length > 0 ? describeEntityList(groups) : NOTHING;
 }
 
-/** "You carry: 30 coins, 3 bread (eat)." then, when there are any, "You can also: punch." */
+/** "You carry:" and a bullet list, then, when there are any, "You can also: punch." */
 export function describeBelongings(groups: PromptEntityGroup[], itemlessVerbs: string[]): string {
-  const carried = groups.length > 0 ? groups.map(describeEntityGroup).join(", ") : "nothing";
-  const belongings = `You carry: ${carried}.`;
+  const belongings =
+    groups.length > 0 ? `You carry:\n${describeEntityList(groups)}` : "You carry: nothing.";
   return itemlessVerbs.length > 0
     ? `${belongings}\nYou can also: ${itemlessVerbs.join(", ")}.`
     : belongings;

@@ -14,6 +14,8 @@ const targets: DecisionTargets = {
 
 const items: ValidItem[] = [{ name: "bread" }, { name: "coin", plural: "coins" }];
 
+const holders = ["chest", "Mara's body"];
+
 const nullReply = {
   thought: "Bob looks hungry.",
   intention: "sell Bob some bread",
@@ -24,6 +26,7 @@ const nullReply = {
   verb: null,
   text: null,
   item: "bread",
+  from: null,
   amount: 1,
   query: null,
   minutes: null,
@@ -33,7 +36,7 @@ const nullReply = {
 
 describe("buildDecisionReplySchema", () => {
   it("normalizes null optional fields", () => {
-    const { schema } = buildDecisionReplySchema(targets, items);
+    const { schema } = buildDecisionReplySchema(targets, items, holders);
     expect(schema.parse(nullReply)).toEqual({
       thought: "Bob looks hungry.",
       intention: "sell Bob some bread",
@@ -45,7 +48,7 @@ describe("buildDecisionReplySchema", () => {
   });
 
   it("validates action enums against current targets", () => {
-    const { schema, jsonSchema } = buildDecisionReplySchema(targets, items);
+    const { schema, jsonSchema } = buildDecisionReplySchema(targets, items, holders);
     const walk = { thought: "Go.", intention: "go", action: "walk_to" };
     expect(schema.safeParse({ ...walk, target: "The Bakery" }).success).toBe(true);
     expect(schema.safeParse({ ...walk, target: "brewery" }).success).toBe(false);
@@ -57,8 +60,25 @@ describe("buildDecisionReplySchema", () => {
     expect(readJsonEnumValues(properties.action)).not.toContain("continue");
   });
 
+  it("accepts a from holder, rejects an unknown one and drops a null one", () => {
+    const { schema, jsonSchema } = buildDecisionReplySchema(targets, items, holders);
+    const take = { thought: "Take.", intention: "take", action: "interact", verb: "take" };
+    expect(schema.parse({ ...take, item: "coin", from: "The Chest" })).toMatchObject({
+      from: "chest",
+    });
+    expect(schema.safeParse({ ...take, item: "coin", from: "barrel" }).success).toBe(false);
+    expect(schema.parse({ ...take, item: "coin", from: null })).not.toHaveProperty("from");
+    const properties = jsonSchema.properties as Record<string, unknown>;
+    expect(Object.keys(properties).indexOf("from")).toBe(
+      Object.keys(properties).indexOf("item") + 1,
+    );
+    expect(properties.from).toEqual({
+      anyOf: [{ type: "string", enum: holders }, { type: "null" }],
+    });
+  });
+
   it("accepts continue only when interrupted mid-action", () => {
-    const { schema, jsonSchema } = buildDecisionReplySchema(targets, items, {
+    const { schema, jsonSchema } = buildDecisionReplySchema(targets, items, holders, {
       isMidActionInterrupt: true,
     });
     expect(
@@ -69,14 +89,14 @@ describe("buildDecisionReplySchema", () => {
   });
 
   it("accepts an item by its plural and parses it to the definition name", () => {
-    const { schema } = buildDecisionReplySchema(targets, items);
+    const { schema } = buildDecisionReplySchema(targets, items, holders);
     const give = { ...nullReply, item: "Coins", amount: 3 };
     expect(schema.parse(give)).toMatchObject({ item: "coin", amount: 3 });
     expect(schema.safeParse({ ...nullReply, item: "knife" }).success).toBe(false);
   });
 
   it("lets interact name a held item, a target here, or just a verb", () => {
-    const { schema } = buildDecisionReplySchema(targets, items);
+    const { schema } = buildDecisionReplySchema(targets, items, holders);
     const interact = { thought: "Eat.", intention: "eat", action: "interact" };
     expect(schema.safeParse({ ...interact, item: "bread", verb: "eat" }).success).toBe(true);
     expect(schema.safeParse({ ...interact, target: "oven" }).success).toBe(true);
@@ -85,7 +105,7 @@ describe("buildDecisionReplySchema", () => {
   });
 
   it("requires the fields an action needs", () => {
-    const { schema } = buildDecisionReplySchema(targets, items);
+    const { schema } = buildDecisionReplySchema(targets, items, holders);
     expect(schema.safeParse({ ...nullReply, amount: null }).success).toBe(false);
     expect(
       schema.safeParse({ thought: "Hm.", intention: "think", action: "recall", query: "" }).success,
@@ -93,7 +113,7 @@ describe("buildDecisionReplySchema", () => {
   });
 
   it("lists every field as required in field order for strict mode", () => {
-    const { jsonSchema } = buildDecisionReplySchema(targets, items);
+    const { jsonSchema } = buildDecisionReplySchema(targets, items, holders);
     expect(jsonSchema.required).toEqual(Object.keys(nullReply));
     expect(jsonSchema.additionalProperties).toBe(false);
   });

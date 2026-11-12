@@ -450,11 +450,8 @@ export const config = {
       omitVerbChance: 0.25,
       /** A carried item with this verb is eaten whenever the status line holds a hungry word. */
       eatVerb: "eat",
-      /**
-       * Verbs that move what `item` names, and where that comes from: carried (into a holder
-       * here that offers `take`), or inside the holder named as `target`.
-       */
-      itemChoosingVerbs: { put: "carried", take: "inside" } as Record<string, "carried" | "inside">,
+      /** Chance a verb used with a carried item is also aimed at something here or at itself. */
+      aimChance: 0.5,
       hungryWords: ["starving", "very hungry", "quite hungry"],
       waitMinutes: { min: 5, max: 30 },
       lines: [

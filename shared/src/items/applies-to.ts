@@ -5,9 +5,9 @@ import type { ThingWhere } from "./matcher-schema";
 import { matchesThing, type ThingView } from "./matchers";
 
 /*
- * How a verb's `appliesTo` meets things. Transitional until verbs get their roles: an entity is
- * met where it is (`held`, `here`, `inside`), a dead agent's body `here`; a verb without
- * `appliesTo` is done bare-handed, and another living agent is never used.
+ * How a verb's `appliesTo` meets things. The verb's item is always an entity, met where it is
+ * (`held`, `here`, `inside`); an agent's body is never an item. A verb without `appliesTo` is done
+ * bare-handed.
  */
 
 /** Whether the verb applies to the thing as the user meets it. Bare-handed verbs apply to nothing. */
@@ -54,17 +54,11 @@ export function resolveBodyDefaults(file: ItemFile): ResolvedComponents {
   return body ? resolveComponents(file.components, body, {}) : {};
 }
 
-/**
- * Every kind of thing a verb's `appliesTo` could meet: each definition but the agent body in each
- * place it can be, and a dead agent's body here.
- */
+/** Every kind of thing a verb's `appliesTo` could meet: each definition but the agent body, in each place it can be. */
 export function listAllVerbViews(file: ItemFile): ThingView[] {
-  return [
-    ...file.definitions
-      .filter((definition) => definition.id !== file.world.agentBody)
-      .flatMap((definition) => listDefinitionViews(file, definition)),
-    { definitionId: file.world.agentBody, components: resolveBodyDefaults(file), where: "here" },
-  ];
+  return file.definitions
+    .filter((definition) => definition.id !== file.world.agentBody)
+    .flatMap((definition) => listDefinitionViews(file, definition));
 }
 
 /** Every step in the file: the verbs' and the rules'. */
