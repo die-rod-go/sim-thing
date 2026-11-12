@@ -1,9 +1,10 @@
 # Items as components: design
 
-Status: **proposed**. Nothing here is built. When it is, this replaces the data model, verbs,
+Status: **built** (all six phases of the build order). This replaces the data model, verbs,
 effects, conditions, reactions and item editor sections of `ITEMS-AND-STATUS.md`. The status
 sections of that document (starvation, regeneration, the combat formulas, death, the Status panel)
-stay as they are.
+stay as they are. Where the code differs from this document, the code and `AGENTS.md` are the
+reference.
 
 If you are implementing this: read it all once, then work phase by phase from
 [Build order](#build-order). The [Appendix](#appendix-the-shipped-content-in-the-new-shape) is the

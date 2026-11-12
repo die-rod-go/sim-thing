@@ -1,7 +1,9 @@
 # Items, verbs and status: design
 
-Status: **built** (all six phases of the build order). Where the code differs from this document,
-the code and `AGENTS.md` are the reference. Decisions taken in review are listed at the end.
+Status: **built**, then partly **superseded by `COMPONENTS.md`**: its data model, verbs, effects,
+conditions, reactions and item editor sections are replaced there. The status sections (starvation,
+regeneration, the combat formulas, death, the Status panel) still hold. Where the code differs from
+this document, the code and `AGENTS.md` are the reference.
 
 ## Goal
 

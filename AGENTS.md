@@ -55,8 +55,8 @@ need one, ask first.
 - Named exports only.
 - No magic numbers. Every global tunable (rates, caps, weights, loudness, budgets) lives in the
   config file, as the brief requires. Item content (definitions, components, verbs and their
-  numbers, recipes, conditions, reactions) lives in `seeds/items.json`, validated by the schema in
-  `shared/`.
+  steps and their numbers, rules, world settings) lives in `seeds/items.json`, validated by the
+  schema in `shared/`. No code in `server/` or `shared/` names a component from `items.json`.
 - Formatting comes from Prettier and lint rules from ESLint. Don't hand-format or disable rules
   without a reason in the same line.
 
@@ -86,7 +86,7 @@ need one, ask first.
 
 - Tests never call a real LLM. Use the fake LLM client with fixed replies.
 - Cover the code-driven core with unit tests: perception (sight and sound), memory filing, recall
-  scoring, forgetting, needs decay, verbs and their effects, `appliesTo` matching, `items.json`
+  scoring, forgetting, needs decay, each step type, the verb runner, rules, matchers, `items.json`
   validation and `give`.
 - Name tests by behavior: `"muffles speech heard through a closed door"`.
 
@@ -105,29 +105,29 @@ need one, ask first.
 
 ## Glossary
 
-| Term            | Meaning                                                                               |
-| --------------- | ------------------------------------------------------------------------------------- |
-| tick            | One step of the sim clock (1 sim-minute by default)                                   |
-| decision        | One LLM call that returns a `DecisionReply`                                           |
-| intention       | The agent's current one-line goal, carried between decisions                          |
-| bucket          | A category of memories, set by where they came from                                   |
-| strength        | A memory's 0–1 weight; fades by half-life, bumped by recall                           |
-| awareness       | The structured record of when each other agent was last perceived                     |
-| earshot         | Whether the sound simulation lets a listener hear a sound                             |
-| needs           | Hunger, energy, social, fun (0–1, 1 = satisfied)                                      |
-| reflection      | The morning, daytime, night and weekly LLM passes                                     |
-| item definition | A template in `seeds/items.json`: name, form, glyph, properties, components           |
-| entity          | One instance of a definition in the world, with its own id, location and state        |
-| form            | `placeable` (sits on a tile, like an oven) or `carriable` (fits in an inventory)      |
-| property        | A plain tag on a definition (`flammable`, `sharp`); only data checks it               |
-| component       | A structured part with fields (`durability`, `stock`, `openable`, `food`)             |
-| verb            | Something an agent can do, offered by whatever its `appliesTo` rule matches           |
-| effect          | One step a verb, condition or reaction performs (`produce`, `destroy`, `change_need`) |
-| stimulus        | A named physical cause sent by an effect (`fire`, `water`, `impact`, `cut`)           |
-| reaction        | A rule: when a stimulus reaches something with a property or condition, run effects   |
-| condition       | A timed state on an agent or entity (`burning`, `bleeding`), with per-minute effects  |
-| health          | 0–1, 1 = unhurt. At 0 the agent dies                                                  |
-| durability      | An entity's 0–1 condition, 1 = intact. At 0 it breaks                                 |
-| stats           | `strength` and `agility`, 0–1, set per character in the seeds                         |
-| status          | The UI section showing health, needs and conditions together                          |
-| glyph           | How a tile or item is drawn: a CP437 index in the glyph sheet, a color, a background  |
+| Term           | Meaning                                                                               |
+| -------------- | ------------------------------------------------------------------------------------- |
+| tick           | One step of the sim clock (1 sim-minute by default)                                   |
+| decision       | One LLM call that returns a `DecisionReply`                                           |
+| intention      | The agent's current one-line goal, carried between decisions                          |
+| bucket         | A category of memories, set by where they came from                                   |
+| strength       | A memory's 0–1 weight; fades by half-life, bumped by recall                           |
+| awareness      | The structured record of when each other agent was last perceived                     |
+| earshot        | Whether the sound simulation lets a listener hear a sound                             |
+| needs          | Hunger, energy, social, fun (0–1, 1 = satisfied)                                      |
+| reflection     | The morning, daytime, night and weekly LLM passes                                     |
+| component      | A named set of typed fields declared in `items.json`. With no fields it is a tag      |
+| definition     | A template in `seeds/items.json`: id, name, glyph and components with field values    |
+| entity         | One instance of a definition in the world, with its own id, location and changes      |
+| body           | An agent's physical presence: an instance of the `agentBody` definition               |
+| thing          | An entity or a body. Rules and steps work on things                                   |
+| verb           | Something an agent can do: an `appliesTo` matcher, an optional `target`, and steps    |
+| step           | One hardcoded behavior with settings (`use_up`, `wait`, `damage`). The only item code |
+| rule           | Steps that run on a trigger: `every`, `stimulus` or `becomes`                         |
+| matcher        | The expression that says "which things" (`has`, `definition`, `field`, `where`)       |
+| stimulus       | A named message a `send` step delivers to a thing (`fire`, `impact`, `cut`)           |
+| world settings | The `world` block of `items.json`: matchers and names the engine's physics reads      |
+| health         | 0–1, 1 = unhurt. At 0 the agent dies                                                  |
+| stats          | `strength` and `agility`, 0–1, set per character in the seeds                         |
+| status         | The UI section showing health, needs and visible components together                  |
+| glyph          | How a tile or item is drawn: a CP437 index in the glyph sheet, a color, a background  |
