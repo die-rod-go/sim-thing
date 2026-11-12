@@ -11,6 +11,7 @@ import {
   decisionReply,
   findEntityByLabel,
   findPromptAgentName,
+  interruptDuringWait,
   promptOf,
   scriptByAgent,
   type TestSim,
@@ -103,6 +104,7 @@ describe("death", () => {
       shouldDecideInBackground: true,
     });
     sim.placeAgent("mara", SQUARE);
+    interruptDuringWait(sim, "mara", MINUTES_PER_HOUR);
     await sim.advance();
     expect(releases).toHaveLength(1);
     applyDamage(contextOf(sim), "mara", { amount: LETHAL, killed: "starved", sourceAgentId: null });

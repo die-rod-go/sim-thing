@@ -14,7 +14,14 @@ import {
   selectDecisionRequests,
   updateSight,
 } from "./tick-phases";
+import { listLivingAgents } from "./world-access";
 import { createEmptyTickResult, type WorldState } from "./world-state";
+
+function listIdleAgentIds(state: WorldState): string[] {
+  return listLivingAgents(state)
+    .filter((agent) => agent.currentAction === null)
+    .map((agent) => agent.id);
+}
 
 /**
  * The LLM-driven strategy for the sim loop. Each tick, in order:
@@ -30,9 +37,11 @@ import { createEmptyTickResult, type WorldState } from "./world-state";
  * 7. upkeep: bucket caps, hourly forgetting, conversation log pruning, then the reflection hook.
  * Events from step 5 flag decisions for the next tick, like a reply to what was just said.
  *
- * With `shouldDecideInBackground`, step 5 instead applies the decisions that returned since the
- * last tick (in agent order) and starts the new ones without waiting, so a slow LLM call no longer
- * holds the clock; an agent keeps doing what it was doing until its decision lands.
+ * With `shouldDecideInBackground`, only agents with nothing to do hold the clock: step 5 applies
+ * the decisions that returned since the last tick, starts the new ones, waits for those of idle
+ * agents, then applies every finished plan (in agent order). An agent interrupted mid-action
+ * keeps doing what it was doing until its decision lands, so a slow call doesn't stall the
+ * village, while idle agents (and the replies they give) never fall behind the clock.
  */
 export function createDecisionStrategy(dependencies: SimDependencies): AdvanceTick {
   const summarizeEndedConversations = createConversationSummarizer(dependencies);
@@ -56,6 +65,10 @@ export function createDecisionStrategy(dependencies: SimDependencies): AdvanceTi
       );
       for (const request of requests) {
         backgroundDecisions.start(state, request.agentId, () => decide(state, request));
+      }
+      await backgroundDecisions.waitFor(state, listIdleAgentIds(state));
+      for (const plan of backgroundDecisions.collectFinished(state)) {
+        applyDecisionPlan(context, plan);
       }
     } else {
       const requests = selectDecisionRequests(context);

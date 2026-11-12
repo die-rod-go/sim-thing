@@ -461,7 +461,10 @@ export const config = {
   },
 
   decision: {
-    /** The running sim lets the clock go on while decisions wait for the LLM; tests always wait. */
+    /**
+     * The running sim lets the clock go on while an agent interrupted mid-action decides; idle
+     * agents still hold it. Tests always wait for every decision.
+     */
     shouldDecideInBackground: true,
     conversationLines: 12,
     conversationWindowTicks: 30,

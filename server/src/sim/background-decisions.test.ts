@@ -2,9 +2,10 @@ import { describe, expect, it } from "vitest";
 import type { FakeReply } from "../llm/fake-llm-client";
 import { BackgroundDecisions } from "./background-decisions";
 import type { DecisionPlan } from "./decision-runner";
-import { createTestSim, decisionReply, findPromptAgentName } from "./test-sim";
+import { createTestSim, decisionReply, findPromptAgentName, interruptDuringWait } from "./test-sim";
 
 const SQUARE = { x: 19, y: 15 };
+const LONG_WAIT_TICKS = 60;
 
 /** Lets replies that were just released travel through the LLM stack's promise chain. */
 function settleReplies(): Promise<void> {
@@ -38,7 +39,7 @@ function waitPlan(agentId: string): DecisionPlan {
 }
 
 describe("background decisions", () => {
-  it("keeps the clock running while a decision waits for the LLM", async () => {
+  it("keeps the clock running while an agent interrupted mid-action decides", async () => {
     const held = createHeldReplies();
     const sim = createTestSim({
       agentIds: ["mara"],
@@ -46,13 +47,14 @@ describe("background decisions", () => {
       shouldDecideInBackground: true,
     });
     sim.placeAgent("mara", SQUARE);
+    interruptDuringWait(sim, "mara", LONG_WAIT_TICKS);
     await sim.advance(3);
     expect(sim.state.tick).toBe(3);
     expect(held.heldCount()).toBe(1);
-    expect(sim.agent("mara").currentAction).toBeNull();
+    expect(sim.agent("mara").currentAction).toMatchObject({ kind: "wait" });
   });
 
-  it("applies a decision on the first tick after its reply arrives", async () => {
+  it("applies a mid-action decision on the first tick after its reply arrives", async () => {
     const held = createHeldReplies();
     const sim = createTestSim({
       agentIds: ["mara"],
@@ -60,12 +62,13 @@ describe("background decisions", () => {
       shouldDecideInBackground: true,
     });
     sim.placeAgent("mara", SQUARE);
+    interruptDuringWait(sim, "mara", LONG_WAIT_TICKS);
     await sim.advance(2);
-    held.releaseNext(decisionReply({ action: "wait", minutes: 30 }));
+    held.releaseNext(decisionReply({ action: "walk_to", target: "bakery" }));
     await settleReplies();
     const [result] = await sim.advance();
     expect(result?.decidedAgentIds).toEqual(["mara"]);
-    expect(sim.agent("mara").currentAction).toMatchObject({ kind: "wait" });
+    expect(sim.agent("mara").currentAction).toMatchObject({ kind: "walk_to" });
   });
 
   it("asks an agent only once while its decision is in flight", async () => {
@@ -76,8 +79,50 @@ describe("background decisions", () => {
       shouldDecideInBackground: true,
     });
     sim.placeAgent("mara", SQUARE);
+    interruptDuringWait(sim, "mara", LONG_WAIT_TICKS);
     await sim.advance(5);
     expect(sim.client.callCount).toBe(1);
+  });
+
+  it("holds the clock for an idle agent's decision and applies it on the same tick", async () => {
+    const held = createHeldReplies();
+    const sim = createTestSim({
+      agentIds: ["mara"],
+      responder: held.responder,
+      shouldDecideInBackground: true,
+    });
+    sim.placeAgent("mara", SQUARE);
+    let isTickDone = false;
+    const ticking = sim.advance().then((results) => {
+      isTickDone = true;
+      return results;
+    });
+    await settleReplies();
+    expect(isTickDone).toBe(false);
+    held.releaseNext(decisionReply({ action: "wait", minutes: 30 }));
+    const [result] = await ticking;
+    expect(result?.decidedAgentIds).toEqual(["mara"]);
+    expect(sim.agent("mara").currentAction).toMatchObject({ kind: "wait" });
+  });
+
+  it("holds the clock once an agent's action ends while its decision is still in flight", async () => {
+    const held = createHeldReplies();
+    const sim = createTestSim({
+      agentIds: ["mara"],
+      responder: held.responder,
+      shouldDecideInBackground: true,
+    });
+    sim.placeAgent("mara", SQUARE);
+    interruptDuringWait(sim, "mara", 2);
+    await sim.advance(2);
+    let isTickDone = false;
+    const ticking = sim.advance().then(() => (isTickDone = true));
+    await settleReplies();
+    expect(sim.agent("mara").currentAction).toBeNull();
+    expect(isTickDone).toBe(false);
+    held.releaseNext(decisionReply({ action: "wait", minutes: 30 }));
+    await ticking;
+    expect(sim.agent("mara").currentAction).toMatchObject({ kind: "wait" });
   });
 
   it("re-raises a decision that threw on the next tick", async () => {

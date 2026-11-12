@@ -18,6 +18,7 @@ import type { LlmRequest } from "../llm/types";
 import { CONVERSATION_SUMMARY_SCHEMA_NAME } from "../memory/conversation-summary";
 import { buildSeededWorld, loadSeedFile, type SeededWorld } from "../seeds";
 import { findPlaceAt, loadWorldMap } from "../world/map-loader";
+import { getAgentRuntime, requestDecision } from "./agent-runtime";
 import { createNoReflectionHook } from "./reflection-hook";
 import { createReflectionHook } from "./reflection-passes";
 import { createDecisionStrategy } from "./tick-pipeline";
@@ -129,6 +130,14 @@ export function scriptByAgent(scripts: Record<string, AgentScript>): FakeRespond
     const reply = scripts[findPromptAgentName(request)]?.(request, callIndex);
     return reply ?? decisionReply({ action: "wait", minutes: config.decision.maxWaitMinutes });
   };
+}
+
+/** Sets the agent waiting for `waitTicks` with an urgent decision pending, so it decides mid-action. */
+export function interruptDuringWait(sim: TestSim, agentId: string, waitTicks: number): void {
+  const agent = findAgent(sim.state, agentId);
+  const endsAtTick = sim.state.tick + waitTicks;
+  replaceAgent(sim.state, { ...agent, currentAction: { kind: "wait", endsAtTick } });
+  requestDecision(getAgentRuntime(sim.state, agentId), "a test interruption", true);
 }
 
 export interface TestSim {

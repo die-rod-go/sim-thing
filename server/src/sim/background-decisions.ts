@@ -10,11 +10,14 @@ interface InFlightDecision {
   /** The world the decision was asked in; replies for a replaced world (e.g. after a reset) are dropped. */
   state: WorldState;
   outcome: DecisionOutcome;
+  /** Settles (never rejects) once the outcome is no longer pending. */
+  settled: Promise<void>;
 }
 
 /**
- * Decisions that run while the clock keeps going: each one starts on the tick it is requested and
- * its plan is collected on the first tick after the reply arrives.
+ * Decisions that may run while the clock keeps going: each one starts on the tick it is requested
+ * and its plan is collected on the first tick after the reply arrives, or on the same tick when
+ * the tick waits for it.
  */
 export class BackgroundDecisions {
   private readonly inFlightByAgentId = new Map<string, InFlightDecision>();
@@ -28,9 +31,12 @@ export class BackgroundDecisions {
     if (this.isDeciding(state, agentId)) {
       throw new Error(`${agentId} already has a decision in flight`);
     }
-    const entry: InFlightDecision = { state, outcome: { kind: "pending" } };
-    this.inFlightByAgentId.set(agentId, entry);
-    void runDecision().then(
+    const entry: InFlightDecision = {
+      state,
+      outcome: { kind: "pending" },
+      settled: Promise.resolve(),
+    };
+    entry.settled = runDecision().then(
       (plan) => {
         entry.outcome = { kind: "planned", plan };
       },
@@ -38,6 +44,15 @@ export class BackgroundDecisions {
         entry.outcome = { kind: "failed", error };
       },
     );
+    this.inFlightByAgentId.set(agentId, entry);
+  }
+
+  /** Resolves once every listed agent's decision in this world (if any) has returned. */
+  async waitFor(state: WorldState, agentIds: readonly string[]): Promise<void> {
+    const entries = agentIds
+      .map((agentId) => this.inFlightByAgentId.get(agentId))
+      .filter((entry) => entry?.state === state);
+    await Promise.all(entries.map((entry) => entry?.settled));
   }
 
   /**
