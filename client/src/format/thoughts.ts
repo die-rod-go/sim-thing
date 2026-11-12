@@ -41,6 +41,45 @@ function part(label: string, text: string | null): ThoughtPart[] {
   return text === null ? [] : [{ label, text }];
 }
 
+function dossierParts(fields: ReplyFields): ThoughtPart[] {
+  return readRecords(fields, "dossiers").flatMap((entry) =>
+    part(`on ${readText(entry, "person") ?? "someone"}`, readText(entry, "text")),
+  );
+}
+
+/** "Win Malin over: next, bring her the axe; then ask her to the tavern". */
+function describePlan(plan: ReplyFields): string | null {
+  const aim = readText(plan, "aim");
+  if (aim === null) return null;
+  const steps = Array.isArray(plan.steps)
+    ? plan.steps.filter((step): step is string => typeof step === "string")
+    : [];
+  const [nextStep, ...laterSteps] = steps;
+  const next = nextStep === undefined ? "" : `: next, ${nextStep}`;
+  const later = laterSteps.length === 0 ? "" : `; then ${laterSteps.join("; ")}`;
+  const keepFrom = readText(plan, "keepFrom");
+  const secret = keepFrom === null ? "" : ` (kept from ${keepFrom})`;
+  return `${aim}${next}${later}${secret}`;
+}
+
+/** A reply's `plans` list; a null list means the plans were kept, so it shows nothing. */
+function planParts(fields: ReplyFields): ThoughtPart[] {
+  return readRecords(fields, "plans").flatMap((plan) => part("plans", describePlan(plan)));
+}
+
+function goalParts(fields: ReplyFields): ThoughtPart[] {
+  return readRecords(fields, "goals").flatMap((goal) =>
+    part(`${readText(goal, "kind") ?? ""} goal`.trim(), readText(goal, "text")),
+  );
+}
+
+function goalProgressParts(fields: ReplyFields): ThoughtPart[] {
+  return readRecords(fields, "goalProgress").flatMap((entry) => {
+    const goalNumber = readNumber(entry, "goal");
+    return part(`goal ${goalNumber ?? "?"}`, readText(entry, "progress"));
+  });
+}
+
 function describeDecisionAction(fields: ReplyFields): string | null {
   const action = readText(fields, "action");
   if (action === null || action === "continue") return null;
@@ -80,8 +119,14 @@ function summarizeDecision(fields: ReplyFields): Pick<ThoughtEntry, "headline" |
       ...part("does", describeDecisionAction(fields)),
       ...part("intends", readText(fields, "intention")),
       ...part("feels", readText(fields, "mood")),
+      ...part("finished a step of", stepDoneText(fields)),
     ],
   };
+}
+
+function stepDoneText(fields: ReplyFields): string | null {
+  const planNumber = readNumber(fields, "stepDone");
+  return planNumber === null ? null : `plan ${planNumber}`;
 }
 
 function summarizeNight(fields: ReplyFields): Pick<ThoughtEntry, "headline" | "parts"> {
@@ -92,9 +137,9 @@ function summarizeNight(fields: ReplyFields): Pick<ThoughtEntry, "headline" | "p
       ...readRecords(fields, "insights").flatMap((insight) =>
         part("realized", readText(insight, "text")),
       ),
-      ...readRecords(fields, "dossiers").flatMap((note) =>
-        part(`on ${readText(note, "person") ?? "someone"}`, readText(note, "text")),
-      ),
+      ...goalParts(fields),
+      ...planParts(fields),
+      ...dossierParts(fields),
     ],
   };
 }
@@ -106,9 +151,7 @@ function summarizeWeekly(fields: ReplyFields): Pick<ThoughtEntry, "headline" | "
     const amount = delta === null ? "" : ` ${sign}${delta.toFixed(2)}`;
     return part(`${readText(change, "trait") ?? "trait"}${amount}`, readText(change, "reason"));
   });
-  const goals = readRecords(fields, "goals").flatMap((goal) =>
-    part(`${readText(goal, "kind") ?? ""} goal`.trim(), readText(goal, "text")),
-  );
+  const goals = goalParts(fields);
   return {
     headline: readText(fields, "selfImage") ?? readText(fields, "core"),
     parts: [
@@ -137,15 +180,18 @@ function summarizeReply(
     case "morning":
       return {
         headline: readText(fields, "dailyPlan"),
-        parts: part("feels", readText(fields, "mood")),
+        parts: [...planParts(fields), ...part("feels", readText(fields, "mood"))],
       };
     case "daytime":
       return {
-        headline: null,
+        headline: readText(fields, "thinking"),
         parts: [
           ...readRecords(fields, "insights").flatMap((insight) =>
             part("realized", readText(insight, "text")),
           ),
+          ...goalProgressParts(fields),
+          ...planParts(fields),
+          ...dossierParts(fields),
           ...part("feels", readText(fields, "mood")),
         ],
       };
@@ -154,7 +200,7 @@ function summarizeReply(
     case "weekly":
       return summarizeWeekly(fields);
     case "conversation_summary":
-      return { headline: readText(fields, "summary"), parts: [] };
+      return { headline: readText(fields, "summary"), parts: dossierParts(fields) };
     case "interact":
       return summarizeOther(fields);
   }

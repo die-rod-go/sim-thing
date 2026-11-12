@@ -69,6 +69,53 @@ describe("summarizeLlmCall", () => {
     ]);
   });
 
+  it("leads a daytime pass with its thinking and lists progress, plans and dossiers", () => {
+    const call = {
+      ...makeSampleLlmCall(4, "ada", 300),
+      kind: "daytime" as const,
+      parsed: {
+        thinking: "Bob won't pay until he sees the bread.",
+        insights: [{ text: "Bob trusts what he sees" }],
+        goalProgress: [{ goal: 1, progress: "sold four loaves" }],
+        plans: [
+          {
+            aim: "Get Bob to pay his debt",
+            steps: ["show him the bread", "ask for the coins"],
+            keepFrom: "Cara",
+          },
+        ],
+        dossiers: [{ person: "Bob", text: "owes me two coins" }],
+        mood: "determined",
+      },
+    };
+    const entry = summarizeLlmCall(call);
+    expect(entry.headline).toBe("Bob won't pay until he sees the bread.");
+    expect(entry.parts).toEqual([
+      { label: "realized", text: "Bob trusts what he sees" },
+      { label: "goal 1", text: "sold four loaves" },
+      {
+        label: "plans",
+        text: "Get Bob to pay his debt: next, show him the bread; then ask for the coins (kept from Cara)",
+      },
+      { label: "on Bob", text: "owes me two coins" },
+      { label: "feels", text: "determined" },
+    ]);
+  });
+
+  it("shows the dossiers a conversation summary rewrote", () => {
+    const call = {
+      ...makeSampleLlmCall(5, "ada", 40),
+      kind: "conversation_summary" as const,
+      parsed: {
+        summary: "Bob promised to pay tomorrow.",
+        dossiers: [{ person: "Bob", text: "promised to pay me tomorrow" }],
+      },
+    };
+    expect(summarizeLlmCall(call).parts).toEqual([
+      { label: "on Bob", text: "promised to pay me tomorrow" },
+    ]);
+  });
+
   it("returns no summary when nothing was parsed", () => {
     const call = { ...makeSampleLlmCall(3, "ada", 1), parsed: null, error: "timeout" };
     expect(summarizeLlmCall(call)).toMatchObject({ headline: null, parts: [], error: "timeout" });

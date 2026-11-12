@@ -74,6 +74,22 @@ export function OverviewTab({ agent }: { agent: Agent }) {
           </div>
         ))}
       </PanelSection>
+      <PanelSection title="Plans">
+        {agent.plans.length === 0 && <EmptyNote>No plans.</EmptyNote>}
+        {agent.plans.map((plan, planIndex) => (
+          <div key={planIndex} className="goal">
+            <div className="goal-text">{plan.aim}</div>
+            {plan.steps.length > 0 && (
+              <ol className="bullet-list">
+                {plan.steps.map((step, stepIndex) => (
+                  <li key={stepIndex}>{step}</li>
+                ))}
+              </ol>
+            )}
+            {plan.keepFrom && <div className="goal-why">kept from {plan.keepFrom}</div>}
+          </div>
+        ))}
+      </PanelSection>
       <PanelSection title="Today's plan">
         {agent.dailyPlan ? (
           <p className="prose pre-wrap">{agent.dailyPlan}</p>
