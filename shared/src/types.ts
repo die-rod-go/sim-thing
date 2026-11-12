@@ -166,7 +166,6 @@ export interface DecisionReply {
   amount?: number;
   query?: string;
   minutes?: number;
-  note?: { person: string; text: string };
   mood?: string;
   /** The number of a plan whose next step is already done. */
   stepDone?: number;
