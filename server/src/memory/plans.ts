@@ -1,7 +1,7 @@
 import type { Plan } from "@village/shared";
 import { z } from "zod";
 import { config } from "../config";
-import { strictJsonObject } from "../decision/schema-fields";
+import { strictJsonObject, writtenText } from "../decision/schema-fields";
 import type { JsonSchema } from "../llm/types";
 
 /**
@@ -14,11 +14,11 @@ export function plansSchema() {
   return z
     .array(
       z.object({
-        aim: z.string().trim().min(1).max(maxAimChars),
+        aim: writtenText(maxAimChars).min(1),
         steps: z
-          .array(z.string().trim().min(1).max(maxStepChars))
+          .array(writtenText(maxStepChars).min(1))
           .transform((steps) => steps.slice(0, maxSteps)),
-        keepFrom: z.string().trim().max(maxKeepFromChars),
+        keepFrom: writtenText(maxKeepFromChars),
       }),
     )
     .optional()

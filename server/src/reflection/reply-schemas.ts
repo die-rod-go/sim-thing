@@ -9,6 +9,7 @@ import {
   nullableJsonObject,
   nullableJsonString,
   strictJsonObject,
+  writtenText,
 } from "../decision/schema-fields";
 import type { JsonSchema } from "../llm/types";
 import { dossierEntriesJsonSchema, dossierEntriesSchema } from "../memory/dossiers";
@@ -26,8 +27,8 @@ const [FIRST_TRAIT = "extraversion", ...OTHER_TRAITS] = TRAIT_NAMES;
 const TRAIT_ENUM: readonly [TraitName, ...TraitName[]] = [FIRST_TRAIT, ...OTHER_TRAITS];
 
 const requiredText = () => z.string().trim().min(1);
-/** Text kept as a memory: over-long replies are rejected and retried, never cut. */
-const memoryText = () => requiredText().max(config.memory.maxMemoryChars);
+/** Text kept as a memory: replies well over the length are rejected and retried, never cut. */
+const memoryText = () => writtenText(config.memory.maxMemoryChars).min(1);
 
 /** Strict structured output (Anthropic) rejects `maxItems` and any `minItems` above 1. */
 function jsonArray(items: JsonSchema, limits: { minItems?: 0 | 1 } = {}) {

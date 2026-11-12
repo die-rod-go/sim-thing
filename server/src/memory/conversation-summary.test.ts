@@ -116,9 +116,12 @@ describe("conversation summaries", () => {
     expect(summary.tags).toEqual([CONVERSATION_SUMMARY_TAG, "mara", "bakery", "bram"]);
   });
 
-  it("rejects a summary longer than the summary limit instead of cutting it", () => {
+  it("accepts a summary a little over the asked length and rejects one far over it", () => {
     const { schema } = buildConversationSummaryReplySchema();
-    expect(schema.safeParse({ summary: "word ".repeat(maxChars) }).success).toBe(false);
+    const slightlyOver = "x".repeat(maxChars + Math.floor(maxChars / 10));
+    const farOver = "x".repeat(Math.ceil(maxChars * config.llm.replyTextSlack) + 1);
+    expect(schema.safeParse({ summary: slightlyOver }).success).toBe(true);
+    expect(schema.safeParse({ summary: farOver }).success).toBe(false);
     expect(schema.safeParse({ summary: "I talked with Edwin." }).success).toBe(true);
   });
 
@@ -187,13 +190,14 @@ describe("conversation summaries", () => {
     expect(prompt).toContain(`- Ilsa: ${config.dossier.unknownPersonText}`);
   });
 
-  it("accepts rewritten dossiers and rejects one over the dossier limit", () => {
+  it("accepts rewritten dossiers and rejects one far over the dossier limit", () => {
     const { schema } = buildConversationSummaryReplySchema();
     const summary = "I talked with Bram.";
     expect(schema.parse({ summary }).dossiers).toEqual([]);
     const entry = { person: "Bram", text: "Keeps his word." };
     expect(schema.parse({ summary, dossiers: [entry] }).dossiers).toEqual([entry]);
-    const tooLong = { person: "Bram", text: "x".repeat(config.dossier.maxChars + 1) };
+    const farOverChars = Math.ceil(config.dossier.maxChars * config.llm.replyTextSlack) + 1;
+    const tooLong = { person: "Bram", text: "x".repeat(farOverChars) };
     expect(schema.safeParse({ summary, dossiers: [tooLong] }).success).toBe(false);
   });
 });

@@ -2,7 +2,7 @@ import type { Dossier } from "@village/shared";
 import { z } from "zod";
 import { config } from "../config";
 import { resolveName } from "../decision/resolve-name";
-import { strictJsonObject } from "../decision/schema-fields";
+import { strictJsonObject, writtenText } from "../decision/schema-fields";
 import type { JsonSchema } from "../llm/types";
 
 export interface DossierEntry {
@@ -15,13 +15,13 @@ export interface NamedPerson {
   name: string;
 }
 
-/** A rewritten entry over `maxChars` is rejected and retried, never cut. */
+/** A rewritten entry well over `maxChars` is rejected and retried, never cut. */
 export function dossierEntriesSchema() {
   return z
     .array(
       z.object({
         person: z.string().trim().min(1),
-        text: z.string().trim().min(1).max(config.dossier.maxChars),
+        text: writtenText(config.dossier.maxChars).min(1),
       }),
     )
     .optional()

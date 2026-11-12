@@ -569,7 +569,7 @@ export const config = {
   },
 
   dossier: {
-    /** A rewritten entry over this length is rejected and retried, never cut. */
+    /** The length a rewritten entry is asked to keep to; see `llm.replyTextSlack`. */
     maxChars: 400,
     /** The decision prompt's "People on your mind" lists at most this many. */
     shownInDecision: 5,
@@ -618,6 +618,11 @@ export const config = {
     concurrency: 8,
     retryBackoffMs: 1500,
     requestTimeoutMs: 15000,
+    /**
+     * Written text may run this much over the length a prompt asks for before the reply is
+     * rejected: models can't count characters, and a retry costs a whole second call.
+     */
+    replyTextSlack: 1.5,
     /** null sends no temperature, so the provider default applies; Anthropic rejects any other value. */
     temperature: null as number | null,
     /**
@@ -627,11 +632,11 @@ export const config = {
     maxReplyTokens: {
       decision: 1500,
       interact: 500,
-      morning: 1500,
+      morning: 3000,
       daytime: 3000,
       night: 4500,
       weekly: 3000,
-      conversation_summary: 1000,
+      conversation_summary: 2000,
     },
     /** Calls of these kinds use `LLM_REFLECTION_MODEL` when it is set. */
     reflectionKinds: ["morning", "daytime", "night", "weekly"] as LlmCallKind[],

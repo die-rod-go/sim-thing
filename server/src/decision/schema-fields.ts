@@ -1,4 +1,5 @@
 import { z } from "zod";
+import { config } from "../config";
 import type { JsonSchema } from "../llm/types";
 import { normalizeDisplayName } from "./resolve-name";
 
@@ -92,4 +93,12 @@ export function aliasedNameEnum(
       message: `${fieldLabel} must be one of: ${names.join(", ")}`,
     })
     .transform((input) => canonicalByNormalized.get(normalizeDisplayName(input)) ?? input);
+}
+
+/** Text the prompt asks to keep to `targetChars`; only text well past it is rejected. */
+export function writtenText(targetChars: number) {
+  return z
+    .string()
+    .trim()
+    .max(Math.floor(targetChars * config.llm.replyTextSlack));
 }

@@ -3,7 +3,7 @@ import type { Agent, Bucket, Memory } from "@village/shared";
 import { z } from "zod";
 import { config } from "../config";
 import type { ReplySchemas } from "../decision/reply-schema";
-import { dropEmptyFields, strictJsonObject } from "../decision/schema-fields";
+import { dropEmptyFields, strictJsonObject, writtenText } from "../decision/schema-fields";
 import { describeTraits } from "../decision/words";
 import { renderTemplate } from "../llm/templates";
 import { dossierEntriesJsonSchema, dossierEntriesSchema } from "./dossiers";
@@ -28,7 +28,7 @@ export function buildConversationSummaryReplySchema(): ReplySchemas<Conversation
     schema: z.preprocess(
       dropEmptyFields,
       z.object({
-        summary: z.string().trim().min(1).max(config.memory.conversationSummary.maxChars),
+        summary: writtenText(config.memory.conversationSummary.maxChars).min(1),
         dossiers: dossierEntriesSchema(),
       }),
     ),
