@@ -4,7 +4,7 @@ import { config } from "../config";
 import { resolveName } from "../decision/resolve-name";
 import { describeGoals } from "../decision/sections";
 import { describeStats, describeStatus, describeTraits } from "../decision/words";
-import type { StructuredCaller } from "../llm/call-structured";
+import type { StructuredCaller, StructuredCallResult } from "../llm/call-structured";
 import { renderTemplate } from "../llm/templates";
 import { filePersonNote } from "../memory/filing";
 import { forgetMemories } from "../memory/forgetting";
@@ -142,20 +142,28 @@ function rewritePeopleNotes(
   return { added, replacedIds };
 }
 
-/**
- * The night pass: summary, mood entry and insights into `reflections`, rewritten people notes into
- * `people`, and faded memories swept. Mutates `store` to match the returned lists.
- */
-export async function runNightPass(input: NightPassInput): Promise<NightPassResult> {
-  const { agent, store } = input;
-  const dayMemories = selectDayMemories(store, agent.id, input.tick);
-  const result = await input.callStructured({
+export function requestNightReply(
+  input: NightPassInput,
+): Promise<StructuredCallResult<NightReply>> {
+  const dayMemories = selectDayMemories(input.store, input.agent.id, input.tick);
+  return input.callStructured({
     kind: "night",
-    agentId: agent.id,
+    agentId: input.agent.id,
     tick: input.tick,
     prompt: buildNightPrompt(input, dayMemories),
     ...buildNightReplySchema(),
   });
+}
+
+/**
+ * Files what the night reply says: summary, mood entry and insights into `reflections`, rewritten
+ * people notes into `people`, and faded memories swept. Mutates `store` to match the returned lists.
+ */
+export function applyNightReply(
+  input: NightPassInput,
+  result: StructuredCallResult<NightReply>,
+): NightPassResult {
+  const { agent, store } = input;
   const fadedIds = deleteFadedMemories(store, agent.id);
   if (!result.ok) {
     return {
@@ -181,4 +189,9 @@ export async function runNightPass(input: NightPassInput): Promise<NightPassResu
       insights: result.value.insights.map((insight) => insight.text),
     },
   };
+}
+
+/** The night pass: one call, then `applyNightReply`. */
+export async function runNightPass(input: NightPassInput): Promise<NightPassResult> {
+  return applyNightReply(input, await requestNightReply(input));
 }

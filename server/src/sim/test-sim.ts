@@ -158,8 +158,8 @@ export interface TestSimOptions {
   /** Runs the real reflection passes, handing personality changes here; off when omitted. */
   reflection?: (change: Omit<PersonalityChange, "id">) => void;
   dailyTokenBudget?: number;
-  /** Runs decisions in the background, as the live sim does; off (each tick waits) when omitted. */
-  shouldDecideInBackground?: boolean;
+  /** Runs LLM calls in the background, as the live sim does; off (each tick waits) when omitted. */
+  shouldCallLlmInBackground?: boolean;
   /** Caps how long idle agents' decisions hold a tick; no cap when omitted. */
   idleDecisionWaitMs?: number;
 }
@@ -188,11 +188,12 @@ export function createTestSim(options: TestSimOptions): TestSim {
   });
   const advanceTick = createDecisionStrategy({
     callStructured: llm.callStructured,
-    shouldDecideInBackground: options.shouldDecideInBackground,
+    shouldCallLlmInBackground: options.shouldCallLlmInBackground,
     idleDecisionWaitMs: options.idleDecisionWaitMs,
     reflectionHook: options.reflection
       ? createReflectionHook({
           callStructured: llm.callStructured,
+          shouldRunInBackground: options.shouldCallLlmInBackground,
           recordPersonalityChange: options.reflection,
         })
       : createNoReflectionHook(),

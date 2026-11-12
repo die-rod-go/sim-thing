@@ -1,8 +1,8 @@
 import { pruneConversationLog } from "../memory/conversation";
 import { applyDecisionPlan } from "./action-executor";
-import { BackgroundDecisions } from "./background-decisions";
+import { BackgroundWork } from "./background-work";
 import { createConversationSummarizer } from "./conversation-summaries";
-import { runDecision } from "./decision-runner";
+import { runDecision, type DecisionPlan } from "./decision-runner";
 import type { AdvanceTick } from "./loop";
 import { enforceBucketCaps, runScheduledForgetting } from "./memory-upkeep";
 import type { SimDependencies, TickContext } from "./tick-context";
@@ -37,16 +37,18 @@ function listIdleAgentIds(state: WorldState): string[] {
  * 7. upkeep: bucket caps, hourly forgetting, conversation log pruning, then the reflection hook.
  * Events from step 5 flag decisions for the next tick, like a reply to what was just said.
  *
- * With `shouldDecideInBackground`, only agents with nothing to do hold the clock: step 5 applies
+ * With `shouldCallLlmInBackground`, only agents with nothing to do hold the clock: step 5 applies
  * the decisions that returned since the last tick, starts the new ones, waits for those of idle
  * agents (up to `idleDecisionWaitMs`), then applies every finished plan (in agent order). An agent interrupted mid-action
  * keeps doing what it was doing until its decision lands, so a slow call doesn't stall the
- * village, while idle agents (and the replies they give) never fall behind the clock.
+ * village, while idle agents (and the replies they give) never fall behind the clock. Summaries
+ * (step 6) and reflection passes (step 7) never hold it: each is applied on the first tick after
+ * its reply arrives.
  */
 export function createDecisionStrategy(dependencies: SimDependencies): AdvanceTick {
   const summarizeEndedConversations = createConversationSummarizer(dependencies);
-  const backgroundDecisions = dependencies.shouldDecideInBackground
-    ? new BackgroundDecisions()
+  const backgroundDecisions = dependencies.shouldCallLlmInBackground
+    ? new BackgroundWork<DecisionPlan>("decision")
     : null;
   const decide = (state: WorldState, request: DecisionRequest) =>
     runDecision(state, dependencies, request);
@@ -61,7 +63,7 @@ export function createDecisionStrategy(dependencies: SimDependencies): AdvanceTi
         applyDecisionPlan(context, plan);
       }
       const requests = selectDecisionRequests(context, (agentId) =>
-        backgroundDecisions.isDeciding(state, agentId),
+        backgroundDecisions.isRunning(state, agentId),
       );
       for (const request of requests) {
         backgroundDecisions.start(state, request.agentId, () => decide(state, request));

@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 import { config } from "../config";
-import type { FakeResponder } from "../llm/fake-llm-client";
+import type { FakeReply, FakeResponder } from "../llm/fake-llm-client";
 import { CONVERSATION_SUMMARY_SCHEMA_NAME } from "../memory/conversation-summary";
 import {
   createTestSim,
@@ -36,8 +36,12 @@ function summarizingBy(summaryAnswer: (agentName: string) => string | null): Fak
   };
 }
 
-function startGreetingSim(responder: FakeResponder) {
-  const sim = createTestSim({ agentIds: ["mara", "bram", "ilsa"], responder });
+function startGreetingSim(responder: FakeResponder, shouldCallLlmInBackground = false) {
+  const sim = createTestSim({
+    agentIds: ["mara", "bram", "ilsa"],
+    responder,
+    shouldCallLlmInBackground,
+  });
   sim.placeAgent("ilsa", SQUARE);
   sim.placeAgent("mara", { x: SQUARE.x + 1, y: SQUARE.y });
   sim.placeAgent("bram", { x: SQUARE.x + 3, y: SQUARE.y });
@@ -56,7 +60,37 @@ function summaryPrompts(sim: ReturnType<typeof createTestSim>): string[] {
     .map((record) => record.prompt);
 }
 
+/** Lets replies that were just released travel through the LLM stack's promise chain. */
+function settleReplies(): Promise<void> {
+  return new Promise((resolveSettled) => setTimeout(resolveSettled, 0));
+}
+
 describe("conversation summaries in the sim", () => {
+  it("keeps the clock running while summaries are written and files them once they arrive", async () => {
+    const heldSummaries: { agentName: string; release: (reply: FakeReply) => void }[] = [];
+    const responder: FakeResponder = (request, callIndex) => {
+      if (request.schemaName !== CONVERSATION_SUMMARY_SCHEMA_NAME) {
+        return greetings(request, callIndex);
+      }
+      return new Promise<FakeReply>((release) => {
+        heldSummaries.push({ agentName: findPromptAgentName(request), release });
+      });
+    };
+    const sim = startGreetingSim(responder, true);
+    await sim.advance(TICKS_UNTIL_SUMMARY + 3);
+    expect(sim.state.tick).toBe(TICKS_UNTIL_SUMMARY + 3);
+    expect(heldSummaries.map((held) => held.agentName).sort()).toEqual(["Ilsa", "Mara"]);
+    expect(conversationTexts(sim, "mara")).toEqual(['I said: "Morning, Ilsa"']);
+    for (const held of heldSummaries) {
+      held.release(JSON.stringify({ summary: `${held.agentName} remembers the greeting` }));
+    }
+    await settleReplies();
+    await sim.advance();
+    expect(conversationTexts(sim, "mara")).toEqual(["Mara remembers the greeting"]);
+    expect(conversationTexts(sim, "ilsa")).toEqual(["Ilsa remembers the greeting"]);
+    expect(summaryPrompts(sim)).toHaveLength(2);
+  });
+
   it("keeps the lines while the conversation is still going", async () => {
     const sim = startGreetingSim(summarizingBy((name) => `${name} remembers the greeting`));
     await sim.advance(TICKS_UNTIL_SUMMARY - 1);

@@ -101,7 +101,7 @@ describe("death", () => {
     const sim = createTestSim({
       agentIds: ["mara"],
       responder: () => new Promise<FakeReply>((resolveReply) => releases.push(resolveReply)),
-      shouldDecideInBackground: true,
+      shouldCallLlmInBackground: true,
     });
     sim.placeAgent("mara", SQUARE);
     interruptDuringWait(sim, "mara", MINUTES_PER_HOUR);

@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 import type { FakeReply } from "../llm/fake-llm-client";
-import { BackgroundDecisions } from "./background-decisions";
+import { BackgroundWork } from "./background-work";
 import type { DecisionPlan } from "./decision-runner";
 import { createTestSim, decisionReply, findPromptAgentName, interruptDuringWait } from "./test-sim";
 
@@ -44,7 +44,7 @@ describe("background decisions", () => {
     const sim = createTestSim({
       agentIds: ["mara"],
       responder: held.responder,
-      shouldDecideInBackground: true,
+      shouldCallLlmInBackground: true,
     });
     sim.placeAgent("mara", SQUARE);
     interruptDuringWait(sim, "mara", LONG_WAIT_TICKS);
@@ -59,7 +59,7 @@ describe("background decisions", () => {
     const sim = createTestSim({
       agentIds: ["mara"],
       responder: held.responder,
-      shouldDecideInBackground: true,
+      shouldCallLlmInBackground: true,
     });
     sim.placeAgent("mara", SQUARE);
     interruptDuringWait(sim, "mara", LONG_WAIT_TICKS);
@@ -76,7 +76,7 @@ describe("background decisions", () => {
     const sim = createTestSim({
       agentIds: ["mara"],
       responder: held.responder,
-      shouldDecideInBackground: true,
+      shouldCallLlmInBackground: true,
     });
     sim.placeAgent("mara", SQUARE);
     interruptDuringWait(sim, "mara", LONG_WAIT_TICKS);
@@ -89,7 +89,7 @@ describe("background decisions", () => {
     const sim = createTestSim({
       agentIds: ["mara"],
       responder: held.responder,
-      shouldDecideInBackground: true,
+      shouldCallLlmInBackground: true,
     });
     sim.placeAgent("mara", SQUARE);
     let isTickDone = false;
@@ -110,7 +110,7 @@ describe("background decisions", () => {
     const sim = createTestSim({
       agentIds: ["mara"],
       responder: held.responder,
-      shouldDecideInBackground: true,
+      shouldCallLlmInBackground: true,
     });
     sim.placeAgent("mara", SQUARE);
     interruptDuringWait(sim, "mara", 2);
@@ -130,7 +130,7 @@ describe("background decisions", () => {
     const sim = createTestSim({
       agentIds: ["mara"],
       responder: held.responder,
-      shouldDecideInBackground: true,
+      shouldCallLlmInBackground: true,
       idleDecisionWaitMs: 5,
     });
     sim.placeAgent("mara", SQUARE);
@@ -145,7 +145,7 @@ describe("background decisions", () => {
   });
 
   it("re-raises a decision that threw on the next tick", async () => {
-    const decisions = new BackgroundDecisions();
+    const decisions = new BackgroundWork<DecisionPlan>("decision");
     const sim = createTestSim({ agentIds: ["mara"], responder: () => "" });
     decisions.start(sim.state, "mara", () => Promise.reject(new Error("prompt build broke")));
     await settleReplies();
@@ -155,18 +155,18 @@ describe("background decisions", () => {
   });
 
   it("drops decisions asked in a world that has since been replaced", async () => {
-    const decisions = new BackgroundDecisions();
+    const decisions = new BackgroundWork<DecisionPlan>("decision");
     const oldWorld = createTestSim({ agentIds: ["mara"], responder: () => "" }).state;
     const newWorld = createTestSim({ agentIds: ["mara"], responder: () => "" }).state;
     decisions.start(oldWorld, "mara", () => Promise.resolve(waitPlan("mara")));
     await settleReplies();
-    expect(decisions.isDeciding(newWorld, "mara")).toBe(false);
+    expect(decisions.isRunning(newWorld, "mara")).toBe(false);
     expect(decisions.collectFinished(newWorld)).toEqual([]);
     expect(decisions.collectFinished(oldWorld)).toEqual([]);
   });
 
   it("returns finished plans in agent order, not reply order", async () => {
-    const decisions = new BackgroundDecisions();
+    const decisions = new BackgroundWork<DecisionPlan>("decision");
     const { state } = createTestSim({ agentIds: ["mara", "ilsa"], responder: () => "" });
     const [firstAgent, secondAgent] = state.agents.map((agent) => agent.id);
     if (!firstAgent || !secondAgent) throw new Error("expected two agents");

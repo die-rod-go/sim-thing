@@ -9,6 +9,7 @@ import {
   findEndedConversations,
   selectOverheardAround,
 } from "../memory/conversation-summary";
+import { BackgroundWork } from "./background-work";
 import { findAgent, listLivingAgents } from "./world-access";
 import type { WorldState } from "./world-state";
 
@@ -17,9 +18,11 @@ const logger = createLogger("conversation-summary");
 export interface ConversationSummarizerDependencies {
   callStructured: StructuredCaller;
   promptsDirectory?: string;
+  /** Lets the clock run on while summaries are written; each lands on the first tick after it returns. */
+  shouldCallLlmInBackground?: boolean;
 }
 
-/** Summarises every ended conversation; the clock waits for it, as it waits for decisions. */
+/** Summarises every ended conversation; without background calls the clock waits for it. */
 export type SummarizeEndedConversations = (state: WorldState) => Promise<void>;
 
 interface SummaryOutcome {
@@ -48,13 +51,15 @@ function replaceLinesWithSummary(
 /**
  * Builds the end-of-tick conversation summary step. Each agent writes its own summary from the
  * lines it remembers, then those lines are deleted. Calls run in parallel but are applied in agent
- * order, so memory ids don't depend on which call returned first. After a failed call the agent's
- * lines are kept and retried `retryAfterTicks` later; that wait is not saved with the world.
+ * order, so memory ids don't depend on which call returned first. An agent whose summaries are
+ * still being written starts no new ones. After a failed call the agent's lines are kept and
+ * retried `retryAfterTicks` later; that wait and summaries in flight are not saved with the world.
  */
 export function createConversationSummarizer(
   dependencies: ConversationSummarizerDependencies,
 ): SummarizeEndedConversations {
   const retryTickByAgent = new Map<string, number>();
+  const work = new BackgroundWork<SummaryOutcome[]>("conversation summary");
   const { schema, jsonSchema, schemaName } = buildConversationSummaryReplySchema();
 
   async function summarize(
@@ -85,15 +90,8 @@ export function createConversationSummarizer(
     return retryTick !== undefined && tick < retryTick;
   }
 
-  return async (state) => {
-    const pending = listLivingAgents(state)
-      .filter((agent) => !isWaitingToRetry(agent.id, state.tick))
-      .flatMap((agent) =>
-        findEndedConversations(state.memoryStore, agent.id, state.tick).map((conversation) =>
-          summarize(state, agent.id, conversation),
-        ),
-      );
-    for (const outcome of await Promise.all(pending)) {
+  function applyOutcomes(state: WorldState, outcomes: readonly SummaryOutcome[]): void {
+    for (const outcome of outcomes) {
       if (outcome.summary === null) {
         logger.warn(`conversation summary for ${outcome.agentId} failed at tick ${state.tick}`);
         retryTickByAgent.set(
@@ -104,5 +102,24 @@ export function createConversationSummarizer(
       }
       replaceLinesWithSummary(state, outcome.agentId, outcome.conversation, outcome.summary);
     }
+  }
+
+  function startDueSummaries(state: WorldState): void {
+    for (const agent of listLivingAgents(state)) {
+      if (work.isRunning(state, agent.id) || isWaitingToRetry(agent.id, state.tick)) continue;
+      const conversations = findEndedConversations(state.memoryStore, agent.id, state.tick);
+      if (conversations.length === 0) continue;
+      work.start(state, agent.id, () =>
+        Promise.all(conversations.map((conversation) => summarize(state, agent.id, conversation))),
+      );
+    }
+  }
+
+  return async (state) => {
+    applyOutcomes(state, work.collectFinished(state).flat());
+    startDueSummaries(state);
+    if (dependencies.shouldCallLlmInBackground) return;
+    await work.waitForAll(state);
+    applyOutcomes(state, work.collectFinished(state).flat());
   };
 }

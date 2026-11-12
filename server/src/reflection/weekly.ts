@@ -2,7 +2,7 @@ import { TRAIT_NAMES } from "@village/shared";
 import type { Agent, Personality, PersonalityChange, TraitName } from "@village/shared";
 import { config } from "../config";
 import { describeStats, describeStatus } from "../decision/words";
-import type { StructuredCaller } from "../llm/call-structured";
+import type { StructuredCaller, StructuredCallResult } from "../llm/call-structured";
 import { renderTemplate } from "../llm/templates";
 import type { MemoryReader } from "../memory/memory-store";
 import { describeGoalsWithKind, describeReflections, describeTraitValues } from "./prompt-sections";
@@ -99,14 +99,27 @@ function proseChange(
  * revised goal list (old goals kept if the reply has none). The agent is unchanged on failure.
  */
 export async function runWeeklyPass(input: WeeklyPassInput): Promise<WeeklyPassResult> {
-  const { agent } = input;
-  const result = await input.callStructured({
+  return applyWeeklyReply(input.agent, input.tick, await requestWeeklyReply(input));
+}
+
+export function requestWeeklyReply(
+  input: WeeklyPassInput,
+): Promise<StructuredCallResult<WeeklyReply>> {
+  return input.callStructured({
     kind: "weekly",
-    agentId: agent.id,
+    agentId: input.agent.id,
     tick: input.tick,
     prompt: buildWeeklyPrompt(input),
     ...buildWeeklyReplySchema(),
   });
+}
+
+/** Applies the reply to `agent` as it is now; `tick` stamps the personality changes. */
+export function applyWeeklyReply(
+  agent: Agent,
+  tick: number,
+  result: StructuredCallResult<WeeklyReply>,
+): WeeklyPassResult {
   if (!result.ok) return { agent, changes: [] };
   const reply = result.value;
   const { personality } = agent;
@@ -124,7 +137,7 @@ export async function runWeeklyPass(input: WeeklyPassInput): Promise<WeeklyPassR
   const changes = [...traitChanges, ...proseChanges].map((change) => ({
     ...change,
     agentId: agent.id,
-    tick: input.tick,
+    tick,
   }));
   const updatedAgent: Agent = {
     ...agent,

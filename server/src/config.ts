@@ -462,10 +462,11 @@ export const config = {
 
   decision: {
     /**
-     * The running sim lets the clock go on while an agent interrupted mid-action decides; idle
-     * agents still hold it. Tests always wait for every decision.
+     * The running sim lets the clock go on while an agent interrupted mid-action decides and while
+     * conversation summaries and reflection passes run; idle agents' decisions still hold it.
+     * Tests always wait for every call.
      */
-    shouldDecideInBackground: true,
+    shouldCallLlmInBackground: true,
     /**
      * Longest an idle agent's decision holds the clock in real time; past it the tick goes on and
      * the plan lands on a later tick, so one slow call can't stall the village.

@@ -1,10 +1,10 @@
 import type { Agent, Memory } from "@village/shared";
 import { describeGoals } from "../decision/sections";
 import { describeStats, describeStatus, describeTraits } from "../decision/words";
-import type { StructuredCaller } from "../llm/call-structured";
+import type { StructuredCaller, StructuredCallResult } from "../llm/call-structured";
 import { renderTemplate } from "../llm/templates";
 import { describeReflections } from "./prompt-sections";
-import { buildMorningReplySchema } from "./reply-schemas";
+import { buildMorningReplySchema, type MorningReply } from "./reply-schemas";
 
 const MORNING_TEMPLATE = "morning";
 
@@ -39,17 +39,25 @@ export function buildMorningPrompt(input: MorningPassInput): string {
   });
 }
 
-/** Writes the agent's `dailyPlan` (and mood, if given). Returns the agent unchanged if the call fails. */
-export async function runMorningPass(input: MorningPassInput): Promise<Agent> {
-  const { agent } = input;
-  const result = await input.callStructured({
+export function requestMorningReply(
+  input: MorningPassInput,
+): Promise<StructuredCallResult<MorningReply>> {
+  return input.callStructured({
     kind: "morning",
-    agentId: agent.id,
+    agentId: input.agent.id,
     tick: input.tick,
     prompt: buildMorningPrompt(input),
     ...buildMorningReplySchema(),
   });
+}
+
+/** Writes the agent's `dailyPlan` (and mood, if given). Returns the agent unchanged if the call failed. */
+export function applyMorningReply(agent: Agent, result: StructuredCallResult<MorningReply>): Agent {
   if (!result.ok) return agent;
   const { dailyPlan, mood } = result.value;
   return { ...agent, dailyPlan, mood: mood ?? agent.mood };
+}
+
+export async function runMorningPass(input: MorningPassInput): Promise<Agent> {
+  return applyMorningReply(input.agent, await requestMorningReply(input));
 }

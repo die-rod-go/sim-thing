@@ -1,7 +1,11 @@
 import { describe, expect, it } from "vitest";
 import type { PersonalityChange } from "@village/shared";
+import type { FakeReply } from "../llm/fake-llm-client";
 import { createFakeResponder } from "../llm/fake-responder";
 import { createTestSim, decisionReply } from "./test-sim";
+
+/** An agent awake from the start first thinks things over two sim-hours in. */
+const DAYTIME_START_TICK = 2 * 60;
 
 describe("reflection hook", () => {
   it("writes a night reflection on falling asleep and a morning plan after a night's sleep", async () => {
@@ -74,6 +78,38 @@ describe("reflection hook", () => {
       expect.stringContaining("I thought: The work goes better when I keep at it."),
     );
     expect(sim.state.reflectionSchedules.mara?.lastReflectionTick).toBe(daytimeRecords[0]?.tick);
+  });
+
+  it("keeps the clock running while a daytime pass thinks, and files the thought once it arrives", async () => {
+    const fake = createFakeResponder();
+    const heldDaytimeReplies: (() => void)[] = [];
+    const sim = createTestSim({
+      agentIds: ["mara"],
+      reflection: () => undefined,
+      shouldCallLlmInBackground: true,
+      responder: (request, callIndex) => {
+        if (request.schemaName === "decision_reply") {
+          return decisionReply({ action: "say", minutes: 60, say: "Is anyone about?" });
+        }
+        const reply = fake(request, callIndex);
+        if (request.schemaName !== "daytime_reply") return reply;
+        return new Promise<FakeReply>((release) => heldDaytimeReplies.push(() => release(reply)));
+      },
+    });
+    await sim.advance(DAYTIME_START_TICK + 5);
+    expect(heldDaytimeReplies).toHaveLength(1);
+    expect(sim.state.reflectionSchedules.mara?.lastReflectionTick).not.toBe(DAYTIME_START_TICK);
+    expect(sim.agent("mara").workingMemory).not.toContainEqual(
+      expect.stringContaining("I thought:"),
+    );
+    heldDaytimeReplies[0]?.();
+    await new Promise((resolveSettled) => setTimeout(resolveSettled, 0));
+    await sim.advance();
+    expect(sim.agent("mara").workingMemory).toContainEqual(
+      expect.stringContaining("I thought: The work goes better when I keep at it."),
+    );
+    expect(sim.records.find((record) => record.kind === "daytime")?.tick).toBe(DAYTIME_START_TICK);
+    expect(sim.state.reflectionSchedules.mara?.lastReflectionTick).toBe(DAYTIME_START_TICK);
   });
 
   it("runs the weekly pass after the seventh night and records personality changes", async () => {

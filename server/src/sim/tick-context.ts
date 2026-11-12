@@ -9,11 +9,12 @@ export interface SimDependencies {
   /** Overrides `config.server.promptsDirectory`, e.g. in tests. */
   promptsDirectory?: string;
   /**
-   * Lets the clock run on while decisions wait for the LLM, applying each on the first tick after
-   * it returns. Off (each tick waits for its decisions) keeps runs reproducible, e.g. in tests.
+   * Lets the clock run on while decisions, conversation summaries and reflection passes wait for the
+   * LLM, applying each on the first tick after it returns. Off (each tick waits for all of them)
+   * keeps runs reproducible, e.g. in tests.
    */
-  shouldDecideInBackground?: boolean;
-  /** With `shouldDecideInBackground`, caps how long idle agents' decisions hold a tick; no cap when omitted. */
+  shouldCallLlmInBackground?: boolean;
+  /** With `shouldCallLlmInBackground`, caps how long idle agents' decisions hold a tick; no cap when omitted. */
   idleDecisionWaitMs?: number;
 }
 
