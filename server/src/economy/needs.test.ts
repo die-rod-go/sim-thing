@@ -22,11 +22,12 @@ function decayForOneDay(agent: Agent, isAsleep: boolean): Agent {
 }
 
 describe("needs decay", () => {
-  it("hunger falls by 1.0 over a sim-day awake", () => {
+  it("each need falls by its daily rate over a sim-day awake", () => {
     const agent = decayForOneDay(makeAgent({ needs: { ...full } }), false);
-    expect(agent.needs.hunger).toBeCloseTo(0, 6);
-    expect(agent.needs.energy).toBeCloseTo(0.2, 6);
-    expect(agent.needs.fun).toBeCloseTo(0.4, 6);
+    const rates = config.needs.decayPerDayAwake;
+    expect(agent.needs.hunger).toBeCloseTo(Math.max(0, 1 - rates.hunger), 6);
+    expect(agent.needs.energy).toBeCloseTo(Math.max(0, 1 - rates.energy), 6);
+    expect(agent.needs.fun).toBeCloseTo(Math.max(0, 1 - rates.fun), 6);
   });
 
   it("social decays faster for an extrovert", () => {
@@ -38,10 +39,12 @@ describe("needs decay", () => {
     expect(extrovertLoss).toBeCloseTo(introvertLoss * 3, 6);
   });
 
-  it("needs decay at a quarter rate while asleep", () => {
+  it("needs decay at the sleep rate while asleep", () => {
     const agent = decayForOneDay(makeAgent({ needs: { ...full } }), true);
-    expect(agent.needs.hunger).toBeCloseTo(0.75, 6);
-    expect(agent.needs.fun).toBeCloseTo(0.85, 6);
+    const rates = config.needs.decayPerDayAwake;
+    const multiplier = config.needs.sleepDecayMultiplier;
+    expect(agent.needs.hunger).toBeCloseTo(Math.max(0, 1 - rates.hunger * multiplier), 6);
+    expect(agent.needs.fun).toBeCloseTo(Math.max(0, 1 - rates.fun * multiplier), 6);
   });
 
   it("leaves energy to sleep recovery while asleep", () => {

@@ -1,10 +1,10 @@
 import { describe, expect, it } from "vitest";
-import { config } from "../config";
 import { tileIndex } from "../world/types";
 import { canSee, computeVisibleTiles } from "./sight";
 import { buildAsciiWorld, requireMarker } from "./test-grid";
 
-const range = config.perception.sightRangeTiles;
+/** The ASCII corridors below are drawn for this range, independent of the configured one. */
+const range = 12;
 
 function canMarkerSee(art: string, viewer: string, target: string): boolean {
   const asciiWorld = buildAsciiWorld(art);

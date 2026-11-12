@@ -1,0 +1,3215 @@
+{
+  "world": {
+    "sightBlockedBy": { "allOf": [{ "has": "door" }, { "has": "closed" }] },
+    "movementBlockedBy": {
+      "anyOf": [{ "has": "solid" }, { "allOf": [{ "has": "door" }, { "has": "closed" }] }]
+    },
+    "soundMuffledBy": { "allOf": [{ "has": "door" }, { "has": "closed" }] },
+    "contentsHiddenBy": { "anyOf": [{ "has": "alive" }, { "has": "locked" }] },
+    "shownWhenCarried": { "has": "conspicuous" },
+    "lyingWhenOnTile": { "has": "holdable" },
+    "closedSupply": { "definition": "coin" },
+    "agentBody": "person",
+    "agentHealth": "health.current"
+  },
+  "components": {
+    "holdable": {
+      "description": "Can be picked up and carried.",
+      "fields": { "kilograms": { "type": "number", "description": "How heavy it is.", "min": 0 } }
+    },
+    "conspicuous": { "description": "Others see it when someone carries it." },
+    "flesh": { "description": "Living or once-living bodies." },
+    "flammable": { "description": "Catches fire." },
+    "metal": { "description": "Made of metal." },
+    "sharp": { "description": "Has an edge or a point." },
+    "alive": { "description": "A living person." },
+    "door": { "description": "Opens and closes. Closed, it is in the way." },
+    "solid": { "description": "In the way: nobody walks through it." },
+    "bed": { "description": "Something to sleep in." },
+    "notice_board": { "description": "A board people pin notes to." },
+    "fragile": {
+      "description": "Shatters when something hits it or it hits something.",
+      "words": "fragile",
+      "isVisible": true
+    },
+    "closed": { "description": "Shut.", "words": "closed", "isVisible": true },
+    "burning": { "description": "On fire.", "words": "on fire", "isVisible": true },
+    "bleeding": { "description": "Losing blood.", "words": "bleeding", "isVisible": true },
+    "wet": {
+      "description": "Soaked, so it doesn't catch fire.",
+      "words": "wet",
+      "isVisible": true
+    },
+    "poisoned": { "description": "Poison at work.", "words": "poisoned" },
+    "health": {
+      "description": "How much it can take. A person has 1.",
+      "fields": {
+        "max": { "type": "number", "min": 0 },
+        "current": { "type": "number", "min": 0, "max": "max" }
+      }
+    },
+    "capacity": {
+      "description": "Holds other items, like a chest or basket.",
+      "fields": { "max": { "type": "number", "description": "The most it holds.", "min": 0 } }
+    },
+    "stock": {
+      "description": "Something that runs out, like a wheat field.",
+      "fields": {
+        "capacity": { "type": "number", "description": "The most it holds.", "min": 0 },
+        "amount": {
+          "type": "number",
+          "description": "How much is left.",
+          "min": 0,
+          "max": "capacity",
+          "words": [{ "below": 1, "text": "empty" }, { "text": "{value} left" }]
+        }
+      }
+    },
+    "regrows": {
+      "description": "Its stock grows back.",
+      "fields": {
+        "perHour": { "type": "number", "description": "How much grows back in a sim-hour." }
+      }
+    },
+    "food": {
+      "description": "Something to eat.",
+      "fields": { "hunger": { "type": "number", "description": "How much one fills you." } }
+    },
+    "drink": {
+      "description": "Something to drink.",
+      "fields": { "fun": { "type": "number" }, "energy": { "type": "number" } }
+    },
+    "weapon": {
+      "description": "Something to fight with.",
+      "fields": {
+        "damage": { "type": "range", "description": "Health one hit takes, before strength." },
+        "hitChance": { "type": "number", "description": "Chance to hit someone as nimble." },
+        "stimulus": { "type": "text", "description": "What a hit sends to what it hits." }
+      }
+    },
+    "firearm": {
+      "description": "Something that shoots.",
+      "fields": {
+        "damage": { "type": "range", "description": "Health one shot takes." },
+        "hitChance": { "type": "number", "description": "Chance to hit someone as nimble." }
+      }
+    },
+    "range": {
+      "description": "How far it reaches.",
+      "fields": { "tiles": { "type": "number", "min": 0 } }
+    },
+    "ammo": { "description": "Something a firearm shoots." },
+    "healing": {
+      "description": "Something that heals wounds.",
+      "fields": { "health": { "type": "number", "description": "Health it gives back." } }
+    },
+    "breaks_into": {
+      "description": "What it turns into when it breaks.",
+      "fields": { "item": { "type": "item", "description": "The item it becomes." } }
+    },
+    "breaks_loudly": {
+      "description": "Makes a noise when it breaks.",
+      "fields": {
+        "loudness": {
+          "type": "number",
+          "description": "How far the noise carries, in tiles.",
+          "min": 0
+        }
+      }
+    },
+    "writing": {
+      "description": "Something written, like a note.",
+      "fields": {
+        "text": { "type": "text", "default": "" },
+        "author": { "type": "text", "description": "Who wrote it.", "default": "" }
+      }
+    },
+    "seat": { "description": "Something to sit on." },
+    "lockable": { "description": "A lock can be fitted to it." },
+    "fitted_lock": { "description": "Has a lock fitted, so it can be locked with a key." },
+    "locked": {
+      "description": "Locked: it won't open and nobody can see or reach inside.",
+      "words": "locked",
+      "isVisible": true
+    },
+    "opens_locks": { "description": "Locks and unlocks fitted locks." },
+    "chops": { "description": "Fells trees." },
+    "mines": { "description": "Breaks rock and ore out of the ground." },
+    "digs": { "description": "Digs earth, clay and sand." },
+    "tills": { "description": "Tills soil for planting." },
+    "catches_fish": { "description": "Catches fish." },
+    "lamp": { "description": "Can be lit." },
+    "lit": { "description": "Lit and giving light.", "words": "lit", "isVisible": true },
+    "rotten": {
+      "description": "Gone bad: eating it can make you sick.",
+      "words": "spoiled",
+      "isVisible": true
+    },
+    "remedy": { "description": "Cures poison." },
+    "cards": { "description": "A deck of playing cards." },
+    "dice": { "description": "Dice for games of chance." },
+    "water_source": { "description": "Water can be drawn from it with a bucket." },
+    "minable": {
+      "description": "Gives this when mined with a pickaxe.",
+      "fields": {
+        "item": { "type": "item", "description": "What it gives." },
+        "count": { "type": "number", "description": "How many each time.", "min": 0, "default": 1 }
+      }
+    },
+    "diggable": {
+      "description": "Gives this when dug with a shovel.",
+      "fields": {
+        "item": { "type": "item", "description": "What it gives." },
+        "count": { "type": "number", "description": "How many each time.", "min": 0, "default": 1 }
+      }
+    },
+    "gatherable": {
+      "description": "Gives this when gathered by hand.",
+      "fields": {
+        "item": { "type": "item", "description": "What it gives." },
+        "count": { "type": "number", "description": "How many each time.", "min": 0, "default": 1 }
+      }
+    },
+    "crop": {
+      "description": "Gives this when harvested by hand.",
+      "fields": {
+        "item": { "type": "item", "description": "What it gives." },
+        "count": { "type": "number", "description": "How many each time.", "min": 0, "default": 1 }
+      }
+    },
+    "fishable": {
+      "description": "Gives this when fished with a rod. Never runs out.",
+      "fields": {
+        "item": { "type": "item", "description": "What it gives." },
+        "count": { "type": "number", "description": "How many each time.", "min": 0, "default": 1 }
+      }
+    },
+    "choppable": {
+      "description": "Felled with an axe in one go, leaving something behind.",
+      "fields": {
+        "item": { "type": "item", "description": "What felling it gives." },
+        "count": { "type": "number", "description": "How many.", "min": 0 },
+        "leaves": { "type": "item", "description": "What is left standing." }
+      }
+    },
+    "depletes_into": {
+      "description": "What it becomes when its stock runs out.",
+      "fields": { "item": { "type": "item", "description": "The thing it becomes." } }
+    },
+    "turns_into": {
+      "description": "Becomes something else after a while: grows, ripens or spoils.",
+      "fields": {
+        "item": { "type": "item", "description": "The thing it becomes." },
+        "hoursLeft": { "type": "number", "description": "Sim-hours until it does.", "min": 0 }
+      }
+    },
+    "comes_in": {
+      "description": "The container left over when it is used up.",
+      "fields": { "item": { "type": "item", "description": "The container." } }
+    },
+    "flock": {
+      "description": "Live animals kept there, like hens in a coop.",
+      "fields": {
+        "capacity": { "type": "number", "description": "The most it holds.", "min": 0 },
+        "amount": {
+          "type": "number",
+          "description": "How many there are.",
+          "min": 0,
+          "max": "capacity"
+        }
+      }
+    },
+    "breeds": {
+      "description": "Its flock grows back.",
+      "fields": {
+        "perHour": { "type": "number", "description": "How many are added in a sim-hour." }
+      }
+    }
+  },
+  "definitions": [
+    {
+      "id": "coin",
+      "name": "coin",
+      "plural": "coins",
+      "glyph": { "index": 36, "color": "#e8c040" },
+      "components": { "holdable": { "kilograms": 0.005 }, "metal": {} }
+    },
+    {
+      "id": "bread",
+      "name": "bread",
+      "glyph": { "index": 127, "color": "#d89a50" },
+      "components": {
+        "holdable": { "kilograms": 0.4 },
+        "flammable": {},
+        "food": { "hunger": 0.5 },
+        "turns_into": { "item": "spoiled_food", "hoursLeft": 96 }
+      }
+    },
+    {
+      "id": "ale",
+      "name": "ale",
+      "glyph": { "index": 33, "color": "#e0b050" },
+      "components": {
+        "holdable": { "kilograms": 0.5 },
+        "drink": { "fun": 0.3, "energy": -0.05 },
+        "comes_in": { "item": "mug" }
+      }
+    },
+    {
+      "id": "wheat",
+      "name": "wheat",
+      "glyph": { "index": 231, "color": "#e8c650" },
+      "components": { "holdable": { "kilograms": 1 }, "flammable": {} }
+    },
+    {
+      "id": "wood",
+      "name": "wood",
+      "glyph": { "index": 61, "color": "#a8703c" },
+      "components": { "holdable": { "kilograms": 2 }, "flammable": {}, "conspicuous": {} }
+    },
+    {
+      "id": "bed",
+      "name": "bed",
+      "plural": "beds",
+      "glyph": { "index": 233, "color": "#c84a4e" },
+      "components": { "bed": {}, "flammable": {}, "health": { "max": 3, "current": 3 } }
+    },
+    {
+      "id": "notice_board",
+      "name": "notice board",
+      "plural": "notice boards",
+      "glyph": { "index": 240, "color": "#ece4c8" },
+      "components": {
+        "notice_board": {},
+        "flammable": {},
+        "capacity": { "max": 30 },
+        "health": { "max": 3, "current": 3 }
+      }
+    },
+    {
+      "id": "bench",
+      "name": "bench",
+      "plural": "benches",
+      "glyph": { "index": 210, "color": "#b07a44" },
+      "components": { "flammable": {}, "health": { "max": 3, "current": 3 }, "seat": {} }
+    },
+    {
+      "id": "wheat_field",
+      "name": "wheat field",
+      "plural": "wheat fields",
+      "glyph": { "index": 34, "color": "#f0d060", "background": "#7a5e22" },
+      "components": {
+        "stock": { "capacity": 12, "amount": 12 },
+        "crop": { "item": "wheat", "count": 3 },
+        "depletes_into": { "item": "empty_field" }
+      }
+    },
+    {
+      "id": "oven",
+      "name": "oven",
+      "plural": "ovens",
+      "glyph": { "index": 239, "color": "#f0a028" },
+      "components": { "solid": {}, "health": { "max": 6, "current": 6 }, "capacity": { "max": 8 } }
+    },
+    {
+      "id": "brew_kettle",
+      "name": "brew kettle",
+      "plural": "brew kettles",
+      "glyph": { "index": 229, "color": "#9a9aa8" },
+      "components": {
+        "solid": {},
+        "metal": {},
+        "health": { "max": 5, "current": 5 },
+        "stock": { "capacity": 12, "amount": 0 }
+      }
+    },
+    {
+      "id": "card_table",
+      "name": "card table",
+      "plural": "card tables",
+      "glyph": { "index": 4, "color": "#f4f4ec" },
+      "components": { "flammable": {}, "health": { "max": 3, "current": 3 } }
+    },
+    {
+      "id": "door",
+      "name": "door",
+      "plural": "doors",
+      "glyph": { "index": 43, "color": "#e0b060" },
+      "components": {
+        "door": {},
+        "flammable": {},
+        "health": { "max": 5, "current": 5 },
+        "lockable": {}
+      }
+    },
+    {
+      "id": "knife",
+      "name": "knife",
+      "plural": "knives",
+      "glyph": { "index": 47, "color": "#d0d4dc" },
+      "components": {
+        "holdable": { "kilograms": 0.3 },
+        "conspicuous": {},
+        "sharp": {},
+        "metal": {},
+        "health": { "max": 4, "current": 4 },
+        "weapon": { "damage": { "min": 0.2, "max": 0.4 }, "hitChance": 0.7, "stimulus": "cut" },
+        "breaks_into": { "item": "broken_knife" }
+      }
+    },
+    {
+      "id": "broken_knife",
+      "name": "broken knife",
+      "plural": "broken knives",
+      "glyph": { "index": 96, "color": "#a0a4ac" },
+      "components": { "holdable": { "kilograms": 0.2 }, "metal": {} }
+    },
+    {
+      "id": "bandage",
+      "name": "bandage",
+      "plural": "bandages",
+      "glyph": { "index": 43, "color": "#f0ece0" },
+      "components": {
+        "holdable": { "kilograms": 0.05 },
+        "flammable": {},
+        "healing": { "health": 0.15 }
+      }
+    },
+    {
+      "id": "jar",
+      "name": "jar",
+      "plural": "jars",
+      "glyph": { "index": 235, "color": "#c86a44" },
+      "components": {
+        "holdable": { "kilograms": 0.8 },
+        "fragile": {},
+        "health": { "max": 0.5, "current": 0.5 },
+        "breaks_into": { "item": "shards" },
+        "breaks_loudly": { "loudness": 10 },
+        "capacity": { "max": 3 }
+      }
+    },
+    {
+      "id": "shards",
+      "name": "shards of pottery",
+      "glyph": { "index": 44, "color": "#c86a44" },
+      "components": { "holdable": { "kilograms": 0.8 } }
+    },
+    {
+      "id": "chest",
+      "name": "chest",
+      "plural": "chests",
+      "glyph": { "index": 254, "color": "#c08848" },
+      "components": {
+        "flammable": {},
+        "capacity": { "max": 20 },
+        "lockable": {},
+        "health": { "max": 4, "current": 4 }
+      }
+    },
+    {
+      "id": "note",
+      "name": "note",
+      "plural": "notes",
+      "glyph": { "index": 20, "color": "#ece4c8" },
+      "components": { "holdable": { "kilograms": 0.01 }, "flammable": {}, "writing": {} }
+    },
+    {
+      "id": "gun",
+      "name": "gun",
+      "plural": "guns",
+      "glyph": { "index": 170, "color": "#9a9aa8" },
+      "components": {
+        "capacity": { "max": 6 },
+        "firearm": { "damage": { "min": 0.4, "max": 0.7 }, "hitChance": 0.7 },
+        "holdable": { "kilograms": 1 },
+        "range": { "tiles": 8 }
+      }
+    },
+    {
+      "id": "bullet",
+      "name": "bullet",
+      "plural": "bullets",
+      "glyph": { "index": 7, "color": "#d8b060" },
+      "components": { "holdable": { "kilograms": 0.01 }, "ammo": {} }
+    },
+    {
+      "id": "tree",
+      "name": "tree",
+      "plural": "trees",
+      "glyph": { "index": 5, "color": "#3fa04a", "background": "#24461f" },
+      "components": {
+        "flammable": {},
+        "choppable": { "item": "wood", "count": 6, "leaves": "stump" }
+      }
+    },
+    {
+      "id": "workbench",
+      "name": "workbench",
+      "plural": "workbenches",
+      "glyph": { "index": 209, "color": "#b07a44" },
+      "components": { "solid": {}, "flammable": {}, "health": { "max": 4, "current": 4 } }
+    },
+    {
+      "id": "chopping_block",
+      "name": "chopping block",
+      "plural": "chopping blocks",
+      "glyph": { "index": 220, "color": "#b07a44" },
+      "components": { "flammable": {}, "health": { "max": 4, "current": 4 } }
+    },
+    {
+      "id": "forge",
+      "name": "forge",
+      "plural": "forges",
+      "glyph": { "index": 239, "color": "#e05a28" },
+      "components": { "solid": {}, "health": { "max": 8, "current": 8 } }
+    },
+    {
+      "id": "anvil",
+      "name": "anvil",
+      "plural": "anvils",
+      "glyph": { "index": 203, "color": "#9a9aa8" },
+      "components": { "solid": {}, "metal": {}, "health": { "max": 10, "current": 10 } }
+    },
+    {
+      "id": "mill",
+      "name": "mill",
+      "plural": "mills",
+      "glyph": { "index": 15, "color": "#a8a8a0" },
+      "components": { "solid": {}, "health": { "max": 8, "current": 8 } }
+    },
+    {
+      "id": "fireplace",
+      "name": "fireplace",
+      "plural": "fireplaces",
+      "glyph": { "index": 239, "color": "#e08a28" },
+      "components": { "solid": {}, "health": { "max": 8, "current": 8 }, "capacity": { "max": 6 } }
+    },
+    {
+      "id": "cooking_pot",
+      "name": "cooking pot",
+      "plural": "cooking pots",
+      "glyph": { "index": 229, "color": "#6a6a74" },
+      "components": {
+        "holdable": { "kilograms": 3 },
+        "metal": {},
+        "stock": { "capacity": 6, "amount": 0 }
+      }
+    },
+    {
+      "id": "kiln",
+      "name": "kiln",
+      "plural": "kilns",
+      "glyph": { "index": 127, "color": "#c86a44" },
+      "components": { "solid": {}, "health": { "max": 8, "current": 8 } }
+    },
+    {
+      "id": "loom",
+      "name": "loom",
+      "plural": "looms",
+      "glyph": { "index": 35, "color": "#b07a44" },
+      "components": { "solid": {}, "flammable": {}, "health": { "max": 3, "current": 3 } }
+    },
+    {
+      "id": "butcher_block",
+      "name": "butcher block",
+      "plural": "butcher blocks",
+      "glyph": { "index": 220, "color": "#c84a4e" },
+      "components": { "flammable": {}, "health": { "max": 4, "current": 4 } }
+    },
+    {
+      "id": "herb_table",
+      "name": "herb table",
+      "plural": "herb tables",
+      "glyph": { "index": 209, "color": "#5aa050" },
+      "components": { "solid": {}, "flammable": {}, "health": { "max": 3, "current": 3 } }
+    },
+    {
+      "id": "gunsmith_bench",
+      "name": "gunsmith bench",
+      "plural": "gunsmith benches",
+      "glyph": { "index": 209, "color": "#9a9aa8" },
+      "components": { "solid": {}, "flammable": {}, "health": { "max": 4, "current": 4 } }
+    },
+    {
+      "id": "writing_desk",
+      "name": "writing desk",
+      "plural": "writing desks",
+      "glyph": { "index": 209, "color": "#ece4c8" },
+      "components": { "solid": {}, "flammable": {}, "health": { "max": 3, "current": 3 } }
+    },
+    {
+      "id": "iron_vein",
+      "name": "iron vein",
+      "plural": "iron veins",
+      "glyph": { "index": 178, "color": "#c87850", "background": "#3a3a3a" },
+      "components": {
+        "stock": { "capacity": 8, "amount": 8 },
+        "minable": { "item": "iron_ore", "count": 1 },
+        "depletes_into": { "item": "depleted_vein" }
+      }
+    },
+    {
+      "id": "coal_vein",
+      "name": "coal vein",
+      "plural": "coal veins",
+      "glyph": { "index": 178, "color": "#202020", "background": "#3a3a3a" },
+      "components": {
+        "stock": { "capacity": 8, "amount": 8 },
+        "minable": { "item": "coal", "count": 1 },
+        "depletes_into": { "item": "depleted_vein" }
+      }
+    },
+    {
+      "id": "lead_vein",
+      "name": "lead vein",
+      "plural": "lead veins",
+      "glyph": { "index": 178, "color": "#8a8aa0", "background": "#3a3a3a" },
+      "components": {
+        "stock": { "capacity": 8, "amount": 8 },
+        "minable": { "item": "lead", "count": 1 },
+        "depletes_into": { "item": "depleted_vein" }
+      }
+    },
+    {
+      "id": "depleted_vein",
+      "name": "depleted vein",
+      "plural": "depleted veins",
+      "glyph": { "index": 176, "color": "#6a6a6a", "background": "#3a3a3a" },
+      "components": {}
+    },
+    {
+      "id": "rock",
+      "name": "rock",
+      "plural": "rocks",
+      "glyph": { "index": 30, "color": "#a8a8a0" },
+      "components": {
+        "stock": { "capacity": 6, "amount": 6 },
+        "minable": { "item": "stone", "count": 1 },
+        "depletes_into": { "item": "rubble" }
+      }
+    },
+    {
+      "id": "rubble",
+      "name": "rubble",
+      "glyph": { "index": 44, "color": "#a8a8a0" },
+      "components": {}
+    },
+    {
+      "id": "clay_deposit",
+      "name": "clay deposit",
+      "plural": "clay deposits",
+      "glyph": { "index": 247, "color": "#c86a44", "background": "#5a3e1e" },
+      "components": {
+        "stock": { "capacity": 8, "amount": 8 },
+        "diggable": { "item": "clay", "count": 1 },
+        "depletes_into": { "item": "dug_pit" }
+      }
+    },
+    {
+      "id": "sand_bank",
+      "name": "sand bank",
+      "plural": "sand banks",
+      "glyph": { "index": 247, "color": "#e8d890", "background": "#8a7a40" },
+      "components": {
+        "stock": { "capacity": 8, "amount": 8 },
+        "diggable": { "item": "sand", "count": 1 },
+        "depletes_into": { "item": "dug_pit" }
+      }
+    },
+    {
+      "id": "dug_pit",
+      "name": "dug pit",
+      "plural": "dug pits",
+      "glyph": { "index": 9, "color": "#7a5a3a", "background": "#5a3e1e" },
+      "components": {}
+    },
+    {
+      "id": "stump",
+      "name": "stump",
+      "plural": "stumps",
+      "glyph": { "index": 239, "color": "#7a5030", "background": "#24461f" },
+      "components": { "flammable": {}, "turns_into": { "item": "young_tree", "hoursLeft": 72 } }
+    },
+    {
+      "id": "young_tree",
+      "name": "young tree",
+      "plural": "young trees",
+      "glyph": { "index": 6, "color": "#5ac060", "background": "#24461f" },
+      "components": { "flammable": {}, "turns_into": { "item": "tree", "hoursLeft": 96 } }
+    },
+    {
+      "id": "apple_tree",
+      "name": "apple tree",
+      "plural": "apple trees",
+      "glyph": { "index": 5, "color": "#c84a3a", "background": "#24461f" },
+      "components": {
+        "flammable": {},
+        "stock": { "capacity": 8, "amount": 8 },
+        "regrows": { "perHour": 0.2 },
+        "gatherable": { "item": "apple", "count": 1 },
+        "choppable": { "item": "wood", "count": 4, "leaves": "stump" }
+      }
+    },
+    {
+      "id": "barley_field",
+      "name": "barley field",
+      "plural": "barley fields",
+      "glyph": { "index": 34, "color": "#d8c070", "background": "#7a5e22" },
+      "components": {
+        "stock": { "capacity": 12, "amount": 12 },
+        "crop": { "item": "barley", "count": 3 },
+        "depletes_into": { "item": "empty_field" }
+      }
+    },
+    {
+      "id": "herb_patch",
+      "name": "herb patch",
+      "plural": "herb patches",
+      "glyph": { "index": 34, "color": "#5aa050", "background": "#7a5e22" },
+      "components": {
+        "stock": { "capacity": 6, "amount": 6 },
+        "crop": { "item": "herbs", "count": 2 },
+        "depletes_into": { "item": "empty_plot" }
+      }
+    },
+    {
+      "id": "vegetable_garden",
+      "name": "vegetable garden",
+      "plural": "vegetable gardens",
+      "glyph": { "index": 5, "color": "#e08a30", "background": "#5a3e1e" },
+      "components": {
+        "stock": { "capacity": 9, "amount": 9 },
+        "depletes_into": { "item": "empty_plot" }
+      }
+    },
+    {
+      "id": "empty_field",
+      "name": "empty field",
+      "plural": "empty fields",
+      "glyph": { "index": 126, "color": "#8a6a3a", "background": "#7a5e22" },
+      "components": {}
+    },
+    {
+      "id": "empty_plot",
+      "name": "empty plot",
+      "plural": "empty plots",
+      "glyph": { "index": 126, "color": "#8a6a3a", "background": "#5a3e1e" },
+      "components": {}
+    },
+    {
+      "id": "young_wheat",
+      "name": "young wheat",
+      "glyph": { "index": 44, "color": "#8ac050", "background": "#7a5e22" },
+      "components": { "turns_into": { "item": "wheat_field", "hoursLeft": 72 } }
+    },
+    {
+      "id": "young_barley",
+      "name": "young barley",
+      "glyph": { "index": 44, "color": "#8ac050", "background": "#7a5e22" },
+      "components": { "turns_into": { "item": "barley_field", "hoursLeft": 72 } }
+    },
+    {
+      "id": "young_vegetables",
+      "name": "young vegetables",
+      "glyph": { "index": 44, "color": "#8ac050", "background": "#5a3e1e" },
+      "components": { "turns_into": { "item": "vegetable_garden", "hoursLeft": 72 } }
+    },
+    {
+      "id": "young_herbs",
+      "name": "young herbs",
+      "glyph": { "index": 44, "color": "#8ac050", "background": "#5a3e1e" },
+      "components": { "turns_into": { "item": "herb_patch", "hoursLeft": 48 } }
+    },
+    {
+      "id": "berry_bush",
+      "name": "berry bush",
+      "plural": "berry bushes",
+      "glyph": { "index": 5, "color": "#8a3ac0", "background": "#24461f" },
+      "components": {
+        "flammable": {},
+        "stock": { "capacity": 6, "amount": 6 },
+        "gatherable": { "item": "berries", "count": 1 },
+        "depletes_into": { "item": "bare_bush" }
+      }
+    },
+    {
+      "id": "bare_bush",
+      "name": "bare bush",
+      "plural": "bare bushes",
+      "glyph": { "index": 5, "color": "#5a7a4a", "background": "#24461f" },
+      "components": { "flammable": {}, "turns_into": { "item": "berry_bush", "hoursLeft": 48 } }
+    },
+    {
+      "id": "mushroom_patch",
+      "name": "mushroom patch",
+      "plural": "mushroom patches",
+      "glyph": { "index": 6, "color": "#d8c8a8", "background": "#24461f" },
+      "components": {
+        "stock": { "capacity": 4, "amount": 4 },
+        "regrows": { "perHour": 0.1 },
+        "gatherable": { "item": "mushrooms", "count": 1 }
+      }
+    },
+    {
+      "id": "fallen_branch",
+      "name": "fallen branch",
+      "plural": "fallen branches",
+      "glyph": { "index": 47, "color": "#7a5030", "background": "#24461f" },
+      "components": {
+        "flammable": {},
+        "stock": { "capacity": 6, "amount": 6 },
+        "regrows": { "perHour": 0.2 },
+        "gatherable": { "item": "sticks", "count": 2 }
+      }
+    },
+    {
+      "id": "well",
+      "name": "well",
+      "plural": "wells",
+      "glyph": { "index": 9, "color": "#5a8ad0", "background": "#4a4a4a" },
+      "components": { "solid": {}, "water_source": {}, "health": { "max": 10, "current": 10 } }
+    },
+    {
+      "id": "fishing_spot",
+      "name": "fishing spot",
+      "plural": "fishing spots",
+      "glyph": { "index": 247, "color": "#8ac0f0", "background": "#1a4a8a" },
+      "components": { "fishable": { "item": "fish", "count": 1 } }
+    },
+    {
+      "id": "chicken_coop",
+      "name": "chicken coop",
+      "plural": "chicken coops",
+      "glyph": { "index": 127, "color": "#e8d8a0" },
+      "components": {
+        "flammable": {},
+        "health": { "max": 4, "current": 4 },
+        "stock": { "capacity": 6, "amount": 6 },
+        "regrows": { "perHour": 0.25 },
+        "gatherable": { "item": "egg", "count": 1 },
+        "flock": { "capacity": 6, "amount": 6 },
+        "breeds": { "perHour": 0.02 }
+      }
+    },
+    {
+      "id": "sheep_pen",
+      "name": "sheep pen",
+      "plural": "sheep pens",
+      "glyph": { "index": 35, "color": "#f0f0e8" },
+      "components": {
+        "flammable": {},
+        "health": { "max": 4, "current": 4 },
+        "stock": { "capacity": 6, "amount": 6 },
+        "regrows": { "perHour": 0.1 },
+        "gatherable": { "item": "wool", "count": 1 }
+      }
+    },
+    {
+      "id": "chair",
+      "name": "chair",
+      "plural": "chairs",
+      "glyph": { "index": 210, "color": "#b07a44" },
+      "components": { "seat": {}, "flammable": {}, "health": { "max": 2, "current": 2 } }
+    },
+    {
+      "id": "table",
+      "name": "table",
+      "plural": "tables",
+      "glyph": { "index": 209, "color": "#b07a44" },
+      "components": { "flammable": {}, "health": { "max": 3, "current": 3 } }
+    },
+    {
+      "id": "crate",
+      "name": "crate",
+      "plural": "crates",
+      "glyph": { "index": 254, "color": "#a8803c" },
+      "components": {
+        "flammable": {},
+        "lockable": {},
+        "capacity": { "max": 15 },
+        "health": { "max": 2, "current": 2 }
+      }
+    },
+    {
+      "id": "barrel",
+      "name": "barrel",
+      "plural": "barrels",
+      "glyph": { "index": 232, "color": "#9a6a34" },
+      "components": {
+        "flammable": {},
+        "lockable": {},
+        "capacity": { "max": 10 },
+        "health": { "max": 3, "current": 3 }
+      }
+    },
+    {
+      "id": "window",
+      "name": "window",
+      "plural": "windows",
+      "glyph": { "index": 186, "color": "#a8d8f0" },
+      "components": {
+        "solid": {},
+        "fragile": {},
+        "health": { "max": 0.5, "current": 0.5 },
+        "breaks_loudly": { "loudness": 12 }
+      }
+    },
+    {
+      "id": "fence",
+      "name": "fence",
+      "plural": "fences",
+      "glyph": { "index": 35, "color": "#a8803c" },
+      "components": { "solid": {}, "flammable": {}, "health": { "max": 3, "current": 3 } }
+    },
+    {
+      "id": "market_stall",
+      "name": "market stall",
+      "plural": "market stalls",
+      "glyph": { "index": 227, "color": "#d8a040" },
+      "components": {
+        "flammable": {},
+        "capacity": { "max": 20 },
+        "health": { "max": 4, "current": 4 }
+      }
+    },
+    {
+      "id": "grave",
+      "name": "grave",
+      "plural": "graves",
+      "glyph": { "index": 197, "color": "#c8c8c0" },
+      "components": { "writing": {} }
+    },
+    {
+      "id": "paper",
+      "name": "paper",
+      "glyph": { "index": 22, "color": "#ece4c8" },
+      "components": { "holdable": { "kilograms": 0.01 }, "flammable": {} }
+    },
+    {
+      "id": "gunpowder",
+      "name": "gunpowder",
+      "glyph": { "index": 249, "color": "#3a3a3a" },
+      "components": { "holdable": { "kilograms": 0.1 }, "flammable": {} }
+    },
+    {
+      "id": "pie",
+      "name": "pie",
+      "plural": "pies",
+      "glyph": { "index": 9, "color": "#d8a050" },
+      "components": {
+        "holdable": { "kilograms": 0.6 },
+        "food": { "hunger": 0.7 },
+        "turns_into": { "item": "spoiled_food", "hoursLeft": 72 }
+      }
+    },
+    {
+      "id": "stew",
+      "name": "stew",
+      "glyph": { "index": 229, "color": "#a85a2a" },
+      "components": {
+        "holdable": { "kilograms": 0.5 },
+        "food": { "hunger": 0.8 },
+        "comes_in": { "item": "bowl" }
+      }
+    },
+    {
+      "id": "apple",
+      "name": "apple",
+      "plural": "apples",
+      "glyph": { "index": 7, "color": "#d83a2a" },
+      "components": {
+        "holdable": { "kilograms": 0.2 },
+        "food": { "hunger": 0.15 },
+        "turns_into": { "item": "spoiled_food", "hoursLeft": 168 }
+      }
+    },
+    {
+      "id": "berries",
+      "name": "berries",
+      "glyph": { "index": 249, "color": "#8a3ac0" },
+      "components": {
+        "holdable": { "kilograms": 0.1 },
+        "food": { "hunger": 0.1 },
+        "turns_into": { "item": "spoiled_food", "hoursLeft": 72 }
+      }
+    },
+    {
+      "id": "mushrooms",
+      "name": "mushrooms",
+      "glyph": { "index": 6, "color": "#d8c8a8" },
+      "components": {
+        "holdable": { "kilograms": 0.1 },
+        "food": { "hunger": 0.1 },
+        "turns_into": { "item": "spoiled_food", "hoursLeft": 72 }
+      }
+    },
+    {
+      "id": "egg",
+      "name": "egg",
+      "plural": "eggs",
+      "glyph": { "index": 248, "color": "#f0ecd8" },
+      "components": {
+        "holdable": { "kilograms": 0.06 },
+        "food": { "hunger": 0.15 },
+        "health": { "max": 0.1, "current": 0.1 },
+        "fragile": {},
+        "turns_into": { "item": "spoiled_food", "hoursLeft": 168 }
+      }
+    },
+    {
+      "id": "carrot",
+      "name": "carrot",
+      "plural": "carrots",
+      "glyph": { "index": 24, "color": "#e88a2a" },
+      "components": { "holdable": { "kilograms": 0.1 }, "food": { "hunger": 0.1 } }
+    },
+    {
+      "id": "onion",
+      "name": "onion",
+      "plural": "onions",
+      "glyph": { "index": 229, "color": "#e8d8b0" },
+      "components": { "holdable": { "kilograms": 0.1 }, "food": { "hunger": 0.05 } }
+    },
+    {
+      "id": "potato",
+      "name": "potato",
+      "plural": "potatoes",
+      "glyph": { "index": 7, "color": "#b8945a" },
+      "components": { "holdable": { "kilograms": 0.2 }, "food": { "hunger": 0.1 } }
+    },
+    {
+      "id": "meat",
+      "name": "meat",
+      "glyph": { "index": 37, "color": "#c84a4e" },
+      "components": {
+        "holdable": { "kilograms": 0.5 },
+        "food": { "hunger": 0.1 },
+        "turns_into": { "item": "spoiled_food", "hoursLeft": 48 }
+      }
+    },
+    {
+      "id": "fish",
+      "name": "fish",
+      "glyph": { "index": 224, "color": "#8ab0c8" },
+      "components": {
+        "holdable": { "kilograms": 0.5 },
+        "food": { "hunger": 0.1 },
+        "turns_into": { "item": "spoiled_food", "hoursLeft": 24 }
+      }
+    },
+    {
+      "id": "spoiled_food",
+      "name": "spoiled food",
+      "glyph": { "index": 37, "color": "#6a7a3a" },
+      "components": { "holdable": { "kilograms": 0.3 }, "food": { "hunger": 0.05 }, "rotten": {} }
+    },
+    {
+      "id": "barley",
+      "name": "barley",
+      "glyph": { "index": 231, "color": "#d8c070" },
+      "components": { "holdable": { "kilograms": 1 }, "flammable": {} }
+    },
+    {
+      "id": "flour",
+      "name": "flour",
+      "glyph": { "index": 176, "color": "#f0ece0" },
+      "components": { "holdable": { "kilograms": 1 }, "flammable": {} }
+    },
+    {
+      "id": "water",
+      "name": "water",
+      "glyph": { "index": 247, "color": "#5a8ad0" },
+      "components": { "holdable": { "kilograms": 10 }, "drink": { "fun": 0, "energy": 0.02 } }
+    },
+    {
+      "id": "chicken",
+      "name": "chicken",
+      "plural": "chickens",
+      "glyph": { "index": 12, "color": "#f0ecd8" },
+      "components": { "holdable": { "kilograms": 2 } }
+    },
+    {
+      "id": "plank",
+      "name": "plank",
+      "plural": "planks",
+      "glyph": { "index": 22, "color": "#c8945a" },
+      "components": { "holdable": { "kilograms": 1 }, "flammable": {} }
+    },
+    {
+      "id": "firewood",
+      "name": "firewood",
+      "glyph": { "index": 240, "color": "#a8703c" },
+      "components": { "holdable": { "kilograms": 1.5 }, "flammable": {} }
+    },
+    {
+      "id": "sticks",
+      "name": "sticks",
+      "glyph": { "index": 47, "color": "#a8703c" },
+      "components": { "holdable": { "kilograms": 0.2 }, "flammable": {} }
+    },
+    {
+      "id": "stone",
+      "name": "stone",
+      "plural": "stones",
+      "glyph": { "index": 7, "color": "#a8a8a0" },
+      "components": { "holdable": { "kilograms": 3 } }
+    },
+    {
+      "id": "nails",
+      "name": "nails",
+      "glyph": { "index": 39, "color": "#9a9aa8" },
+      "components": { "holdable": { "kilograms": 0.01 }, "metal": {} }
+    },
+    {
+      "id": "iron_ore",
+      "name": "iron ore",
+      "glyph": { "index": 4, "color": "#c87850" },
+      "components": { "holdable": { "kilograms": 2 } }
+    },
+    {
+      "id": "iron_ingot",
+      "name": "iron ingot",
+      "plural": "iron ingots",
+      "glyph": { "index": 22, "color": "#9a9aa8" },
+      "components": { "holdable": { "kilograms": 1 }, "metal": {} }
+    },
+    {
+      "id": "coal",
+      "name": "coal",
+      "glyph": { "index": 4, "color": "#303030" },
+      "components": { "holdable": { "kilograms": 0.5 }, "flammable": {} }
+    },
+    {
+      "id": "lead",
+      "name": "lead",
+      "glyph": { "index": 22, "color": "#8a8aa0" },
+      "components": { "holdable": { "kilograms": 1 }, "metal": {} }
+    },
+    {
+      "id": "sand",
+      "name": "sand",
+      "glyph": { "index": 176, "color": "#e8d890" },
+      "components": { "holdable": { "kilograms": 1 } }
+    },
+    {
+      "id": "clay",
+      "name": "clay",
+      "glyph": { "index": 176, "color": "#c86a44" },
+      "components": { "holdable": { "kilograms": 1 } }
+    },
+    {
+      "id": "wool",
+      "name": "wool",
+      "glyph": { "index": 15, "color": "#f0f0e8" },
+      "components": { "holdable": { "kilograms": 0.3 }, "flammable": {} }
+    },
+    {
+      "id": "cloth",
+      "name": "cloth",
+      "glyph": { "index": 240, "color": "#d8d0c0" },
+      "components": { "holdable": { "kilograms": 0.3 }, "flammable": {} }
+    },
+    {
+      "id": "herbs",
+      "name": "herbs",
+      "glyph": { "index": 5, "color": "#5aa050" },
+      "components": { "holdable": { "kilograms": 0.05 }, "flammable": {} }
+    },
+    {
+      "id": "sapling",
+      "name": "sapling",
+      "plural": "saplings",
+      "glyph": { "index": 6, "color": "#5ac060" },
+      "components": { "holdable": { "kilograms": 0.5 }, "flammable": {} }
+    },
+    {
+      "id": "bucket",
+      "name": "bucket",
+      "plural": "buckets",
+      "glyph": { "index": 85, "color": "#b07a44" },
+      "components": { "holdable": { "kilograms": 1 }, "flammable": {} }
+    },
+    {
+      "id": "mug",
+      "name": "mug",
+      "plural": "mugs",
+      "glyph": { "index": 85, "color": "#c86a44" },
+      "components": {
+        "holdable": { "kilograms": 0.3 },
+        "fragile": {},
+        "health": { "max": 0.5, "current": 0.5 },
+        "breaks_into": { "item": "shards" },
+        "breaks_loudly": { "loudness": 8 }
+      }
+    },
+    {
+      "id": "bowl",
+      "name": "bowl",
+      "plural": "bowls",
+      "glyph": { "index": 239, "color": "#c86a44" },
+      "components": {
+        "holdable": { "kilograms": 0.3 },
+        "fragile": {},
+        "health": { "max": 0.5, "current": 0.5 },
+        "breaks_into": { "item": "shards" },
+        "breaks_loudly": { "loudness": 8 }
+      }
+    },
+    {
+      "id": "bottle",
+      "name": "bottle",
+      "plural": "bottles",
+      "glyph": { "index": 173, "color": "#8ac0a0" },
+      "components": {
+        "holdable": { "kilograms": 0.3 },
+        "capacity": { "max": 1 },
+        "fragile": {},
+        "health": { "max": 0.5, "current": 0.5 },
+        "breaks_into": { "item": "broken_bottle" },
+        "breaks_loudly": { "loudness": 10 }
+      }
+    },
+    {
+      "id": "sack",
+      "name": "sack",
+      "plural": "sacks",
+      "glyph": { "index": 229, "color": "#c8b080" },
+      "components": { "holdable": { "kilograms": 0.2 }, "flammable": {}, "capacity": { "max": 10 } }
+    },
+    {
+      "id": "axe",
+      "name": "axe",
+      "plural": "axes",
+      "glyph": { "index": 80, "color": "#9a9aa8" },
+      "components": {
+        "holdable": { "kilograms": 2 },
+        "conspicuous": {},
+        "metal": {},
+        "chops": {},
+        "health": { "max": 4, "current": 4 },
+        "sharp": {},
+        "weapon": { "damage": { "min": 0.25, "max": 0.5 }, "hitChance": 0.6, "stimulus": "cut" },
+        "breaks_into": { "item": "broken_axe" }
+      }
+    },
+    {
+      "id": "hoe",
+      "name": "hoe",
+      "plural": "hoes",
+      "glyph": { "index": 244, "color": "#9a9aa8" },
+      "components": {
+        "holdable": { "kilograms": 1.5 },
+        "conspicuous": {},
+        "metal": {},
+        "tills": {},
+        "health": { "max": 4, "current": 4 }
+      }
+    },
+    {
+      "id": "pickaxe",
+      "name": "pickaxe",
+      "plural": "pickaxes",
+      "glyph": { "index": 84, "color": "#9a9aa8" },
+      "components": {
+        "holdable": { "kilograms": 3 },
+        "conspicuous": {},
+        "metal": {},
+        "mines": {},
+        "health": { "max": 4, "current": 4 },
+        "weapon": { "damage": { "min": 0.2, "max": 0.45 }, "hitChance": 0.55, "stimulus": "impact" }
+      }
+    },
+    {
+      "id": "shovel",
+      "name": "shovel",
+      "plural": "shovels",
+      "glyph": { "index": 245, "color": "#9a9aa8" },
+      "components": {
+        "holdable": { "kilograms": 2 },
+        "conspicuous": {},
+        "metal": {},
+        "digs": {},
+        "health": { "max": 4, "current": 4 }
+      }
+    },
+    {
+      "id": "fishing_rod",
+      "name": "fishing rod",
+      "plural": "fishing rods",
+      "glyph": { "index": 92, "color": "#b07a44" },
+      "components": {
+        "holdable": { "kilograms": 0.5 },
+        "conspicuous": {},
+        "flammable": {},
+        "catches_fish": {},
+        "health": { "max": 3, "current": 3 }
+      }
+    },
+    {
+      "id": "key",
+      "name": "key",
+      "plural": "keys",
+      "glyph": { "index": 12, "color": "#e8c040" },
+      "components": { "holdable": { "kilograms": 0.02 }, "metal": {}, "opens_locks": {} }
+    },
+    {
+      "id": "lock",
+      "name": "lock",
+      "plural": "locks",
+      "glyph": { "index": 8, "color": "#9a9aa8" },
+      "components": { "holdable": { "kilograms": 0.4 }, "metal": {} }
+    },
+    {
+      "id": "lantern",
+      "name": "lantern",
+      "plural": "lanterns",
+      "glyph": { "index": 232, "color": "#e8c040" },
+      "components": { "holdable": { "kilograms": 1 }, "conspicuous": {}, "metal": {}, "lamp": {} }
+    },
+    {
+      "id": "broken_axe",
+      "name": "broken axe",
+      "plural": "broken axes",
+      "glyph": { "index": 96, "color": "#7a7a84" },
+      "components": { "holdable": { "kilograms": 1.5 }, "metal": {} }
+    },
+    {
+      "id": "broken_bottle",
+      "name": "broken bottle",
+      "plural": "broken bottles",
+      "glyph": { "index": 33, "color": "#8ac0a0" },
+      "components": {
+        "holdable": { "kilograms": 0.2 },
+        "conspicuous": {},
+        "sharp": {},
+        "health": { "max": 1, "current": 1 },
+        "weapon": { "damage": { "min": 0.1, "max": 0.25 }, "hitChance": 0.7, "stimulus": "cut" }
+      }
+    },
+    {
+      "id": "medicine",
+      "name": "medicine",
+      "glyph": { "index": 235, "color": "#5aa050" },
+      "components": {
+        "holdable": { "kilograms": 0.8 },
+        "healing": { "health": 0.2 },
+        "remedy": {},
+        "comes_in": { "item": "jar" }
+      }
+    },
+    {
+      "id": "deck_of_cards",
+      "name": "deck of cards",
+      "plural": "decks of cards",
+      "glyph": { "index": 4, "color": "#f4f4ec" },
+      "components": { "holdable": { "kilograms": 0.1 }, "flammable": {}, "cards": {} }
+    },
+    {
+      "id": "dice",
+      "name": "dice",
+      "glyph": { "index": 254, "color": "#f4f4ec" },
+      "components": { "holdable": { "kilograms": 0.02 }, "dice": {} }
+    },
+    {
+      "id": "ash",
+      "name": "ash",
+      "glyph": { "index": 176, "color": "#8a8a8a" },
+      "components": { "holdable": { "kilograms": 0.1 } }
+    },
+    {
+      "id": "person",
+      "name": "person",
+      "glyph": { "index": 2, "color": "#ffffff" },
+      "components": {
+        "alive": {},
+        "flesh": {},
+        "flammable": {},
+        "health": { "max": 1, "current": 1 }
+      }
+    }
+  ],
+  "verbs": [
+    {
+      "name": "eat",
+      "appliesTo": {
+        "allOf": [
+          { "has": "food" },
+          { "not": { "has": "rotten" } },
+          { "not": { "has": "comes_in" } },
+          { "where": "held" }
+        ]
+      },
+      "steps": [
+        { "step": "destroy", "on": "item" },
+        { "step": "wait", "minutes": 15 },
+        {
+          "step": "change_need",
+          "on": "user",
+          "need": "hunger",
+          "amount": { "from": "item.food.hunger" }
+        }
+      ],
+      "phrases": { "ongoing": "eating {item}", "done": "ate {item}", "attempt": "eat {item}" }
+    },
+    {
+      "name": "eat",
+      "appliesTo": { "allOf": [{ "has": "food" }, { "has": "rotten" }, { "where": "held" }] },
+      "steps": [
+        { "step": "destroy", "on": "item" },
+        { "step": "wait", "minutes": 15 },
+        {
+          "step": "change_need",
+          "on": "user",
+          "need": "hunger",
+          "amount": { "from": "item.food.hunger" }
+        },
+        { "step": "add", "on": "user", "component": "poisoned", "minutes": 30, "chance": 0.5 }
+      ],
+      "phrases": { "ongoing": "eating {item}", "done": "ate {item}", "attempt": "eat {item}" }
+    },
+    {
+      "name": "eat",
+      "appliesTo": { "allOf": [{ "has": "food" }, { "has": "comes_in" }, { "where": "held" }] },
+      "steps": [
+        { "step": "destroy", "on": "item" },
+        { "step": "wait", "minutes": 15 },
+        {
+          "step": "change_need",
+          "on": "user",
+          "need": "hunger",
+          "amount": { "from": "item.food.hunger" }
+        },
+        { "step": "create", "item": { "from": "item.comes_in.item" }, "count": 1, "into": "user" }
+      ],
+      "phrases": { "ongoing": "eating {item}", "done": "ate {item}", "attempt": "eat {item}" }
+    },
+    {
+      "name": "drink",
+      "appliesTo": {
+        "allOf": [{ "has": "drink" }, { "not": { "has": "comes_in" } }, { "where": "held" }]
+      },
+      "steps": [
+        { "step": "destroy", "on": "item" },
+        { "step": "wait", "minutes": 15 },
+        {
+          "step": "change_need",
+          "on": "user",
+          "need": "fun",
+          "amount": { "from": "item.drink.fun" }
+        },
+        {
+          "step": "change_need",
+          "on": "user",
+          "need": "energy",
+          "amount": { "from": "item.drink.energy" }
+        }
+      ],
+      "phrases": { "ongoing": "drinking {item}", "done": "drank {item}", "attempt": "drink {item}" }
+    },
+    {
+      "name": "drink",
+      "appliesTo": { "allOf": [{ "has": "drink" }, { "has": "comes_in" }, { "where": "held" }] },
+      "steps": [
+        { "step": "destroy", "on": "item" },
+        { "step": "wait", "minutes": 15 },
+        {
+          "step": "change_need",
+          "on": "user",
+          "need": "fun",
+          "amount": { "from": "item.drink.fun" }
+        },
+        {
+          "step": "change_need",
+          "on": "user",
+          "need": "energy",
+          "amount": { "from": "item.drink.energy" }
+        },
+        { "step": "create", "item": { "from": "item.comes_in.item" }, "count": 1, "into": "user" }
+      ],
+      "phrases": { "ongoing": "drinking {item}", "done": "drank {item}", "attempt": "drink {item}" }
+    },
+    {
+      "name": "mine",
+      "appliesTo": { "allOf": [{ "has": "minable" }, { "has": "stock" }] },
+      "steps": [
+        { "step": "require", "in": "user", "rule": { "has": "mines" }, "as": "tool" },
+        {
+          "step": "check",
+          "on": "item",
+          "if": { "field": "stock.amount", "atLeast": 1 },
+          "otherwise": "the {item} is worked out"
+        },
+        { "step": "wait", "minutes": 30, "loudness": 15 },
+        {
+          "step": "create",
+          "item": { "from": "item.minable.item" },
+          "count": { "from": "item.minable.count" },
+          "into": "user"
+        },
+        {
+          "step": "change",
+          "on": "item",
+          "field": "stock.amount",
+          "by": { "from": "item.minable.count", "times": -1 }
+        },
+        { "step": "damage", "on": "tool", "field": "health.current", "amount": 0.02 },
+        { "step": "change_need", "on": "user", "need": "energy", "amount": -0.08 }
+      ],
+      "phrases": {
+        "ongoing": "mining the {item}",
+        "done": "mined the {item}",
+        "attempt": "mine the {item}"
+      }
+    },
+    {
+      "name": "dig",
+      "appliesTo": { "allOf": [{ "has": "diggable" }, { "has": "stock" }] },
+      "steps": [
+        { "step": "require", "in": "user", "rule": { "has": "digs" }, "as": "tool" },
+        {
+          "step": "check",
+          "on": "item",
+          "if": { "field": "stock.amount", "atLeast": 1 },
+          "otherwise": "the {item} is dug out"
+        },
+        { "step": "wait", "minutes": 30, "loudness": 6 },
+        {
+          "step": "create",
+          "item": { "from": "item.diggable.item" },
+          "count": { "from": "item.diggable.count" },
+          "into": "user"
+        },
+        {
+          "step": "change",
+          "on": "item",
+          "field": "stock.amount",
+          "by": { "from": "item.diggable.count", "times": -1 }
+        },
+        { "step": "damage", "on": "tool", "field": "health.current", "amount": 0.02 },
+        { "step": "change_need", "on": "user", "need": "energy", "amount": -0.08 }
+      ],
+      "phrases": {
+        "ongoing": "digging at the {item}",
+        "done": "dug at the {item}",
+        "attempt": "dig at the {item}"
+      }
+    },
+    {
+      "name": "gather",
+      "appliesTo": { "allOf": [{ "has": "gatherable" }, { "has": "stock" }] },
+      "steps": [
+        {
+          "step": "check",
+          "on": "item",
+          "if": { "field": "stock.amount", "atLeast": 1 },
+          "otherwise": "there is nothing left to gather at the {item}"
+        },
+        { "step": "wait", "minutes": 15, "loudness": 2 },
+        {
+          "step": "create",
+          "item": { "from": "item.gatherable.item" },
+          "count": { "from": "item.gatherable.count" },
+          "into": "user"
+        },
+        {
+          "step": "change",
+          "on": "item",
+          "field": "stock.amount",
+          "by": { "from": "item.gatherable.count", "times": -1 }
+        },
+        { "step": "change_need", "on": "user", "need": "energy", "amount": -0.02 }
+      ],
+      "phrases": {
+        "ongoing": "gathering at the {item}",
+        "done": "gathered at the {item}",
+        "attempt": "gather at the {item}"
+      }
+    },
+    {
+      "name": "harvest",
+      "appliesTo": { "definition": "vegetable_garden" },
+      "steps": [
+        {
+          "step": "check",
+          "on": "item",
+          "if": { "field": "stock.amount", "atLeast": 3 },
+          "otherwise": "the {item} is bare"
+        },
+        { "step": "wait", "minutes": 60, "loudness": 4 },
+        { "step": "create", "item": "carrot", "count": 1, "into": "user" },
+        { "step": "create", "item": "onion", "count": 1, "into": "user" },
+        { "step": "create", "item": "potato", "count": 1, "into": "user" },
+        { "step": "change", "on": "item", "field": "stock.amount", "by": -3 },
+        { "step": "change_need", "on": "user", "need": "energy", "amount": -0.1 }
+      ],
+      "phrases": {
+        "ongoing": "harvesting the {item}",
+        "done": "harvested the {item}",
+        "attempt": "harvest the {item}"
+      }
+    },
+    {
+      "name": "harvest",
+      "appliesTo": { "allOf": [{ "has": "crop" }, { "has": "stock" }] },
+      "steps": [
+        {
+          "step": "check",
+          "on": "item",
+          "if": { "field": "stock.amount", "atLeast": 1 },
+          "otherwise": "the {item} is bare"
+        },
+        { "step": "wait", "minutes": 60, "loudness": 4 },
+        {
+          "step": "create",
+          "item": { "from": "item.crop.item" },
+          "count": { "from": "item.crop.count" },
+          "into": "user"
+        },
+        {
+          "step": "change",
+          "on": "item",
+          "field": "stock.amount",
+          "by": { "from": "item.crop.count", "times": -1 }
+        },
+        { "step": "change_need", "on": "user", "need": "energy", "amount": -0.1 }
+      ],
+      "phrases": {
+        "ongoing": "harvesting the {item}",
+        "done": "harvested the {item}",
+        "attempt": "harvest the {item}"
+      }
+    },
+    {
+      "name": "chop down",
+      "appliesTo": { "has": "choppable" },
+      "steps": [
+        { "step": "require", "in": "user", "rule": { "has": "chops" }, "as": "tool" },
+        { "step": "wait", "minutes": 60, "loudness": 15 },
+        {
+          "step": "create",
+          "item": { "from": "item.choppable.item" },
+          "count": { "from": "item.choppable.count" },
+          "into": "user"
+        },
+        { "step": "create", "item": "sapling", "count": 1, "into": "user", "chance": 0.5 },
+        { "step": "damage", "on": "tool", "field": "health.current", "amount": 0.02 },
+        { "step": "change_need", "on": "user", "need": "energy", "amount": -0.15 },
+        { "step": "transform", "on": "item", "into": { "from": "item.choppable.leaves" } }
+      ],
+      "phrases": {
+        "ongoing": "chopping down the {item}",
+        "done": "chopped down the {item}",
+        "attempt": "chop down the {item}"
+      }
+    },
+    {
+      "name": "fish",
+      "appliesTo": { "has": "fishable" },
+      "steps": [
+        { "step": "require", "in": "user", "rule": { "has": "catches_fish" }, "as": "rod" },
+        { "step": "wait", "minutes": 60, "loudness": 1 },
+        {
+          "step": "create",
+          "item": { "from": "item.fishable.item" },
+          "count": { "from": "item.fishable.count" },
+          "into": "user",
+          "chance": 0.5
+        },
+        { "step": "damage", "on": "rod", "field": "health.current", "amount": 0.02 },
+        { "step": "change_need", "on": "user", "need": "energy", "amount": -0.03 }
+      ],
+      "phrases": {
+        "ongoing": "fishing at the {item}",
+        "done": "fished at the {item}",
+        "attempt": "fish at the {item}"
+      }
+    },
+    {
+      "name": "catch a chicken",
+      "appliesTo": { "has": "flock" },
+      "steps": [
+        {
+          "step": "check",
+          "on": "item",
+          "if": { "field": "flock.amount", "atLeast": 1 },
+          "otherwise": "there are no chickens left in the {item}"
+        },
+        { "step": "wait", "minutes": 10, "loudness": 8 },
+        { "step": "create", "item": "chicken", "count": 1, "into": "user" },
+        { "step": "change", "on": "item", "field": "flock.amount", "by": -1 },
+        { "step": "change_need", "on": "user", "need": "energy", "amount": -0.03 }
+      ],
+      "phrases": {
+        "ongoing": "catching a chicken at the {item}",
+        "done": "caught a chicken",
+        "attempt": "catch a chicken at the {item}"
+      }
+    },
+    {
+      "name": "draw water",
+      "appliesTo": { "has": "water_source" },
+      "steps": [
+        { "step": "require", "in": "user", "rule": { "definition": "bucket" } },
+        { "step": "wait", "minutes": 10, "loudness": 3 },
+        { "step": "create", "item": "water", "count": 1, "into": "user" },
+        { "step": "change_need", "on": "user", "need": "energy", "amount": -0.02 }
+      ],
+      "phrases": {
+        "ongoing": "drawing water at the {item}",
+        "done": "drew water",
+        "attempt": "draw water at the {item}"
+      }
+    },
+    {
+      "name": "sow wheat",
+      "appliesTo": { "definition": "empty_field" },
+      "steps": [
+        { "step": "require", "in": "user", "rule": { "has": "tills" }, "as": "tool" },
+        { "step": "use_up", "in": "user", "rule": { "definition": "wheat" }, "count": 2 },
+        { "step": "wait", "minutes": 60, "loudness": 3 },
+        { "step": "damage", "on": "tool", "field": "health.current", "amount": 0.02 },
+        { "step": "change_need", "on": "user", "need": "energy", "amount": -0.1 },
+        { "step": "transform", "on": "item", "into": "young_wheat" }
+      ],
+      "phrases": {
+        "ongoing": "sowing wheat in the {item}",
+        "done": "sowed wheat",
+        "attempt": "sow wheat in the {item}"
+      }
+    },
+    {
+      "name": "sow barley",
+      "appliesTo": { "definition": "empty_field" },
+      "steps": [
+        { "step": "require", "in": "user", "rule": { "has": "tills" }, "as": "tool" },
+        { "step": "use_up", "in": "user", "rule": { "definition": "barley" }, "count": 2 },
+        { "step": "wait", "minutes": 60, "loudness": 3 },
+        { "step": "damage", "on": "tool", "field": "health.current", "amount": 0.02 },
+        { "step": "change_need", "on": "user", "need": "energy", "amount": -0.1 },
+        { "step": "transform", "on": "item", "into": "young_barley" }
+      ],
+      "phrases": {
+        "ongoing": "sowing barley in the {item}",
+        "done": "sowed barley",
+        "attempt": "sow barley in the {item}"
+      }
+    },
+    {
+      "name": "plant vegetables",
+      "appliesTo": { "definition": "empty_plot" },
+      "steps": [
+        { "step": "require", "in": "user", "rule": { "has": "tills" }, "as": "tool" },
+        {
+          "step": "use_up",
+          "in": "user",
+          "rule": {
+            "anyOf": [
+              { "definition": "carrot" },
+              { "definition": "onion" },
+              { "definition": "potato" }
+            ]
+          },
+          "count": 2
+        },
+        { "step": "wait", "minutes": 60, "loudness": 3 },
+        { "step": "damage", "on": "tool", "field": "health.current", "amount": 0.02 },
+        { "step": "change_need", "on": "user", "need": "energy", "amount": -0.1 },
+        { "step": "transform", "on": "item", "into": "young_vegetables" }
+      ],
+      "phrases": {
+        "ongoing": "planting vegetables in the {item}",
+        "done": "planted vegetables",
+        "attempt": "plant vegetables in the {item}"
+      }
+    },
+    {
+      "name": "plant herbs",
+      "appliesTo": { "definition": "empty_plot" },
+      "steps": [
+        { "step": "require", "in": "user", "rule": { "has": "tills" }, "as": "tool" },
+        { "step": "use_up", "in": "user", "rule": { "definition": "herbs" }, "count": 2 },
+        { "step": "wait", "minutes": 60, "loudness": 3 },
+        { "step": "damage", "on": "tool", "field": "health.current", "amount": 0.02 },
+        { "step": "change_need", "on": "user", "need": "energy", "amount": -0.1 },
+        { "step": "transform", "on": "item", "into": "young_herbs" }
+      ],
+      "phrases": {
+        "ongoing": "planting herbs in the {item}",
+        "done": "planted herbs",
+        "attempt": "plant herbs in the {item}"
+      }
+    },
+    {
+      "name": "plant",
+      "appliesTo": { "allOf": [{ "definition": "sapling" }, { "where": "held" }] },
+      "steps": [
+        { "step": "wait", "minutes": 20, "loudness": 3 },
+        { "step": "move", "on": "item", "at": "user" },
+        { "step": "transform", "on": "item", "into": "young_tree" },
+        { "step": "change_need", "on": "user", "need": "energy", "amount": -0.05 }
+      ],
+      "phrases": {
+        "ongoing": "planting a {item}",
+        "done": "planted a {item}",
+        "attempt": "plant a {item}"
+      }
+    },
+    {
+      "name": "make chair",
+      "appliesTo": { "definition": "workbench" },
+      "steps": [
+        { "step": "use_up", "in": "user", "rule": { "definition": "plank" }, "count": 2 },
+        { "step": "use_up", "in": "user", "rule": { "definition": "nails" }, "count": 4 },
+        { "step": "wait", "minutes": 60, "loudness": 8 },
+        { "step": "create", "item": "chair", "count": 1, "at": "user" },
+        { "step": "change_need", "on": "user", "need": "energy", "amount": -0.05 }
+      ],
+      "phrases": {
+        "ongoing": "making chair at the {item}",
+        "done": "made chair",
+        "attempt": "make chair at the {item}"
+      }
+    },
+    {
+      "name": "make table",
+      "appliesTo": { "definition": "workbench" },
+      "steps": [
+        { "step": "use_up", "in": "user", "rule": { "definition": "plank" }, "count": 4 },
+        { "step": "use_up", "in": "user", "rule": { "definition": "nails" }, "count": 6 },
+        { "step": "wait", "minutes": 90, "loudness": 8 },
+        { "step": "create", "item": "table", "count": 1, "at": "user" },
+        { "step": "change_need", "on": "user", "need": "energy", "amount": -0.05 }
+      ],
+      "phrases": {
+        "ongoing": "making table at the {item}",
+        "done": "made table",
+        "attempt": "make table at the {item}"
+      }
+    },
+    {
+      "name": "make bench",
+      "appliesTo": { "definition": "workbench" },
+      "steps": [
+        { "step": "use_up", "in": "user", "rule": { "definition": "plank" }, "count": 3 },
+        { "step": "use_up", "in": "user", "rule": { "definition": "nails" }, "count": 4 },
+        { "step": "wait", "minutes": 60, "loudness": 8 },
+        { "step": "create", "item": "bench", "count": 1, "at": "user" },
+        { "step": "change_need", "on": "user", "need": "energy", "amount": -0.05 }
+      ],
+      "phrases": {
+        "ongoing": "making bench at the {item}",
+        "done": "made bench",
+        "attempt": "make bench at the {item}"
+      }
+    },
+    {
+      "name": "make bed",
+      "appliesTo": { "definition": "workbench" },
+      "steps": [
+        { "step": "use_up", "in": "user", "rule": { "definition": "plank" }, "count": 5 },
+        { "step": "use_up", "in": "user", "rule": { "definition": "nails" }, "count": 8 },
+        { "step": "wait", "minutes": 120, "loudness": 8 },
+        { "step": "create", "item": "bed", "count": 1, "at": "user" },
+        { "step": "change_need", "on": "user", "need": "energy", "amount": -0.05 }
+      ],
+      "phrases": {
+        "ongoing": "making bed at the {item}",
+        "done": "made bed",
+        "attempt": "make bed at the {item}"
+      }
+    },
+    {
+      "name": "make door",
+      "appliesTo": { "definition": "workbench" },
+      "steps": [
+        { "step": "use_up", "in": "user", "rule": { "definition": "plank" }, "count": 3 },
+        { "step": "use_up", "in": "user", "rule": { "definition": "nails" }, "count": 4 },
+        { "step": "wait", "minutes": 60, "loudness": 8 },
+        { "step": "create", "item": "door", "count": 1, "at": "user" },
+        { "step": "change_need", "on": "user", "need": "energy", "amount": -0.05 }
+      ],
+      "phrases": {
+        "ongoing": "making door at the {item}",
+        "done": "made door",
+        "attempt": "make door at the {item}"
+      }
+    },
+    {
+      "name": "make chest",
+      "appliesTo": { "definition": "workbench" },
+      "steps": [
+        { "step": "use_up", "in": "user", "rule": { "definition": "plank" }, "count": 4 },
+        { "step": "use_up", "in": "user", "rule": { "definition": "nails" }, "count": 4 },
+        { "step": "wait", "minutes": 90, "loudness": 8 },
+        { "step": "create", "item": "chest", "count": 1, "at": "user" },
+        { "step": "change_need", "on": "user", "need": "energy", "amount": -0.05 }
+      ],
+      "phrases": {
+        "ongoing": "making chest at the {item}",
+        "done": "made chest",
+        "attempt": "make chest at the {item}"
+      }
+    },
+    {
+      "name": "make crate",
+      "appliesTo": { "definition": "workbench" },
+      "steps": [
+        { "step": "use_up", "in": "user", "rule": { "definition": "plank" }, "count": 2 },
+        { "step": "use_up", "in": "user", "rule": { "definition": "nails" }, "count": 2 },
+        { "step": "wait", "minutes": 45, "loudness": 8 },
+        { "step": "create", "item": "crate", "count": 1, "at": "user" },
+        { "step": "change_need", "on": "user", "need": "energy", "amount": -0.05 }
+      ],
+      "phrases": {
+        "ongoing": "making crate at the {item}",
+        "done": "made crate",
+        "attempt": "make crate at the {item}"
+      }
+    },
+    {
+      "name": "make barrel",
+      "appliesTo": { "definition": "workbench" },
+      "steps": [
+        { "step": "use_up", "in": "user", "rule": { "definition": "plank" }, "count": 4 },
+        { "step": "use_up", "in": "user", "rule": { "definition": "nails" }, "count": 6 },
+        { "step": "wait", "minutes": 90, "loudness": 8 },
+        { "step": "create", "item": "barrel", "count": 1, "at": "user" },
+        { "step": "change_need", "on": "user", "need": "energy", "amount": -0.05 }
+      ],
+      "phrases": {
+        "ongoing": "making barrel at the {item}",
+        "done": "made barrel",
+        "attempt": "make barrel at the {item}"
+      }
+    },
+    {
+      "name": "make bucket",
+      "appliesTo": { "definition": "workbench" },
+      "steps": [
+        { "step": "use_up", "in": "user", "rule": { "definition": "plank" }, "count": 1 },
+        { "step": "use_up", "in": "user", "rule": { "definition": "nails" }, "count": 2 },
+        { "step": "wait", "minutes": 30, "loudness": 6 },
+        { "step": "create", "item": "bucket", "count": 1, "into": "user" },
+        { "step": "change_need", "on": "user", "need": "energy", "amount": -0.05 }
+      ],
+      "phrases": {
+        "ongoing": "making bucket at the {item}",
+        "done": "made bucket",
+        "attempt": "make bucket at the {item}"
+      }
+    },
+    {
+      "name": "build oven",
+      "appliesTo": { "definition": "workbench" },
+      "steps": [
+        { "step": "use_up", "in": "user", "rule": { "definition": "stone" }, "count": 8 },
+        { "step": "use_up", "in": "user", "rule": { "definition": "wood" }, "count": 1 },
+        { "step": "wait", "minutes": 180, "loudness": 10 },
+        { "step": "create", "item": "oven", "count": 1, "at": "user" },
+        { "step": "change_need", "on": "user", "need": "energy", "amount": -0.05 }
+      ],
+      "phrases": {
+        "ongoing": "building oven at the {item}",
+        "done": "built oven",
+        "attempt": "build oven at the {item}"
+      }
+    },
+    {
+      "name": "build fireplace",
+      "appliesTo": { "definition": "workbench" },
+      "steps": [
+        { "step": "use_up", "in": "user", "rule": { "definition": "stone" }, "count": 6 },
+        { "step": "wait", "minutes": 120, "loudness": 10 },
+        { "step": "create", "item": "fireplace", "count": 1, "at": "user" },
+        { "step": "change_need", "on": "user", "need": "energy", "amount": -0.05 }
+      ],
+      "phrases": {
+        "ongoing": "building fireplace at the {item}",
+        "done": "built fireplace",
+        "attempt": "build fireplace at the {item}"
+      }
+    },
+    {
+      "name": "build well",
+      "appliesTo": { "definition": "workbench" },
+      "steps": [
+        { "step": "use_up", "in": "user", "rule": { "definition": "stone" }, "count": 10 },
+        { "step": "use_up", "in": "user", "rule": { "definition": "wood" }, "count": 2 },
+        { "step": "wait", "minutes": 240, "loudness": 10 },
+        { "step": "create", "item": "well", "count": 1, "at": "user" },
+        { "step": "change_need", "on": "user", "need": "energy", "amount": -0.05 }
+      ],
+      "phrases": {
+        "ongoing": "building well at the {item}",
+        "done": "built well",
+        "attempt": "build well at the {item}"
+      }
+    },
+    {
+      "name": "build kiln",
+      "appliesTo": { "definition": "workbench" },
+      "steps": [
+        { "step": "use_up", "in": "user", "rule": { "definition": "stone" }, "count": 8 },
+        { "step": "wait", "minutes": 180, "loudness": 10 },
+        { "step": "create", "item": "kiln", "count": 1, "at": "user" },
+        { "step": "change_need", "on": "user", "need": "energy", "amount": -0.05 }
+      ],
+      "phrases": {
+        "ongoing": "building kiln at the {item}",
+        "done": "built kiln",
+        "attempt": "build kiln at the {item}"
+      }
+    },
+    {
+      "name": "cut planks",
+      "appliesTo": { "definition": "chopping_block" },
+      "steps": [
+        { "step": "use_up", "in": "user", "rule": { "definition": "wood" }, "count": 1 },
+        { "step": "wait", "minutes": 30, "loudness": 12 },
+        { "step": "create", "item": "plank", "count": 2, "into": "user" },
+        { "step": "change_need", "on": "user", "need": "energy", "amount": -0.05 }
+      ],
+      "phrases": {
+        "ongoing": "cutting planks at the {item}",
+        "done": "cut planks",
+        "attempt": "cut planks at the {item}"
+      }
+    },
+    {
+      "name": "split firewood",
+      "appliesTo": { "definition": "chopping_block" },
+      "steps": [
+        { "step": "use_up", "in": "user", "rule": { "definition": "wood" }, "count": 1 },
+        { "step": "wait", "minutes": 20, "loudness": 12 },
+        { "step": "create", "item": "firewood", "count": 3, "into": "user" },
+        { "step": "change_need", "on": "user", "need": "energy", "amount": -0.05 }
+      ],
+      "phrases": {
+        "ongoing": "splitting firewood at the {item}",
+        "done": "split firewood",
+        "attempt": "split firewood at the {item}"
+      }
+    },
+    {
+      "name": "smelt iron",
+      "appliesTo": { "definition": "forge" },
+      "steps": [
+        { "step": "use_up", "in": "user", "rule": { "definition": "iron_ore" }, "count": 2 },
+        { "step": "use_up", "in": "user", "rule": { "definition": "coal" }, "count": 1 },
+        { "step": "wait", "minutes": 90, "loudness": 6 },
+        { "step": "create", "item": "iron_ingot", "count": 1, "into": "user" },
+        { "step": "change_need", "on": "user", "need": "energy", "amount": -0.05 }
+      ],
+      "phrases": {
+        "ongoing": "smelting iron at the {item}",
+        "done": "smelted iron",
+        "attempt": "smelt iron at the {item}"
+      }
+    },
+    {
+      "name": "blow a bottle",
+      "appliesTo": { "definition": "forge" },
+      "steps": [
+        { "step": "use_up", "in": "user", "rule": { "definition": "sand" }, "count": 1 },
+        { "step": "use_up", "in": "user", "rule": { "definition": "coal" }, "count": 1 },
+        { "step": "wait", "minutes": 45, "loudness": 4 },
+        { "step": "create", "item": "bottle", "count": 1, "into": "user" },
+        { "step": "change_need", "on": "user", "need": "energy", "amount": -0.05 }
+      ],
+      "phrases": {
+        "ongoing": "blowing a bottle at the {item}",
+        "done": "blew a bottle",
+        "attempt": "blow a bottle at the {item}"
+      }
+    },
+    {
+      "name": "forge knife",
+      "appliesTo": { "definition": "anvil" },
+      "steps": [
+        { "step": "use_up", "in": "user", "rule": { "definition": "iron_ingot" }, "count": 1 },
+        { "step": "use_up", "in": "user", "rule": { "definition": "sticks" }, "count": 1 },
+        { "step": "wait", "minutes": 60, "loudness": 20 },
+        { "step": "create", "item": "knife", "count": 1, "into": "user" },
+        { "step": "change_need", "on": "user", "need": "energy", "amount": -0.05 }
+      ],
+      "phrases": {
+        "ongoing": "forging knife at the {item}",
+        "done": "forged knife",
+        "attempt": "forge knife at the {item}"
+      }
+    },
+    {
+      "name": "forge axe",
+      "appliesTo": { "definition": "anvil" },
+      "steps": [
+        { "step": "use_up", "in": "user", "rule": { "definition": "iron_ingot" }, "count": 1 },
+        { "step": "use_up", "in": "user", "rule": { "definition": "sticks" }, "count": 2 },
+        { "step": "wait", "minutes": 60, "loudness": 20 },
+        { "step": "create", "item": "axe", "count": 1, "into": "user" },
+        { "step": "change_need", "on": "user", "need": "energy", "amount": -0.05 }
+      ],
+      "phrases": {
+        "ongoing": "forging axe at the {item}",
+        "done": "forged axe",
+        "attempt": "forge axe at the {item}"
+      }
+    },
+    {
+      "name": "forge hoe",
+      "appliesTo": { "definition": "anvil" },
+      "steps": [
+        { "step": "use_up", "in": "user", "rule": { "definition": "iron_ingot" }, "count": 1 },
+        { "step": "use_up", "in": "user", "rule": { "definition": "sticks" }, "count": 2 },
+        { "step": "wait", "minutes": 60, "loudness": 20 },
+        { "step": "create", "item": "hoe", "count": 1, "into": "user" },
+        { "step": "change_need", "on": "user", "need": "energy", "amount": -0.05 }
+      ],
+      "phrases": {
+        "ongoing": "forging hoe at the {item}",
+        "done": "forged hoe",
+        "attempt": "forge hoe at the {item}"
+      }
+    },
+    {
+      "name": "forge pickaxe",
+      "appliesTo": { "definition": "anvil" },
+      "steps": [
+        { "step": "use_up", "in": "user", "rule": { "definition": "iron_ingot" }, "count": 2 },
+        { "step": "use_up", "in": "user", "rule": { "definition": "sticks" }, "count": 2 },
+        { "step": "wait", "minutes": 90, "loudness": 20 },
+        { "step": "create", "item": "pickaxe", "count": 1, "into": "user" },
+        { "step": "change_need", "on": "user", "need": "energy", "amount": -0.05 }
+      ],
+      "phrases": {
+        "ongoing": "forging pickaxe at the {item}",
+        "done": "forged pickaxe",
+        "attempt": "forge pickaxe at the {item}"
+      }
+    },
+    {
+      "name": "forge shovel",
+      "appliesTo": { "definition": "anvil" },
+      "steps": [
+        { "step": "use_up", "in": "user", "rule": { "definition": "iron_ingot" }, "count": 1 },
+        { "step": "use_up", "in": "user", "rule": { "definition": "sticks" }, "count": 2 },
+        { "step": "wait", "minutes": 60, "loudness": 20 },
+        { "step": "create", "item": "shovel", "count": 1, "into": "user" },
+        { "step": "change_need", "on": "user", "need": "energy", "amount": -0.05 }
+      ],
+      "phrases": {
+        "ongoing": "forging shovel at the {item}",
+        "done": "forged shovel",
+        "attempt": "forge shovel at the {item}"
+      }
+    },
+    {
+      "name": "forge fishing rod",
+      "appliesTo": { "definition": "anvil" },
+      "steps": [
+        { "step": "use_up", "in": "user", "rule": { "definition": "iron_ingot" }, "count": 1 },
+        { "step": "use_up", "in": "user", "rule": { "definition": "sticks" }, "count": 3 },
+        { "step": "wait", "minutes": 45, "loudness": 10 },
+        { "step": "create", "item": "fishing_rod", "count": 1, "into": "user" },
+        { "step": "change_need", "on": "user", "need": "energy", "amount": -0.05 }
+      ],
+      "phrases": {
+        "ongoing": "forging fishing rod at the {item}",
+        "done": "forged fishing rod",
+        "attempt": "forge fishing rod at the {item}"
+      }
+    },
+    {
+      "name": "forge nails",
+      "appliesTo": { "definition": "anvil" },
+      "steps": [
+        { "step": "use_up", "in": "user", "rule": { "definition": "iron_ingot" }, "count": 1 },
+        { "step": "wait", "minutes": 45, "loudness": 20 },
+        { "step": "create", "item": "nails", "count": 12, "into": "user" },
+        { "step": "change_need", "on": "user", "need": "energy", "amount": -0.05 }
+      ],
+      "phrases": {
+        "ongoing": "forging nails at the {item}",
+        "done": "forged nails",
+        "attempt": "forge nails at the {item}"
+      }
+    },
+    {
+      "name": "forge key",
+      "appliesTo": { "definition": "anvil" },
+      "steps": [
+        { "step": "use_up", "in": "user", "rule": { "definition": "iron_ingot" }, "count": 1 },
+        { "step": "wait", "minutes": 30, "loudness": 12 },
+        { "step": "create", "item": "key", "count": 2, "into": "user" },
+        { "step": "change_need", "on": "user", "need": "energy", "amount": -0.05 }
+      ],
+      "phrases": {
+        "ongoing": "forging key at the {item}",
+        "done": "forged key",
+        "attempt": "forge key at the {item}"
+      }
+    },
+    {
+      "name": "forge lock",
+      "appliesTo": { "definition": "anvil" },
+      "steps": [
+        { "step": "use_up", "in": "user", "rule": { "definition": "iron_ingot" }, "count": 1 },
+        { "step": "wait", "minutes": 60, "loudness": 12 },
+        { "step": "create", "item": "lock", "count": 1, "into": "user" },
+        { "step": "change_need", "on": "user", "need": "energy", "amount": -0.05 }
+      ],
+      "phrases": {
+        "ongoing": "forging lock at the {item}",
+        "done": "forged lock",
+        "attempt": "forge lock at the {item}"
+      }
+    },
+    {
+      "name": "forge lantern",
+      "appliesTo": { "definition": "anvil" },
+      "steps": [
+        { "step": "use_up", "in": "user", "rule": { "definition": "iron_ingot" }, "count": 1 },
+        { "step": "wait", "minutes": 60, "loudness": 12 },
+        { "step": "create", "item": "lantern", "count": 1, "into": "user" },
+        { "step": "change_need", "on": "user", "need": "energy", "amount": -0.05 }
+      ],
+      "phrases": {
+        "ongoing": "forging lantern at the {item}",
+        "done": "forged lantern",
+        "attempt": "forge lantern at the {item}"
+      }
+    },
+    {
+      "name": "repair knife",
+      "appliesTo": { "definition": "anvil" },
+      "steps": [
+        { "step": "use_up", "in": "user", "rule": { "definition": "broken_knife" }, "count": 1 },
+        { "step": "wait", "minutes": 30, "loudness": 15 },
+        { "step": "create", "item": "knife", "count": 1, "into": "user" },
+        { "step": "change_need", "on": "user", "need": "energy", "amount": -0.05 }
+      ],
+      "phrases": {
+        "ongoing": "repairing knife at the {item}",
+        "done": "repaired knife",
+        "attempt": "repair knife at the {item}"
+      }
+    },
+    {
+      "name": "repair axe",
+      "appliesTo": { "definition": "anvil" },
+      "steps": [
+        { "step": "use_up", "in": "user", "rule": { "definition": "broken_axe" }, "count": 1 },
+        { "step": "wait", "minutes": 30, "loudness": 15 },
+        { "step": "create", "item": "axe", "count": 1, "into": "user" },
+        { "step": "change_need", "on": "user", "need": "energy", "amount": -0.05 }
+      ],
+      "phrases": {
+        "ongoing": "repairing axe at the {item}",
+        "done": "repaired axe",
+        "attempt": "repair axe at the {item}"
+      }
+    },
+    {
+      "name": "grind flour",
+      "appliesTo": { "definition": "mill" },
+      "steps": [
+        { "step": "use_up", "in": "user", "rule": { "definition": "wheat" }, "count": 2 },
+        { "step": "wait", "minutes": 60, "loudness": 8 },
+        { "step": "create", "item": "flour", "count": 2, "into": "user" },
+        { "step": "change_need", "on": "user", "need": "energy", "amount": -0.05 }
+      ],
+      "phrases": {
+        "ongoing": "grinding flour at the {item}",
+        "done": "ground flour",
+        "attempt": "grind flour at the {item}"
+      }
+    },
+    {
+      "name": "bake bread",
+      "appliesTo": { "definition": "oven" },
+      "steps": [
+        { "step": "use_up", "in": "item", "rule": { "definition": "flour" }, "count": 2 },
+        { "step": "use_up", "in": "item", "rule": { "definition": "water" }, "count": 1 },
+        { "step": "wait", "minutes": 90, "loudness": 3 },
+        {
+          "step": "create",
+          "item": "bread",
+          "count": 4,
+          "into": "item",
+          "limit": { "from": "item.capacity.max" }
+        },
+        { "step": "change_need", "on": "user", "need": "energy", "amount": -0.05 }
+      ],
+      "phrases": {
+        "ongoing": "baking bread at the {item}",
+        "done": "baked bread",
+        "attempt": "bake bread at the {item}"
+      }
+    },
+    {
+      "name": "bake pie",
+      "appliesTo": { "definition": "oven" },
+      "steps": [
+        { "step": "use_up", "in": "item", "rule": { "definition": "flour" }, "count": 1 },
+        { "step": "use_up", "in": "item", "rule": { "definition": "egg" }, "count": 1 },
+        {
+          "step": "use_up",
+          "in": "item",
+          "rule": { "anyOf": [{ "definition": "apple" }, { "definition": "berries" }] },
+          "count": 2
+        },
+        { "step": "wait", "minutes": 90, "loudness": 3 },
+        {
+          "step": "create",
+          "item": "pie",
+          "count": 2,
+          "into": "item",
+          "limit": { "from": "item.capacity.max" }
+        },
+        { "step": "change_need", "on": "user", "need": "energy", "amount": -0.05 }
+      ],
+      "phrases": {
+        "ongoing": "baking pie at the {item}",
+        "done": "baked pie",
+        "attempt": "bake pie at the {item}"
+      }
+    },
+    {
+      "name": "fire jar",
+      "appliesTo": { "definition": "kiln" },
+      "steps": [
+        { "step": "use_up", "in": "user", "rule": { "definition": "clay" }, "count": 2 },
+        { "step": "wait", "minutes": 120, "loudness": 4 },
+        { "step": "create", "item": "jar", "count": 1, "into": "user" },
+        { "step": "change_need", "on": "user", "need": "energy", "amount": -0.05 }
+      ],
+      "phrases": {
+        "ongoing": "firing jar at the {item}",
+        "done": "fired jar",
+        "attempt": "fire jar at the {item}"
+      }
+    },
+    {
+      "name": "fire mug",
+      "appliesTo": { "definition": "kiln" },
+      "steps": [
+        { "step": "use_up", "in": "user", "rule": { "definition": "clay" }, "count": 1 },
+        { "step": "wait", "minutes": 120, "loudness": 4 },
+        { "step": "create", "item": "mug", "count": 1, "into": "user" },
+        { "step": "change_need", "on": "user", "need": "energy", "amount": -0.05 }
+      ],
+      "phrases": {
+        "ongoing": "firing mug at the {item}",
+        "done": "fired mug",
+        "attempt": "fire mug at the {item}"
+      }
+    },
+    {
+      "name": "fire bowl",
+      "appliesTo": { "definition": "kiln" },
+      "steps": [
+        { "step": "use_up", "in": "user", "rule": { "definition": "clay" }, "count": 1 },
+        { "step": "wait", "minutes": 120, "loudness": 4 },
+        { "step": "create", "item": "bowl", "count": 1, "into": "user" },
+        { "step": "change_need", "on": "user", "need": "energy", "amount": -0.05 }
+      ],
+      "phrases": {
+        "ongoing": "firing bowl at the {item}",
+        "done": "fired bowl",
+        "attempt": "fire bowl at the {item}"
+      }
+    },
+    {
+      "name": "weave cloth",
+      "appliesTo": { "definition": "loom" },
+      "steps": [
+        { "step": "use_up", "in": "user", "rule": { "definition": "wool" }, "count": 2 },
+        { "step": "wait", "minutes": 60, "loudness": 6 },
+        { "step": "create", "item": "cloth", "count": 1, "into": "user" },
+        { "step": "change_need", "on": "user", "need": "energy", "amount": -0.05 }
+      ],
+      "phrases": {
+        "ongoing": "weaving cloth at the {item}",
+        "done": "wove cloth",
+        "attempt": "weave cloth at the {item}"
+      }
+    },
+    {
+      "name": "make bandages",
+      "appliesTo": { "definition": "loom" },
+      "steps": [
+        { "step": "use_up", "in": "user", "rule": { "definition": "cloth" }, "count": 1 },
+        { "step": "wait", "minutes": 20, "loudness": 2 },
+        { "step": "create", "item": "bandage", "count": 3, "into": "user" },
+        { "step": "change_need", "on": "user", "need": "energy", "amount": -0.05 }
+      ],
+      "phrases": {
+        "ongoing": "making bandages at the {item}",
+        "done": "made bandages",
+        "attempt": "make bandages at the {item}"
+      }
+    },
+    {
+      "name": "sew sack",
+      "appliesTo": { "definition": "loom" },
+      "steps": [
+        { "step": "use_up", "in": "user", "rule": { "definition": "cloth" }, "count": 2 },
+        { "step": "wait", "minutes": 45, "loudness": 2 },
+        { "step": "create", "item": "sack", "count": 1, "into": "user" },
+        { "step": "change_need", "on": "user", "need": "energy", "amount": -0.05 }
+      ],
+      "phrases": {
+        "ongoing": "sewing sack at the {item}",
+        "done": "sewed sack",
+        "attempt": "sew sack at the {item}"
+      }
+    },
+    {
+      "name": "butcher chicken",
+      "appliesTo": { "definition": "butcher_block" },
+      "steps": [
+        { "step": "use_up", "in": "user", "rule": { "definition": "chicken" }, "count": 1 },
+        { "step": "wait", "minutes": 20, "loudness": 8 },
+        { "step": "create", "item": "meat", "count": 2, "into": "user" },
+        { "step": "change_need", "on": "user", "need": "energy", "amount": -0.05 }
+      ],
+      "phrases": {
+        "ongoing": "butchering chicken at the {item}",
+        "done": "butchered chicken",
+        "attempt": "butcher chicken at the {item}"
+      }
+    },
+    {
+      "name": "clean fish",
+      "appliesTo": { "definition": "butcher_block" },
+      "steps": [
+        { "step": "use_up", "in": "user", "rule": { "definition": "fish" }, "count": 1 },
+        { "step": "wait", "minutes": 10, "loudness": 3 },
+        { "step": "create", "item": "meat", "count": 1, "into": "user" },
+        { "step": "change_need", "on": "user", "need": "energy", "amount": -0.05 }
+      ],
+      "phrases": {
+        "ongoing": "cleaning fish at the {item}",
+        "done": "cleaned fish",
+        "attempt": "clean fish at the {item}"
+      }
+    },
+    {
+      "name": "make medicine",
+      "appliesTo": { "definition": "herb_table" },
+      "steps": [
+        { "step": "use_up", "in": "user", "rule": { "definition": "herbs" }, "count": 2 },
+        { "step": "use_up", "in": "user", "rule": { "definition": "water" }, "count": 1 },
+        { "step": "use_up", "in": "user", "rule": { "definition": "jar" }, "count": 1 },
+        { "step": "wait", "minutes": 45, "loudness": 2 },
+        { "step": "create", "item": "medicine", "count": 1, "into": "user" },
+        { "step": "change_need", "on": "user", "need": "energy", "amount": -0.05 }
+      ],
+      "phrases": {
+        "ongoing": "making medicine at the {item}",
+        "done": "made medicine",
+        "attempt": "make medicine at the {item}"
+      }
+    },
+    {
+      "name": "make gun",
+      "appliesTo": { "definition": "gunsmith_bench" },
+      "steps": [
+        { "step": "use_up", "in": "user", "rule": { "definition": "iron_ingot" }, "count": 2 },
+        { "step": "use_up", "in": "user", "rule": { "definition": "wood" }, "count": 1 },
+        { "step": "wait", "minutes": 180, "loudness": 12 },
+        { "step": "create", "item": "gun", "count": 1, "into": "user" },
+        { "step": "change_need", "on": "user", "need": "energy", "amount": -0.05 }
+      ],
+      "phrases": {
+        "ongoing": "making gun at the {item}",
+        "done": "made gun",
+        "attempt": "make gun at the {item}"
+      }
+    },
+    {
+      "name": "make bullets",
+      "appliesTo": { "definition": "gunsmith_bench" },
+      "steps": [
+        { "step": "use_up", "in": "user", "rule": { "definition": "lead" }, "count": 1 },
+        { "step": "use_up", "in": "user", "rule": { "definition": "gunpowder" }, "count": 1 },
+        { "step": "wait", "minutes": 45, "loudness": 4 },
+        { "step": "create", "item": "bullet", "count": 6, "into": "user" },
+        { "step": "change_need", "on": "user", "need": "energy", "amount": -0.05 }
+      ],
+      "phrases": {
+        "ongoing": "making bullets at the {item}",
+        "done": "made bullets",
+        "attempt": "make bullets at the {item}"
+      }
+    },
+    {
+      "name": "brew ale",
+      "appliesTo": { "definition": "brew_kettle" },
+      "steps": [
+        { "step": "use_up", "in": "user", "rule": { "definition": "barley" }, "count": 2 },
+        { "step": "use_up", "in": "user", "rule": { "definition": "water" }, "count": 1 },
+        { "step": "wait", "minutes": 120, "loudness": 3 },
+        { "step": "change", "on": "item", "field": "stock.amount", "by": 6 },
+        { "step": "change_need", "on": "user", "need": "energy", "amount": -0.05 }
+      ],
+      "phrases": {
+        "ongoing": "brewing ale at the {item}",
+        "done": "brewed ale",
+        "attempt": "brew ale at the {item}"
+      }
+    },
+    {
+      "name": "pour ale",
+      "appliesTo": { "definition": "brew_kettle" },
+      "steps": [
+        {
+          "step": "check",
+          "on": "item",
+          "if": { "field": "stock.amount", "atLeast": 1 },
+          "otherwise": "the {item} is empty"
+        },
+        { "step": "use_up", "in": "user", "rule": { "definition": "mug" }, "count": 1 },
+        { "step": "wait", "minutes": 1 },
+        { "step": "create", "item": "ale", "count": 1, "into": "user" },
+        { "step": "change", "on": "item", "field": "stock.amount", "by": -1 }
+      ],
+      "phrases": {
+        "ongoing": "pouring ale at the {item}",
+        "done": "poured a mug of ale",
+        "attempt": "pour ale at the {item}"
+      }
+    },
+    {
+      "name": "cook stew",
+      "appliesTo": { "definition": "fireplace" },
+      "steps": [
+        { "step": "require", "in": "user", "rule": { "definition": "cooking_pot" }, "as": "pot" },
+        {
+          "step": "use_up",
+          "in": "user",
+          "rule": { "anyOf": [{ "definition": "firewood" }, { "definition": "sticks" }] },
+          "count": 2
+        },
+        { "step": "use_up", "in": "user", "rule": { "definition": "water" }, "count": 1 },
+        {
+          "step": "use_up",
+          "in": "user",
+          "rule": { "anyOf": [{ "definition": "meat" }, { "definition": "fish" }] },
+          "count": 1
+        },
+        {
+          "step": "use_up",
+          "in": "user",
+          "rule": {
+            "anyOf": [
+              { "definition": "carrot" },
+              { "definition": "onion" },
+              { "definition": "potato" },
+              { "definition": "mushrooms" }
+            ]
+          },
+          "count": 2
+        },
+        { "step": "wait", "minutes": 60, "loudness": 3 },
+        { "step": "change", "on": "pot", "field": "stock.amount", "by": 4 },
+        {
+          "step": "create",
+          "item": "ash",
+          "count": 1,
+          "into": "item",
+          "limit": { "from": "item.capacity.max" }
+        },
+        { "step": "change_need", "on": "user", "need": "energy", "amount": -0.05 }
+      ],
+      "phrases": {
+        "ongoing": "cooking stew at the {item}",
+        "done": "cooked stew",
+        "attempt": "cook stew at the {item}"
+      }
+    },
+    {
+      "name": "serve stew",
+      "appliesTo": { "definition": "cooking_pot" },
+      "steps": [
+        {
+          "step": "check",
+          "on": "item",
+          "if": { "field": "stock.amount", "atLeast": 1 },
+          "otherwise": "the {item} is empty"
+        },
+        { "step": "use_up", "in": "user", "rule": { "definition": "bowl" }, "count": 1 },
+        { "step": "wait", "minutes": 1 },
+        { "step": "create", "item": "stew", "count": 1, "into": "user" },
+        { "step": "change", "on": "item", "field": "stock.amount", "by": -1 }
+      ],
+      "phrases": {
+        "ongoing": "serving stew from the {item}",
+        "done": "served a bowl of stew",
+        "attempt": "serve stew from the {item}"
+      }
+    },
+    {
+      "name": "write a note",
+      "appliesTo": { "definition": "writing_desk" },
+      "takes": ["text"],
+      "steps": [
+        { "step": "use_up", "in": "user", "rule": { "definition": "paper" }, "count": 1 },
+        { "step": "wait", "minutes": 10 },
+        {
+          "step": "create",
+          "item": "note",
+          "count": 1,
+          "into": "user",
+          "fields": {
+            "writing.text": { "from": "choice.text" },
+            "writing.author": { "from": "user.name" }
+          }
+        }
+      ],
+      "phrases": {
+        "ongoing": "writing a note at the {item}",
+        "done": "wrote a note",
+        "attempt": "write a note at the {item}"
+      }
+    },
+    {
+      "name": "play cards",
+      "appliesTo": { "definition": "card_table" },
+      "steps": [
+        { "step": "wait", "minutes": 30, "loudness": 6 },
+        { "step": "change_need", "on": "user", "need": "fun", "amount": 0.2, "perOtherUser": 0.1 }
+      ],
+      "phrases": {
+        "ongoing": "playing cards at the {item}",
+        "done": "played cards",
+        "attempt": "play cards at the {item}"
+      }
+    },
+    {
+      "name": "play cards",
+      "appliesTo": { "has": "cards" },
+      "steps": [
+        { "step": "wait", "minutes": 30, "loudness": 6 },
+        { "step": "change_need", "on": "user", "need": "fun", "amount": 0.15, "perOtherUser": 0.1 }
+      ],
+      "phrases": {
+        "ongoing": "playing cards with the {item}",
+        "done": "played cards",
+        "attempt": "play cards with the {item}"
+      }
+    },
+    {
+      "name": "roll dice",
+      "appliesTo": { "has": "dice" },
+      "steps": [
+        { "step": "wait", "minutes": 10, "loudness": 5 },
+        { "step": "change_need", "on": "user", "need": "fun", "amount": 0.1, "perOtherUser": 0.05 }
+      ],
+      "phrases": {
+        "ongoing": "rolling dice",
+        "done": "rolled the dice",
+        "attempt": "roll the dice"
+      }
+    },
+    {
+      "name": "dig grave",
+      "appliesTo": { "allOf": [{ "has": "digs" }, { "where": "held" }] },
+      "steps": [
+        { "step": "wait", "minutes": 120, "loudness": 6 },
+        { "step": "create", "item": "grave", "count": 1, "at": "user" },
+        { "step": "damage", "on": "item", "field": "health.current", "amount": 0.05 },
+        { "step": "change_need", "on": "user", "need": "energy", "amount": -0.2 }
+      ],
+      "phrases": { "ongoing": "digging a grave", "done": "dug a grave", "attempt": "dig a grave" }
+    },
+    {
+      "name": "carve",
+      "appliesTo": { "definition": "grave" },
+      "takes": ["text"],
+      "steps": [
+        { "step": "wait", "minutes": 30, "loudness": 6 },
+        { "step": "set", "on": "item", "field": "writing.text", "to": { "from": "choice.text" } },
+        { "step": "set", "on": "item", "field": "writing.author", "to": { "from": "user.name" } }
+      ],
+      "phrases": {
+        "ongoing": "carving words on the {item}",
+        "done": "carved words on the {item}",
+        "attempt": "carve words on the {item}"
+      }
+    },
+    {
+      "name": "sit",
+      "appliesTo": { "has": "seat" },
+      "steps": [
+        { "step": "wait", "minutes": 20 },
+        { "step": "change_need", "on": "user", "need": "energy", "amount": 0.1 }
+      ],
+      "phrases": {
+        "ongoing": "sitting on the {item}",
+        "done": "sat on the {item}",
+        "attempt": "sit on the {item}"
+      }
+    },
+    {
+      "name": "sleep",
+      "appliesTo": { "has": "bed" },
+      "takes": ["minutes"],
+      "steps": [{ "step": "sleep", "minutes": { "from": "choice.minutes" } }],
+      "phrases": {
+        "ongoing": "sleeping in the {item}",
+        "done": "slept in the {item}",
+        "attempt": "sleep in the {item}"
+      }
+    },
+    {
+      "name": "read",
+      "appliesTo": { "anyOf": [{ "has": "writing" }, { "has": "notice_board" }] },
+      "steps": [
+        { "step": "wait", "minutes": 5 },
+        { "step": "read", "on": "item", "field": "writing.text", "author": "writing.author" }
+      ],
+      "phrases": {
+        "ongoing": "reading the {item}",
+        "done": "read the {item}",
+        "attempt": "read the {item}"
+      }
+    },
+    {
+      "name": "post a note",
+      "appliesTo": { "allOf": [{ "has": "notice_board" }, { "has": "capacity" }] },
+      "takes": ["text"],
+      "steps": [
+        { "step": "wait", "minutes": 5 },
+        {
+          "step": "create",
+          "item": "note",
+          "count": 1,
+          "into": "item",
+          "limit": { "from": "item.capacity.max" },
+          "fields": {
+            "writing.text": { "from": "choice.text" },
+            "writing.author": { "from": "user.name" }
+          }
+        }
+      ],
+      "phrases": {
+        "ongoing": "posting a note on the {item}",
+        "done": "posted a note",
+        "attempt": "post a note on the {item}"
+      }
+    },
+    {
+      "name": "open",
+      "appliesTo": {
+        "allOf": [{ "has": "door" }, { "has": "closed" }, { "not": { "has": "locked" } }]
+      },
+      "isDoneInPassing": true,
+      "steps": [
+        { "step": "remove", "on": "item", "component": "closed" },
+        { "step": "wait", "minutes": 1, "loudness": 3 }
+      ],
+      "phrases": {
+        "ongoing": "opening the {item}",
+        "done": "opened the {item}",
+        "attempt": "open the {item}"
+      }
+    },
+    {
+      "name": "close",
+      "appliesTo": { "allOf": [{ "has": "door" }, { "not": { "has": "closed" } }] },
+      "steps": [
+        { "step": "add", "on": "item", "component": "closed" },
+        { "step": "wait", "minutes": 1, "loudness": 3 }
+      ],
+      "phrases": {
+        "ongoing": "closing the {item}",
+        "done": "closed the {item}",
+        "attempt": "close the {item}"
+      }
+    },
+    {
+      "name": "fit",
+      "appliesTo": { "allOf": [{ "definition": "lock" }, { "where": "held" }] },
+      "target": { "allOf": [{ "has": "lockable" }, { "not": { "has": "fitted_lock" } }] },
+      "steps": [
+        { "step": "wait", "minutes": 15, "loudness": 6 },
+        { "step": "add", "on": "target", "component": "fitted_lock" },
+        { "step": "destroy", "on": "item" }
+      ],
+      "phrases": {
+        "ongoing": "fitting a {item} to {target}",
+        "done": "fitted a {item} to {target}",
+        "attempt": "fit a {item} to {target}"
+      }
+    },
+    {
+      "name": "lock",
+      "appliesTo": {
+        "allOf": [
+          { "has": "fitted_lock" },
+          { "not": { "has": "locked" } },
+          { "anyOf": [{ "not": { "has": "door" } }, { "has": "closed" }] }
+        ]
+      },
+      "steps": [
+        { "step": "require", "in": "user", "rule": { "has": "opens_locks" } },
+        { "step": "wait", "minutes": 1, "loudness": 2 },
+        { "step": "add", "on": "item", "component": "locked" }
+      ],
+      "phrases": {
+        "ongoing": "locking the {item}",
+        "done": "locked the {item}",
+        "attempt": "lock the {item}"
+      }
+    },
+    {
+      "name": "unlock",
+      "appliesTo": { "allOf": [{ "has": "lockable" }, { "has": "locked" }] },
+      "steps": [
+        { "step": "require", "in": "user", "rule": { "has": "opens_locks" } },
+        { "step": "wait", "minutes": 1, "loudness": 2 },
+        { "step": "remove", "on": "item", "component": "locked" }
+      ],
+      "phrases": {
+        "ongoing": "unlocking the {item}",
+        "done": "unlocked the {item}",
+        "attempt": "unlock the {item}"
+      }
+    },
+    {
+      "name": "light",
+      "appliesTo": { "allOf": [{ "has": "lamp" }, { "not": { "has": "lit" } }] },
+      "steps": [
+        { "step": "wait", "minutes": 1 },
+        { "step": "add", "on": "item", "component": "lit", "minutes": 480 }
+      ],
+      "phrases": {
+        "ongoing": "lighting the {item}",
+        "done": "lit the {item}",
+        "attempt": "light the {item}"
+      }
+    },
+    {
+      "name": "put out",
+      "appliesTo": { "allOf": [{ "has": "lamp" }, { "has": "lit" }] },
+      "steps": [
+        { "step": "wait", "minutes": 1 },
+        { "step": "remove", "on": "item", "component": "lit" }
+      ],
+      "phrases": {
+        "ongoing": "putting out the {item}",
+        "done": "put out the {item}",
+        "attempt": "put out the {item}"
+      }
+    },
+    {
+      "name": "attack",
+      "appliesTo": { "allOf": [{ "has": "weapon" }, { "where": "held" }] },
+      "target": {
+        "allOf": [{ "field": "health.current", "above": 0 }, { "not": { "where": "self" } }]
+      },
+      "steps": [
+        { "step": "wait", "minutes": 1, "loudness": 6 },
+        { "step": "roll_hit", "chance": { "from": "item.weapon.hitChance" } },
+        {
+          "step": "damage",
+          "on": "target",
+          "field": "health.current",
+          "amount": { "from": "item.weapon.damage" },
+          "scaledByStrength": true
+        },
+        { "step": "send", "on": "target", "stimulus": { "from": "item.weapon.stimulus" } },
+        {
+          "step": "damage",
+          "on": "item",
+          "field": "health.current",
+          "amount": 0.02,
+          "evenOnMiss": true
+        }
+      ],
+      "phrases": {
+        "ongoing": "attacking {target} with a {item}",
+        "hit": "hit {target} with a {item}",
+        "missed": "swung a {item} at {target} and missed",
+        "killed": "killed by {actor} with a {item}",
+        "attempt": "attack {target} with a {item}"
+      }
+    },
+    {
+      "name": "punch",
+      "target": { "allOf": [{ "has": "alive" }, { "not": { "where": "self" } }] },
+      "steps": [
+        { "step": "wait", "minutes": 1, "loudness": 4 },
+        { "step": "roll_hit", "chance": 0.8 },
+        {
+          "step": "damage",
+          "on": "target",
+          "field": "health.current",
+          "amount": { "min": 0.05, "max": 0.12 },
+          "scaledByStrength": true
+        },
+        { "step": "send", "on": "target", "stimulus": "impact" },
+        {
+          "step": "change_need",
+          "on": "user",
+          "need": "energy",
+          "amount": -0.01,
+          "evenOnMiss": true
+        }
+      ],
+      "phrases": {
+        "ongoing": "punching {target}",
+        "hit": "punched {target}",
+        "missed": "swung a fist at {target} and missed",
+        "killed": "beaten to death by {actor}",
+        "attempt": "punch {target}"
+      }
+    },
+    {
+      "name": "use",
+      "appliesTo": {
+        "allOf": [{ "has": "healing" }, { "not": { "has": "remedy" } }, { "where": "held" }]
+      },
+      "target": { "has": "alive" },
+      "steps": [
+        { "step": "wait", "minutes": 5 },
+        {
+          "step": "change",
+          "on": "target",
+          "field": "health.current",
+          "by": { "from": "item.healing.health" }
+        },
+        { "step": "remove", "on": "target", "component": "bleeding" },
+        { "step": "destroy", "on": "item" }
+      ],
+      "phrases": {
+        "ongoing": "bandaging {target} with a {item}",
+        "done": "bandaged {target}",
+        "attempt": "bandage {target} with a {item}"
+      }
+    },
+    {
+      "name": "use",
+      "appliesTo": {
+        "allOf": [
+          { "has": "healing" },
+          { "has": "remedy" },
+          { "has": "comes_in" },
+          { "where": "held" }
+        ]
+      },
+      "target": { "has": "alive" },
+      "steps": [
+        { "step": "wait", "minutes": 5 },
+        {
+          "step": "change",
+          "on": "target",
+          "field": "health.current",
+          "by": { "from": "item.healing.health" }
+        },
+        { "step": "remove", "on": "target", "component": "poisoned" },
+        { "step": "destroy", "on": "item" },
+        { "step": "create", "item": { "from": "item.comes_in.item" }, "count": 1, "into": "user" }
+      ],
+      "phrases": {
+        "ongoing": "giving {target} {item}",
+        "done": "gave {target} {item}",
+        "attempt": "give {target} {item}"
+      }
+    },
+    {
+      "name": "douse",
+      "appliesTo": { "allOf": [{ "definition": "water" }, { "where": "held" }] },
+      "target": { "not": { "definition": "water" } },
+      "steps": [
+        { "step": "wait", "minutes": 1, "loudness": 4 },
+        { "step": "send", "on": "target", "stimulus": "water" },
+        { "step": "add", "on": "target", "component": "wet", "minutes": 60 },
+        { "step": "destroy", "on": "item" }
+      ],
+      "phrases": {
+        "ongoing": "dousing {target} with {item}",
+        "done": "doused {target} with {item}",
+        "attempt": "douse {target} with {item}"
+      }
+    },
+    {
+      "name": "drop",
+      "appliesTo": { "allOf": [{ "has": "holdable" }, { "where": "held" }] },
+      "takes": ["amount"],
+      "steps": [{ "step": "move", "on": "item", "at": "user" }],
+      "phrases": {
+        "ongoing": "dropping {item}",
+        "done": "dropped {item}",
+        "attempt": "drop {item}"
+      }
+    },
+    {
+      "name": "pick up",
+      "appliesTo": { "allOf": [{ "has": "holdable" }, { "where": "here" }] },
+      "takes": ["amount"],
+      "steps": [{ "step": "move", "on": "item", "into": "user" }],
+      "phrases": {
+        "ongoing": "picking up the {item}",
+        "done": "picked up {item}",
+        "attempt": "pick up the {item}"
+      }
+    },
+    {
+      "name": "throw",
+      "appliesTo": { "allOf": [{ "has": "holdable" }, { "where": "held" }] },
+      "target": { "not": { "where": "self" } },
+      "reach": 6,
+      "steps": [
+        { "step": "wait", "minutes": 1, "loudness": 4 },
+        { "step": "roll_hit", "chance": 0.6 },
+        {
+          "step": "damage",
+          "on": "target",
+          "field": "health.current",
+          "amount": { "min": 0.02, "max": 0.05, "times": "item.holdable.kilograms" },
+          "scaledByStrength": true
+        },
+        { "step": "send", "on": "target", "stimulus": "impact" },
+        { "step": "move", "on": "item", "at": "target", "evenOnMiss": true },
+        { "step": "send", "on": "item", "stimulus": "impact", "evenOnMiss": true }
+      ],
+      "phrases": {
+        "ongoing": "throwing a {item} at {target}",
+        "hit": "hit {target} with a thrown {item}",
+        "missed": "threw a {item} at {target} and missed",
+        "killed": "killed by a {item} thrown by {actor}",
+        "attempt": "throw a {item} at {target}"
+      }
+    },
+    {
+      "name": "put",
+      "appliesTo": { "allOf": [{ "has": "holdable" }, { "where": "held" }] },
+      "target": { "allOf": [{ "has": "capacity" }, { "not": { "has": "locked" } }] },
+      "takes": ["amount"],
+      "steps": [
+        {
+          "step": "move",
+          "on": "item",
+          "into": "target",
+          "limit": { "from": "target.capacity.max" }
+        }
+      ],
+      "phrases": {
+        "ongoing": "putting {item} in {target}",
+        "done": "put {item} in {target}",
+        "attempt": "put {item} in {target}"
+      }
+    },
+    {
+      "name": "take",
+      "appliesTo": { "allOf": [{ "has": "holdable" }, { "where": "inside" }] },
+      "takes": ["amount"],
+      "steps": [{ "step": "move", "on": "item", "into": "user" }],
+      "phrases": {
+        "ongoing": "taking {item} from {from}",
+        "done": "took {item} from {from}",
+        "attempt": "take {item} from {from}"
+      }
+    },
+    {
+      "name": "shoot",
+      "appliesTo": {
+        "allOf": [
+          { "has": "capacity" },
+          { "has": "firearm" },
+          { "has": "holdable" },
+          { "has": "range" },
+          { "where": "held" }
+        ]
+      },
+      "target": { "field": "health.current", "above": 0 },
+      "reach": { "from": "item.range.tiles" },
+      "steps": [
+        { "step": "use_up", "in": "item", "rule": { "has": "ammo" }, "count": 1 },
+        { "step": "wait", "minutes": 1, "loudness": 30 },
+        { "step": "roll_hit", "chance": { "from": "item.firearm.hitChance" } },
+        {
+          "step": "damage",
+          "on": "target",
+          "field": "health.current",
+          "amount": { "from": "item.firearm.damage" }
+        },
+        { "step": "send", "on": "target", "stimulus": "cut" }
+      ],
+      "phrases": {
+        "ongoing": "shooting at {target} with a {item}",
+        "hit": "shot {target} with a {item}",
+        "missed": "shot at {target} and missed",
+        "killed": "shot dead by {actor}",
+        "attempt": "shoot {target} with a {item}"
+      }
+    }
+  ],
+  "rules": [
+    {
+      "trigger": "stimulus",
+      "stimulus": "fire",
+      "if": { "allOf": [{ "has": "flammable" }, { "not": { "has": "wet" } }] },
+      "steps": [{ "step": "add", "component": "burning", "minutes": 30 }]
+    },
+    {
+      "trigger": "stimulus",
+      "stimulus": "fire",
+      "if": { "has": "wet" },
+      "steps": [{ "step": "remove", "component": "wet" }]
+    },
+    {
+      "trigger": "stimulus",
+      "stimulus": "water",
+      "if": { "has": "burning" },
+      "steps": [{ "step": "remove", "component": "burning" }]
+    },
+    {
+      "trigger": "every",
+      "minutes": 1,
+      "if": { "has": "burning" },
+      "steps": [
+        { "step": "damage", "field": "health.current", "amount": 0.01 },
+        { "step": "send", "on": "nearby", "radius": 1, "stimulus": "fire", "chance": 0.05 }
+      ],
+      "killed": "burned to death"
+    },
+    {
+      "trigger": "stimulus",
+      "stimulus": "cut",
+      "if": { "has": "flesh" },
+      "steps": [{ "step": "add", "component": "bleeding", "minutes": 20, "chance": 0.4 }]
+    },
+    {
+      "trigger": "every",
+      "minutes": 1,
+      "if": { "has": "bleeding" },
+      "steps": [{ "step": "damage", "field": "health.current", "amount": 0.01 }],
+      "killed": "bled to death"
+    },
+    {
+      "trigger": "every",
+      "minutes": 1,
+      "if": { "has": "poisoned" },
+      "steps": [{ "step": "damage", "field": "health.current", "amount": 0.003 }],
+      "killed": "died of poison"
+    },
+    {
+      "trigger": "stimulus",
+      "stimulus": "impact",
+      "if": { "allOf": [{ "has": "fragile" }, { "has": "burning" }] },
+      "steps": [{ "step": "send", "on": "nearby", "radius": 1, "stimulus": "fire" }]
+    },
+    {
+      "trigger": "stimulus",
+      "stimulus": "impact",
+      "if": { "has": "fragile" },
+      "steps": [{ "step": "set", "field": "health.current", "to": 0 }]
+    },
+    {
+      "trigger": "becomes",
+      "if": { "allOf": [{ "field": "health.current", "atMost": 0 }, { "has": "breaks_loudly" }] },
+      "steps": [{ "step": "sound", "loudness": { "from": "self.breaks_loudly.loudness" } }]
+    },
+    {
+      "trigger": "becomes",
+      "if": { "allOf": [{ "field": "health.current", "atMost": 0 }, { "has": "breaks_into" }] },
+      "steps": [
+        { "step": "announce", "text": "broke" },
+        { "step": "transform", "into": { "from": "self.breaks_into.item" } }
+      ]
+    },
+    {
+      "trigger": "becomes",
+      "if": {
+        "allOf": [
+          { "field": "health.current", "atMost": 0 },
+          { "not": { "has": "breaks_into" } },
+          { "not": { "definition": "person" } }
+        ]
+      },
+      "steps": [{ "step": "announce", "text": "broke" }, { "step": "destroy" }]
+    },
+    {
+      "trigger": "every",
+      "minutes": 60,
+      "if": { "has": "regrows" },
+      "steps": [
+        { "step": "change", "field": "stock.amount", "by": { "from": "self.regrows.perHour" } }
+      ]
+    },
+    {
+      "trigger": "every",
+      "minutes": 60,
+      "if": { "has": "breeds" },
+      "steps": [
+        { "step": "change", "field": "flock.amount", "by": { "from": "self.breeds.perHour" } }
+      ]
+    },
+    {
+      "trigger": "becomes",
+      "if": { "allOf": [{ "field": "stock.amount", "atMost": 0 }, { "has": "depletes_into" }] },
+      "steps": [{ "step": "transform", "into": { "from": "self.depletes_into.item" } }]
+    },
+    {
+      "trigger": "every",
+      "minutes": 60,
+      "if": { "has": "turns_into" },
+      "steps": [{ "step": "change", "field": "turns_into.hoursLeft", "by": -1 }]
+    },
+    {
+      "trigger": "becomes",
+      "if": {
+        "allOf": [{ "field": "turns_into.hoursLeft", "atMost": 0 }, { "has": "turns_into" }]
+      },
+      "steps": [{ "step": "transform", "into": { "from": "self.turns_into.item" } }]
+    },
+    {
+      "trigger": "becomes",
+      "if": { "allOf": [{ "has": "alive" }, { "field": "health.current", "atMost": 0 }] },
+      "steps": [{ "step": "remove", "component": "alive" }]
+    },
+    {
+      "trigger": "becomes",
+      "if": { "has": "burning" },
+      "steps": [{ "step": "announce", "text": "caught fire" }]
+    },
+    {
+      "trigger": "becomes",
+      "if": { "not": { "has": "burning" } },
+      "steps": [{ "step": "announce", "text": "stopped burning" }]
+    },
+    {
+      "trigger": "becomes",
+      "if": { "has": "bleeding" },
+      "steps": [{ "step": "announce", "text": "started bleeding" }]
+    },
+    {
+      "trigger": "becomes",
+      "if": { "not": { "has": "bleeding" } },
+      "steps": [{ "step": "announce", "text": "stopped bleeding" }]
+    },
+    {
+      "trigger": "becomes",
+      "if": { "has": "wet" },
+      "steps": [{ "step": "announce", "text": "got wet" }]
+    },
+    {
+      "trigger": "becomes",
+      "if": { "not": { "has": "wet" } },
+      "steps": [{ "step": "announce", "text": "dried off" }]
+    },
+    {
+      "trigger": "becomes",
+      "if": { "has": "poisoned" },
+      "steps": [{ "step": "announce", "text": "was poisoned", "isPrivate": true }]
+    },
+    {
+      "trigger": "becomes",
+      "if": { "not": { "has": "poisoned" } },
+      "steps": [{ "step": "announce", "text": "got over the poison", "isPrivate": true }]
+    }
+  ]
+}

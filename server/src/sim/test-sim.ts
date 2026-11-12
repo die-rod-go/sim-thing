@@ -24,9 +24,10 @@ import { createDecisionStrategy } from "./tick-pipeline";
 import { findAgent, replaceAgent } from "./world-access";
 import { createWorldState, type TickResult, type WorldState } from "./world-state";
 
-/* Test helpers: a real map and seed world driven by a fake LLM. Not used by the running sim. */
-
-const repositoryRoot = resolve(import.meta.dirname, "../../..");
+/*
+ * Test helpers: a fixed map, item file and cast driven by a fake LLM. Not used by the running sim.
+ * The fixtures are frozen copies, so editing the project's map or items.json does not break tests.
+ */
 
 /** Where the fixed test cast starts: their cottages, and Ilsa in the town square. */
 const TEST_START_TILES = {
@@ -38,16 +39,16 @@ const TEST_START_TILES = {
   ilsa: { x: 19, y: 15 },
 };
 
-/** The project map, with start tiles for the test cast instead of the project's characters. */
+/** The test map, with start tiles for the test cast. */
 export function loadTestMap() {
-  const map = loadWorldMap(resolve(repositoryRoot, config.server.mapPath));
+  const map = loadWorldMap(resolve(import.meta.dirname, "test-map.json"));
   return { ...map, startTiles: structuredClone(TEST_START_TILES) };
 }
 
-/** The project's `items.json`: the verbs and definitions the map's objects need. */
+/** The test item file: the verbs and definitions the test map's objects need. */
 export function loadTestItems(): ItemCatalog {
   const json: unknown = JSON.parse(
-    readFileSync(resolve(repositoryRoot, config.server.itemsPath), "utf8"),
+    readFileSync(resolve(import.meta.dirname, "test-items.json"), "utf8"),
   );
   return buildItemCatalog(parseItemFile(json));
 }

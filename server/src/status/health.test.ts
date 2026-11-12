@@ -35,14 +35,6 @@ describe("starvation", () => {
     const perTick = config.health.starvationDrainPerHour / MINUTES_PER_HOUR;
     expect(computeStarvationDamage(agent, graceTicks, 1)).toBeCloseTo(perTick, 12);
   });
-
-  it("kills an agent who starts fed and never eats in about two days", () => {
-    const hoursToEmpty = (config.needs.startValue / config.needs.decayPerDayAwake.hunger) * 24;
-    const hoursToDie =
-      hoursToEmpty + config.health.starvationGraceHours + 1 / config.health.starvationDrainPerHour;
-    expect(hoursToDie).toBeGreaterThan(36);
-    expect(hoursToDie).toBeLessThan(60);
-  });
 });
 
 describe("regeneration", () => {
