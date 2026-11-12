@@ -373,6 +373,8 @@ export const config = {
     },
     /** What a decision names to aim a verb at oneself ("bandage yourself"). */
     selfTargetName: "yourself",
+    /** The extra choice in the "which verb" follow-up for doing none of them. */
+    declineVerbName: "never mind",
     /** How `{target}` reads when the agent aims a verb at itself: to others, and in its own memory. */
     selfTargetWords: { others: "themselves", own: "myself" },
     /** How `{target}` reads in the target's own memory ("Tobias hit me"). */

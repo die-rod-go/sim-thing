@@ -2,6 +2,7 @@ import { describe, expect, it } from "vitest";
 import { config } from "../config";
 import { countHeld, createEntity, listContents, locateInside } from "../items/entity-store";
 import { createFakeResponder } from "../llm/fake-responder";
+import { getAgentRuntime } from "./agent-runtime";
 import { SimLoop } from "./loop";
 import { ManualScheduler } from "./manual-scheduler";
 import { createDecisionStrategy } from "./tick-pipeline";
@@ -139,6 +140,25 @@ describe("decision loop", () => {
     expect(sim.results[0]?.events[0]?.description).toBe("started baking bread at the oven");
     await sim.advance(90);
     expect(countInOven(sim, "bread")).toBe(4);
+  });
+
+  it("declining every verb in the follow-up fails the interact with its reason", async () => {
+    const sim = createTestSim({
+      agentIds: ["mara"],
+      responder: (request, callIndex) => {
+        if (request.schemaName === "interact_reply") {
+          return JSON.stringify({ verb: config.verbs.declineVerbName });
+        }
+        return callIndex === 0
+          ? decisionReply({ action: "interact", item: "oven", verb: "dance" })
+          : decisionReply({ action: "continue" });
+      },
+    });
+    sim.placeAgent("mara", NEXT_TO_OVEN);
+    await sim.advance();
+    expect(sim.client.requests[1]?.schemaName).toBe("interact_reply");
+    expect(sim.agent("mara").currentAction?.kind).not.toBe("interact");
+    expect(getAgentRuntime(sim.state, "mara").lastFailure).toContain("doesn't do 'dance'");
   });
 
   it("interact uses a carried item named as item, oldest first", async () => {

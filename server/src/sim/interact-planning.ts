@@ -48,6 +48,8 @@ async function askWhichVerb(
     ...buildInteractReplySchema(verbNames),
   });
   if (!answer.ok) return { kind: "wait", minutes: config.decision.defaultWaitMinutes };
+  // Declining keeps the original request so it fails at the start and the agent learns why.
+  if (answer.value.verb === config.verbs.declineVerbName) return { kind: "interact", request };
   const text = answer.value.text ?? reply.text;
   const minutes = answer.value.minutes ?? reply.minutes;
   const chosen: InteractRequest = {

@@ -1,4 +1,5 @@
 import { z } from "zod";
+import { config } from "../config";
 import { renderTemplate } from "../llm/templates";
 import type { ReplySchemas } from "./reply-schema";
 import {
@@ -45,21 +46,24 @@ export function buildInteractPrompt(input: InteractPromptInput, promptsDirectory
       targetWords: input.targetName === undefined ? "" : ` and ${input.targetName}`,
       intention: input.intention || "nothing in particular",
       options,
+      declineVerb: config.verbs.declineVerbName,
     },
     promptsDirectory,
   );
 }
 
+/** The verbs offered, plus the choice to do none of them. */
 export function buildInteractReplySchema(optionNames: string[]): ReplySchemas<InteractReply> {
+  const names = [...optionNames, config.verbs.declineVerbName];
   const replyObject = z.object({
-    verb: displayNameEnum(optionNames, "verb"),
+    verb: displayNameEnum(names, "verb"),
     text: z.string().trim().optional(),
     minutes: z.number().positive().optional(),
   });
   return {
     schema: z.preprocess(dropEmptyFields, replyObject),
     jsonSchema: strictJsonObject({
-      verb: { type: "string", enum: [...optionNames] },
+      verb: { type: "string", enum: names },
       text: nullableJsonString(),
       minutes: nullableJsonInteger(),
     }),

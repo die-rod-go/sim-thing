@@ -1,4 +1,5 @@
 import { describe, expect, it } from "vitest";
+import { config } from "../config";
 import type { DecisionTargets, ValidItem } from "./context";
 import { buildInteractPrompt, buildInteractReplySchema } from "./interact-prompt";
 import { buildDecisionReplySchema } from "./reply-schema";
@@ -140,6 +141,20 @@ describe("interact second call", () => {
       text: "Bread, 2 coins",
     });
     expect(schema.safeParse({ verb: "burn it" }).success).toBe(false);
+  });
+
+  it("offers doing none of the verbs", () => {
+    const prompt = buildInteractPrompt({
+      agentName: "Mara",
+      objectName: "oven",
+      intention: "warm up",
+      options: [{ name: "bake bread", description: "" }],
+    });
+    expect(prompt).toContain(`- ${config.verbs.declineVerbName}:`);
+    const { schema } = buildInteractReplySchema(["bake bread"]);
+    expect(schema.parse({ verb: config.verbs.declineVerbName }).verb).toBe(
+      config.verbs.declineVerbName,
+    );
   });
 
   it("names the target when the options are narrowed to verbs that can aim at it", () => {

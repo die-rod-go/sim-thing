@@ -5,6 +5,7 @@ You were: {{intention}}
 
 ## What you can do with the {{objectName}}{{targetWords}}
 {{options}}
+- {{declineVerb}}: none of these is what you meant
 
 ## Reply
 Reply with only a JSON object, fields in this order:

@@ -21,6 +21,7 @@ describe("templates", () => {
       agentName: "Mara",
       objectName: "oven",
       targetWords: "",
+      declineVerb: "never mind",
       intention: "bake",
       options: "- bake bread",
     });
