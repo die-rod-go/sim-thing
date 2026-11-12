@@ -214,7 +214,7 @@ describe("resolving the target", () => {
     handOver(sim, "mara", "bandage");
     putChest(sim, 20, "tavern chest");
     expect(resolveFailure(sim, { verb: "use", targetName: "Tobias" })).toBe(
-      "use | I don't know how to 'use'",
+      "use | I didn't say which thing to use",
     );
     expect(resolveFollowUp(sim, { verb: "put", targetName: "tavern chest" })).toBe(undefined);
   });
@@ -222,7 +222,14 @@ describe("resolving the target", () => {
   it("keeps a lone target that names a person, not a thing", () => {
     const sim = buildTavernSim([EXAMINE_HERE]);
     expect(resolveFailure(sim, { verb: "examine", targetName: "Tobias" })).toBe(
-      "examine | I don't know how to 'examine'",
+      "examine | I didn't say which thing to examine",
+    );
+  });
+
+  it("says no thing was named, not that the verb is unknown, when only the item is missing", () => {
+    const sim = buildTavernSim([EXAMINE_HERE]);
+    expect(resolveFailure(sim, { verb: "examine" })).toBe(
+      "examine | I didn't say which thing to examine",
     );
   });
 

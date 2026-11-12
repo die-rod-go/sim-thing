@@ -62,4 +62,4 @@ Leave out anything you don't use (null).
 
 ## Reply
 Reply with only a JSON object, fields in this order:
-thought (one or two short private sentences: what you notice and why you choose this), intention (one line: what you are trying to get done and why), say, volume, action, target, verb, text, item, from, amount, query, minutes, note, mood.
+thought (one or two short private sentences: what you notice and why you choose this), intention (one line: what you are trying to get done and why), say, volume, action, verb, item, from, target, text, amount, query, minutes, note, mood.

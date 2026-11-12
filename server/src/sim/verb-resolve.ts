@@ -240,9 +240,12 @@ function chooseVerbAndItem(
   const named = listVerbsNamed(state, request.verb);
   if (request.itemName === undefined) {
     const entry = findBareHandedVerb(named);
-    return entry
-      ? { entry, candidate: null }
-      : fail(request.verb, `I don't know how to '${request.verb}'`);
+    if (entry) return { entry, candidate: null };
+    const reason =
+      named.length > 0
+        ? `I didn't say which thing to ${request.verb}`
+        : `I don't know how to '${request.verb}'`;
+    return fail(request.verb, reason);
   }
   const listed = listItemCandidates(state, agentId, request.itemName, request.fromName);
   const attempt = describeAttempt(state.items, request.verb, {
