@@ -1,27 +1,42 @@
 import { describe, expect, it } from "vitest";
 import { config } from "../config";
-import { countHeld, findEntityIfPresent } from "../items/entity-store";
+import {
+  createEntity,
+  findEntityIfPresent,
+  listContents,
+  locateInside,
+} from "../items/entity-store";
 import { SQUARE, contextOf, lastFailure } from "./combat-test-kit";
 import { OPEN_GROUND } from "./rule-test-kit";
 import { giveEntity, setUpSteps } from "./steps/step-test-kit";
+import type { Entity } from "@village/shared";
 import type { TestSim } from "./test-sim";
 import { currentRun, placeEntity, resumeVerb, startVerb } from "./verb-run-test-kit";
 import { cancelRunningVerb } from "./verb-runner";
 import { replaceAgent } from "./world-access";
 
-function giveBakingSupplies(sim: TestSim): void {
-  giveEntity(sim, "mara", "wheat");
-  giveEntity(sim, "mara", "wheat");
-  giveEntity(sim, "mara", "wood");
+function loadOven(sim: TestSim, oven: Entity, definitionIds: readonly string[]): void {
+  for (const definitionId of definitionIds) {
+    createEntity(sim.state, definitionId, locateInside(oven.id));
+  }
+}
+
+function loadBakingSupplies(sim: TestSim, oven: Entity): void {
+  loadOven(sim, oven, ["wheat", "wheat", "wood"]);
+}
+
+function countInside(sim: TestSim, holder: Entity, definitionId: string): number {
+  return listContents(sim.state, holder.id).filter((entity) => entity.definitionId === definitionId)
+    .length;
 }
 
 describe("starting a verb", () => {
   it("changes nothing when a step refuses", () => {
     const sim = setUpSteps();
     const oven = placeEntity(sim, "oven", OPEN_GROUND);
-    giveEntity(sim, "mara", "wood");
+    loadOven(sim, oven, ["wood"]);
     const context = startVerb(sim, "mara", "bake bread", { items: [oven] });
-    expect(countHeld(sim.state, "mara", "wood")).toBe(1);
+    expect(countInside(sim, oven, "wood")).toBe(1);
     expect(sim.agent("mara").currentAction).toBeNull();
     expect(currentRun(sim, "mara")).toBeNull();
     expect(context.result.verbStarts).toEqual([]);
@@ -31,11 +46,11 @@ describe("starting a verb", () => {
   it("runs the steps above the first wait now and those below it when the wait ends", () => {
     const sim = setUpSteps();
     const oven = placeEntity(sim, "oven", OPEN_GROUND);
-    giveBakingSupplies(sim);
+    loadBakingSupplies(sim, oven);
     const started = startVerb(sim, "mara", "bake bread", { items: [oven] });
-    expect(countHeld(sim.state, "mara", "wheat")).toBe(0);
-    expect(countHeld(sim.state, "mara", "wood")).toBe(0);
-    expect(countHeld(sim.state, "mara", "bread")).toBe(0);
+    expect(countInside(sim, oven, "wheat")).toBe(0);
+    expect(countInside(sim, oven, "wood")).toBe(0);
+    expect(countInside(sim, oven, "bread")).toBe(0);
     expect(sim.agent("mara").currentAction).toMatchObject({
       kind: "interact",
       verb: "bake bread",
@@ -46,7 +61,7 @@ describe("starting a verb", () => {
     ]);
     const energyBefore = sim.agent("mara").needs.energy;
     resumeVerb(sim, "mara");
-    expect(countHeld(sim.state, "mara", "bread")).toBe(4);
+    expect(countInside(sim, oven, "bread")).toBe(4);
     expect(sim.agent("mara").needs.energy).toBeLessThan(energyBefore);
     expect(sim.agent("mara").currentAction).toBeNull();
     expect(currentRun(sim, "mara")).toBeNull();
@@ -55,11 +70,11 @@ describe("starting a verb", () => {
   it("keeps what earlier steps did and never runs later ones when interrupted", () => {
     const sim = setUpSteps();
     const oven = placeEntity(sim, "oven", OPEN_GROUND);
-    giveBakingSupplies(sim);
+    loadBakingSupplies(sim, oven);
     startVerb(sim, "mara", "bake bread", { items: [oven] });
     cancelRunningVerb(contextOf(sim), "mara");
-    expect(countHeld(sim.state, "mara", "wheat")).toBe(0);
-    expect(countHeld(sim.state, "mara", "bread")).toBe(0);
+    expect(countInside(sim, oven, "wheat")).toBe(0);
+    expect(countInside(sim, oven, "bread")).toBe(0);
     expect(sim.agent("mara").currentAction).toBeNull();
     expect(currentRun(sim, "mara")).toBeNull();
   });
@@ -77,7 +92,7 @@ describe("the events of a verb", () => {
   it("announces the start at the first wait with its loudness, and the finish with what was made", () => {
     const sim = setUpSteps();
     const oven = placeEntity(sim, "oven", OPEN_GROUND);
-    giveBakingSupplies(sim);
+    loadBakingSupplies(sim, oven);
     const started = startVerb(sim, "mara", "bake bread", { items: [oven] });
     expect(started.result.events).toMatchObject([
       { kind: "action_started", description: "started baking bread at the oven", loudness: 3 },
@@ -140,7 +155,7 @@ function minutesUntilDone(sim: TestSim, agentId: string): number {
 
 function startBaking(sim: TestSim): void {
   const oven = placeEntity(sim, "oven", OPEN_GROUND);
-  giveBakingSupplies(sim);
+  loadBakingSupplies(sim, oven);
   startVerb(sim, "mara", "bake bread", { items: [oven] });
 }
 

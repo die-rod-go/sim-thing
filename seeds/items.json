@@ -209,7 +209,11 @@
       "name": "oven",
       "plural": "ovens",
       "glyph": { "index": 239, "color": "#f0a028" },
-      "components": { "solid": {}, "health": { "max": 6, "current": 6 } }
+      "components": {
+        "solid": {},
+        "health": { "max": 6, "current": 6 },
+        "capacity": { "max": 8 }
+      }
     },
     {
       "id": "brew_kettle",
@@ -416,10 +420,16 @@
       "name": "bake bread",
       "appliesTo": { "definition": "oven" },
       "steps": [
-        { "step": "use_up", "in": "user", "rule": { "definition": "wheat" }, "count": 2 },
-        { "step": "use_up", "in": "user", "rule": { "definition": "wood" }, "count": 1 },
+        { "step": "use_up", "in": "item", "rule": { "definition": "wheat" }, "count": 2 },
+        { "step": "use_up", "in": "item", "rule": { "definition": "wood" }, "count": 1 },
         { "step": "wait", "minutes": 90, "loudness": 3 },
-        { "step": "create", "item": "bread", "count": 4, "into": "user" },
+        {
+          "step": "create",
+          "item": "bread",
+          "count": 4,
+          "into": "item",
+          "limit": { "from": "item.capacity.max" }
+        },
         { "step": "change_need", "on": "user", "need": "energy", "amount": -0.05 }
       ],
       "phrases": {

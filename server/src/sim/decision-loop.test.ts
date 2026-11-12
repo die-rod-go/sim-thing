@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 import { config } from "../config";
-import { countHeld } from "../items/entity-store";
+import { countHeld, createEntity, listContents, locateInside } from "../items/entity-store";
 import { createFakeResponder } from "../llm/fake-responder";
 import { SimLoop } from "./loop";
 import { ManualScheduler } from "./manual-scheduler";
@@ -16,6 +16,27 @@ import {
 
 const SQUARE = { x: 19, y: 15 };
 const NEXT_TO_OVEN = { x: 4, y: 13 };
+
+type TestSim = ReturnType<typeof createTestSim>;
+
+function findOven(sim: TestSim) {
+  const oven = sim.state.entities.find((entity) => entity.definitionId === "oven");
+  if (oven === undefined) throw new Error("The seeded world has no oven");
+  return oven;
+}
+
+function loadOvenWithBakingSupplies(sim: TestSim): void {
+  const oven = findOven(sim);
+  for (const definitionId of ["wheat", "wheat", "wood"]) {
+    createEntity(sim.state, definitionId, locateInside(oven.id));
+  }
+}
+
+function countInOven(sim: TestSim, definitionId: string): number {
+  return listContents(sim.state, findOven(sim).id).filter(
+    (entity) => entity.definitionId === definitionId,
+  ).length;
+}
 
 function memoriesOf(sim: ReturnType<typeof createTestSim>, agentId: string) {
   return sim.state.memoryStore.listByAgent(agentId);
@@ -108,15 +129,16 @@ describe("decision loop", () => {
       },
     });
     sim.placeAgent("mara", NEXT_TO_OVEN);
+    loadOvenWithBakingSupplies(sim);
     await sim.advance();
     expect(sim.client.requests[1]?.schemaName).toBe("interact_reply");
     expect(promptOf(sim.client.requests[1]!)).toContain("bake bread");
     expect(sim.agent("mara").currentAction).toMatchObject({ kind: "interact", verb: "bake bread" });
-    expect(countHeld(sim.state, "mara", "wheat")).toBe(2);
-    expect(countHeld(sim.state, "mara", "wood")).toBe(1);
+    expect(countInOven(sim, "wheat")).toBe(0);
+    expect(countInOven(sim, "wood")).toBe(0);
     expect(sim.results[0]?.events[0]?.description).toBe("started baking bread at the oven");
     await sim.advance(90);
-    expect(countHeld(sim.state, "mara", "bread")).toBe(6);
+    expect(countInOven(sim, "bread")).toBe(4);
   });
 
   it("interact uses a carried item named as item, oldest first", async () => {
@@ -154,6 +176,7 @@ describe("decision loop", () => {
       }),
     });
     sim.placeAgent("mara", { x: 8, y: 15 });
+    loadOvenWithBakingSupplies(sim);
     await sim.advance();
     expect(sim.agent("mara").currentAction).toMatchObject({ kind: "walk_to", target: "oven" });
     await sim.advance(12);
