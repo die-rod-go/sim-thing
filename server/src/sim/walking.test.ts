@@ -52,14 +52,19 @@ describe("walking", () => {
     });
   });
 
-  it("gives up a walk when another agent blocks the only way out", async () => {
+  it("trades places with an agent standing in the only way out", async () => {
     const sim = createWalkToSquareSim();
     sim.placeAgent("mara", ROSE_COTTAGE_INSIDE);
     sim.placeAgent("ilsa", ROSE_COTTAGE_DOORWAY);
-    await sim.advance(10);
-    expect(sim.agent("mara").place).toBe("rose cottage");
-    expect(sim.agent("mara").workingMemory.join("\n")).toContain(
-      "I tried to walk to the town square but Ilsa was in the way",
-    );
+    for (let tick = 0; tick < 60; tick += 1) {
+      await sim.advance();
+      expect(sim.agent("mara").pos).not.toEqual(sim.agent("ilsa").pos);
+    }
+    expect(sim.agent("mara").place).toBe("town square");
+    expect(sim.agent("ilsa").pos).toEqual({
+      x: ROSE_COTTAGE_DOORWAY.x,
+      y: ROSE_COTTAGE_DOORWAY.y - 1,
+    });
+    expect(sim.agent("mara").workingMemory.join("\n")).not.toContain("was in the way");
   });
 });

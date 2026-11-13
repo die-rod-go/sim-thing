@@ -120,9 +120,21 @@ function swapWithOncomingWalker(context: TickContext, agentId: string, blocker: 
 }
 
 /**
- * The next step: swapping places with a walker coming the other way, or rerouted around another
- * agent standing on it. Null when there is no way around this tick; after waiting too long the
- * walk fails.
+ * With no way around, a walker trades places with an agent standing still on its next step, so
+ * nobody standing in a narrow spot shuts others in or out. Moves the one standing; true when the
+ * swap happened. One already moved this tick, or walking somewhere itself, is waited for instead.
+ */
+function swapWithStandingAgent(context: TickContext, agentId: string, blocker: Agent): boolean {
+  const { state } = context;
+  const isStandingStill = getAgentRuntime(state, blocker.id).walk === null;
+  if (!isStandingStill || hasSteppedThisTick(context, blocker.id)) return false;
+  return stepOnce(context, blocker.id, findAgent(state, agentId).pos);
+}
+
+/**
+ * The next step: swapping places with a walker coming the other way, rerouted around another
+ * agent standing on it, or swapping places with that agent when there is no way around. Null when
+ * the step has to wait this tick; after waiting too long the walk fails.
  */
 function takeNextStep(context: TickContext, agentId: string, walk: Walk): Position | null {
   const { state, result } = context;
@@ -140,6 +152,10 @@ function takeNextStep(context: TickContext, agentId: string, walk: Walk): Positi
     walk.remainingSteps = detour;
     return walk.remainingSteps.shift() ?? null;
   }
+  if (swapWithStandingAgent(context, agentId, blocker)) {
+    delete walk.blockedTicks;
+    return walk.remainingSteps.shift() ?? null;
+  }
   walk.blockedTicks = (walk.blockedTicks ?? 0) + 1;
   if (walk.blockedTicks >= config.walking.blockedGiveUpTicks) {
     const where = describeDestination(state, walk.destination);
@@ -150,8 +166,8 @@ function takeNextStep(context: TickContext, agentId: string, walk: Walk): Positi
 }
 
 /**
- * One tile per tick along the stored path, doing what is needed in passing and never onto a tile
- * another living agent stands on; ends on arrival. A walk towards a verb ends as soon as the verb
+ * One tile per tick along the stored path, doing what is needed in passing and never sharing a
+ * tile with another living agent; ends on arrival. A walk towards a verb ends as soon as the verb
  * can start. A walker already moved this tick by a swap doesn't step again.
  */
 export function advanceWalk(context: TickContext, agentId: string): void {
