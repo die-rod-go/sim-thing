@@ -273,6 +273,13 @@ describe("locks and keys", () => {
 });
 
 describe("food, drink and lacing", () => {
+  it("shows how long carried bread has before it spoils", () => {
+    const sim = setUpVillage();
+    handOver(sim, "mara", "bread");
+    const prompt = buildDecisionPrompt(buildDecisionContext(sim.state, "mara", false));
+    expect(prompt).toMatch(/^- 1 bread, turns into spoiled food in 96 h \(eat/m);
+  });
+
   it("fills hunger from bread and never poisons", () => {
     const sim = setUpVillage(ALWAYS);
     handOver(sim, "mara", "bread");
@@ -299,7 +306,7 @@ describe("food, drink and lacing", () => {
     handOver(sim, "tobias", "bread");
     const prompt = buildDecisionPrompt(buildDecisionContext(sim.state, "tobias", false));
     // Lines group only when identical, so the laced loaf counted with a plain one can't be told apart.
-    expect(prompt).toMatch(/^- 2 bread \(/m);
+    expect(prompt).toMatch(/^- 2 bread, turns into spoiled food in 96 h \(/m);
     doVerb(sim, "tobias", "eat", "bread");
     expect(poisonEndOf(sim, "tobias")).toBeNull();
     handOver(sim, "tobias", "antidote");

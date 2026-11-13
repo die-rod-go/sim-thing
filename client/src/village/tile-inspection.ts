@@ -1,4 +1,5 @@
 import {
+  buildDefinitionNamer,
   describeCount,
   listComponentWords,
   parseComponentPath,
@@ -95,7 +96,7 @@ function describeEntityState(entity: Entity, catalog: ThingCatalog): string[] {
   const components = resolveEntityComponents(catalog, entity);
   return [
     describeHealthField(catalog, components),
-    ...listComponentWords(catalog.declarations, components, false),
+    ...listComponentWords(catalog.declarations, components, false, buildDefinitionNamer(catalog)),
   ].filter((detail) => detail !== null);
 }
 

@@ -29,6 +29,15 @@ const file = buildTestItemFile({
         },
       },
     },
+    turns_into: {
+      fields: {
+        item: { type: "item" },
+        hoursLeft: {
+          type: "number",
+          words: [{ text: "turns into {item} in {value} h" }],
+        },
+      },
+    },
   },
   definitions: [
     ...base.definitions,
@@ -226,5 +235,14 @@ describe("component words", () => {
     });
     expect(listComponentWords(declarations, empty, true)).toEqual(["empty"]);
     expect(listComponentWords(declarations, some, true)).toEqual(["6 left"]);
+  });
+
+  it("fills a field word with another field of the component, an item read as its name", () => {
+    const turning = resolveComponents(declarations, oven, {
+      turns_into: instance({ fields: { item: "oven", hoursLeft: 40.7 } }),
+    });
+    expect(
+      listComponentWords(declarations, turning, true, (definitionId) => `the ${definitionId}`),
+    ).toEqual(["turns into the oven in 40 h"]);
   });
 });

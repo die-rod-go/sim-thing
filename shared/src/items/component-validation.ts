@@ -6,6 +6,7 @@ import type {
   FieldValue,
 } from "./component-schema";
 import { listAddableComponents } from "./applies-to";
+import { listFieldWordPlaceholders } from "./components";
 import type { ItemDefinition, ItemFile } from "./item-file";
 import type { ProblemList } from "./item-problems";
 
@@ -39,6 +40,16 @@ function checkFieldDeclaration(
     field.min !== undefined || field.max !== undefined || field.words !== undefined;
   if (field.type !== "number" && hasNumberOptions) {
     problems.error(path, "`min`, `max` and `words` only work on number fields.");
+  }
+  for (const [index, word] of (field.words ?? []).entries()) {
+    for (const name of listFieldWordPlaceholders(word.text)) {
+      if (declaration.fields[name] === undefined) {
+        problems.error(
+          `${path}.words[${index}]`,
+          `"{${name}}" isn't a field of this component: words can name only \`{value}\` and its other fields.`,
+        );
+      }
+    }
   }
   checkBound(field.min, "min", declaration, path, problems);
   checkBound(field.max, "max", declaration, path, problems);

@@ -1,4 +1,5 @@
 import {
+  buildDefinitionNamer,
   describeCount,
   listComponentWords,
   resolveEntityComponents,
@@ -63,6 +64,7 @@ function buildEntityEntry(state: WorldState, agentId: string, entity: Entity): E
     state.items.declarations,
     resolveEntityComponents(state.items, entity),
     true,
+    buildDefinitionNamer(state.items),
   );
   const verbNames = listVerbsForEntity(state, agentId, entity).map((verb) => verb.name);
   return {

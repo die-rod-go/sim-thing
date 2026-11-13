@@ -206,7 +206,16 @@
         "hoursLeft": {
           "type": "number",
           "description": "Sim-hours until it does.",
-          "min": 0
+          "min": 0,
+          "words": [
+            {
+              "below": 1,
+              "text": "about to turn into {item}"
+            },
+            {
+              "text": "turns into {item} in {value} h"
+            }
+          ]
         }
       }
     },

@@ -214,26 +214,68 @@ export function removeComponentChange(
     : others;
 }
 
-const VALUE_PLACEHOLDER = "{value}";
+const VALUE_PLACEHOLDER_NAME = "value";
+const PLACEHOLDER_PATTERN = /\{([A-Za-z][A-Za-z0-9]*)\}/g;
 
-/** How a number field's value reads in prompts, or null when no entry matches. */
-export function describeFieldValue(field: FieldDeclaration, value: FieldValue): string | null {
+/** The definition's name for a definition id; prompts read an item field as the thing's name. */
+export type DefinitionNamer = (definitionId: string) => string;
+
+const nameById: DefinitionNamer = (definitionId) => definitionId;
+
+/** The other fields a field's words can name: the component's declaration and its values. */
+export interface FieldWordSiblings {
+  declaration: ComponentDeclaration;
+  values: Readonly<ComponentValues>;
+  nameDefinition: DefinitionNamer;
+}
+
+/** The names a field word's text puts in braces, besides `{value}`. */
+export function listFieldWordPlaceholders(text: string): string[] {
+  return [...text.matchAll(PLACEHOLDER_PATTERN)]
+    .map((match) => match[1] ?? "")
+    .filter((name) => name !== VALUE_PLACEHOLDER_NAME);
+}
+
+function describeSibling(siblings: FieldWordSiblings | undefined, name: string): string | null {
+  const value = siblings?.values[name];
+  const field = siblings?.declaration.fields[name];
+  if (siblings === undefined || value === undefined || field === undefined) return null;
+  if (field.type === "item" && typeof value === "string") return siblings.nameDefinition(value);
+  return typeof value === "number" ? String(Math.floor(value)) : String(value);
+}
+
+/**
+ * How a number field's value reads in prompts, or null when no entry matches. `{value}` is the
+ * value rounded down; `{<field>}` is another field of the same component, an item field read as
+ * its definition's name ("turns into {item} in {value} h").
+ */
+export function describeFieldValue(
+  field: FieldDeclaration,
+  value: FieldValue,
+  siblings?: FieldWordSiblings,
+): string | null {
   if (typeof value !== "number") return null;
   const word = (field.words ?? []).find(
     (entry) => entry.below === undefined || value < entry.below,
   );
-  return word ? word.text.split(VALUE_PLACEHOLDER).join(String(Math.floor(value))) : null;
+  if (!word) return null;
+  return word.text.replace(PLACEHOLDER_PATTERN, (placeholder: string, name: string) => {
+    if (name === VALUE_PLACEHOLDER_NAME) return String(Math.floor(value));
+    return describeSibling(siblings, name) ?? placeholder;
+  });
 }
 
 /**
  * What a thing's components say about it in prompts: the `words` of each component that has them,
  * in declaration order, then the words of each number field that has them. With `isVisibleOnly`,
- * only the components agents who see the thing are told about.
+ * only the components agents who see the thing are told about. `nameDefinition` names the things
+ * item fields hold, for field words that mention them.
  */
 export function listComponentWords(
   declarations: ComponentDeclarations,
   components: ResolvedComponents,
   isVisibleOnly: boolean,
+  nameDefinition: DefinitionNamer = nameById,
 ): string[] {
   const present = Object.entries(declarations).filter(([name]) => Object.hasOwn(components, name));
   const componentWords = present.flatMap(([, declaration]) =>
@@ -243,8 +285,10 @@ export function listComponentWords(
   );
   const fieldWords = present.flatMap(([name, declaration]) =>
     Object.entries(declaration.fields).flatMap(([fieldName, field]) => {
-      const value = components[name]?.[fieldName];
-      const words = value === undefined ? null : describeFieldValue(field, value);
+      const values = components[name] ?? {};
+      const value = values[fieldName];
+      const siblings = { declaration, values, nameDefinition };
+      const words = value === undefined ? null : describeFieldValue(field, value, siblings);
       return words === null ? [] : [words];
     }),
   );

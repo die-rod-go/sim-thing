@@ -17,6 +17,23 @@ describe("item file validation", () => {
     expect(hasItemErrors(problems)).toBe(false);
   });
 
+  it("refuses field words that name a field the component doesn't have", () => {
+    const base = buildTestItemFile();
+    const file = buildTestItemFile({
+      components: {
+        ...base.components,
+        timer: {
+          fields: {
+            minutesLeft: { type: "number", words: [{ text: "{thing} in {value} min" }] },
+          },
+        },
+      },
+    });
+    expect(messagesFor(file)).toContain(
+      `error: components.timer.minutesLeft.words[0]: "{thing}" isn't a field of this component: words can name only \`{value}\` and its other fields.`,
+    );
+  });
+
   it("accepts an attack verb reading its weapon", () => {
     expect(messagesFor(withVerbs(attack))).toEqual([]);
   });

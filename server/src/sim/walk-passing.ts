@@ -1,4 +1,5 @@
 import {
+  buildDefinitionNamer,
   listComponentWords,
   resolveEntityComponents,
   type Entity,
@@ -28,6 +29,7 @@ function describeBlocker(state: WorldState, blocker: Entity): string {
     state.items.declarations,
     resolveEntityComponents(state.items, blocker),
     true,
+    buildDefinitionNamer(state.items),
   );
   return words.length > 0 ? `${name} (${words.join(", ")})` : name;
 }

@@ -1,5 +1,6 @@
 import {
   NEED_NAMES,
+  buildDefinitionNamer,
   listComponentWords,
   readAgentHealth,
   resolveBodyComponents,
@@ -26,6 +27,7 @@ function StatusSection({ agent }: { agent: Agent }) {
     catalog.declarations,
     resolveBodyComponents(catalog, agent),
     false,
+    buildDefinitionNamer(catalog),
   );
   return (
     <PanelSection title="Status">

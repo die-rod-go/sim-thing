@@ -1,4 +1,5 @@
 import {
+  buildDefinitionNamer,
   listComponentWords,
   resolveBodyComponents,
   type Agent,
@@ -29,7 +30,12 @@ export function hasComponentEnded(instance: ComponentInstance | null, tick: numb
  * itself, only the visible ones when others look.
  */
 export function listBodyWords(items: ThingCatalog, agent: Agent, isVisibleOnly: boolean): string[] {
-  return listComponentWords(items.declarations, resolveBodyComponents(items, agent), isVisibleOnly);
+  return listComponentWords(
+    items.declarations,
+    resolveBodyComponents(items, agent),
+    isVisibleOnly,
+    buildDefinitionNamer(items),
+  );
 }
 
 const ACTOR_PLACEHOLDER = "{actor}";

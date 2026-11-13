@@ -24,7 +24,9 @@ export function listApplyingVerbNames(file: ItemFile, definition: ItemDefinition
  */
 export function describeItemPreview(file: ItemFile, definition: ItemDefinition): string {
   const components = resolveComponents(file.components, definition, {});
-  const words = listComponentWords(file.components, components, true).join(", ");
+  const nameDefinition = (definitionId: string) =>
+    file.definitions.find((candidate) => candidate.id === definitionId)?.name ?? definitionId;
+  const words = listComponentWords(file.components, components, true, nameDefinition).join(", ");
   const details = [listApplyingVerbNames(file, definition).join(", "), words].filter(Boolean);
   const text = describeCount(definition, 1);
   return details.length > 0 ? `${text} (${details.join("; ")})` : text;

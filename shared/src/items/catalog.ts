@@ -59,6 +59,11 @@ export function findDefinition(catalog: ThingCatalog, definitionId: string): Ite
   return definition;
 }
 
+/** Names definitions by id, for words that mention the thing an item field holds. */
+export function buildDefinitionNamer(catalog: ThingCatalog): (definitionId: string) => string {
+  return (definitionId) => catalog.definitionsById.get(definitionId)?.name ?? definitionId;
+}
+
 /** The components of something of that definition, given how it differs from it. */
 export function resolveThingComponents(
   catalog: ThingCatalog,
