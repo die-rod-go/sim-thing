@@ -593,6 +593,15 @@ export const config = {
      * the plan lands on a later tick, so one slow call can't stall the village.
      */
     idleDecisionWaitMs: 1500,
+    /**
+     * What an agent remembers when a reply named something that isn't there (the reply was rejected
+     * and asked again). `{name}` is the name as the reply wrote it.
+     */
+    unknownNameTexts: {
+      walkTarget:
+        "I wanted to go to {name}, but I don't know of any place by that name, and no one by that name is in sight",
+      thing: "I looked for {name}, but there was nothing and no one by that name here or on me",
+    },
     /** "Current conversation" shows at most this many of the conversation's latest lines. */
     conversationLines: 30,
     /** A conversation stays in view this many ticks after its last line. */

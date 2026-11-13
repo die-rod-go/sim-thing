@@ -26,9 +26,22 @@ export interface StructuredCallRequest<Value> {
 
 export type LlmCallDraft = Omit<LlmCallRecord, "id">;
 
+/** A reply that parsed as JSON but failed validation: what it said, and which fields were wrong. */
+export interface RejectedReply {
+  value: unknown;
+  fields: string[];
+}
+
 export type StructuredCallResult<Value> =
-  | { ok: true; value: Value; record: LlmCallDraft; callId: number | null }
-  | { ok: false; error: string };
+  | {
+      ok: true;
+      value: Value;
+      record: LlmCallDraft;
+      callId: number | null;
+      /** Replies rejected before this one was accepted. */
+      rejectedReplies?: RejectedReply[];
+    }
+  | { ok: false; error: string; rejectedReplies?: RejectedReply[] };
 
 export type StructuredCaller = <Value>(
   request: StructuredCallRequest<Value>,
@@ -47,7 +60,13 @@ export interface StructuredCallerDependencies {
 
 type AttemptOutcome<Value> =
   | { ok: true; value: Value; record: LlmCallDraft }
-  | { ok: false; error: string; record: LlmCallDraft; isReplyRejected: boolean };
+  | {
+      ok: false;
+      error: string;
+      record: LlmCallDraft;
+      isReplyRejected: boolean;
+      rejectedReply: RejectedReply | null;
+    };
 
 const REJECTED_REPLY_TEMPLATE = "rejected-reply";
 
@@ -79,16 +98,24 @@ function describeError(error: unknown): string {
 function parseReply<Value>(
   text: string,
   schema: z.ZodType<Value>,
-): { ok: true; value: Value; parsed: unknown } | { ok: false; error: string; parsed: unknown } {
+):
+  | { ok: true; value: Value; parsed: unknown }
+  | { ok: false; error: string; parsed: unknown; fields: string[] } {
   let parsed: unknown;
   try {
     parsed = JSON.parse(extractJsonText(text));
   } catch (error) {
-    return { ok: false, error: `invalid JSON: ${describeError(error)}`, parsed: null };
+    return { ok: false, error: `invalid JSON: ${describeError(error)}`, parsed: null, fields: [] };
   }
   const validation = schema.safeParse(parsed);
   if (!validation.success) {
-    return { ok: false, error: `invalid reply: ${z.prettifyError(validation.error)}`, parsed };
+    const fields = validation.error.issues.map((issue) => String(issue.path[0] ?? ""));
+    return {
+      ok: false,
+      error: `invalid reply: ${z.prettifyError(validation.error)}`,
+      parsed,
+      fields: [...new Set(fields)],
+    };
   }
   return { ok: true, value: validation.data, parsed: validation.data };
 }
@@ -147,7 +174,16 @@ async function attemptCall<Value>(
     };
     return parseResult.ok
       ? { ok: true, value: parseResult.value, record }
-      : { ok: false, error: parseResult.error, record, isReplyRejected: true };
+      : {
+          ok: false,
+          error: parseResult.error,
+          record,
+          isReplyRejected: true,
+          rejectedReply:
+            parseResult.parsed !== null
+              ? { value: parseResult.parsed, fields: parseResult.fields }
+              : null,
+        };
   } catch (error) {
     const message = `API error: ${describeError(error)}`;
     const record: LlmCallDraft = {
@@ -162,7 +198,7 @@ async function attemptCall<Value>(
       latencyMs: Math.round(performance.now() - startedAt),
       error: message,
     };
-    return { ok: false, error: message, record, isReplyRejected: false };
+    return { ok: false, error: message, record, isReplyRejected: false, rejectedReply: null };
   }
 }
 
@@ -181,11 +217,12 @@ export function createStructuredCaller(
       : undefined;
     let lastError = BUDGET_REACHED_ERROR;
     let rejection: string | null = null;
+    const rejectedReplies: RejectedReply[] = [];
     for (let attempt = 1; attempt <= config.llm.attemptsPerCall; attempt += 1) {
       if (attempt > 1) await pause(config.llm.retryBackoffMs);
       if (dependencies.budget.isOverBudget()) {
         logger.warn(`Skipped ${request.kind} call for ${request.agentId}: ${BUDGET_REACHED_ERROR}`);
-        return { ok: false, error: BUDGET_REACHED_ERROR };
+        return { ok: false, error: BUDGET_REACHED_ERROR, rejectedReplies };
       }
       const prompt = buildRetryPrompt(request, rejection);
       const outcome = await dependencies.limiter.run(() =>
@@ -198,14 +235,15 @@ export function createStructuredCaller(
           attempt,
           latencyMs: outcome.record.latencyMs,
         });
-        return { ok: true, value: outcome.value, record: outcome.record, callId };
+        return { ok: true, value: outcome.value, record: outcome.record, callId, rejectedReplies };
       }
       lastError = outcome.error;
       rejection = outcome.isReplyRejected ? outcome.error : null;
+      if (outcome.rejectedReply) rejectedReplies.push(outcome.rejectedReply);
       logger.warn(`${request.kind} call for ${request.agentId} failed (attempt ${attempt})`, {
         error: outcome.error,
       });
     }
-    return { ok: false, error: lastError };
+    return { ok: false, error: lastError, rejectedReplies };
   };
 }

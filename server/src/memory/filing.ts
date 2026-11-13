@@ -302,3 +302,25 @@ export function fileFirstVisit(
   };
   return createMemory(draft, tick, idGenerator);
 }
+
+/**
+ * A `did` memory of something only the agent knows it tried, like looking for a place that isn't
+ * there. Null when the same note was filed recently.
+ */
+export function fileOwnNote(
+  agentId: string,
+  text: string,
+  tick: number,
+  memories: MemoryReader,
+  idGenerator: MemoryIdGenerator,
+  knownNames: readonly string[],
+): Memory | null {
+  const draft: MemoryDraft = {
+    agentId,
+    bucket: "did",
+    text: truncateMemoryText(text),
+    tags: extractTags(text, knownNames),
+  };
+  if (isDuplicate(draft, tick, memories.listByAgent(agentId))) return null;
+  return createMemory(draft, tick, idGenerator);
+}

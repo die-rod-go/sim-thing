@@ -4,6 +4,7 @@ import { config } from "../config";
 import { normalizeDisplayName, resolveName } from "../decision/resolve-name";
 import { computeChebyshevDistance, executeGive } from "../economy/give";
 import { describeEntityName, listTileEntitiesAt } from "../items/entity-store";
+import { fileOwnNote } from "../memory/filing";
 import { pushWorkingMemory } from "../memory/working-memory";
 import { isDead } from "../status/health";
 import { WAIT_ACTION } from "./action-phrases";
@@ -19,9 +20,11 @@ import { startWalk } from "./walk-start";
 import {
   describeAgentAsSeen,
   findAgent,
+  listKnownNames,
   listOthersAsSeen,
   markAgentChanged,
   markEntityChanged,
+  rememberBriefly,
   replaceAgent,
 } from "./world-access";
 
@@ -179,8 +182,25 @@ function executeAction(context: TickContext, agentId: string, action: PlannedAct
   }
 }
 
+/** Only the agent knows it looked for something that isn't there, so onlookers learn nothing. */
+function noteUnknownName(context: TickContext, agentId: string, note: string): void {
+  const { state } = context;
+  getAgentRuntime(state, agentId).lastFailure = note;
+  rememberBriefly(state, agentId, note);
+  const memory = fileOwnNote(
+    agentId,
+    note,
+    state.tick,
+    state.memoryStore,
+    state.memoryIds,
+    listKnownNames(state),
+  );
+  if (memory) state.memoryStore.add(memory);
+}
+
 /**
- * Applies one decision: free acts, recall results into working memory,
+ * Applies one decision: free acts, recall results into working memory, notes of names that
+ * weren't found,
  * then the act itself. Choosing anything but `continue` stops the current action first.
  */
 export function applyDecisionPlan(context: TickContext, plan: DecisionPlan): void {
@@ -200,7 +220,9 @@ export function applyDecisionPlan(context: TickContext, plan: DecisionPlan): voi
     );
     replaceAgent(state, { ...agent, workingMemory });
   }
-  getAgentRuntime(state, agentId).lastFailure = null;
+  const runtime = getAgentRuntime(state, agentId);
+  runtime.lastFailure = null;
+  for (const note of plan.unknownNameNotes) noteUnknownName(context, agentId, note);
   markAgentChanged(result, agentId);
   result.decidedAgentIds.push(agentId);
   if (isContinuing) return;

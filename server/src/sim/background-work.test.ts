@@ -33,6 +33,7 @@ function waitPlan(agentId: string): DecisionPlan {
     agentId,
     isMidActionInterrupt: false,
     replies: [],
+    unknownNameNotes: [],
     action: { kind: "wait", minutes: 10 },
     recallEntries: [],
   };

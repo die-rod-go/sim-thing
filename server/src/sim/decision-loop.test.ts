@@ -70,6 +70,28 @@ describe("decision loop", () => {
     );
   });
 
+  it("remembers asking to walk to a place that doesn't exist, and onlookers learn nothing", async () => {
+    const sim = createTestSim({
+      agentIds: ["mara", "tobias"],
+      responder: scriptByAgent({
+        Mara: (_request, callIndex) =>
+          callIndex === 0
+            ? decisionReply({ action: "walk_to", target: "river" })
+            : decisionReply({ action: "wait", minutes: 30 }),
+        Tobias: () => decisionReply({ action: "wait", minutes: 30 }),
+      }),
+    });
+    sim.placeAgent("mara", SQUARE);
+    sim.placeAgent("tobias", { x: SQUARE.x + 1, y: SQUARE.y });
+    await sim.advance();
+    const note =
+      "I wanted to go to river, but I don't know of any place by that name, and no one by that name is in sight";
+    expect(memoriesOf(sim, "mara").map((memory) => memory.text)).toContain(note);
+    expect(getAgentRuntime(sim.state, "mara").lastFailure).toBe(note);
+    const tobiasTexts = memoriesOf(sim, "tobias").map((memory) => memory.text);
+    expect(tobiasTexts.some((text) => text.includes("river"))).toBe(false);
+  });
+
   it("tells an interrupted agent what flagged the decision", async () => {
     const sim = createTestSim({ agentIds: ["mara"], responder: scriptByAgent({}) });
     sim.placeAgent("mara", SQUARE);

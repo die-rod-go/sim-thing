@@ -3,6 +3,7 @@ import { config } from "../config";
 import { formatMinutesAgo } from "../decision/around-you";
 import { buildCacheableDecisionPrompt } from "../decision/decision-prompt";
 import { buildDecisionReplySchema } from "../decision/reply-schema";
+import { describeUnknownNames } from "../decision/unknown-names";
 import { searchMemories } from "../memory/recall";
 import { fillStatusWords, findFailedRecall, readStatusView } from "../status/impairment";
 import { extractTags } from "../memory/tags";
@@ -34,6 +35,8 @@ export type PlannedAction =
 export interface DecidedReply {
   reply: DecisionReply;
   llmCallId: number | null;
+  /** What the agent learned from replies rejected for naming something that isn't there. */
+  unknownNameNotes?: string[];
 }
 
 /** Everything one decision produced; applied to the world after all decisions of the tick return. */
@@ -45,6 +48,8 @@ export interface DecisionPlan {
   action: PlannedAction;
   /** Working-memory entries from a recall, already stamped. */
   recallEntries: string[];
+  /** "I wanted to go to the river, but ...": names the agent tried that aren't there. */
+  unknownNameNotes: string[];
 }
 
 function fallbackWait(agent: Agent): DecisionReply {
@@ -88,9 +93,10 @@ async function askForDecision(
     cacheBreakpoints,
     ...schemas,
   });
+  const unknownNameNotes = (reply.rejectedReplies ?? []).flatMap(describeUnknownNames);
   return reply.ok
-    ? { reply: reply.value, llmCallId: reply.callId }
-    : { reply: fallbackWait(findAgent(state, request.agentId)), llmCallId: null };
+    ? { reply: reply.value, llmCallId: reply.callId, unknownNameNotes }
+    : { reply: fallbackWait(findAgent(state, request.agentId)), llmCallId: null, unknownNameNotes };
 }
 
 /**
@@ -189,7 +195,11 @@ export async function runDecision(
         ? { ...second.reply, action: "wait", minutes: config.decision.defaultWaitMinutes }
         : second.reply;
     finalCallId = second.llmCallId;
-    replies.push({ reply: finalReply, llmCallId: finalCallId });
+    replies.push({
+      reply: finalReply,
+      llmCallId: finalCallId,
+      unknownNameNotes: second.unknownNameNotes ?? [],
+    });
   }
   const action =
     finalReply.action === "interact"
@@ -201,5 +211,6 @@ export async function runDecision(
     replies,
     action,
     recallEntries,
+    unknownNameNotes: [...new Set(replies.flatMap((decided) => decided.unknownNameNotes ?? []))],
   };
 }

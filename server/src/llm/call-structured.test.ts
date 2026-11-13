@@ -96,6 +96,15 @@ describe("callStructured", () => {
     expect(records[1]?.prompt).toMatch(/^What now\?\n\n## Your last reply was rejected\n.*answer/s);
   });
 
+  it("reports which fields of a rejected reply were wrong even when the retry succeeds", async () => {
+    const { callStructured, request } = setUp(['{"answer":3}', '{"answer":"wood"}']);
+    const result = await callStructured(request);
+    expect(result).toMatchObject({
+      ok: true,
+      rejectedReplies: [{ value: { answer: 3 }, fields: ["answer"] }],
+    });
+  });
+
   it("retries an API error with the prompt unchanged", async () => {
     const { callStructured, request, records } = setUp([new Error("HTTP 503"), '{"answer":"x"}']);
     await callStructured(request);
@@ -135,7 +144,7 @@ describe("callStructured", () => {
     const first = await callStructured(request);
     const second = await callStructured(request);
     expect(first.ok).toBe(true);
-    expect(second).toEqual({ ok: false, error: BUDGET_REACHED_ERROR });
+    expect(second).toEqual({ ok: false, error: BUDGET_REACHED_ERROR, rejectedReplies: [] });
     expect(client.callCount).toBe(1);
   });
 
