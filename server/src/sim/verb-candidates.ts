@@ -1,14 +1,10 @@
 import { compareEntityAge, type Entity } from "@village/shared";
 import { computeChebyshevDistance } from "../economy/give";
 import { resolveName } from "../decision/resolve-name";
-import {
-  isEntityNamed,
-  listContents,
-  listHeldEntities,
-  listTileEntitiesAt,
-} from "../items/entity-store";
+import { isEntityNamed, listContents, listHeldEntities } from "../items/entity-store";
 import { readThingId, type ThingRef } from "../items/things";
 import { canSeeInto } from "../items/world-physics";
+import { listHereEntities } from "./here-entities";
 import { listAllSeenInside } from "./reachable-contents";
 import { describeTargetName } from "./verb-target";
 import { findAgent, listOthersAsSeen } from "./world-access";
@@ -31,8 +27,9 @@ function listHeld(state: WorldState, agentId: string, name: string | undefined):
 
 /** Entities at the agent's place that answer to the name (or all of them), nearest first. */
 export function listHereNearestFirst(state: WorldState, agentId: string, name?: string): Entity[] {
-  const { place, pos } = findAgent(state, agentId);
-  return listTileEntitiesAt(state, place)
+  const agent = findAgent(state, agentId);
+  const { pos } = agent;
+  return listHereEntities(state, agent)
     .filter((entity) => name === undefined || isEntityNamed(state, entity, name))
     .map((entity) => ({
       entity,

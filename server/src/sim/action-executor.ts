@@ -3,7 +3,7 @@ import { findDefinition, type Agent, type AgentThought, type DecisionReply } fro
 import { config } from "../config";
 import { normalizeDisplayName, resolveName } from "../decision/resolve-name";
 import { computeChebyshevDistance, executeGive } from "../economy/give";
-import { describeEntityName, listTileEntitiesAt } from "../items/entity-store";
+import { describeEntityName } from "../items/entity-store";
 import { fileOwnNote } from "../memory/filing";
 import { pushWorkingMemory } from "../memory/working-memory";
 import { isDead } from "../status/health";
@@ -14,6 +14,7 @@ import type { DecidedReply, DecisionPlan, PlannedAction } from "./decision-runne
 import { broadcastEvent } from "./event-broadcast";
 import { createEvent, createSpeechEvent } from "./event-factory";
 import { failAction } from "./failure";
+import { listHereEntities } from "./here-entities";
 import type { TickContext } from "./tick-context";
 import { startOrApproachVerb } from "./verb-approach";
 import { startWalk } from "./walk-start";
@@ -99,7 +100,7 @@ function executeWalk(context: TickContext, agentId: string, targetName: string):
     }
     return;
   }
-  const entity = listTileEntitiesAt(state, agent.place).find(
+  const entity = listHereEntities(state, agent).find(
     (candidate) => normalizeDisplayName(describeEntityName(state, candidate)) === wanted,
   );
   if (entity) {

@@ -1,15 +1,11 @@
 import { matchesThing, type Agent, type Entity, type Verb } from "@village/shared";
 import { config } from "../config";
 import type { PromptEntityGroup, ValidItem } from "../decision/context";
-import {
-  describeEntityName,
-  getDefinition,
-  listHeldEntities,
-  listTileEntitiesAt,
-} from "../items/entity-store";
+import { describeEntityName, getDefinition, listHeldEntities } from "../items/entity-store";
 import type { ThingRef } from "../items/things";
 import { canSeeInto, isShownWhenCarried } from "../items/world-physics";
 import { listItemlessVerbs, listVerbsForEntity } from "../items/verb-offers";
+import { listHereEntities } from "./here-entities";
 import { describeBodyForPrompt, groupEntitiesForPrompt } from "./prompt-lines";
 import { listAllSeenInside, listVisibleBodies, listVisibleContents } from "./reachable-contents";
 import { viewThingFrom } from "./thing-where";
@@ -20,9 +16,9 @@ function entityThing(entity: Entity): ThingRef {
   return { kind: "entity", entityId: entity.id };
 }
 
-/** What is at the agent's place: placed objects and items on the ground. */
+/** What is at the agent's place, as `listHereEntities` sees it. */
 export function listNearbyEntities(state: WorldState, agent: Agent): Entity[] {
-  return listTileEntitiesAt(state, agent.place);
+  return listHereEntities(state, agent);
 }
 
 /** Here: what is at the agent's place, then every dead body in sight. */
