@@ -1,5 +1,6 @@
 const MINUTES_PER_HOUR = 60;
 const MILLISECONDS_PER_SECOND = 1000;
+const SECONDS_PER_MINUTE = 60;
 const PERCENT = 100;
 
 const countFormat = new Intl.NumberFormat("en-US");
@@ -23,6 +24,18 @@ export function formatMinutesAgo(minutes: number): string {
 export function formatLatency(latencyMs: number): string {
   if (latencyMs < MILLISECONDS_PER_SECOND) return `${latencyMs} ms`;
   return `${(latencyMs / MILLISECONDS_PER_SECOND).toFixed(1)} s`;
+}
+
+/** A countdown clock, e.g. "1:29:05" or "4:07"; rounds up so it reads 0:00 only at the end. */
+export function formatCountdown(remainingMs: number): string {
+  const totalSeconds = Math.max(0, Math.ceil(remainingMs / MILLISECONDS_PER_SECOND));
+  const seconds = totalSeconds % SECONDS_PER_MINUTE;
+  const totalMinutes = Math.floor(totalSeconds / SECONDS_PER_MINUTE);
+  const minutes = totalMinutes % MINUTES_PER_HOUR;
+  const hours = Math.floor(totalMinutes / MINUTES_PER_HOUR);
+  const paddedSeconds = String(seconds).padStart(2, "0");
+  if (hours === 0) return `${minutes}:${paddedSeconds}`;
+  return `${hours}:${String(minutes).padStart(2, "0")}:${paddedSeconds}`;
 }
 
 /** Real milliseconds per tick at the given speed, capped so slow speeds stay responsive. */

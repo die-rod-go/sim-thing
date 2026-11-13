@@ -6,6 +6,7 @@ import { parseStoredBoolean } from "../format/stored-preferences";
 import type { ConnectionStatus } from "../net/sim-connection";
 import type { ClientState } from "../state/client-state";
 import { MomentToasts } from "./MomentToasts";
+import { RunForControl } from "./RunForControl";
 import { SettingsMenu } from "./SettingsMenu";
 import { ShortcutsHelp } from "./ShortcutsHelp";
 import { useStoredState } from "./use-stored-state";
@@ -137,6 +138,7 @@ export function TopBar(props: TopBarProps) {
       <div className="top-bar">
         <SimClock state={state} />
         <TransportControls state={state} isLive={isLive} sendControl={sendControl} />
+        <RunForControl isPaused={state.clock.isPaused} isLive={isLive} sendControl={sendControl} />
         <div className="top-bar-end">
           <StatusPill state={state} connectionStatus={connectionStatus} />
           <ShortcutsHelp

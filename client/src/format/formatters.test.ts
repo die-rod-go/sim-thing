@@ -2,6 +2,7 @@ import { describe, expect, it } from "vitest";
 import {
   computeTickDurationMs,
   formatCount,
+  formatCountdown,
   formatLatency,
   formatMinutesAgo,
   formatParsedReply,
@@ -43,5 +44,11 @@ describe("formatters", () => {
     expect(parsePositiveInteger("1.5")).toBeNull();
     expect(parsePositiveInteger("-3")).toBeNull();
     expect(parsePositiveInteger("abc")).toBeNull();
+  });
+
+  it("formats a countdown with hours only when there are any, rounding seconds up", () => {
+    expect(formatCountdown(90 * 60_000)).toBe("1:30:00");
+    expect(formatCountdown(4 * 60_000 + 6_200)).toBe("4:07");
+    expect(formatCountdown(-500)).toBe("0:00");
   });
 });

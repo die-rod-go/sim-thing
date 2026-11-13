@@ -144,6 +144,7 @@ export const clientConfig = {
     /** How long a moment notification stays up before it dismisses itself. */
     momentToastLifetimeMs: 9000,
     maxMomentToastsShown: 3,
+    runTimerRefreshMs: 1000,
   },
 
   characterEditor: {

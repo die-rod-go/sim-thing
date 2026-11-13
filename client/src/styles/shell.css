@@ -251,6 +251,20 @@
   align-self: flex-start;
 }
 
+.run-for {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+}
+
+.run-for input {
+  width: 96px;
+}
+
+.run-for-countdown {
+  font-variant-numeric: tabular-nums;
+}
+
 .budget-form {
   display: flex;
   gap: 4px;
