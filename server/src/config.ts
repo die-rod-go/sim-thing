@@ -593,8 +593,10 @@ export const config = {
      * the plan lands on a later tick, so one slow call can't stall the village.
      */
     idleDecisionWaitMs: 1500,
-    conversationLines: 12,
-    conversationWindowTicks: 30,
+    /** "Current conversation" shows at most this many of the conversation's latest lines. */
+    conversationLines: 30,
+    /** A conversation stays in view this many ticks after its last line. */
+    conversationLingerTicks: 30,
     /** Sized so a typical prompt keeps its recalled memories; only unusually long ones get trimmed. */
     promptTokenTarget: 4500,
     /** Rough characters-per-token used to estimate prompt size before trimming memories. Measured from logged Haiku calls: about 1.9. */

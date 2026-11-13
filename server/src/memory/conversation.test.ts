@@ -74,19 +74,43 @@ describe("currentConversation", () => {
     ]);
   });
 
-  it("keeps only the last 12 lines within 30 ticks", () => {
-    const events = Array.from({ length: 20 }, (_, index) =>
-      speech("bob", 100 + index, `line ${index}`, [hearing("mara", "clear")]),
+  it("keeps an hour-long conversation in view, up to its last 30 lines", () => {
+    const events = Array.from({ length: 40 }, (_, index) =>
+      speech("bob", 100 + index * 2, `line ${index}`, [hearing("mara", "clear")]),
     );
-    const lines = currentConversation(buildLog(events), "mara", 125);
-    expect(lines).toHaveLength(12);
-    expect(lines[0]?.words).toBe("line 8");
-    expect(currentConversation(buildLog(events), "mara", 200)).toEqual([]);
+    const lines = currentConversation(buildLog(events), "mara", 180);
+    expect(lines).toHaveLength(30);
+    expect(lines[0]).toEqual({ speakerName: "Bob", words: "line 10", tick: 120 });
+  });
+
+  it("starts the conversation after the last quiet gap", () => {
+    const log = buildLog([
+      speech("bob", 100, "earlier talk", [hearing("mara", "clear")]),
+      speech("bob", 120, "new talk", [hearing("mara", "clear")]),
+      speech("mara", 121, "yes?", [hearing("bob", "clear")]),
+    ]);
+    expect(currentConversation(log, "mara", 125).map((line) => line.words)).toEqual([
+      "new talk",
+      "yes?",
+    ]);
+  });
+
+  it("shows nothing once the conversation has been quiet for 30 ticks", () => {
+    const log = buildLog([speech("bob", 100, "Morning", [hearing("mara", "clear")])]);
+    expect(currentConversation(log, "mara", 130)).toHaveLength(1);
+    expect(currentConversation(log, "mara", 131)).toEqual([]);
   });
 });
 
 describe("pruneConversationLog", () => {
-  it("drops lines older than the conversation window", () => {
+  it("keeps every line of a conversation that is still going", () => {
+    const events = Array.from({ length: 10 }, (_, index) =>
+      speech("bob", 100 + index * 10, `line ${index}`, [hearing("mara", "clear")]),
+    );
+    expect(pruneConversationLog(buildLog(events), 195).lines).toHaveLength(10);
+  });
+
+  it("drops lines from a conversation that has ended", () => {
     const log = buildLog([
       speech("bob", 100, "old", [hearing("mara", "clear")]),
       speech("bob", 140, "new", [hearing("mara", "clear")]),
