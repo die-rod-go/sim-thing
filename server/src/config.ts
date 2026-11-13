@@ -23,7 +23,7 @@ export interface HealthWord {
   text: string;
   /** What others in sight see; only shown below `health.visibleToOthersBelow`. */
   looks: string;
-  /** What a serious wound feels like; a level with one is put first in the prompt, like a need. */
+  /** What serious harm feels like; a level with one is pressing, like a need. */
   urge?: string;
   /** Extra share of time a verb takes at this level, as for needs. */
   slowdown?: number;
@@ -116,21 +116,22 @@ export const config = {
     crowdEnergyCostPerTick: 0.001,
     /**
      * Prompt words for need levels, checked in order: the first whose `below` exceeds the value wins.
-     * A level with an `urge` is pressing: it is put first in the prompt as its own sentence.
+     * A level with an `urge` is pressing: its own sentence, in a closing section of the decision
+     * prompt. An urge says what going on without it costs, as the sim really does it.
      */
     words: {
       hunger: [
         {
           below: 0.1,
           text: "starving",
-          urge: "you feel weak and shaky and need food now",
+          urge: "you feel weak and shaky and need food now; half a day more without it and your health will start to fail",
           slowdown: 0.5,
           recallFailureChance: 0.3,
         },
         {
           below: 0.3,
           text: "very hungry",
-          urge: "your stomach aches and you need to eat soon",
+          urge: "your stomach aches and you need to eat soon; if you don't, you will be starving",
           slowdown: 0.2,
           recallFailureChance: 0.1,
         },
@@ -142,14 +143,14 @@ export const config = {
         {
           below: 0.1,
           text: "exhausted",
-          urge: "you can barely keep your eyes open and need to find a bed to sleep",
+          urge: "you can barely keep your eyes open and need to find a bed to sleep; until you do, everything takes far longer and your thoughts slip away",
           slowdown: 0.6,
           recallFailureChance: 0.35,
         },
         {
           below: 0.3,
           text: "very tired",
-          urge: "your body is heavy and you need sleep soon",
+          urge: "your body is heavy and you need sleep soon; it is already slowing you down",
           slowdown: 0.3,
           recallFailureChance: 0.15,
         },
@@ -161,7 +162,7 @@ export const config = {
         {
           below: 0.1,
           text: "desperately lonely",
-          urge: "you ache for real company",
+          urge: "you ache for real company, and it is clouding your thoughts",
           slowdown: 0.1,
           recallFailureChance: 0.1,
         },
@@ -179,7 +180,7 @@ export const config = {
         {
           below: 0.1,
           text: "miserably bored",
-          urge: "you badly need something enjoyable to do",
+          urge: "you badly need something enjoyable to do, and it is dragging on everything you do",
           slowdown: 0.1,
           recallFailureChance: 0.05,
         },
@@ -271,8 +272,9 @@ export const config = {
       { below: 0.9, text: "a little worse for wear", looks: "looks a little worse for wear" },
       { below: Infinity, text: "unhurt", looks: "looks unhurt" },
     ] satisfies HealthWord[] as HealthWord[],
-    /** Added to the starving sentence once going without food has begun to cost health. */
-    starvationHarmText: "going without food is now wearing your body down",
+    /** The starving sentence's urge once going without food has begun to cost health. */
+    starvationHarmUrge:
+      "you feel weak and shaky and need food now; going without it is already wearing your body down",
     /** The decision reason when health drops below one of `decisionThresholds`. */
     worsenedDecisionReason: "my health getting worse",
   },

@@ -85,8 +85,9 @@ describe("buildDecisionPrompt", () => {
   it("puts pressing needs first, lowest first, each with how it feels", () => {
     const needs = { hunger: 0.25, energy: 0.05, social: 0.9, fun: 0.45 };
     expect(describeStatus({ health: 0.7, needs })).toBe(
-      "You are exhausted: you can barely keep your eyes open and need to find a bed to sleep. " +
-        "You are very hungry: your stomach aches and you need to eat soon. " +
+      "You are exhausted: you can barely keep your eyes open and need to find a bed to sleep; " +
+        "until you do, everything takes far longer and your thoughts slip away. " +
+        "You are very hungry: your stomach aches and you need to eat soon; if you don't, you will be starving. " +
         "Otherwise you are a little worse for wear, socially fulfilled and a bit bored.",
     );
   });
@@ -100,6 +101,17 @@ describe("buildDecisionPrompt", () => {
     expect(prompt).toContain("unhurt, poisoned, quite hungry");
   });
 
+  it("lists settled needs under Now and gives pressing ones their own closing section", () => {
+    const prompt = buildDecisionPrompt(
+      buildContext({ needs: { hunger: 0.05, energy: 0.9, social: 0.9, fun: 0.9 } }),
+    );
+    expect(prompt).toContain("You are unhurt, rested, socially fulfilled and having a good time.");
+    expect(prompt.trimEnd()).toMatch(
+      /## What your body needs now\nYou are starving: you feel weak and shaky and need food now; [^\n]*\.$/,
+    );
+    expect(buildDecisionPrompt(buildContext())).not.toContain("What your body needs now");
+  });
+
   it("puts serious harm first like a pressing need, without saying what caused it", () => {
     const needs = { hunger: 0.8, energy: 0.8, social: 0.8, fun: 0.8 };
     expect(describeStatus({ health: 0.3, needs })).toMatch(
@@ -110,10 +122,10 @@ describe("buildDecisionPrompt", () => {
   it("says when going without food has begun to cost health", () => {
     const needs = { hunger: 0, energy: 0.8, social: 0.8, fun: 0.8 };
     expect(describeStatus({ health: 0.5, needs, isStarvationHarming: true })).toMatch(
-      /^You are starving: you feel weak and shaky and need food now; going without food is now wearing your body down\. Otherwise you are in poor shape/,
+      /^You are starving: you feel weak and shaky and need food now; going without it is already wearing your body down\. Otherwise you are in poor shape/,
     );
     expect(describeStatus({ health: 0.5, needs })).toMatch(
-      /^You are starving: you feel weak and shaky and need food now\. Otherwise/,
+      /^You are starving: you feel weak and shaky and need food now; half a day more without it and your health will start to fail\. Otherwise/,
     );
   });
 

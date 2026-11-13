@@ -30,16 +30,18 @@ export function joinWithAnd(phrases: string[]): string {
   return `${phrases.slice(0, -1).join(", ")} and ${phrases[phrases.length - 1]}`;
 }
 
-/**
- * Health, conditions and needs as words, never numbers. Pressing ones come first, lowest first,
- * each as its own sentence, so they can't get lost among the satisfied ones:
- * "You are exhausted: you can barely keep your eyes open and need to sleep now. Otherwise you
- * are hurt, well fed, socially fulfilled and a bit bored."
- */
-export function describeStatus(
+/** The status in two parts: a sentence for each pressing need, lowest first, and the rest. */
+export interface StatusParts {
+  pressingSentences: string[];
+  /** The words for everything not pressing; empty when all of it is. */
+  otherWords: string[];
+}
+
+/** Health, conditions and needs as words, never numbers, split into pressing and the rest. */
+export function splitStatus(
   status: StatusView,
   conditionWords: readonly string[] = NO_CONDITIONS,
-): string {
+): StatusParts {
   const { needs } = status;
   const needWords = [
     { value: status.health, word: findHealthWord(status.health) },
@@ -50,9 +52,9 @@ export function describeStatus(
     })),
   ];
   const hungerWord = findNeedWord("hunger", needs.hunger);
-  const harmText = status.isStarvationHarming === true ? config.health.starvationHarmText : null;
+  const isHarming = status.isStarvationHarming === true;
   const describeUrge = (word: NeedWord) =>
-    word === hungerWord && harmText !== null ? `${word.urge ?? ""}; ${harmText}` : word.urge;
+    word === hungerWord && isHarming ? config.health.starvationHarmUrge : word.urge;
   const pressingSentences = needWords
     .filter((needWord) => needWord.word.urge !== undefined)
     .sort((first, second) => first.value - second.value)
@@ -60,6 +62,19 @@ export function describeStatus(
   const otherWords = needWords
     .filter((needWord) => needWord.word.urge === undefined)
     .map((needWord) => needWord.word.text);
+  return { pressingSentences, otherWords };
+}
+
+/**
+ * The status as one passage, pressing needs first so they can't get lost among the satisfied
+ * ones: "You are exhausted: you can barely keep your eyes open ... Otherwise you are in poor
+ * shape, well fed, socially fulfilled and a bit bored."
+ */
+export function describeStatus(
+  status: StatusView,
+  conditionWords: readonly string[] = NO_CONDITIONS,
+): string {
+  const { pressingSentences, otherWords } = splitStatus(status, conditionWords);
   if (pressingSentences.length === 0) return `You are ${joinWithAnd(otherWords)}.`;
   if (otherWords.length === 0) return pressingSentences.join(" ");
   return `${pressingSentences.join(" ")} Otherwise you are ${joinWithAnd(otherWords)}.`;

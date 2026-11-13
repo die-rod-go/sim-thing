@@ -17,10 +17,11 @@ import {
   describePlans,
   describeWorkingMemory,
 } from "./sections";
-import { describeStats, describeStatus, describeTraits } from "./words";
+import { describeStats, describeTraits, joinWithAnd, splitStatus } from "./words";
 
 const DECISION_TEMPLATE = "decision";
 const CONTINUE_ACTION_TEMPLATE = "decision-continue";
+const PRESSING_NEEDS_TEMPLATE = "decision-pressing";
 /** Marks the end of a part of the template that is stable enough for the provider to cache. */
 const CACHE_BREAKPOINT_MARKER = "<<<cache>>>\n";
 const BASE_ACTIONS: readonly DecisionAction[] = ["walk_to", "interact", "give", "recall", "wait"];
@@ -35,12 +36,27 @@ export function estimatePromptTokens(prompt: string): number {
   return Math.ceil(prompt.length / config.decision.charsPerToken);
 }
 
+/** Optional parts of the prompt, each its own template, filled only when it applies. */
+interface OptionalTemplates {
+  continueAction: string;
+  pressingNeeds: string;
+}
+
 function buildTemplateValues(
   context: DecisionContext,
   memories: RecalledMemories,
-  continueAction: string,
+  optional: OptionalTemplates,
 ): TemplateValues {
   const { personality } = context;
+  const status = splitStatus(context, context.conditionWords);
+  const pressingNeeds =
+    status.pressingSentences.length === 0
+      ? ""
+      : fillTemplate(
+          optional.pressingNeeds,
+          { sentences: status.pressingSentences.join("\n") },
+          PRESSING_NEEDS_TEMPLATE,
+        );
   return {
     name: context.name,
     profession: context.profession,
@@ -49,7 +65,8 @@ function buildTemplateValues(
     selfImage: personality.selfImage,
     mood: context.mood,
     body: describeStats(context.body),
-    status: describeStatus(context, context.conditionWords),
+    status: status.otherWords.length === 0 ? "" : `You are ${joinWithAnd(status.otherWords)}.`,
+    pressingNeeds,
     goals: describeGoals(context.goals),
     plans: describePlans(context.plans),
     dailyPlan: context.dailyPlan || "none yet",
@@ -69,7 +86,7 @@ function buildTemplateValues(
     memories: describeMemories(memories, context.foggedBy),
     actions: listOfferedActions(context.isMidActionInterrupt).join(", "),
     sayWaitMinutes: String(config.decision.sayWaitMinutes),
-    continueAction: context.isMidActionInterrupt ? continueAction : "",
+    continueAction: context.isMidActionInterrupt ? optional.continueAction : "",
   };
 }
 
@@ -122,13 +139,12 @@ export function buildCacheableDecisionPrompt(
   promptsDirectory?: string,
 ): DecisionPrompt {
   const template = loadTemplate(DECISION_TEMPLATE, promptsDirectory);
-  const continueAction = loadTemplate(CONTINUE_ACTION_TEMPLATE, promptsDirectory).trim();
+  const optional: OptionalTemplates = {
+    continueAction: loadTemplate(CONTINUE_ACTION_TEMPLATE, promptsDirectory).trim(),
+    pressingNeeds: loadTemplate(PRESSING_NEEDS_TEMPLATE, promptsDirectory).trim(),
+  };
   const fillDecisionTemplate = (memories: RecalledMemories): string =>
-    fillTemplate(
-      template,
-      buildTemplateValues(context, memories, continueAction),
-      DECISION_TEMPLATE,
-    );
+    fillTemplate(template, buildTemplateValues(context, memories, optional), DECISION_TEMPLATE);
   let memories: RecalledMemories = context.recalledMemories;
   let prompt = fillDecisionTemplate(memories);
   while (

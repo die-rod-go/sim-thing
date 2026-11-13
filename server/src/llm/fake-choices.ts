@@ -131,8 +131,10 @@ export function readDecisionChoices(schema: JsonSchema, prompt: string): Decisio
       .replace(/\.$/, "")
       .split(", ")
       .filter(Boolean),
-    isHungry: config.llm.fakeResponder.hungryWords.some((word) =>
-      readLineAfter(prompt, "It is ").includes(word),
+    // Settled needs are listed under Now; pressing ones get their own sentence at the end.
+    isHungry: config.llm.fakeResponder.hungryWords.some(
+      (word) =>
+        readLineAfter(prompt, "It is ").includes(word) || prompt.includes(`You are ${word}:`),
     ),
   };
 }
