@@ -248,6 +248,21 @@ export function recallForDecision(
 }
 
 /**
+ * The best few of the ranked matches, each bucket's best placed first, so one bucket's many
+ * retellings of a topic can't crowd out a lone matching memory from another.
+ */
+function pickBestPerBucketFirst(ranked: readonly ScoredMemory[], limit: number): ScoredMemory[] {
+  const bucketLeaders = BUCKETS.flatMap((bucket) =>
+    ranked.filter((entry) => entry.memory.bucket === bucket).slice(0, 1),
+  )
+    .sort(compareScored)
+    .slice(0, limit);
+  const leaderIds = new Set(bucketLeaders.map((entry) => entry.memory.id));
+  const rest = ranked.filter((entry) => !leaderIds.has(entry.memory.id));
+  return [...bucketLeaders, ...rest].slice(0, limit).sort(compareScored);
+}
+
+/**
  * The `recall(query)` action: searches all buckets for memories that share a known name found in
  * the query or whose words resemble the query's, returns the best few and bumps them.
  */
@@ -267,8 +282,9 @@ export function searchMemories(
       countTagOverlap(memory.tags, queryTagSet) > 0 ||
       similarity(memory) >= config.memory.recallActionMinSimilarity,
   );
-  const best = scoreAll(matches, queryTags, tick, similarity)
-    .slice(0, config.memory.recallActionResultLimit)
-    .map((entry) => entry.memory);
+  const best = pickBestPerBucketFirst(
+    scoreAll(matches, queryTags, tick, similarity),
+    config.memory.recallActionResultLimit,
+  ).map((entry) => entry.memory);
   return bumpRecalledMemories(store, best, tick);
 }

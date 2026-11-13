@@ -296,4 +296,37 @@ describe("searchMemories", () => {
     }
     expect(searchMemories(store, "mara", "Bob", knownNames, 0)).toHaveLength(6);
   });
+
+  it("keeps a lone matching memory from another bucket among many better-scoring retellings", () => {
+    const store = new MemoryStore();
+    for (let index = 0; index < 8; index += 1) {
+      store.add(
+        makeMemory({
+          id: `r${index}`,
+          bucket: "reflections",
+          tick: 10 * TICKS_PER_HOUR,
+          tags: ["oven", "tavern"],
+          text: "I still have not found the oven near the tavern",
+        }),
+      );
+    }
+    store.add(
+      makeMemory({
+        id: "place",
+        bucket: "places",
+        strength: 0.5,
+        tags: ["bakery", "oven"],
+        text: "I found the oven at the bakery",
+      }),
+    );
+    const results = searchMemories(
+      store,
+      "mara",
+      "the oven near the tavern",
+      knownNames,
+      10 * TICKS_PER_HOUR,
+    );
+    expect(results).toHaveLength(6);
+    expect(results.map((memory) => memory.id)).toContain("place");
+  });
 });
