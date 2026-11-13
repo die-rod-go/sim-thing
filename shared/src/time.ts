@@ -36,6 +36,15 @@ export function formatTimeOfDay(time: Pick<SimTime, "hour" | "minute">): string 
   return `${twelveHour}:${minute} ${period}`;
 }
 
+/** "1 min", "45 min", "6 h", "5 h 12 min": a length of time, to the minute. */
+export function formatDuration(totalMinutes: number): string {
+  const wholeMinutes = Math.max(0, Math.round(totalMinutes));
+  const hours = Math.floor(wholeMinutes / MINUTES_PER_HOUR);
+  const minutes = wholeMinutes % MINUTES_PER_HOUR;
+  if (hours === 0) return `${minutes} min`;
+  return minutes === 0 ? `${hours} h` : `${hours} h ${minutes} min`;
+}
+
 export function simHoursBetween(fromTick: number, toTick: number, minutesPerTick: number): number {
   return ((toTick - fromTick) * minutesPerTick) / MINUTES_PER_HOUR;
 }

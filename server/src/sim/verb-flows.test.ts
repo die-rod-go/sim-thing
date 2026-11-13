@@ -92,6 +92,25 @@ describe("everyday verbs", () => {
     progressActions(context);
     const woke = context.result.events.find((event) => event.kind === "woke");
     expect(woke?.description).toBe("woke up rested in the rose cottage bed");
+    expect(woke?.actorDescription).toBe(
+      "woke up in the rose cottage bed after 0 min of sleep, fully rested: I can't sleep again until I'm tired",
+    );
+  });
+
+  it("tells a sleeper woken by hunger that they must eat before sleeping again", () => {
+    const sim = buildCombatSim(["mara"]);
+    standOn(sim, "mara", "rose cottage bed");
+    aim(sim, "mara", { verb: "sleep", itemName: "rose cottage bed" });
+    const sleeper = sim.agent("mara");
+    replaceAgent(sim.state, { ...sleeper, needs: { ...sleeper.needs, hunger: 0 } });
+    sim.state.tick += 90;
+    const context = contextOf(sim);
+    progressActions(context);
+    const woke = context.result.events.find((event) => event.kind === "woke");
+    expect(woke?.description).toBe("woke up hungry in the rose cottage bed");
+    expect(woke?.actorDescription).toBe(
+      "woke up in the rose cottage bed after 1 h 30 min of sleep because hunger won't let me stay asleep: I can't sleep again until I've eaten",
+    );
   });
 
   it("walks to an item lying out of reach, then picks it up", () => {

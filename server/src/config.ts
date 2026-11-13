@@ -185,6 +185,32 @@ export const config = {
     } satisfies Record<NeedName, NeedWord[]>,
   },
 
+  sleep: {
+    /**
+     * How a sleep that ended reads: to those in sight, and to the sleeper, who is told why it
+     * ended and what would let them sleep again. `{place}` is " in the <bed>" or nothing, `{slept}`
+     * how long the sleep lasted.
+     */
+    wakeWords: {
+      rested: {
+        others: "woke up rested{place}",
+        own: "woke up{place} after {slept} of sleep, fully rested: I can't sleep again until I'm tired",
+      },
+      hungry: {
+        others: "woke up hungry{place}",
+        own: "woke up{place} after {slept} of sleep because hunger won't let me stay asleep: I can't sleep again until I've eaten",
+      },
+      nap_over: {
+        others: "woke up from the planned nap{place}",
+        own: "woke up from the planned nap{place} after {slept} of sleep",
+      },
+      disturbed: {
+        others: "woke up{place}",
+        own: "woke up{place} after {slept} of sleep",
+      },
+    },
+  },
+
   /**
    * How pressing needs and wounds get in the way, using the `slowdown` and `recallFailureChance` of
    * each level above. `{status}` becomes the words for what is getting in the way.

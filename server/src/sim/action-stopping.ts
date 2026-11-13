@@ -1,3 +1,5 @@
+import { formatDuration } from "@village/shared";
+import { config } from "../config";
 import { endSleep, isAsleep, type WakeReason } from "../economy/sleep";
 import { findEntityIfPresent } from "../items/entity-store";
 import { getAgentRuntime } from "./agent-runtime";
@@ -19,24 +21,32 @@ function leaveSleepingPlace(context: TickContext, agentId: string): string | nul
   return sleepingPlace && run ? run.itemName : null;
 }
 
-const WAKE_REASON_WORDS: Record<WakeReason, string> = {
-  rested: "woke up rested",
-  hungry: "woke up hungry",
-  nap_over: "woke up from the planned nap",
-};
+function fillWakeWords(words: string, placeName: string | null, sleptMinutes: number): string {
+  return words
+    .split("{place}")
+    .join(placeName ? ` in the ${placeName}` : "")
+    .split("{slept}")
+    .join(formatDuration(sleptMinutes));
+}
 
 /**
  * Wakes a sleeping agent, frees what it slept in, broadcasts `woke` and tells the reflection hook.
- * A `reason` is given when the sleep ended on its own, so the agent knows why it woke.
+ * A `reason` is given when the sleep ended on its own. The sleeper's own memory of waking says how
+ * long it slept and why it ended, so it can tell whether lying down again would do any good.
  */
 export function wakeAgent(context: TickContext, agentId: string, reason?: WakeReason): void {
   const { state } = context;
   const startedAtTick = getAgentRuntime(state, agentId).verbRun?.startedAtTick ?? state.tick;
   const placeName = leaveSleepingPlace(context, agentId);
-  const wakeWords = reason ? WAKE_REASON_WORDS[reason] : "woke up";
-  const description = placeName ? `${wakeWords} in the ${placeName}` : wakeWords;
+  const words = config.sleep.wakeWords[reason ?? "disturbed"];
+  const sleptMinutes = (state.tick - startedAtTick) * config.clock.minutesPerTick;
   const awake = findAgent(state, agentId);
-  broadcastEvent(state, createEvent(state, awake, { kind: "woke", description }), context.result);
+  const event = createEvent(state, awake, {
+    kind: "woke",
+    description: fillWakeWords(words.others, placeName, sleptMinutes),
+    actorDescription: fillWakeWords(words.own, placeName, sleptMinutes),
+  });
+  broadcastEvent(state, event, context.result);
   context.dependencies.reflectionHook.onWoke(
     state,
     agentId,
