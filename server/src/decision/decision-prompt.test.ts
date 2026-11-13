@@ -262,7 +262,7 @@ describe("buildDecisionPrompt", () => {
   it("trims recalled memories first when over the token target", () => {
     const context = buildContext({
       recalledMemories: {
-        seen: manyMemories(60, "I saw a cart"),
+        seen: manyMemories(120, "I saw a cart"),
         conversations: [{ text: "Tom owes me 3 coins.", minutesAgo: 600 }],
       },
     });
@@ -270,8 +270,20 @@ describe("buildDecisionPrompt", () => {
     expect(estimatePromptTokens(prompt)).toBeLessThanOrEqual(config.decision.promptTokenTarget);
     expect(prompt).toContain("Tom owes me 3 coins.");
     expect(prompt).toContain("I saw a cart 0 ");
-    expect(prompt).not.toContain("I saw a cart 59 ");
+    expect(prompt).not.toContain("I saw a cart 119 ");
     expect(prompt).toContain("You were: going to buy wheat");
+  });
+
+  it("keeps the minimum of recalled memories even when the prompt stays over the token target", () => {
+    const context = buildContext({
+      intention: "x".repeat(config.decision.promptTokenTarget * config.decision.charsPerToken),
+      recalledMemories: {
+        seen: manyMemories(config.decision.minimumRecalledMemories + 2, "I saw a cart"),
+      },
+    });
+    const prompt = buildDecisionPrompt(context);
+    const keptCount = (prompt.match(/I saw a cart \d+ /g) ?? []).length;
+    expect(keptCount).toBe(config.decision.minimumRecalledMemories);
   });
 });
 

@@ -611,9 +611,11 @@ export const config = {
     /** A conversation stays in view this many ticks after its last line. */
     conversationLingerTicks: 30,
     /** Sized so a typical prompt keeps its recalled memories; only unusually long ones get trimmed. */
-    promptTokenTarget: 4500,
-    /** Rough characters-per-token used to estimate prompt size before trimming memories. Measured from logged Haiku calls: about 1.9. */
-    charsPerToken: 2,
+    promptTokenTarget: 6000,
+    /** Trimming stops at this many recalled memories, even if the prompt stays over the target. */
+    minimumRecalledMemories: 3,
+    /** Rough characters-per-token used to estimate prompt size before trimming memories. Measured from logged Haiku calls: about 2.3. */
+    charsPerToken: 2.3,
     defaultWaitMinutes: 10,
     /** How long a speaker stays to hear an answer when the reply names no minutes. */
     sayWaitMinutes: 5,

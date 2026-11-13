@@ -73,6 +73,10 @@ function buildTemplateValues(
   };
 }
 
+function countMemories(memories: RecalledMemories): number {
+  return Object.values(memories).reduce((sum, bucketMemories) => sum + bucketMemories.length, 0);
+}
+
 /** Drops the oldest memory from the lowest-priority bucket that still has any; null if none left. */
 function withoutOneMemory(memories: RecalledMemories): RecalledMemories | null {
   const bucket = config.decision.memoryTrimOrder.find(
@@ -111,7 +115,7 @@ function extractCacheBreakpoints(filledTemplate: string): DecisionPrompt {
 
 /**
  * Renders `decision.txt` for one agent. When the prompt is over `config.decision.promptTokenTarget`,
- * recalled memories are trimmed first: lowest-priority buckets, oldest first.
+ * recalled memories are trimmed first: lowest-priority buckets, oldest first, down to the minimum.
  */
 export function buildCacheableDecisionPrompt(
   context: DecisionContext,
@@ -127,7 +131,10 @@ export function buildCacheableDecisionPrompt(
     );
   let memories: RecalledMemories = context.recalledMemories;
   let prompt = fillDecisionTemplate(memories);
-  while (estimatePromptTokens(prompt) > config.decision.promptTokenTarget) {
+  while (
+    estimatePromptTokens(prompt) > config.decision.promptTokenTarget &&
+    countMemories(memories) > config.decision.minimumRecalledMemories
+  ) {
     const trimmedMemories = withoutOneMemory(memories);
     if (!trimmedMemories) break;
     memories = trimmedMemories;
