@@ -75,12 +75,12 @@ describe("runDaytimePass", () => {
     expect(prompt).toContain("Wait for the miller");
   });
 
-  it("asks for private thinking and keeps what was seen apart from what was told", async () => {
+  it("asks for private thinking without asking for an audit of what was seen and told", async () => {
     const { client, input } = setUpDaytime(daytimeReply(), storeWithMemories());
     await runDaytimePass(input);
     const prompt = lastPrompt(client);
     expect(prompt).toContain("how they would react if they knew what you are after");
-    expect(prompt).toContain("Keep apart what you saw yourself from what you were only told.");
+    expect(prompt).not.toContain("Keep apart what you saw yourself");
     expect(prompt).not.toContain("Weigh what you saw");
   });
 
