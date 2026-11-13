@@ -15,15 +15,27 @@ export function formatMinutesAgo(minutesAgo: number): string {
   return days === 1 ? "1 day ago" : `${days} days ago`;
 }
 
+/** "next to you", "a few steps away", "farther off": how far off someone in sight is. */
+export function describeDistance(distanceTiles: number): string {
+  const words = config.perception.distanceWords;
+  if (distanceTiles <= config.economy.giveReachTiles) return words.inReach;
+  return distanceTiles <= config.perception.nearTiles ? words.near : words.far;
+}
+
 /**
- * "Tobias, looks hurt, carrying a knife (chopping wood)", or "Mara's body" for someone
- * lying dead in sight ("Mara's body, on fire").
+ * "Tobias, next to you, looks hurt, carrying a knife (chopping wood)", or "Mara's body, a few
+ * steps away" for someone lying dead in sight ("Mara's body, next to you, on fire").
  */
 function describeInSight(entry: AwarenessEntry): string {
-  if (entry.isDead) return [describeBodyName(entry.name), ...entry.visibleConditions].join(", ");
+  const distance = entry.distanceTiles === null ? null : describeDistance(entry.distanceTiles);
+  if (entry.isDead) {
+    return [describeBodyName(entry.name), distance, ...entry.visibleConditions]
+      .filter(Boolean)
+      .join(", ");
+  }
   const carrying =
     entry.visibleCarried.length > 0 ? `carrying ${entry.visibleCarried.join(" and ")}` : null;
-  const name = [entry.name, entry.healthAsSeen, ...entry.visibleConditions, carrying]
+  const name = [entry.name, distance, entry.healthAsSeen, ...entry.visibleConditions, carrying]
     .filter(Boolean)
     .join(", ");
   return entry.doing ? `${name} (${entry.doing})` : name;

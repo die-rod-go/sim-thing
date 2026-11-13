@@ -54,6 +54,8 @@ export interface AwarenessEntry {
   isInSight: boolean;
   /** In sight and dead: shown as their body. */
   isDead: boolean;
+  /** Tiles between the agent and them, when they're in sight; null otherwise. */
+  distanceTiles: number | null;
   /** How their health looks, when they're in sight and it shows; null otherwise. */
   healthAsSeen: string | null;
   /** What they carry that shows ("a knife"), when they're in sight. */

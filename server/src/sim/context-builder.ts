@@ -7,6 +7,7 @@ import type {
   RecalledMemory,
 } from "../decision/context";
 import { listPeopleOnMind } from "../decision/people-on-mind";
+import { computeChebyshevDistance } from "../economy/give";
 import { describePlanFocus, describePlanText } from "../memory/plans";
 import { currentConversation, OWN_SPEAKER_NAME } from "../memory/conversation";
 import {
@@ -65,6 +66,7 @@ function buildAwarenessEntries(state: WorldState, agent: Agent): AwarenessEntry[
         minutesAgo: minutesSince(entry.tick, state.tick),
         isInSight,
         isDead: isInSight && isDead(other),
+        distanceTiles: isInSight ? computeChebyshevDistance(agent.pos, other.pos) : null,
         healthAsSeen:
           isInSight && !isDead(other)
             ? describeHealthAsSeen(readAgentHealth(state.items, other))

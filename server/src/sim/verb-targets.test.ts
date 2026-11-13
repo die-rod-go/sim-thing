@@ -232,7 +232,7 @@ describe("combat in decisions", () => {
     await sim.advance();
     const prompt = buildDecisionPrompt(buildDecisionContext(sim.state, "tobias", false));
     expect(prompt).toContain("You can also: bury, punch.");
-    expect(prompt).toMatch(/Mara, carrying [^(]*a knife/);
+    expect(prompt).toMatch(/Mara, [^(]*carrying [^(]*a knife/);
   });
 
   it("plans a stab from a reply naming the knife and the target", async () => {

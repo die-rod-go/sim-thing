@@ -74,6 +74,12 @@ export const config = {
     interruptCooldownTicks: 20,
     /** "Around you" lists agents perceived within this many sim-minutes. */
     awarenessPromptWindowMinutes: 60,
+    /**
+     * How far off someone in sight reads in "Around you". Within `economy.giveReachTiles` they are
+     * in reach (to hand things to, and for most verbs); within `nearTiles` they are near.
+     */
+    distanceWords: { inReach: "next to you", near: "a few steps away", far: "farther off" },
+    nearTiles: 4,
     /** How an item on the ground reads in Here, indoors and out ("a knife (pick up; on the floor)"). */
     groundWords: { indoor: "on the floor", outdoor: "on the ground" },
     /** How what a thing holds reads, once the agent can see inside it. */

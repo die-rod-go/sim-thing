@@ -194,7 +194,9 @@ interface Awareness {
 
 Every decision prompt renders it as an "Around you" section, for any purpose, not only speech:
 
-> In sight, would hear you: Bob (kneading dough), Clara. Recently around, now out of sight: Dave, seen 3 min ago walking into the back room. Ed's voice, heard 5 min ago from the street.
+> In sight, would hear you: Bob, next to you (kneading dough), Clara, a few steps away. Recently around, now out of sight: Dave, seen 3 min ago walking into the back room. Ed's voice, heard 5 min ago from the street.
+
+Everyone in sight is marked with how far off they are: next to you (in reach to hand things to), a few steps away, or farther off.
 
 Entries older than 60 sim-minutes drop out of the prompt but stay in the record; a recall that names an agent also returns where it was last perceived. From this, the agent infers whether someone out of view might still be listening, where someone went, or who might have witnessed something.
 

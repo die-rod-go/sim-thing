@@ -300,6 +300,7 @@ describe("describeAroundYou", () => {
           minutesAgo: 0,
           isInSight: true,
           isDead: false,
+          distanceTiles: 1,
           healthAsSeen: null,
           visibleCarried: [],
           visibleConditions: [],
@@ -313,6 +314,7 @@ describe("describeAroundYou", () => {
           minutesAgo: 0,
           isInSight: true,
           isDead: false,
+          distanceTiles: 3,
           healthAsSeen: null,
           visibleCarried: [],
           visibleConditions: [],
@@ -326,6 +328,7 @@ describe("describeAroundYou", () => {
           minutesAgo: 3,
           isInSight: false,
           isDead: false,
+          distanceTiles: null,
           healthAsSeen: null,
           visibleCarried: [],
           visibleConditions: [],
@@ -339,6 +342,7 @@ describe("describeAroundYou", () => {
           minutesAgo: 5,
           isInSight: false,
           isDead: false,
+          distanceTiles: null,
           healthAsSeen: null,
           visibleCarried: [],
           visibleConditions: [],
@@ -352,6 +356,7 @@ describe("describeAroundYou", () => {
           minutesAgo: 90,
           isInSight: false,
           isDead: false,
+          distanceTiles: null,
           healthAsSeen: null,
           visibleCarried: [],
           visibleConditions: [],
@@ -362,7 +367,7 @@ describe("describeAroundYou", () => {
     });
     expect(text).toBe(
       [
-        "In sight, would hear you: Bob (kneading dough), Clara.",
+        "In sight, would hear you: Bob, next to you (kneading dough), Clara, a few steps away.",
         "Within whisper reach: Bob.",
         "Recently around, now out of sight: Dave, seen 3 min ago walking into the back room (bakery).",
         "Ed's voice, heard 5 min ago from the street.",
@@ -380,6 +385,7 @@ describe("describeAroundYou", () => {
           name: "Bob",
           doing: "sitting",
           isDead: false,
+          distanceTiles: null,
           healthAsSeen: "looks hurt",
           visibleCarried: [],
           visibleConditions: [],
@@ -390,6 +396,7 @@ describe("describeAroundYou", () => {
           name: "Mara",
           doing: "lying dead",
           isDead: true,
+          distanceTiles: null,
           healthAsSeen: null,
           visibleCarried: [],
           visibleConditions: [],
@@ -415,6 +422,7 @@ describe("describeAroundYou", () => {
           name: "Tobias",
           doing: "",
           isDead: false,
+          distanceTiles: null,
           healthAsSeen: "looks hurt",
           visibleCarried: [],
           visibleConditions: ["bleeding"],
@@ -425,6 +433,7 @@ describe("describeAroundYou", () => {
           name: "Mara",
           doing: "lying dead",
           isDead: true,
+          distanceTiles: 9,
           healthAsSeen: null,
           visibleCarried: [],
           visibleConditions: ["on fire"],
@@ -436,7 +445,7 @@ describe("describeAroundYou", () => {
     expect(text).toBe(
       [
         "In sight, would hear you: Tobias, looks hurt, bleeding.",
-        "Also in sight: Mara's body, on fire.",
+        "Also in sight: Mara's body, farther off, on fire.",
       ].join("\n"),
     );
   });
