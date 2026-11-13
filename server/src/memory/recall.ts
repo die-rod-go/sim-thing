@@ -196,7 +196,23 @@ export function bumpRecalledMemories(
 }
 
 /**
- * Picks the top memories per bucket for a decision and keeps the best few overall, then runs an
+ * The best few of the ranked matches, each bucket's best placed first, so one bucket's many
+ * retellings of a topic can't crowd out a lone matching memory from another.
+ */
+function pickBestPerBucketFirst(ranked: readonly ScoredMemory[], limit: number): ScoredMemory[] {
+  const bucketLeaders = BUCKETS.flatMap((bucket) =>
+    ranked.filter((entry) => entry.memory.bucket === bucket).slice(0, 1),
+  )
+    .sort(compareScored)
+    .slice(0, limit);
+  const leaderIds = new Set(bucketLeaders.map((entry) => entry.memory.id));
+  const rest = ranked.filter((entry) => !leaderIds.has(entry.memory.id));
+  return [...bucketLeaders, ...rest].slice(0, limit).sort(compareScored);
+}
+
+/**
+ * Picks the top memories per bucket for a decision and keeps the best few overall, each bucket's
+ * best among them, then runs an
  * association pass: tags of the top results that weren't in the cue pull in a few more memories
  * sharing them. Every recalled memory is bumped.
  */
@@ -216,9 +232,10 @@ export function recallForDecision(
     scoreAll(memories, cueTags, tick, similarity),
     (bucket) => config.memory.recallPerBucket[bucket],
   );
-  const firstPicks = BUCKETS.flatMap((bucket) => perBucket[bucket])
-    .sort(compareScored)
-    .slice(0, config.memory.recallTotal);
+  const firstPicks = pickBestPerBucketFirst(
+    BUCKETS.flatMap((bucket) => perBucket[bucket]).sort(compareScored),
+    config.memory.recallTotal,
+  );
   const pickedIds = new Set(firstPicks.map((entry) => entry.memory.id));
   const cueSet = new Set(cueTags);
   const associationTags = uniqueTags(
@@ -245,21 +262,6 @@ export function recallForDecision(
     );
   }
   return result;
-}
-
-/**
- * The best few of the ranked matches, each bucket's best placed first, so one bucket's many
- * retellings of a topic can't crowd out a lone matching memory from another.
- */
-function pickBestPerBucketFirst(ranked: readonly ScoredMemory[], limit: number): ScoredMemory[] {
-  const bucketLeaders = BUCKETS.flatMap((bucket) =>
-    ranked.filter((entry) => entry.memory.bucket === bucket).slice(0, 1),
-  )
-    .sort(compareScored)
-    .slice(0, limit);
-  const leaderIds = new Set(bucketLeaders.map((entry) => entry.memory.id));
-  const rest = ranked.filter((entry) => !leaderIds.has(entry.memory.id));
-  return [...bucketLeaders, ...rest].slice(0, limit).sort(compareScored);
 }
 
 /**

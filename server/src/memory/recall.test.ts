@@ -183,6 +183,20 @@ describe("recallForDecision", () => {
     expect(total).toBeLessThanOrEqual(10);
   });
 
+  it("keeps each bucket's best match through the overall cut", () => {
+    const store = new MemoryStore();
+    for (const bucket of ["seen", "conversations", "did", "reflections"] as const) {
+      for (let index = 0; index < 3; index += 1) {
+        store.add(
+          makeMemory({ id: `${bucket}${index}`, bucket, tick: 0, tags: ["oven", "tavern"] }),
+        );
+      }
+    }
+    store.add(makeMemory({ id: "place", bucket: "places", strength: 0.2, tags: ["oven"] }));
+    const recalled = recallForDecision(store, "mara", ["oven", "tavern"], 0);
+    expect(recalled.places.map((memory) => memory.id)).toEqual(["place"]);
+  });
+
   it("adds at most the association total of linked memories", () => {
     const store = new MemoryStore();
     store.add(makeMemory({ id: "d1", tags: ["mara", "cellar"] }));
