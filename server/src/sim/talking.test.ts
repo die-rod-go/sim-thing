@@ -106,7 +106,7 @@ describe("talking and perception", () => {
     expect(sim.agent("mara").currentAction?.kind).toBe("sleep");
   });
 
-  it("perception interrupts at most once every 10 ticks", async () => {
+  it("perception interrupts at most once per cooldown", async () => {
     const sim = createTestSim({
       agentIds: ["mara", "ilsa"],
       responder: scriptByAgent({
@@ -116,11 +116,12 @@ describe("talking and perception", () => {
     });
     sim.placeAgent("mara", SQUARE);
     sim.placeAgent("ilsa", { x: SQUARE.x + 2, y: SQUARE.y });
-    await sim.advance(25);
+    const cooldown = config.perception.interruptCooldownTicks;
+    await sim.advance(2 * cooldown + 5);
     const maraTicks = sim.records
       .filter((record) => record.agentId === "mara")
       .map((record) => record.tick);
-    expect(maraTicks).toEqual([0, 1, 11, 21]);
+    expect(maraTicks).toEqual([0, 1, 1 + cooldown, 1 + 2 * cooldown]);
   });
 
   it("walking through a closed door opens it", async () => {

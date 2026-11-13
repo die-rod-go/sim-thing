@@ -71,7 +71,7 @@ export const config = {
     /** Sleepers only hear their own name or sounds at least this loud. */
     sleeperHearingLoudness: 20,
     /** A perception interrupt gives an agent a new decision at most this often. */
-    interruptCooldownTicks: 10,
+    interruptCooldownTicks: 20,
     /** "Around you" lists agents perceived within this many sim-minutes. */
     awarenessPromptWindowMinutes: 60,
     /** How an item on the ground reads in Here, indoors and out ("a knife (pick up; on the floor)"). */
@@ -592,7 +592,7 @@ export const config = {
      * Longest an idle agent's decision holds the clock in real time; past it the tick goes on and
      * the plan lands on a later tick, so one slow call can't stall the village.
      */
-    idleDecisionWaitMs: 1500,
+    idleDecisionWaitMs: 500,
     /**
      * What an agent remembers when a reply named something that isn't there (the reply was rejected
      * and asked again). `{name}` is the name as the reply wrote it.
