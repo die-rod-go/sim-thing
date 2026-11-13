@@ -74,6 +74,11 @@ export function resolveEntityComponents(catalog: ThingCatalog, entity: Entity): 
   return resolveThingComponents(catalog, entity.definitionId, entity.changes);
 }
 
+/** Whether the agent's body is still in the world: not transformed into something else (buried). */
+export function isBodyInWorld(agent: Pick<Agent, "bodyReplacedById">): boolean {
+  return agent.bodyReplacedById === null;
+}
+
 /** The components of an agent's body: the `agentBody` definition with the agent's changes. */
 export function resolveBodyComponents(
   catalog: ThingCatalog,

@@ -203,6 +203,25 @@ function draftForActionPerceiver(
   return null;
 }
 
+/** The agent carrying the thing an event is about files it as their own ("My pickaxe broke"). */
+function draftForPerceiver(
+  perception: EventPerception,
+  event: WorldEvent,
+  context: FilingContext,
+): MemoryDraft | null {
+  if (perception.agentId === event.holderId && event.holderDescription !== undefined) {
+    return {
+      agentId: perception.agentId,
+      bucket: "seen",
+      text: capitalize(event.holderDescription),
+      tags: eventTags(event, context, true),
+    };
+  }
+  return isSpeech(event)
+    ? draftForSpeechPerceiver(perception, event, context)
+    : draftForActionPerceiver(perception, event, context);
+}
+
 function draftsForPerceivers(
   event: WorldEvent,
   perceptions: readonly EventPerception[],
@@ -216,9 +235,7 @@ function draftsForPerceivers(
   const drafts: MemoryDraft[] = [];
   for (const perception of perceptions) {
     if (participantIds.has(perception.agentId)) continue;
-    const draft = isSpeech(event)
-      ? draftForSpeechPerceiver(perception, event, context)
-      : draftForActionPerceiver(perception, event, context);
+    const draft = draftForPerceiver(perception, event, context);
     if (draft !== null) drafts.push(draft);
   }
   return drafts;

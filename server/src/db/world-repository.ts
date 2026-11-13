@@ -23,6 +23,7 @@ export interface SavedWorld {
   agents: Agent[];
   entities: Entity[];
   nextEntityId: number;
+  nextFreshId: number;
   memories: Memory[];
   /** Null for saves made before the runtime was persisted; the sim then starts it fresh. */
   runtime: SimRuntime | null;
@@ -36,6 +37,7 @@ const OLD_SAVE_MESSAGE =
 const metaSchema = z.object({
   tick: z.coerce.number().int().nonnegative(),
   nextEntityId: z.coerce.number().int().positive(),
+  nextFreshId: z.coerce.number().int().positive(),
   rngState: z.coerce.number().int().nonnegative(),
   nextEventId: z.coerce.number().int().positive(),
   speed: z.coerce.number().positive(),
@@ -44,11 +46,12 @@ const metaSchema = z.object({
 
 type SavedMeta = z.infer<typeof metaSchema>;
 
-/** Fields every saved agent must have; saves from before components lack `bodyChanges`. */
+/** Fields every saved agent must have; older saves lack `bodyChanges` or `bodyReplacedById`. */
 const currentAgentFieldsSchema = z.object({
   bodyChanges: z.record(z.string(), z.unknown()),
   starvingSinceTick: z.number().nullable(),
   death: z.object({ tick: z.number(), cause: z.string() }).nullable(),
+  bodyReplacedById: z.string().nullable(),
   body: z.object({ strength: z.number(), agility: z.number() }),
 });
 
@@ -125,6 +128,7 @@ export function saveWorld(database: Database, world: SavedWorld): void {
   const meta: SavedMeta = {
     tick: world.tick,
     nextEntityId: world.nextEntityId,
+    nextFreshId: world.nextFreshId,
     rngState: world.rngState,
     nextEventId: world.nextEventId,
     speed: world.speed,

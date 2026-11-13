@@ -1,5 +1,6 @@
 import {
   formatTimeOfDay,
+  isBodyInWorld,
   toSimTime,
   type Agent,
   type Entity,
@@ -110,10 +111,13 @@ export function describeAgentAsSeen(agent: Agent): string {
   return isDead(agent) ? describeBodyName(agent.name) : agent.name;
 }
 
-/** Other agents under the names this agent would use for them: the dead as "Mara's body". */
+/**
+ * Other agents under the names this agent would use for them: the dead as "Mara's body". A body
+ * that is no longer in the world (buried) can't be named.
+ */
 export function listOthersAsSeen(state: WorldState, agentId: string): NamedCandidate[] {
   return state.agents
-    .filter((other) => other.id !== agentId)
+    .filter((other) => other.id !== agentId && isBodyInWorld(other))
     .map((other) => ({ id: other.id, name: describeAgentAsSeen(other) }));
 }
 
@@ -121,7 +125,7 @@ export function toPerceiver(agent: Agent): Perceiver {
   return { agentId: agent.id, name: agent.name, pos: agent.pos, isAsleep: isAsleep(agent) };
 }
 
-/** Ids of the other agents this agent can see right now; sleepers see no one. */
+/** Ids of the other agents (living, or bodies still in the world) this agent can see right now; sleepers see no one. */
 export function listVisibleAgentIds(
   state: WorldState,
   world: PerceptionWorld,
@@ -129,7 +133,7 @@ export function listVisibleAgentIds(
 ): string[] {
   if (isAsleep(viewer) || isDead(viewer)) return [];
   return state.agents
-    .filter((other) => other.id !== viewer.id)
+    .filter((other) => other.id !== viewer.id && isBodyInWorld(other))
     .filter((other) => canSee(world, viewer.pos, other.pos, config.perception.sightRangeTiles))
     .map((other) => other.id);
 }

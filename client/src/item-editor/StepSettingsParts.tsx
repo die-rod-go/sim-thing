@@ -5,16 +5,40 @@ import { ThingNamePicker } from "./pickers";
 import type { ValueSpot } from "./step-owner";
 import { Setting } from "./step-settings-shared";
 import { listThingNames } from "./value-scope";
-import { OptionalNumberValueInput } from "./ValueInput";
+import { NumberValueInput, OptionalNumberValueInput } from "./ValueInput";
 import { Choice } from "./widgets";
 
 interface OnFields {
   on?: string;
   radius?: number;
+  loudness?: NumberValue;
   around?: string;
 }
 
-/** `on`, and for `nearby` its radius and what it counts around. `onChange` takes the settings that changed. */
+/**
+ * The settings each `on` brings with it: a radius for `nearby`, a loudness for `earshot`. Leaving
+ * `earshot` drops its loudness; a `sound` step's own loudness is never touched.
+ */
+function buildOnChanges(on: string | undefined, step: OnFields): Record<string, unknown> {
+  const leftEarshot = step.on === "earshot" && on !== "earshot";
+  const loudness = leftEarshot ? { loudness: undefined } : {};
+  if (on === "nearby") {
+    return { on, radius: step.radius ?? clientConfig.itemEditor.newStepRadius, ...loudness };
+  }
+  if (on === "earshot") {
+    return {
+      on,
+      loudness: step.loudness ?? clientConfig.itemEditor.newStepLoudness,
+      radius: undefined,
+    };
+  }
+  return { on, radius: undefined, around: undefined, ...loudness };
+}
+
+/**
+ * `on`; for `nearby` its radius and for `earshot` its loudness, and what either counts around.
+ * `onChange` takes the settings that changed.
+ */
 export function OnSettings({
   step,
   spot,
@@ -27,41 +51,45 @@ export function OnSettings({
   onChange: (changes: Record<string, unknown>) => void;
 }) {
   const emptyLabel = isInRule ? "self" : undefined;
+  const isFanOut = step.on === "nearby" || step.on === "earshot";
   return (
     <>
       <Setting label="on">
         <ThingNamePicker
           value={step.on}
           spot={spot}
-          withNearby
+          withFanOuts
           emptyLabel={emptyLabel}
-          onChange={(on) =>
-            onChange(
-              on === "nearby"
-                ? { on, radius: step.radius ?? clientConfig.itemEditor.newStepRadius }
-                : { on, radius: undefined, around: undefined },
-            )
-          }
+          onChange={(on) => onChange(buildOnChanges(on, step))}
         />
       </Setting>
       {step.on === "nearby" && (
-        <>
-          <Setting label="radius">
-            <NumberInput
-              value={step.radius ?? clientConfig.itemEditor.newStepRadius}
-              min={0}
-              onChange={(radius) => onChange({ radius: Math.max(0, Math.round(radius)) })}
-            />
-          </Setting>
-          <Setting label="around">
-            <ThingNamePicker
-              value={step.around}
-              spot={spot}
-              emptyLabel={emptyLabel}
-              onChange={(around) => onChange({ around })}
-            />
-          </Setting>
-        </>
+        <Setting label="radius">
+          <NumberInput
+            value={step.radius ?? clientConfig.itemEditor.newStepRadius}
+            min={0}
+            onChange={(radius) => onChange({ radius: Math.max(0, Math.round(radius)) })}
+          />
+        </Setting>
+      )}
+      {step.on === "earshot" && (
+        <Setting label="loudness">
+          <NumberValueInput
+            value={step.loudness ?? clientConfig.itemEditor.newStepLoudness}
+            spot={spot}
+            onChange={(loudness) => onChange({ loudness })}
+          />
+        </Setting>
+      )}
+      {isFanOut && (
+        <Setting label="around">
+          <ThingNamePicker
+            value={step.around}
+            spot={spot}
+            emptyLabel={emptyLabel}
+            onChange={(around) => onChange({ around })}
+          />
+        </Setting>
       )}
     </>
   );

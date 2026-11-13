@@ -3,7 +3,7 @@ import { IN_MEMORY_DATABASE, openDatabase } from "../db/database";
 import { loadWorld, saveWorld } from "../db/world-repository";
 import { createFakeResponder } from "../llm/fake-responder";
 import { createTestSim } from "./test-sim";
-import { createDefaultSettings, restoreWorldState, toSavedWorld } from "./world-state";
+import { createDefaultSettings, restoreWorldState, takeFreshId, toSavedWorld } from "./world-state";
 
 describe("persistence", () => {
   it("state survives save and restore including memory ids", async () => {
@@ -26,6 +26,20 @@ describe("persistence", () => {
     const nextId = restored.state.memoryIds.nextId("mara", restored.state.tick);
     expect(existingIds.has(nextId)).toBe(false);
     expect(sim.state.memoryIds.nextId("mara", sim.state.tick)).toBe(nextId);
+    database.close();
+  });
+
+  it("keeps the fresh id counter through a save, so no id is given twice", () => {
+    const sim = createTestSim({ responder: createFakeResponder() });
+    const before = takeFreshId(sim.state);
+    const database = openDatabase(IN_MEMORY_DATABASE);
+    saveWorld(database, toSavedWorld(sim.state, createDefaultSettings()));
+    const loaded = loadWorld(database);
+    if (loaded === null) throw new Error("nothing was saved");
+    const { state } = restoreWorldState(loaded, sim.state.map, sim.state.items);
+    const afterLoad = takeFreshId(state);
+    expect(afterLoad).not.toBe(before);
+    expect(afterLoad).toBe(takeFreshId(sim.state));
     database.close();
   });
 

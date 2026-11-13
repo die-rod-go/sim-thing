@@ -5,7 +5,7 @@ import {
   listContents,
   locateInside,
 } from "../../items/entity-store";
-import { locateThing, type ThingRef } from "../../items/things";
+import { locateThing, viewThing, type ThingRef } from "../../items/things";
 import { readThingName, resolveNumber, scopeOf } from "../../items/values";
 import { describePlace } from "../../memory/filing";
 import { findPlaceAt } from "../../world/map-loader";
@@ -72,7 +72,7 @@ export function findDestination(run: StepRun, settings: DestinationSettings): De
   const thing = findRoleThing(run, name);
   if (thing === null) return null;
   if (settings.into === undefined) return locateOnTile(state, thing, name, run);
-  if (thing.kind === "entity" && !findEntityIfPresent(state, thing.entityId)) return null;
+  if (viewThing(state, thing) === null) return null;
   return { location: locateInside(toHolderId(thing)), holder: thing };
 }
 

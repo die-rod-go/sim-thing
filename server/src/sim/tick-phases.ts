@@ -1,4 +1,4 @@
-import { readAgentHealth, type Needs } from "@village/shared";
+import { isBodyInWorld, readAgentHealth, type Needs } from "@village/shared";
 import { config } from "../config";
 import { applyCrowdEffect, decayNeeds, findCrossedThresholds } from "../economy/needs";
 import { advanceSleep, findWakeReason, isAsleep } from "../economy/sleep";
@@ -111,7 +111,7 @@ export function progressActions(context: TickContext): void {
 export function updateSight(context: TickContext): void {
   const { state } = context;
   const world = buildPerceptionWorld(state);
-  const observed = state.agents.map((agent) => ({
+  const observed = state.agents.filter(isBodyInWorld).map((agent) => ({
     agentId: agent.id,
     pos: agent.pos,
     place: agent.place,

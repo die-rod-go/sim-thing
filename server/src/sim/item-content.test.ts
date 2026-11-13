@@ -1,9 +1,27 @@
 import { describe, expect, it } from "vitest";
 import { config } from "../config";
-import { countHeld, findEntity, listContents } from "../items/entity-store";
+import {
+  countHeld,
+  findEntity,
+  listContents,
+  listHeldOfDefinition,
+  locateInside,
+  moveEntity,
+} from "../items/entity-store";
 import { addComponent } from "../items/thing-writes";
 import { readField, type ThingRef } from "../items/things";
-import { SQUARE, aim, contextOf, finish, handOver, lastFailure, setField } from "./combat-test-kit";
+import {
+  BESIDE_SQUARE,
+  SQUARE,
+  aim,
+  contextOf,
+  entityThing,
+  finish,
+  handOver,
+  lastFailure,
+  memoryTexts,
+  setField,
+} from "./combat-test-kit";
 import { ALWAYS, NEVER, placeThing, runTicks, setUpRules } from "./rule-test-kit";
 import type { TestSim } from "./test-sim";
 
@@ -159,21 +177,93 @@ describe("food and containers", () => {
   });
 });
 
+function heldIds(sim: TestSim, definitionId: string, path: string): unknown[] {
+  return listHeldOfDefinition(sim.state, "mara", definitionId).map((entity) =>
+    readField(sim.state, entityThing(entity), path),
+  );
+}
+
+/** An anvil beside Mara and iron for each lock she forges, then the forging. */
+function forgeLocks(sim: TestSim, count: number): void {
+  placeThing(sim, "anvil", BESIDE_SQUARE);
+  giveSome(sim, "iron_ingot", count);
+  for (let forged = 0; forged < count; forged += 1) doVerb(sim, "forge lock", "anvil");
+}
+
+function hasComponentOn(sim: TestSim, thing: ThingRef, component: string): boolean {
+  if (thing.kind !== "entity") throw new Error("not an entity");
+  return Object.hasOwn(findEntity(sim.state, thing.entityId).changes, component);
+}
+
 describe("locks", () => {
-  it("won't open a locked door until a key unlocks it", () => {
+  it("forges a lock and a key that share a new id, unlike the next pair", () => {
     const sim = setUpRules();
+    forgeLocks(sim, 2);
+    const lockIds = heldIds(sim, "lock", "lock.lockId");
+    expect(heldIds(sim, "key", "key.lockId")).toEqual(lockIds);
+    expect(new Set(lockIds).size).toBe(2);
+    expect(lockIds.every((lockId) => typeof lockId === "string" && lockId !== "")).toBe(true);
+  });
+
+  it("fits a lock to a door, which then locks and unlocks only with its own key", () => {
+    const sim = setUpRules();
+    forgeLocks(sim, 1);
+    const [lockId] = heldIds(sim, "lock", "lock.lockId");
     const door = placeThing(sim, "door", SQUARE);
-    for (const component of ["closed", "fitted_lock", "locked"]) {
-      addComponent(contextOf(sim), door, component, { minutes: null });
-    }
-    doVerb(sim, "open", "door");
-    expect(lastFailure(sim, "mara")).not.toBeNull();
-    handOver(sim, "mara", "key");
+    doVerb(sim, "fit", "lock", "door");
+    expect(readField(sim.state, door, "fitted_lock.lockId")).toBe(lockId);
+    addComponent(contextOf(sim), door, "closed", { minutes: null });
+    doVerb(sim, "lock", "door");
+    expect(hasComponentOn(sim, door, "locked")).toBe(true);
+
+    const [ownKey] = listHeldOfDefinition(sim.state, "mara", "key");
+    if (ownKey === undefined) throw new Error("no key was forged");
+    moveEntity(sim.state, ownKey.id, locateInside("tobias"));
+    setField(sim, entityThing(handOver(sim, "mara", "key")), "key.lockId", "another lock");
+    doVerb(sim, "unlock", "door");
+    expect(lastFailure(sim, "mara")).toMatch(/^I tried to unlock the door but /);
+    expect(hasComponentOn(sim, door, "locked")).toBe(true);
+
+    moveEntity(sim.state, ownKey.id, locateInside("mara"));
     doVerb(sim, "unlock", "door");
     doVerb(sim, "open", "door");
-    if (door.kind !== "entity") throw new Error("not an entity");
-    const { changes } = findEntity(sim.state, door.entityId);
-    expect(Object.hasOwn(changes, "locked")).toBe(false);
-    expect(Object.hasOwn(changes, "closed")).toBe(false);
+    expect(hasComponentOn(sim, door, "locked")).toBe(false);
+    expect(hasComponentOn(sim, door, "closed")).toBe(false);
+  });
+
+  it("copies a key that opens the same lock as the original", () => {
+    const sim = setUpRules();
+    forgeLocks(sim, 1);
+    const [lockId] = heldIds(sim, "lock", "lock.lockId");
+    giveSome(sim, "iron_ingot", 1);
+    doVerb(sim, "copy key", "anvil");
+    expect(heldIds(sim, "key", "key.lockId")).toEqual([lockId, lockId]);
+  });
+});
+
+describe("writing", () => {
+  it("turns held paper into a note that carries the words and who wrote them", () => {
+    const sim = setUpRules();
+    const paper = handOver(sim, "mara", "paper");
+    aim(sim, "mara", { verb: "write on", itemName: "paper", text: "Meet me at the well" });
+    finish(sim, "mara");
+    const note = entityThing(paper);
+    expect(definitionOf(sim, note)).toBe("note");
+    expect(readField(sim.state, note, "writing.text")).toBe("Meet me at the well");
+    expect(readField(sim.state, note, "writing.author")).toBe("Mara");
+    expect(countHeld(sim.state, "mara", "paper")).toBe(0);
+  });
+});
+
+describe("a tool wearing out in the hand", () => {
+  it("files the broken tool as the holder's own, and as theirs for onlookers", () => {
+    const sim = setUpRules();
+    placeThing(sim, "iron_vein", SQUARE);
+    const pickaxe = handOver(sim, "mara", "pickaxe");
+    setField(sim, entityThing(pickaxe), "health.current", 0.01);
+    doVerb(sim, "mine", "iron vein");
+    expect(countHeld(sim.state, "mara", "pickaxe")).toBe(0);
+    expect(memoryTexts(sim, "mara")).toContain("My pickaxe broke");
+    expect(memoryTexts(sim, "tobias")).toContain("I saw that Mara's pickaxe broke");
   });
 });

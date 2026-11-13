@@ -1,4 +1,4 @@
-import { parseComponentPath, type FieldType, type ItemFile } from "@village/shared";
+import { FAN_OUT_NAMES, parseComponentPath, type FieldType, type ItemFile } from "@village/shared";
 import type { ValueSpot } from "./step-owner";
 import { listThingNames } from "./value-scope";
 import { Choice } from "./widgets";
@@ -86,19 +86,20 @@ export function ThingNamePicker({
   value,
   spot,
   onChange,
-  withNearby = false,
+  withFanOuts = false,
   emptyLabel,
 }: {
   value: string | undefined;
   spot: ValueSpot;
   onChange: (name: string | undefined) => void;
-  withNearby?: boolean;
+  /** Offers `nearby` and `earshot` as well, for `on`. */
+  withFanOuts?: boolean;
   emptyLabel?: string;
 }) {
   const choices = [
     ...(emptyLabel === undefined ? [] : [NO_NAME]),
     ...listThingNames(spot),
-    ...(withNearby ? ["nearby"] : []),
+    ...(withFanOuts ? FAN_OUT_NAMES : []),
   ];
   return (
     <Choice

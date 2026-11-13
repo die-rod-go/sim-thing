@@ -100,6 +100,11 @@ export interface Agent {
   bodyChanges: ComponentChanges;
   /** Null while alive. */
   death: AgentDeath | null;
+  /**
+   * The entity a dead agent's body was transformed into (a grave): the body is gone from the
+   * world, though the agent and its death stay. Null while the body is in the world.
+   */
+  bodyReplacedById: string | null;
   mood: string;
   goals: Goal[];
   dailyPlan: string;
@@ -225,6 +230,10 @@ export interface WorldEvent {
   targetDescription?: string;
   /** The actor is a thing ("the chest", "Mara's body"), not an agent who acts or remembers. */
   isActorThing?: boolean;
+  /** For a thing an agent carries ("Mara's pickaxe"): that agent, who files it as their own. */
+  holderId?: string;
+  /** The description as the carrying agent files it ("my pickaxe broke"). */
+  holderDescription?: string;
 }
 
 export type LlmCallKind =

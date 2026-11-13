@@ -1,5 +1,9 @@
 import {
+  isValueRead,
+  mapFieldTerms,
   parseValuePath,
+  readFieldComparison,
+  type Matcher,
   type ChoiceName,
   type DefinitionValue,
   type FieldValue,
@@ -13,7 +17,7 @@ import {
 import type { VerbRun } from "../sim/agent-runtime";
 import type { StepRun } from "../sim/steps/step-run";
 import { pickWithinRange } from "../status/combat";
-import type { WorldState } from "../sim/world-state";
+import { takeFreshId, type WorldState } from "../sim/world-state";
 import { describeEntityName, findEntityIfPresent } from "./entity-store";
 import { readComponents, type ThingRef } from "./things";
 
@@ -68,13 +72,10 @@ export function findScopeThing(scope: ValueScope, who: string): ThingRef | null 
 }
 
 /** The thing's components now, else as last seen (`item`, `target` and `as` names only). */
-function readScopeComponents(scope: ValueScope, who: string): ResolvedComponents {
+function findScopeComponents(scope: ValueScope, who: string): ResolvedComponents | null {
   const thing = findScopeThing(scope, who);
   const live = thing === null ? null : readComponents(scope.state, thing);
-  if (live !== null) return live;
-  const snapshot = scope.verbRun?.snapshots[who];
-  if (snapshot === undefined) throw new Error(`"${who}" was read but there is no ${who}`);
-  return snapshot.components;
+  return live ?? scope.verbRun?.snapshots[who]?.components ?? null;
 }
 
 /** The thing's display name without "the": what phrases call it. */
@@ -95,19 +96,27 @@ export function readThingName(scope: ValueScope, who: string): string {
   return snapshot.name;
 }
 
-function readChoice(scope: ValueScope, choice: ChoiceName): FieldValue {
-  const value = requireVerbRun(scope, `choice.${choice}`).choice[choice];
-  if (value === undefined) throw new Error(`choice.${choice} was read but the decision gave none`);
-  return value;
-}
-
-function readValuePath(scope: ValueScope, path: string): FieldValue {
+/**
+ * The value a path names, or undefined when there is none to read: a thing that isn't there and
+ * has no snapshot (an `as` not picked yet), a field it lacks, or a choice the decision didn't give.
+ */
+function findValuePathValue(scope: ValueScope, path: string): FieldValue | undefined {
   const parsed = parseValuePath(path);
   if (parsed === null) throw new Error(`Bad value path "${path}"`);
-  if (parsed.kind === "choice") return readChoice(scope, parsed.choice);
-  if (parsed.kind === "name") return readThingName(scope, parsed.who);
-  const value = readScopeComponents(scope, parsed.who)[parsed.component]?.[parsed.field];
-  if (value === undefined) throw new Error(`The ${parsed.who} has no ${path}`);
+  if (parsed.kind === "choice") return scope.verbRun?.choice[parsed.choice];
+  if (parsed.kind === "name") {
+    const isNameKnown =
+      findScopeThing(scope, parsed.who) !== null ||
+      scope.verbRun?.snapshots[parsed.who] !== undefined;
+    return isNameKnown ? readThingName(scope, parsed.who) : undefined;
+  }
+  return findScopeComponents(scope, parsed.who)?.[parsed.component]?.[parsed.field];
+}
+
+/** Validation makes sure every read is there, so a missing one is a bug. */
+function readValuePath(scope: ValueScope, path: string): FieldValue {
+  const value = findValuePathValue(scope, path);
+  if (value === undefined) throw new Error(`"${path}" was read but there is nothing there`);
   return value;
 }
 
@@ -153,14 +162,43 @@ export function resolveDefinitionId(scope: ValueScope, value: DefinitionValue): 
   return typeof value === "string" ? value : readText(scope, value.from);
 }
 
-/** A field value: a literal, a text or boolean read as it is, or a number read or roll. */
+/** A field value: a literal, a text or boolean read as it is, a number read or roll, or a fresh id. */
 export function resolveFieldInput(scope: ValueScope, value: FieldValueInput): FieldValue {
   if (typeof value !== "object") return value;
+  if ("newId" in value) return takeFreshId(scope.state);
   if ("from" in value && value.times === undefined) {
     const read = readValuePath(scope, value.from);
     if (!isRange(read)) return read;
   }
   return resolveNumber(scope, value);
+}
+
+/** What a run's matcher looks like with its reads resolved, and whether every read had a value. */
+export interface ResolvedMatcher {
+  matcher: Matcher;
+  /** False when a read named something not there yet: an `as` a later step picks. */
+  isFullyResolved: boolean;
+}
+
+const NEVER_MATCHES: Matcher = { anyOf: [] };
+
+/**
+ * The matcher with each comparison's value read replaced by the value now (from a snapshot when
+ * the thing is gone). A comparison whose read has no value never matches.
+ */
+export function resolveMatcherReads(scope: ValueScope, matcher: Matcher): ResolvedMatcher {
+  let isFullyResolved = true;
+  const resolved = mapFieldTerms(matcher, (term) => {
+    const compared = readFieldComparison(term);
+    if (compared === null || !isValueRead(compared.value)) return term;
+    const value = findValuePathValue(scope, compared.value.from);
+    if (value === undefined || isRange(value)) {
+      isFullyResolved = false;
+      return NEVER_MATCHES;
+    }
+    return { field: term.field, [compared.comparison]: value };
+  });
+  return { matcher: resolved, isFullyResolved };
 }
 
 function isBlankText(value: FieldValue): boolean {

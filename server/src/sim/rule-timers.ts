@@ -1,5 +1,6 @@
 import {
   compareEntityAge,
+  isBodyInWorld,
   listGuaranteedComponents,
   listMatcherTerms,
   matchesThing,
@@ -28,10 +29,12 @@ interface DueRule {
   count: number;
 }
 
-/** Agents in their order, then entities by id, whatever order the world keeps them in. */
+/** Bodies in agent order, then entities by id, whatever order the world keeps them in. */
 function listThingsInRuleOrder(context: TickContext): ThingRef[] {
   const { state } = context;
-  const agents = state.agents.map((agent): ThingRef => ({ kind: "agent", agentId: agent.id }));
+  const agents = state.agents
+    .filter(isBodyInWorld)
+    .map((agent): ThingRef => ({ kind: "agent", agentId: agent.id }));
   const entities = [...state.entities]
     .sort(compareEntityAge)
     .map((entity): ThingRef => ({ kind: "entity", entityId: entity.id }));

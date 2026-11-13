@@ -1,5 +1,11 @@
 import { useCallback, useLayoutEffect, useMemo, useRef, useState } from "react";
-import type { Agent, Entity, SimTimeSettings, ThingCatalog } from "@village/shared";
+import {
+  isBodyInWorld,
+  type Agent,
+  type Entity,
+  type SimTimeSettings,
+  type ThingCatalog,
+} from "@village/shared";
 import { clientConfig } from "../client-config";
 import { buildAgentColors } from "../format/agent-colors";
 import { listVisibleBodyComponents } from "../format/conditions";
@@ -128,6 +134,7 @@ export function VillageWorld(props: VillageWorldProps) {
   const shownBubbles = liveBubbles.filter((bubble) => !props.mutedSpeakers.has(bubble.agentId));
   const agentColors = useMemo(() => buildAgentColors(agents), [agents]);
   const agentNames = new Map(agents.map((agent) => [agent.id, agent.name]));
+  const drawnAgents = useMemo(() => agents.filter(isBodyInWorld), [agents]);
   const bubblesBySpeaker = groupBubblesBySpeaker(shownBubbles);
   const highlighted = new Set(props.highlightedAgentIds);
   const visiblePlaces = props.isPlaceLabelsOn ? map.places : [];
@@ -135,7 +142,7 @@ export function VillageWorld(props: VillageWorldProps) {
   const mapPixelWidth = map.width * map.tileWidth;
   const mapPixelHeight = map.height * map.tileHeight;
   const { hoveredAgentId, startHover, endHover } = useHoveredAgent();
-  const hoveredAgent = agents.find((agent) => agent.id === hoveredAgentId) ?? null;
+  const hoveredAgent = drawnAgents.find((agent) => agent.id === hoveredAgentId) ?? null;
   const setHoverCardElement = useCallback(
     (element: HTMLElement | null) => {
       world.hoverCard.current = element;
@@ -147,7 +154,7 @@ export function VillageWorld(props: VillageWorldProps) {
   ];
   const tileInspector = useInspectedTile({
     map,
-    agents,
+    agents: drawnAgents,
     entities: props.entities,
     catalog: props.catalog,
   });
@@ -166,7 +173,7 @@ export function VillageWorld(props: VillageWorldProps) {
   });
   const followedAgentIdRef = useRef(inspectedAgentId);
 
-  useAgentMotions(world, agents, map.tileWidth, props.moveDurationMs);
+  useAgentMotions(world, drawnAgents, map.tileWidth, props.moveDurationMs);
 
   const renderFrame = useCallback(
     (nowMs: number) => {
@@ -237,7 +244,7 @@ export function VillageWorld(props: VillageWorldProps) {
       </div>
       <div className="village-screen">
         <PlaceLabels places={visiblePlaces} labelRegistry={world.placeLabels} />
-        {agents.map((agent) => (
+        {drawnAgents.map((agent) => (
           <AgentMarker
             key={agent.id}
             agentId={agent.id}

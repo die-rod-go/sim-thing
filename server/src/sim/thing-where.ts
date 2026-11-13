@@ -1,4 +1,4 @@
-import type { ThingView, ThingWhere } from "@village/shared";
+import { isBodyInWorld, type ThingView, type ThingWhere } from "@village/shared";
 import { config } from "../config";
 import { computeChebyshevDistance } from "../economy/give";
 import { findEntityIfPresent, isHeldBy } from "../items/entity-store";
@@ -22,7 +22,9 @@ export function findThingWhere(
   thing: ThingRef,
 ): ThingWhere | null {
   if (thing.kind === "agent") {
-    if (!state.agents.some((agent) => agent.id === thing.agentId)) return null;
+    if (!state.agents.some((agent) => agent.id === thing.agentId && isBodyInWorld(agent))) {
+      return null;
+    }
     return thing.agentId === userId ? "self" : "here";
   }
   const entity = findEntityIfPresent(state, thing.entityId);

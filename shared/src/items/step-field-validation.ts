@@ -51,10 +51,14 @@ function isFittingLiteral(value: FieldValueInput, type: FieldType): boolean {
   if (typeof value === "number") return type === "number";
   if (typeof value === "boolean") return type === "boolean";
   if (typeof value === "string") return type === "text" || type === "item";
+  if ("newId" in value) return type === "text";
   return isRoll(value) && (type === "number" || type === "range");
 }
 
-/** A literal or roll must fit the field's type, and an `item` literal must name a definition. */
+/**
+ * A literal, roll or fresh id must fit the field's type (a fresh id only fits text), and an `item`
+ * literal must name a definition.
+ */
 function checkFieldValue(
   value: FieldValueInput,
   componentPath: string,

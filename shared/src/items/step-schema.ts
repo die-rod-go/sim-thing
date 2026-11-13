@@ -1,7 +1,7 @@
 import { z } from "zod";
 import { NEED_NAMES, type NeedName } from "../types";
 import { componentPathSchema, identifierSchema } from "./component-schema";
-import { matcherSchema } from "./matcher-schema";
+import { matcherSchema, type Matcher } from "./matcher-schema";
 import {
   asNameSchema,
   definitionValueSchema,
@@ -25,14 +25,17 @@ const commonSettings = {
 };
 
 /**
- * What the step works on: a role (`user`, `item`, `target`, `self`), an `as` name, or `nearby`.
- * Required in verbs; `self` when omitted in rules. `nearby` takes `radius` and `around`.
+ * What the step works on: a role (`user`, `item`, `target`, `self`), an `as` name, `nearby` or
+ * `earshot`. Required in verbs; `self` when omitted in rules. `nearby` takes `radius` and
+ * `around`; `earshot` takes `loudness` and `around`.
  */
 const onSettings = {
   ...commonSettings,
   on: thingNameSchema.optional(),
   radius: z.number().int().nonnegative().optional(),
-  /** Whose tiles `nearby` counts from; `self` when omitted in a rule. */
+  /** For `earshot`: how loud the sound is whose listeners the step reaches. */
+  loudness: numberValueSchema.optional(),
+  /** Whose tile `nearby` and `earshot` count from; `self` when omitted in a rule. */
   around: thingNameSchema.optional(),
 };
 
@@ -117,6 +120,8 @@ export const stepSchema = z.discriminatedUnion("step", [
     ...destinationSettings,
     /** `"component.field"` to value, written on each new entity. */
     fields: z.record(componentPathSchema, fieldValueInputSchema).optional(),
+    /** Names the first entity made, for later steps. */
+    as: asNameSchema.optional(),
   }),
   z.strictObject({ step: z.literal("transform"), ...onSettings, into: definitionValueSchema }),
   z.strictObject({ step: z.literal("destroy"), ...onSettings }),
@@ -168,4 +173,21 @@ export const VERB_ONLY_STEPS: ReadonlySet<StepType> = new Set<StepType>([
 /** The thing a step works on, if it takes `on`. */
 export function findStepOn(step: Step): string | undefined {
   return "on" in step ? step.on : undefined;
+}
+
+/** The `as` name a step gives the first entity it picks or makes, if any. */
+export function findStepAs(step: Step): string | undefined {
+  return step.step === "require" || step.step === "use_up" || step.step === "create"
+    ? step.as
+    : undefined;
+}
+
+/**
+ * A matcher every entity a naming step names is sure to meet: its `rule`, or the definition
+ * `create` made it of (nothing known when that is read from a field).
+ */
+export function describeNamedThing(step: Step): Matcher {
+  if (step.step === "require" || step.step === "use_up") return step.rule;
+  if (step.step === "create" && typeof step.item === "string") return { definition: step.item };
+  return { allOf: [] };
 }

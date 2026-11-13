@@ -1,4 +1,4 @@
-import type { WorldEvent } from "@village/shared";
+import type { Position, WorldEvent } from "@village/shared";
 import { config } from "../config";
 import { describeDirection } from "./direction";
 import { isOwnNameMentioned } from "./interrupts";
@@ -12,10 +12,12 @@ import {
 } from "./sound";
 import type { EventPerception, Hearing, PerceptionWorld, Perceiver } from "./types";
 
+function isLoudEnoughToWake(loudness: number): boolean {
+  return loudness >= config.perception.sleeperHearingLoudness;
+}
+
 function canSleeperHear(event: WorldEvent, perceiver: Perceiver): boolean {
-  if (event.loudness !== null && event.loudness >= config.perception.sleeperHearingLoudness) {
-    return true;
-  }
+  if (event.loudness !== null && isLoudEnoughToWake(event.loudness)) return true;
   return event.speech !== undefined && isOwnNameMentioned(event.speech.words, perceiver.name);
 }
 
@@ -29,6 +31,24 @@ function computeHearing(
   if (perceiver.isAsleep && !canSleeperHear(event, perceiver)) return "none";
   const pathCost = readSoundCost(soundCosts, world.grid, perceiver.pos);
   return classifyHearing(pathCost, event.loudness);
+}
+
+/**
+ * The perceivers who would clearly hear a sound of this loudness made at the source: walls block
+ * it, muffling tiles cost it more, and a sleeper hears only one loud enough to wake them.
+ */
+export function listClearHearers(
+  world: PerceptionWorld,
+  source: Position,
+  loudness: number,
+  perceivers: readonly Perceiver[],
+): Perceiver[] {
+  const soundCosts = computeSoundCosts(world, source, loudness);
+  return perceivers.filter((perceiver) => {
+    if (perceiver.isAsleep && !isLoudEnoughToWake(loudness)) return false;
+    const pathCost = readSoundCost(soundCosts, world.grid, perceiver.pos);
+    return classifyHearing(pathCost, loudness) === "clear";
+  });
 }
 
 function perceiveByOne(

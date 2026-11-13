@@ -20,6 +20,8 @@ export interface WorldState {
   entities: Entity[];
   /** The counter the next entity id comes from, so runs reproduce. */
   nextEntityId: number;
+  /** The counter the next `newId` value comes from (a lock and its key's shared id). */
+  nextFreshId: number;
   /** The item definitions and verbs from `items.json`. */
   items: ItemCatalog;
   map: WorldMap;
@@ -88,6 +90,7 @@ export function createWorldState(
     agents: seededWorld.agents,
     entities: seededWorld.entities,
     nextEntityId: seededWorld.nextEntityId,
+    nextFreshId: 1,
     items,
     map,
     random: new SeededRandom(config.seed),
@@ -127,6 +130,13 @@ export function takeNextEventId(state: WorldState): number {
   return eventId;
 }
 
+/** A text id no earlier `newId` in this world gave: "id-7". */
+export function takeFreshId(state: WorldState): string {
+  const freshId = config.steps.newIdFormat.split("{number}").join(String(state.nextFreshId));
+  state.nextFreshId += 1;
+  return freshId;
+}
+
 export function takeNextMomentId(state: WorldState): number {
   const momentId = state.nextMomentId;
   state.nextMomentId += 1;
@@ -160,6 +170,7 @@ export function toSavedWorld(state: WorldState, settings: SimSettings): SavedWor
     agents: state.agents,
     entities: state.entities,
     nextEntityId: state.nextEntityId,
+    nextFreshId: state.nextFreshId,
     memories: state.memoryStore.all(),
     runtime: toSimRuntime(state),
   };
@@ -198,6 +209,7 @@ export function restoreWorldState(
       agents: agents.map(withLastThought),
       entities: saved.entities,
       nextEntityId: saved.nextEntityId,
+      nextFreshId: saved.nextFreshId,
       items,
       map,
       random,

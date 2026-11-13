@@ -1,10 +1,18 @@
 import type { ItemDefinition } from "./item-file";
 import type { ValidationContext } from "./item-problems";
+import type { Matcher } from "./matcher-schema";
 import { checkMatcher } from "./matcher-validation";
 import { checkStepRead } from "./read-validation";
 import { checkStepNames } from "./step-field-validation";
 import { listReachReads, listStepReads } from "./step-reads";
-import { VERB_ONLY_STEPS, findStepOn, type Step, type StepType } from "./step-schema";
+import {
+  VERB_ONLY_STEPS,
+  describeNamedThing,
+  findStepAs,
+  findStepOn,
+  type Step,
+  type StepType,
+} from "./step-schema";
 import {
   buildStepScope,
   couldReachBody,
@@ -12,6 +20,7 @@ import {
   type StepOwner,
   type StepScope,
 } from "./step-scope";
+import { isFanOutName, type FanOutName } from "./value-schema";
 
 /** Steps that work on a thing named by `on`. */
 const ON_STEPS: ReadonlySet<StepType> = new Set<StepType>([
@@ -38,24 +47,50 @@ function checkThingName(name: string, path: string, scope: StepScope) {
   if (!thing.ok) scope.context.problems.error(path, thing.problem);
 }
 
-function checkNearby(step: Step, path: string, scope: StepScope) {
-  const { problems } = scope.context;
-  const radius = "radius" in step ? step.radius : undefined;
+function checkFanOutCenter(step: Step, fanOut: FanOutName, path: string, scope: StepScope) {
   const around = "around" in step ? step.around : undefined;
-  if (radius === undefined) problems.error(path, "`on: nearby` needs a `radius`.");
   if (around !== undefined) checkThingName(around, `${path}.around`, scope);
-  else if (scope.owner.kind === "verb")
-    problems.error(path, "`on: nearby` in a verb needs `around`.");
+  else if (scope.owner.kind === "verb") {
+    scope.context.problems.error(path, `\`on: ${fanOut}\` in a verb needs \`around\`.`);
+  }
+}
+
+function checkNearby(step: Step, path: string, scope: StepScope) {
+  const radius = "radius" in step ? step.radius : undefined;
+  if (radius === undefined) scope.context.problems.error(path, "`on: nearby` needs a `radius`.");
+  checkFanOutCenter(step, "nearby", path, scope);
+}
+
+function checkEarshot(step: Step, path: string, scope: StepScope) {
+  const { problems } = scope.context;
+  if (step.step === "sound") {
+    problems.error(path, "`sound` can't run on earshot: whoever hears the sound already hears it.");
+    return;
+  }
+  const loudness = "loudness" in step ? step.loudness : undefined;
+  if (loudness === undefined) problems.error(path, "`on: earshot` needs a `loudness`.");
+  checkFanOutCenter(step, "earshot", path, scope);
+}
+
+/** `loudness` belongs to `sound` itself; on any other step it only means something for `earshot`. */
+function checkStrayLoudness(step: Step, on: string | undefined, path: string, scope: StepScope) {
+  if (step.step === "sound" || on === "earshot") return;
+  if ("loudness" in step && step.loudness !== undefined) {
+    scope.context.problems.error(path, "`loudness` only works with `on: earshot`.");
+  }
 }
 
 function checkOn(step: Step, path: string, scope: StepScope) {
   if (!ON_STEPS.has(step.step)) return;
   const on = findStepOn(step);
+  checkStrayLoudness(step, on, path, scope);
   if (on === undefined) {
     if (scope.owner.kind === "verb")
       scope.context.problems.error(path, "A step in a verb needs `on`.");
   } else if (on === "nearby") {
     checkNearby(step, path, scope);
+  } else if (on === "earshot") {
+    checkEarshot(step, path, scope);
   } else {
     checkThingName(on, `${path}.on`, scope);
   }
@@ -79,16 +114,41 @@ function checkDestination(step: Step, path: string, scope: StepScope) {
 
 function checkPick(step: Step, path: string, scope: StepScope) {
   if (step.step !== "require" && step.step !== "use_up") return;
-  const { problems } = scope.context;
   if (!PICKING_PLACES.includes(step.in)) {
-    problems.error(`${path}.in`, "`in` must be `user`, `item` or `target`.");
+    scope.context.problems.error(`${path}.in`, "`in` must be `user`, `item` or `target`.");
   } else {
     checkThingName(step.in, `${path}.in`, scope);
   }
-  checkMatcher(step.rule, `${path}.rule`, scope.context);
-  if (step.as === undefined) return;
-  if (scope.givenNames.has(step.as)) problems.error(`${path}.as`, `"${step.as}" is already used.`);
-  scope.givenNames.set(step.as, step.rule);
+  checkMatcher(step.rule, `${path}.rule`, scope.context, { canReadValues: true });
+}
+
+/** Gives the step's `as` name, after its own settings are checked: a step can't read its own name. */
+function giveStepName(step: Step, path: string, scope: StepScope) {
+  const name = findStepAs(step);
+  if (name === undefined) return;
+  const { problems } = scope.context;
+  if (step.step === "create" && scope.owner.kind === "rule") {
+    problems.error(`${path}.as`, "`as` only works in verbs: a rule keeps no names.");
+  }
+  if (scope.givenNames.has(name)) problems.error(`${path}.as`, `"${name}" is already used.`);
+  scope.givenNames.set(name, describeNamedThing(step));
+}
+
+/**
+ * After a `transform`, later steps read the thing as its new definition. One that could be a body
+ * might instead have stayed as it was (a living body), so it is sure only of what both share.
+ */
+function noteTransform(step: Step, scope: StepScope) {
+  if (step.step !== "transform") return;
+  const on = step.on ?? (scope.owner.kind === "rule" ? "self" : undefined);
+  if (on === undefined || on === "user" || isFanOutName(on)) return;
+  const thing = resolveThing(scope, on);
+  if (!thing.ok || thing.matcher === null) return;
+  const becomes: Matcher =
+    typeof step.into === "string" ? { definition: step.into } : { allOf: [] };
+  const after = couldReachBody(scope, on) ? { anyOf: [thing.matcher, becomes] } : becomes;
+  if (scope.givenNames.has(on)) scope.givenNames.set(on, after);
+  else scope.transformedRoles.set(on, after);
 }
 
 function checkRuleSettings(step: Step, path: string, scope: StepScope) {
@@ -140,7 +200,9 @@ function checkStep(
 ) {
   const path = `${ownerPath}.steps.${index}`;
   checkOn(step, path, scope);
-  if (step.step === "check") checkMatcher(step.if, `${path}.if`, scope.context);
+  if (step.step === "check") {
+    checkMatcher(step.if, `${path}.if`, scope.context, { canReadValues: true });
+  }
   checkDestination(step, path, scope);
   checkPick(step, path, scope);
   for (const read of listStepReads(step, `steps.${index}`)) {
@@ -149,6 +211,8 @@ function checkStep(
   checkStepNames(step, path, scope.context);
   if (scope.owner.kind === "rule") checkRuleSettings(step, path, scope);
   else checkVerbSequence(step, steps, index, path, scope);
+  giveStepName(step, path, scope);
+  noteTransform(step, scope);
 }
 
 /** Whether a `damage` step on the agent health field could hurt a body. */

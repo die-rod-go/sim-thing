@@ -161,7 +161,12 @@ describe("breaking things", () => {
     aimWith(sim, "mara", knife, "attack", "Tobias");
     const finished = finish(sim, "mara");
     expect(finished.result.events).toContainEqual(
-      expect.objectContaining({ kind: "announced", actorName: "the knife", description: "broke" }),
+      expect.objectContaining({
+        kind: "announced",
+        actorName: "Mara's knife",
+        description: "broke",
+        holderId: "mara",
+      }),
     );
     const broken = findEntityIfPresent(sim.state, knife.id);
     expect(broken && getDefinition(sim.state, broken).id).toBe("broken_knife");

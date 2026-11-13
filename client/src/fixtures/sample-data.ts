@@ -36,6 +36,7 @@ export function makeSampleAgent(id: string, name: string, x: number, y: number):
     starvingSinceTick: null,
     bodyChanges: {},
     death: null,
+    bodyReplacedById: null,
     mood: "content",
     goals: [
       {

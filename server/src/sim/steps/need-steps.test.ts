@@ -1,8 +1,8 @@
 import { describe, expect, it } from "vitest";
 import { findEntityIfPresent, listContents, locateInside } from "../../items/entity-store";
 import { createEntity } from "../../items/entity-store";
-import { handOver } from "../combat-test-kit";
-import { runSteps, setUpSteps } from "./step-test-kit";
+import { entityThing, handOver, setField } from "../combat-test-kit";
+import { emptyHands, runSteps, setUpSteps } from "./step-test-kit";
 
 const NEEDS_TWO_WHEAT = [
   { step: "use_up", in: "user", rule: { definition: "wheat" }, count: 2 },
@@ -157,5 +157,56 @@ describe("check", () => {
       targetName: "bench",
     });
     expect(result.failure).toBe("bench is not alive");
+  });
+});
+
+describe("matchers that read a value of the run", () => {
+  /** Mara holds an older key and the key the verb is done with, cut for the given locks. */
+  function holdKeys(sim: ReturnType<typeof setUpSteps>, olderLockId: string, itemLockId: string) {
+    const older = handOver(sim, "mara", "key");
+    const item = handOver(sim, "mara", "key");
+    setField(sim, entityThing(older), "key.lockId", olderLockId);
+    setField(sim, entityThing(item), "key.lockId", itemLockId);
+    return item;
+  }
+
+  const MATCH_THE_OLDER_KEY = [
+    { step: "require", in: "user", rule: { has: "key" }, as: "older" },
+    {
+      step: "check",
+      on: "item",
+      if: { field: "key.lockId", equals: { from: "older.key.lockId" } },
+      otherwise: "the keys don't match",
+    },
+  ];
+
+  it("judges a check reading an earlier pick once that pick is made", () => {
+    const sim = setUpSteps();
+    const matching = holdKeys(sim, "cellar", "cellar");
+    expect(runSteps(sim, MATCH_THE_OLDER_KEY, { items: [matching] }).failure).toBeNull();
+    emptyHands(sim, "mara");
+    const other = holdKeys(sim, "cellar", "attic");
+    expect(runSteps(sim, MATCH_THE_OLDER_KEY, { items: [other] }).failure).toBe(
+      "the keys don't match",
+    );
+  });
+
+  it("picks only what the read value matches", () => {
+    const sim = setUpSteps();
+    const item = holdKeys(sim, "attic", "cellar");
+    const sameLock = handOver(sim, "mara", "key");
+    setField(sim, entityThing(sameLock), "key.lockId", "cellar");
+    const steps = [
+      {
+        step: "use_up",
+        in: "user",
+        rule: {
+          allOf: [{ has: "key" }, { field: "key.lockId", equals: { from: "item.key.lockId" } }],
+        },
+      },
+    ];
+    expect(runSteps(sim, steps, { items: [item] }).failure).toBeNull();
+    expect(findEntityIfPresent(sim.state, sameLock.id)).toBeUndefined();
+    expect(listContents(sim.state, "mara")).toHaveLength(2);
   });
 });

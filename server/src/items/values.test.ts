@@ -1,6 +1,7 @@
 import { describe, expect, it } from "vitest";
-import { stepSchema } from "@village/shared";
-import { fixRolls, handOver } from "../sim/combat-test-kit";
+import { matchesThing, stepSchema } from "@village/shared";
+import { config } from "../config";
+import { entityThing, fixRolls, handOver } from "../sim/combat-test-kit";
 import { TOBIAS, setUpRules } from "../sim/rule-test-kit";
 import { destroyEntities } from "../sim/steps/step-entities";
 import { buildStepRun, buildVerbRun } from "../sim/steps/step-test-kit";
@@ -11,10 +12,12 @@ import {
   findMissingChoice,
   resolveDefinitionId,
   resolveFieldInput,
+  resolveMatcherReads,
   resolveNumber,
   resolveText,
   type ValueScope,
 } from "./values";
+import { viewThing } from "./things";
 
 function scopeFor(sim: TestSim, itemDefinitionId: string, choice: Partial<VerbChoice> = {}) {
   const item = handOver(sim, "mara", itemDefinitionId);
@@ -119,5 +122,49 @@ describe("values", () => {
     expect(findMissingChoice(blank, needsText)).toBe("I didn't say what");
     const given = scopeFor(sim, "bread", { text: "hello" }).scope;
     expect(findMissingChoice(given, needsText)).toBeNull();
+  });
+});
+
+describe("matchers that read a value", () => {
+  const asFillingAsItem = { field: "food.hunger", atLeast: { from: "item.food.hunger" } };
+
+  it("resolves a comparison's read from the run, from a snapshot once the thing is gone", () => {
+    const sim = setUpRules();
+    const { item, verbRun, scope } = scopeFor(sim, "bread");
+    destroyEntities(buildStepRun(contextOf(sim), verbRun), [item]);
+    const resolved = resolveMatcherReads(scope, asFillingAsItem);
+    expect(resolved).toEqual({
+      matcher: { field: "food.hunger", atLeast: 0.5 },
+      isFullyResolved: true,
+    });
+    const bread = viewThing(sim.state, entityThing(handOver(sim, "mara", "bread")));
+    if (bread === null) throw new Error("no bread");
+    expect(matchesThing(resolved.matcher, bread)).toBe(true);
+  });
+
+  it("never matches a comparison whose read has nothing to read", () => {
+    const sim = setUpRules();
+    const { scope } = scopeFor(sim, "bread");
+    const resolved = resolveMatcherReads(scope, {
+      allOf: [{ has: "food" }, { field: "food.hunger", atMost: { from: "spare.food.hunger" } }],
+    });
+    expect(resolved.isFullyResolved).toBe(false);
+    const bread = viewThing(sim.state, entityThing(handOver(sim, "mara", "bread")));
+    if (bread === null) throw new Error("no bread");
+    expect(matchesThing(resolved.matcher, bread)).toBe(false);
+    expect(matchesThing(asFillingAsItem, bread)).toBe(false);
+  });
+});
+
+describe("fresh ids", () => {
+  it("gives a new text each time it is read, from the world's counter", () => {
+    const sim = setUpRules();
+    const { scope } = scopeFor(sim, "bread");
+    sim.state.nextFreshId = 7;
+    const first = resolveFieldInput(scope, { newId: true });
+    const second = resolveFieldInput(scope, { newId: true });
+    expect(first).toBe(config.steps.newIdFormat.split("{number}").join("7"));
+    expect(second).not.toBe(first);
+    expect(sim.state.nextFreshId).toBe(9);
   });
 });

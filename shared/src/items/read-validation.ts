@@ -14,7 +14,7 @@ function describeSource(who: string): string {
   if (who === "target") return "target";
   if (who === "self") return "`if`";
   if (who === "user") return "the agent body";
-  return "the `rule` that named it";
+  return "the step that named it";
 }
 
 function listAcceptedTypes(read: StepRead, scope: StepScope): readonly FieldType[] | null {
@@ -22,6 +22,7 @@ function listAcceptedTypes(read: StepRead, scope: StepScope): readonly FieldType
   if (expectation.kind === "types") return expectation.types;
   const field = scope.context.file.components[expectation.component]?.fields[expectation.field];
   if (field === undefined) return null;
+  if (expectation.kind === "comparedWith") return [field.type];
   return field.type === "number" ? ["number", "range"] : [field.type];
 }
 

@@ -172,6 +172,21 @@ export function resolveEntityPosition(world: EntityWorld, entity: Entity): Entit
   return { place: current.location.place, pos: current.location.pos };
 }
 
+/** The agent carrying the entity, directly or inside something they carry; null for none. */
+export function findCarryingAgentId(world: EntityWorld, entity: Entity): string | null {
+  const visited = new Set<string>();
+  let location = entity.location;
+  while (location.kind === "inside" && !visited.has(location.holderId)) {
+    const { holderId } = location;
+    if (!isEntityId(holderId)) return holderId;
+    visited.add(holderId);
+    const holder = findEntityIfPresent(world, holderId);
+    if (!holder) return null;
+    location = holder.location;
+  }
+  return null;
+}
+
 /** Whether the entity is inside the holder, directly or inside something within it. */
 export function isNestedIn(world: EntityWorld, entity: Entity, holderId: ThingId): boolean {
   let location = entity.location;

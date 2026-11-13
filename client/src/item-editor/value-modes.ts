@@ -53,6 +53,14 @@ export function setNumberValueTimes(
   return times === undefined ? rest : { ...rest, times };
 }
 
+/** A text field written by a step: some text, or a fresh id no other `newId` gave. */
+export type TextFieldMode = "text" | "newId";
+
+export const TEXT_FIELD_MODE_LABELS: Record<TextFieldMode, string> = {
+  text: "text",
+  newId: "a new id",
+};
+
 export function findSimpleValueMode(value: unknown): "literal" | "from" {
   return typeof value === "object" && value !== null && "from" in value ? "from" : "literal";
 }

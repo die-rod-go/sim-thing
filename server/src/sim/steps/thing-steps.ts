@@ -3,8 +3,15 @@ import { replaceDefinition, writeField } from "../../items/thing-writes";
 import { resolveDefinitionId, resolveFieldInput, resolveNumber, scopeOf } from "../../items/values";
 import { markEntityChanged } from "../world-access";
 import { findDestination, findPlacementRefusal } from "./destination";
-import { destroyEntities } from "./step-entities";
-import { describeRunCause, findStepEntities, recordTouched, refreshSnapshots } from "./step-roles";
+import { destroyEntities, replaceBody } from "./step-entities";
+import {
+  describeRunCause,
+  findStepEntities,
+  findStepThings,
+  nameEntity,
+  recordTouched,
+  refreshSnapshots,
+} from "./step-roles";
 import { DONE, type StepHandler, type StepOutcome, type StepRun } from "./step-run";
 import type { StepOfType } from "@village/shared";
 
@@ -53,7 +60,10 @@ function findCreateRefusal(run: StepRun, step: CreateStep): string | null {
   return findPlacementRefusal(run, step, destination, [], countCreations(run, step));
 }
 
-/** Makes `count` new entities of a definition inside a thing or on its tile, with `fields` written on each. */
+/**
+ * Makes `count` new entities of a definition inside a thing or on its tile, with `fields` written
+ * on each (a `newId` gives each its own). The first takes the `as` name.
+ */
 export const createStep: StepHandler<"create"> = {
   isVerbOnly: false,
   findRefusal: findCreateRefusal,
@@ -69,6 +79,7 @@ export const createStep: StepHandler<"create"> = {
     for (let made = 0; made < count; made += 1) {
       const entity = createEntity(state, definitionId, destination.location);
       markEntityChanged(result, entity.id);
+      if (made === 0) nameEntity(run, step.as, entity);
       const thing = { kind: "entity", entityId: entity.id } as const;
       for (const [path, input] of Object.entries(step.fields ?? {})) {
         writeField(
@@ -84,17 +95,23 @@ export const createStep: StepHandler<"create"> = {
   },
 };
 
-/** The entity becomes another definition where it is; a body stays as it is. */
+/**
+ * An entity becomes another definition where it is. A dead agent's body becomes an entity of it on
+ * its tile, dropping what it carried, and leaves the world (a burial); a living body stays as it is.
+ */
 export const transformStep: StepHandler<"transform"> = {
   isVerbOnly: false,
   run(run, step) {
     const definitionId = resolveDefinitionId(scopeOf(run), step.into);
-    const entities = findStepEntities(run, step.on ?? "self");
+    const things = findStepThings(run, step.on ?? "self");
     if (run.verbRun !== null) refreshSnapshots(run.context.state, run.verbRun);
-    for (const entity of entities) replaceDefinition(run.context, entity.id, definitionId);
+    for (const thing of things) {
+      if (thing.kind === "agent") replaceBody(run.context, thing.agentId, definitionId);
+      else replaceDefinition(run.context, thing.entityId, definitionId);
+    }
     recordTouched(
       run,
-      entities.map((entity) => entity.id),
+      things.flatMap((thing) => (thing.kind === "entity" ? [thing.entityId] : [])),
     );
     return DONE;
   },

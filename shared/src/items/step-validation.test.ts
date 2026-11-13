@@ -110,12 +110,12 @@ describe("as names", () => {
     ]);
     expect(
       messages.some((message) =>
-        message.includes("the `rule` that named it doesn't require the weapon"),
+        message.includes("the step that named it doesn't require the weapon"),
       ),
     ).toBe(true);
   });
 
-  it.each(["user", "item", "target", "self", "choice", "nearby"])(
+  it.each(["user", "item", "target", "self", "choice", "nearby", "earshot"])(
     "refuses to parse a pick named %s",
     (name) => {
       expect(() => inVerb([{ ...pick, as: name }])).toThrow("That name is taken by a role.");

@@ -1,4 +1,5 @@
 import {
+  isBodyInWorld,
   isEntityId,
   parseComponentPath,
   resolveThingComponents,
@@ -13,8 +14,10 @@ import { computeChebyshevDistance } from "../economy/give";
 import { describeBodyName, isDead } from "../status/health";
 import { createEvent, type EventFields } from "../sim/event-factory";
 import { takeNextEventId, type WorldState } from "../sim/world-state";
+import { config } from "../config";
 import {
   describeEntityName,
+  findCarryingAgentId,
   findEntityIfPresent,
   resolveEntityPosition,
   type EntityPosition,
@@ -40,8 +43,10 @@ export function readThingId(thing: ThingRef): string {
   return thing.kind === "agent" ? thing.agentId : thing.entityId;
 }
 
+/** The agent whose body is in the world; one whose body was transformed (buried) has none. */
 function findAgentIfPresent(world: EntityWorld, agentId: string) {
-  return world.agents.find((agent) => agent.id === agentId);
+  const agent = world.agents.find((candidate) => candidate.id === agentId);
+  return agent && isBodyInWorld(agent) ? agent : undefined;
 }
 
 /** How the thing differs from its definition; null when it no longer exists. */
@@ -114,10 +119,12 @@ export function isSameThing(first: ThingRef, second: ThingRef): boolean {
   return second.kind === "entity" && first.entityId === second.entityId;
 }
 
-/** Every thing in a fixed order: agents (the dead too) in their order, then entities by id. */
+/** Every thing in a fixed order: bodies (the dead too) in agent order, then entities by id. */
 export function listThings(world: EntityWorld): ThingRef[] {
   return [
-    ...world.agents.map((agent): ThingRef => ({ kind: "agent", agentId: agent.id })),
+    ...world.agents
+      .filter(isBodyInWorld)
+      .map((agent): ThingRef => ({ kind: "agent", agentId: agent.id })),
     ...world.entities.map((entity): ThingRef => ({ kind: "entity", entityId: entity.id })),
   ];
 }
@@ -145,9 +152,38 @@ export function describeThingName(world: EntityWorld, thing: ThingRef): string {
   return entity ? `the ${describeEntityName(world, entity)}` : "something";
 }
 
+function fillThingName(template: string, holderName: string, thingName: string): string {
+  return template.split("{holder}").join(holderName).split("{thing}").join(thingName);
+}
+
+type CarriedNaming = Pick<WorldEvent, "actorName" | "holderId" | "holderDescription">;
+
+/**
+ * How an event names an entity someone carries: as theirs to everyone ("Mara's pickaxe"), and to
+ * the carrier as their own ("my pickaxe broke"). Null for a thing nobody carries.
+ */
+function describeCarried(
+  state: WorldState,
+  thing: ThingRef,
+  description: string,
+): CarriedNaming | null {
+  const entity = thing.kind === "entity" ? findEntityIfPresent(state, thing.entityId) : undefined;
+  const holderId = entity ? findCarryingAgentId(state, entity) : null;
+  const holder = holderId === null ? undefined : findAgentIfPresent(state, holderId);
+  if (!entity || !holder) return null;
+  const names = config.steps.carriedThingNames;
+  const thingName = describeEntityName(state, entity);
+  return {
+    actorName: fillThingName(names.others, holder.name, thingName),
+    holderId: holder.id,
+    holderDescription: `${fillThingName(names.own, holder.name, thingName)} ${description}`,
+  };
+}
+
 /**
  * An event whose subject is the given thing. A living agent acts and remembers it; a thing or a
- * body is only seen. Null for a thing that is no longer anywhere.
+ * body is only seen. A carried thing is named as its carrier's, who files it as their own. Null
+ * for a thing that is no longer anywhere.
  */
 export function createThingEvent(
   state: WorldState,
@@ -173,5 +209,6 @@ export function createThingEvent(
     description: fields.description,
     loudness: fields.loudness ?? null,
     isActorThing: true,
+    ...describeCarried(state, thing, fields.description),
   };
 }

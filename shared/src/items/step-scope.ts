@@ -4,7 +4,8 @@ import type { ValidationContext } from "./item-problems";
 import type { Matcher } from "./matcher-schema";
 import { couldMatchAnyView, listViewsAfterSteps } from "./matcher-validation";
 import { listGuaranteedComponents } from "./matchers";
-import type { Step } from "./step-schema";
+import { findStepAs, type Step } from "./step-schema";
+import { isFanOutName } from "./value-schema";
 
 /** What list of steps is being checked: a verb has a user, an item and a target; a rule only a self. */
 export type StepOwner = { kind: "verb"; verb: Verb } | { kind: "rule"; rule: Rule };
@@ -13,10 +14,15 @@ export interface StepScope {
   owner: StepOwner;
   context: ValidationContext;
   definitionsById: ReadonlyMap<string, ItemDefinition>;
-  /** `as` names given by the steps checked so far, with the `rule` that picked each. */
+  /**
+   * `as` names given by the steps checked so far, with a matcher every pick of that name meets:
+   * the `rule` that picked it, or the definition `create` made it of.
+   */
   givenNames: Map<string, Matcher>;
   /** Every `as` name in the list, including those given by later steps. */
   plannedNames: ReadonlySet<string>;
+  /** Roles a `transform` above changed, with a matcher the thing meets from then on. */
+  transformedRoles: Map<string, Matcher>;
 }
 
 export function buildStepScope(
@@ -27,11 +33,17 @@ export function buildStepScope(
 ): StepScope {
   const plannedNames = new Set<string>();
   for (const step of steps) {
-    if ((step.step === "require" || step.step === "use_up") && step.as !== undefined) {
-      plannedNames.add(step.as);
-    }
+    const name = findStepAs(step);
+    if (name !== undefined) plannedNames.add(name);
   }
-  return { owner, context, definitionsById, givenNames: new Map(), plannedNames };
+  return {
+    owner,
+    context,
+    definitionsById,
+    givenNames: new Map(),
+    plannedNames,
+    transformedRoles: new Map(),
+  };
 }
 
 /** A thing a step names, and what is known about it. */
@@ -94,14 +106,19 @@ function resolveRole(scope: StepScope, name: string): ThingResolution | null {
     if (owner.kind === "verb") return unavailable("`self` is for rules; a verb has no self.");
     return resolveMatched(scope, owner.rule.if, "A rule has no `if`.");
   }
-  if (name === "nearby") return unavailable("`nearby` only works in `on`.");
+  if (isFanOutName(name)) {
+    return unavailable(`\`${name}\` only works in \`on\`.`);
+  }
   return null;
 }
 
 /** Whether the name is a role the owner has, or an `as` name an earlier step gave. */
 export function resolveThing(scope: StepScope, name: string): ThingResolution {
   const role = resolveRole(scope, name);
-  if (role !== null) return role;
+  if (role !== null) {
+    const transformed = scope.transformedRoles.get(name);
+    return role.ok && transformed !== undefined ? resolveMatched(scope, transformed, "") : role;
+  }
   const matcher = scope.givenNames.get(name);
   if (matcher !== undefined) return resolveMatched(scope, matcher, "");
   if (scope.plannedNames.has(name)) {
@@ -116,9 +133,9 @@ function listBodyViews(scope: StepScope) {
   return listViewsAfterSteps(file, [{ ...body, where: "here" }, { ...body, where: "self" }, body]);
 }
 
-/** Whether the thing a step names could be an agent's body. `nearby` and the user always could. */
+/** Whether the thing a step names could be an agent's body. A fan-out and the user always could. */
 export function couldReachBody(scope: StepScope, name: string): boolean {
-  if (name === "nearby") return true;
+  if (isFanOutName(name)) return true;
   const thing = resolveThing(scope, name);
   if (!thing.ok) return false;
   return thing.matcher === null || couldMatchAnyView(thing.matcher, listBodyViews(scope));

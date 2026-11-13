@@ -1,6 +1,15 @@
-import { VERB_ONLY_STEPS, type Step, type StepOfType, type StepType } from "@village/shared";
-import { isSameThing, listThingsWithin, locateThing } from "../../items/things";
-import { findMissingChoice, scopeOf } from "../../items/values";
+import {
+  VERB_ONLY_STEPS,
+  isFanOutName,
+  type FanOutName,
+  type Step,
+  type StepOfType,
+  type StepType,
+} from "@village/shared";
+import { isSameThing, listThingsWithin, locateThing, type ThingRef } from "../../items/things";
+import { findMissingChoice, resolveNumber, scopeOf } from "../../items/values";
+import { listClearHearers } from "../../perception/perceive-event";
+import { buildPerceptionWorld, listLivingAgents, toPerceiver } from "../world-access";
 import { addStep, changeStep, damageStep, removeStep, setStep } from "./data-steps";
 import { checkStep, requireStep, useUpStep } from "./need-steps";
 import { readStep } from "./read-step";
@@ -74,7 +83,7 @@ export function findStepRefusal(run: StepRun, step: Step): string | null {
   requireAgentForVerbOnly(run, step);
   const missing = findMissingChoice(scopeOf(run), step);
   if (missing !== null) return missing;
-  if (findOn(step) === "nearby") return null;
+  if (isFanOutName(findOn(step))) return null;
   return findHandler(step).findRefusal?.(run, step as StepOfType<StepType>) ?? null;
 }
 
@@ -105,36 +114,71 @@ function applyOnce(run: StepRun, step: Step): StepOutcome {
   return findHandler(step).run(run, step as StepOfType<StepType>);
 }
 
-/** Every agent and entity within `radius` tiles of `around`, not counting `around` itself. */
-function listNearbyThings(run: StepRun, step: Step) {
-  const { state } = run.context;
+/** The thing a fan-out counts from, and where it is; null when it isn't anywhere. */
+function locateFanOutCenter(run: StepRun, step: Step) {
   const around = "around" in step ? step.around : undefined;
   if (around === undefined && run.verbRun !== null) {
-    throw new Error(`A nearby step in ${describeOwner(run)} needs \`around\``);
+    throw new Error(`A ${findOn(step)} step in ${describeOwner(run)} needs \`around\``);
   }
   const center = findRoleThing(run, around ?? "self");
-  const position = center === null ? null : locateThing(state, center);
-  if (center === null || position === null) return [];
-  const radius = "radius" in step ? (step.radius ?? 0) : 0;
-  return listThingsWithin(state, position, radius).filter((thing) => !isSameThing(thing, center));
+  const position = center === null ? null : locateThing(run.context.state, center);
+  return center === null || position === null ? null : { center, position };
 }
 
-function applyNearby(run: StepRun, step: Step): StepOutcome {
+/** Every agent and entity within `radius` tiles of `around`, not counting `around` itself. */
+function listNearbyThings(run: StepRun, step: Step): ThingRef[] {
+  const found = locateFanOutCenter(run, step);
+  if (found === null) return [];
+  const radius = "radius" in step ? (step.radius ?? 0) : 0;
+  return listThingsWithin(run.context.state, found.position, radius).filter(
+    (thing) => !isSameThing(thing, found.center),
+  );
+}
+
+/**
+ * The body of every living agent who would clearly hear a sound of `loudness` made where `around`
+ * is, not counting `around` itself.
+ */
+function listEarshotBodies(run: StepRun, step: Step): ThingRef[] {
+  const found = locateFanOutCenter(run, step);
+  if (found === null) return [];
+  if (!("loudness" in step) || step.loudness === undefined) {
+    throw new Error(`An earshot step in ${describeOwner(run)} needs \`loudness\``);
+  }
+  const { state } = run.context;
+  const loudness = resolveNumber(scopeOf(run), step.loudness);
+  const listeners = listLivingAgents(state)
+    .filter((agent) => !isSameThing({ kind: "agent", agentId: agent.id }, found.center))
+    .map(toPerceiver);
+  return listClearHearers(buildPerceptionWorld(state), found.position.pos, loudness, listeners).map(
+    (listener): ThingRef => ({ kind: "agent", agentId: listener.agentId }),
+  );
+}
+
+/** Runs the step once on each thing as that thing's `self`, each with its own `chance` roll. */
+function applyToEach(run: StepRun, step: Step, things: readonly ThingRef[]): StepOutcome {
   const onSelf = { ...step, on: "self" } as Step;
-  for (const thing of listNearbyThings(run, step)) {
+  for (const thing of things) {
     const outcome = applyOnce({ ...run, self: thing }, onSelf);
     if (outcome.kind === "refused") return outcome;
   }
   return DONE;
 }
 
+function applyFanOut(run: StepRun, step: Step, fanOut: FanOutName): StepOutcome {
+  const things = fanOut === "nearby" ? listNearbyThings(run, step) : listEarshotBodies(run, step);
+  return applyToEach(run, step, things);
+}
+
 /**
  * Runs one step after the common settings: skipped after a missed `roll_hit` unless `evenOnMiss`,
  * and after a failed `chance` roll. `on: nearby` runs it on each thing in `radius` of `around`,
- * each with its own roll, as that thing's `self`.
+ * and `on: earshot` on each living agent's body that would hear a sound of `loudness` made where
+ * `around` is; each with its own roll, as that thing's `self`.
  */
 export function applyStep(run: StepRun, step: Step): StepOutcome {
   requireAgentForVerbOnly(run, step);
   if (run.verbRun?.isHit === false && step.evenOnMiss !== true) return DONE;
-  return findOn(step) === "nearby" ? applyNearby(run, step) : applyOnce(run, step);
+  const on = findOn(step);
+  return isFanOutName(on) ? applyFanOut(run, step, on) : applyOnce(run, step);
 }

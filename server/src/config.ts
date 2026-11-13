@@ -279,6 +279,10 @@ export const config = {
   steps: {
     /** The event a `sound` step makes; its subject is the thing or agent the sound comes from. */
     soundDescription: "made a loud noise",
+    /** How an event names a thing an agent carries: to everyone, and to the agent carrying it. */
+    carriedThingNames: { others: "{holder}'s {thing}", own: "my {thing}" },
+    /** The text a `{ "newId": true }` value gives; `{number}` counts up through the world's life. */
+    newIdFormat: "id-{number}",
   },
 
   traits: {

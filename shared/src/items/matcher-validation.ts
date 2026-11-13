@@ -2,12 +2,29 @@ import { listRemovableComponents, listViewsWithAddedComponents } from "./applies
 import { parseComponentPath } from "./component-schema";
 import type { ItemFile } from "./item-file";
 import type { ValidationContext } from "./item-problems";
-import { FIELD_COMPARISONS, type FieldMatcher, type Matcher } from "./matcher-schema";
+import {
+  isValueRead,
+  readFieldComparison,
+  type FieldMatcher,
+  type Matcher,
+} from "./matcher-schema";
 import { listMatcherTerms, matchesThing, type ThingView } from "./matchers";
 
 export type MatcherCheck = ValidationContext;
 
-function checkFieldTerm(term: FieldMatcher, path: string, check: MatcherCheck) {
+export interface MatcherOptions {
+  isAppliesTo?: boolean;
+  isTarget?: boolean;
+  /** A step's `rule` or `if`: a comparison may read a value of the run (checked with the step's reads). */
+  canReadValues?: boolean;
+}
+
+function checkFieldTerm(
+  term: FieldMatcher,
+  path: string,
+  check: MatcherCheck,
+  options: MatcherOptions,
+) {
   const { file, problems } = check;
   const fieldPath = parseComponentPath(term.field);
   const field =
@@ -16,31 +33,43 @@ function checkFieldTerm(term: FieldMatcher, path: string, check: MatcherCheck) {
     problems.error(path, `Unknown field "${term.field}".`);
     return;
   }
-  const comparison = FIELD_COMPARISONS.find((name) => term[name] !== undefined);
-  if (comparison === undefined) return;
-  if (comparison === "equals") {
-    const expected =
-      field.type === "item" ? "string" : field.type === "text" ? "string" : field.type;
-    if (typeof term.equals !== expected) {
-      problems.error(path, `\`equals\` doesn't fit ${term.field}, which is a ${field.type}.`);
-    }
-  } else if (field.type !== "number") {
+  const compared = readFieldComparison(term);
+  if (compared === null) return;
+  const { comparison, value } = compared;
+  if (isValueRead(value) && options.canReadValues !== true) {
     problems.error(
       path,
-      `\`${comparison}\` needs a number field, but ${term.field} is a ${field.type}.`,
+      "A comparison can read a value only in a step's `rule` or `if`: there is no run here.",
     );
+  } else if (comparison !== "equals") {
+    if (field.type !== "number") {
+      problems.error(
+        path,
+        `\`${comparison}\` needs a number field, but ${term.field} is a ${field.type}.`,
+      );
+    }
+  } else if (isValueRead(value)) {
+    if (field.type === "range") {
+      problems.error(path, `\`equals\` can't compare ${term.field}, which is a range.`);
+    }
+  } else {
+    const expected = field.type === "item" || field.type === "text" ? "string" : field.type;
+    if (typeof value !== expected) {
+      problems.error(path, `\`equals\` doesn't fit ${term.field}, which is a ${field.type}.`);
+    }
   }
 }
 
 /**
  * Unknown names and comparisons that don't fit their field, in a matcher. `where` is only for a
- * verb's `appliesTo` and `target`; `self` is not allowed in `appliesTo` (a bare-handed verb omits it).
+ * verb's `appliesTo` and `target`; `self` is not allowed in `appliesTo` (a bare-handed verb omits
+ * it). Comparisons read values only in a step's `rule` or `if`.
  */
 export function checkMatcher(
   matcher: Matcher,
   path: string,
   check: MatcherCheck,
-  options: { isAppliesTo?: boolean; isTarget?: boolean } = {},
+  options: MatcherOptions = {},
 ): void {
   const { file, definitionIds, problems } = check;
   for (const term of listMatcherTerms(matcher)) {
@@ -63,7 +92,7 @@ export function checkMatcher(
         );
       }
     }
-    if ("field" in term) checkFieldTerm(term, path, check);
+    if ("field" in term) checkFieldTerm(term, path, check, options);
   }
 }
 

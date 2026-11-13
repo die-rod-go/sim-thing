@@ -1,4 +1,6 @@
 import {
+  describeNamedThing,
+  findStepAs,
   listGuaranteedComponents,
   resolveBodyDefaults,
   type FieldType,
@@ -24,19 +26,18 @@ export function listOwnerSteps(owner: StepOwner): readonly Step[] {
   return owner.kind === "verb" ? owner.verb.steps : owner.rule.steps;
 }
 
-/** `as` names given by steps before the spot, each with the `rule` matcher that picked it. */
+/** `as` names given by steps before the spot, each with a matcher what it names is sure to meet. */
 export function listGivenNames(spot: ValueSpot): Map<string, Matcher> {
   const givenNames = new Map<string, Matcher>();
   if (spot.stepIndex === null) return givenNames;
   for (const step of listOwnerSteps(spot.owner).slice(0, spot.stepIndex)) {
-    if ((step.step === "require" || step.step === "use_up") && step.as !== undefined) {
-      givenNames.set(step.as, step.rule);
-    }
+    const name = findStepAs(step);
+    if (name !== undefined) givenNames.set(name, describeNamedThing(step));
   }
   return givenNames;
 }
 
-/** Names a step may work on, or a value may read, at the spot (not `nearby`). */
+/** Names a step may work on, or a value may read, at the spot (not `nearby` or `earshot`). */
 export function listThingNames(spot: ValueSpot): string[] {
   const { owner } = spot;
   if (owner.kind === "rule") return ["self"];

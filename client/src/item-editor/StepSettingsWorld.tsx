@@ -47,6 +47,13 @@ export function CreateStepSettings({ step, onChange, spot, file }: StepSettingsP
         spot={spot}
         onChange={(fields) => update({ fields })}
       />
+      <Setting label="as">
+        <TextInput
+          value={step.as ?? ""}
+          placeholder="no name"
+          onChange={(name) => update({ as: name === "" ? undefined : name })}
+        />
+      </Setting>
     </>
   );
 }

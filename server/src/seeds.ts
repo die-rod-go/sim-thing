@@ -122,6 +122,7 @@ function buildAgent(
     bodyChanges: {},
     starvingSinceTick: null,
     death: null,
+    bodyReplacedById: null,
     mood: seed.mood,
     goals: seed.goals.map((goal) => ({ ...goal })),
     dailyPlan: "",

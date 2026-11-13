@@ -343,13 +343,13 @@ One small language says "which things", everywhere that question is asked: a ver
 and `target`, a rule's `if`, the `rule` of `require` and `use_up`, the `if` of `check`, and the
 world settings.
 
-| Term                                                         | Matches                                                                                                                              |
-| ------------------------------------------------------------ | ------------------------------------------------------------------------------------------------------------------------------------ |
-| `{ "has": "ammo" }`                                          | A thing that has the component right now                                                                                             |
-| `{ "definition": "oven" }`                                   | A thing of that definition                                                                                                           |
-| `{ "field": "stock.amount", "atLeast": 3 }`                  | A field comparison: one of `atLeast`, `atMost`, `above`, `below`, `equals`, with a literal. False when the thing lacks the component |
-| `{ "where": "held" }`                                        | Where it is, relative to the agent doing a verb                                                                                      |
-| `{ "anyOf": [...] }`, `{ "allOf": [...] }`, `{ "not": ... }` | Combinations                                                                                                                         |
+| Term                                                         | Matches                                                                                                                                        |
+| ------------------------------------------------------------ | ---------------------------------------------------------------------------------------------------------------------------------------------- |
+| `{ "has": "ammo" }`                                          | A thing that has the component right now                                                                                                       |
+| `{ "definition": "oven" }`                                   | A thing of that definition                                                                                                                     |
+| `{ "field": "stock.amount", "atLeast": 3 }`                  | A field comparison: one of `atLeast`, `atMost`, `above`, `below`, `equals`, with a literal or a read. False when the thing lacks the component |
+| `{ "where": "held" }`                                        | Where it is, relative to the agent doing a verb                                                                                                |
+| `{ "anyOf": [...] }`, `{ "allOf": [...] }`, `{ "not": ... }` | Combinations                                                                                                                                   |
 
 `where` values:
 
@@ -362,6 +362,30 @@ world settings.
 
 `where` is only allowed in a verb's `appliesTo` and `target`. Everywhere else it is a validation
 error, since there is no user.
+
+**Comparing with a value.** In a step's matcher (the `rule` of `require` and `use_up`, the `if` of
+`check`) a comparison may read a value of the run instead of a literal:
+
+```jsonc
+{
+  "step": "require",
+  "in": "user",
+  "rule": {
+    "allOf": [
+      { "has": "key" },
+      { "field": "key.lockId", "equals": { "from": "item.fitted_lock.lockId" } },
+    ],
+  },
+}
+```
+
+The read is checked like any other value read (see [Values and paths](#values-and-paths)): its
+`who` must be sure to have the component, an ordering comparison needs a number, and `equals` needs
+the type of the field it compares. It is resolved from the run when the step runs, from a snapshot
+when the thing is gone. A comparison whose read has nothing to read (an `as` name not picked) does
+not match. Before a verb starts, a matcher reading a name a step will pick later can't be judged,
+so it doesn't refuse then. A read in `appliesTo`, `target`, a rule's `if` or a world setting is a
+validation error: there is no run to read from.
 
 `component`, `property`, `form`, `location`, `isUser` and `isDeadAgent` are replaced by these.
 
@@ -386,6 +410,19 @@ Wherever a step setting is described as a value, it can be:
 | `{ "from": "item.weapon.damage" }`                                | The field's value. A `range` field is rolled                    |
 | `{ "min": 0.05, "max": 0.12 }`                                    | A roll within the range, on the seeded generator (numbers only) |
 | any of the above with `"times": 0.5` or `"times": "<value path>"` | Multiplied by a literal or a number field (numbers only)        |
+| `{ "newId": true }`                                               | A text id no other `newId` in the world gave (text fields only) |
+
+`newId` is allowed wherever a step writes a field: `create`'s `fields`, `set`'s `to`, `add`'s
+`fields`. Each time it is resolved it gives new text (`id-12`) from a counter the world keeps and
+saves, so it is the same on every run of a seed. `create` with `count: 3` gives each entity its own;
+`set` on a stack gives the whole stack one. A lock and its key share one:
+
+```jsonc
+{ "step": "create", "item": "lock", "count": 1, "into": "user", "as": "newLock",
+  "fields": { "lock.lockId": { "newId": true } } },
+{ "step": "create", "item": "key", "count": 1, "into": "user",
+  "fields": { "key.lockId": { "from": "newLock.lock.lockId" } } }
+```
 
 `who` in a value path:
 
@@ -395,18 +432,23 @@ Wherever a step setting is described as a value, it can be:
 | `item`   | The thing the verb's `appliesTo` matched (the first of the stack)                        |
 | `target` | The thing the verb's `target` matched                                                    |
 | `self`   | In a rule: the thing the rule fired on                                                   |
-| a name   | What an earlier `require` or `use_up` step named with `as`                               |
+| a name   | What an earlier `require`, `use_up` or `create` step named with `as`                     |
 | `choice` | What the decision supplied: `choice.amount`, `choice.minutes`, `choice.text` (two parts) |
 
 `<who>.name` (two parts) is the thing's display name.
 
 Reads are answered from a **snapshot** when the thing is gone: the run keeps the resolved
-components of `item`, of `target` and of each named pick as they were when last present. So `eat`
+components of `item`, of `target` and of each `as` name as they were when last present. So `eat`
 can destroy the bread first and still read `item.food.hunger` afterwards.
 
 Validation checks every read is guaranteed: the matcher that picked `who` must guarantee the
 component (`shoot` may read `item.range.tiles` because its `appliesTo` requires `range`), and the
-field's type must fit the setting. `choice.minutes` and `choice.text` need the matching `takes`.
+field's type must fit the setting. `choice.minutes` and `choice.text` need the matching `takes`. A
+name `create` gave is sure of its definition's components (nothing, when the definition is read
+from a field). After a `transform` into a literal definition, later steps read the thing as that
+definition: paper transformed into a note can have `writing.text` set and read. A thing that could
+be a body might stay as it was (a living body doesn't transform), so it is sure only of the
+components it and the new definition share.
 
 ## Verbs
 
@@ -591,7 +633,8 @@ component, field or matcher to use.
 | `use_up`  | `in`, `rule`, `count?`, `as?` | The same, and destroys them, oldest first                                                                                          | When there aren't enough  |
 | `check`   | `on`, `if`, `otherwise`       | Needs the thing to match the matcher `if`                                                                                          | With the text `otherwise` |
 
-`as` names the first entity found, so later steps can use it as a `who` or an `on`.
+`as` names the first entity found, so later steps can use it as a `who` or an `on`. A step's
+own settings can't read the name it gives.
 
 **Taking time and chance**
 
@@ -616,19 +659,39 @@ field with no `health` does no damage, and the rock still lands.
 
 **Things and places**
 
-| Step        | Settings                                             | Does                                                                                                              | Can refuse                                |
-| ----------- | ---------------------------------------------------- | ----------------------------------------------------------------------------------------------------------------- | ----------------------------------------- |
-| `move`      | `on`, `into` or `at`, `limit?`                       | Moves the thing inside another, or onto the tile where another is                                                 | Over `limit`; into itself or its contents |
-| `create`    | `item`, `count`, `into` or `at`, `limit?`, `fields?` | Makes `count` new entities of the definition `item`, with `fields` (`"component.field"` to value) written on each | Over `limit`                              |
-| `transform` | `on`, `into`                                         | The entity becomes the definition `into` where it is                                                              |                                           |
-| `destroy`   | `on`                                                 | Removes the entity; what was inside it goes to where it was                                                       |                                           |
+| Step        | Settings                                                    | Does                                                                                                                                    | Can refuse                                |
+| ----------- | ----------------------------------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------- | ----------------------------------------- |
+| `move`      | `on`, `into` or `at`, `limit?`                              | Moves the thing inside another, or onto the tile where another is                                                                       | Over `limit`; into itself or its contents |
+| `create`    | `item`, `count`, `into` or `at`, `limit?`, `fields?`, `as?` | Makes `count` new entities of the definition `item`, with `fields` (`"component.field"` to value) written on each; `as` names the first | Over `limit`                              |
+| `transform` | `on`, `into`                                                | The entity becomes the definition `into` where it is; a dead agent's body is replaced by one (below)                                    |                                           |
+| `destroy`   | `on`                                                        | Removes the entity; what was inside it goes to where it was                                                                             |                                           |
 
 `into` and `at` take `user`, `item`, `target`, `self` or an `as` name. `into` is inside that thing;
 `at` is the tile where that thing is. `limit` is a number value: the most entities the destination
 may directly hold after the step. `at: "target"` after a missed `roll_hit` is a random free tile
 next to the target, as today.
 
-`move`, `transform` and `destroy` do nothing to a body: bodies stay where they fell.
+`move` and `destroy` do nothing to a body: bodies stay where they fell. `as` on `create` works
+only in verbs; a rule keeps no names.
+
+**Burial.** `transform` on a dead agent's body makes an entity of `into` on the body's tile, drops
+everything directly inside the body onto that tile (as `move at` would), and takes the body out of
+the world: it is no longer perceived, listed in prompts or reply enums, a target, a thing rules
+fire on, or drawn by the viewer. The agent stays, dead, with its death, memories and history;
+`Agent.bodyReplacedById` names the entity that replaced the body. Others keep their memories and
+awareness of having seen the body. On a living body `transform` does nothing. The new entity is
+untouched: a grave says nothing of who lies in it until someone carves it.
+
+```jsonc
+{
+  "name": "bury",
+  "target": { "allOf": [{ "definition": "person" }, { "not": { "has": "alive" } }] },
+  "steps": [
+    { "step": "wait", "minutes": 60, "loudness": 6 },
+    { "step": "transform", "on": "target", "into": "grave" },
+  ],
+}
+```
 
 **Reaching the world and agents**
 
@@ -644,13 +707,44 @@ An `announce` on a living agent's body is that agent's own event: the agent file
 person ("I caught fire") and gets an urgent decision, which is what a condition starting does
 today. With `isPrivate`, nobody else perceives it (being poisoned).
 
+An event about an entity an agent carries (directly, or inside something they carry) names it as
+theirs: onlookers file "I saw that Mara's pickaxe broke", and Mara, when she perceives it, files
+"My pickaxe broke" (`steps.carriedThingNames` in config).
+
 **Common settings**
 
-- `on`: `user`, `item`, `target`, `self`, an `as` name, or `nearby`. In a rule it defaults to
-  `self`. In a verb it is required wherever a step lists it.
-- `on: "nearby"` takes `radius` and `around` (a `who`; defaults to `self` in a rule). The step runs
-  once on every thing within `radius` tiles of `around`, not counting `around` itself, each with
-  its own `chance` roll. A carried or contained thing is where its outermost holder is.
+- `on`: `user`, `item`, `target`, `self`, an `as` name, `nearby` or `earshot`. In a rule it
+  defaults to `self`. In a verb it is required wherever a step lists it.
+- `on: "nearby"` takes `radius` and `around` (a `who`; defaults to `self` in a rule, required in a
+  verb). The step runs once on every thing within `radius` tiles of `around`, not counting `around`
+  itself, each with its own `chance` roll. A carried or contained thing is where its outermost
+  holder is.
+- `on: "earshot"` takes `loudness` (a number value) and `around` (as for `nearby`). The step runs
+  once on the body of every living agent who would clearly hear a sound of that loudness made where
+  `around` is, not counting `around` itself, each with its own `chance` roll. It is the sound
+  simulation's own reckoning: walls block, what `soundMuffledBy` matches costs more to pass, and a
+  sleeper hears only what is loud enough to wake them. It doesn't work on `sound`, whose listeners
+  already hear the sound.
+
+```jsonc
+{
+  "name": "play",
+  "appliesTo": { "allOf": [{ "has": "instrument" }, { "where": "held" }] },
+  "steps": [
+    { "step": "wait", "minutes": 30, "loudness": 8 },
+    { "step": "change_need", "on": "user", "need": "fun", "amount": 0.15 },
+    {
+      "step": "change_need",
+      "on": "earshot",
+      "loudness": 8,
+      "around": "user",
+      "need": "fun",
+      "amount": 0.1,
+    },
+  ],
+}
+```
+
 - `chance`: 0 to 1, rolled on the seeded generator; the step is skipped on a failed roll.
 - `evenOnMiss`: runs after a missed `roll_hit` too.
 
@@ -886,8 +980,13 @@ of `item`, `target` and `from`.
 - `where` outside a verb's `appliesTo` and `target`; `where: "self"` in `appliesTo`; an `appliesTo`
   that can match the `agentBody` definition;
 - a value read that isn't guaranteed, or of the wrong type; `choice.minutes` or `choice.text`
-  without the matching `takes`; an `as` name used before the step that gives it, or equal to
-  `user`, `item`, `target`, `self`, `choice` or `nearby`;
+  without the matching `takes`; an `as` name used before the step that gives it (a step's own
+  settings included), or equal to `user`, `item`, `target`, `self`, `choice`, `nearby` or
+  `earshot`; `as` on a `create` in a rule;
+- a comparison reading a value outside a step's `rule` or `if`; `equals` reading a value to compare
+  with a `range` field; a `newId` for a field that isn't text;
+- `on: "earshot"` without `loudness`, or in a verb without `around`; `sound` on earshot; `loudness`
+  on any other step that isn't on earshot;
 - `on: "item"`, `in: "item"` or a read of `item` in a verb without `appliesTo`; the same for
   `target`; `self` in a verb; `user`, `item` or `target` in a rule;
 - a verb-only step or setting in a rule; `evenOnMiss` or `at: "target"`-on-miss with no `roll_hit`
@@ -1048,7 +1147,8 @@ Other touch points:
   settings, beside `itemDefinitions`. With these and `resolveComponents`, the client derives
   everything it shows; it still computes no sim state.
 - `Agent` on the wire has `bodyChanges` and no `health` or `conditions`. The client reads health
-  with a shared `readAgentHealth(agent, catalog)`.
+  with a shared `readAgentHealth(agent, catalog)`. A buried agent has `bodyReplacedById` set, and
+  the viewer stops drawing its body (`isBodyInWorld`).
 - Client files that read the old shape and must move to the shared helpers:
   `format/conditions.ts`, `format/character-sheet.ts`, `state/apply-server-message.ts`,
   `ui/OverviewTab.tsx`, `ui/RosterRail.tsx`, `village/AgentMarker.tsx`,
@@ -1070,6 +1170,8 @@ Other touch points:
 - The agent runtime's `verbRun` uses the new `VerbRun` schema. On load, a run whose `verbName`
   doesn't match the verb at `verbIndex` is dropped and the agent's action cleared.
 - `findOrphanedEntities` stays.
+- The meta table keeps `nextFreshId`, the counter `newId` values come from, and the agent row
+  requires `bodyReplacedById`.
 
 ### Config
 

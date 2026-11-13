@@ -57,6 +57,18 @@ function remember(state: WorldState, verbRun: VerbRun, name: string, thing: Thin
   if (snapshot !== null) verbRun.snapshots[name] = snapshot;
 }
 
+/** Gives the entity a step picked or made its `as` name, with a snapshot for when it is gone. */
+export function nameEntity(
+  run: StepRun,
+  name: string | undefined,
+  entity: Entity | undefined,
+): void {
+  const { verbRun } = run;
+  if (name === undefined || verbRun === null || entity === undefined) return;
+  verbRun.namedIds[name] = entity.id;
+  remember(run.context.state, verbRun, name, { kind: "entity", entityId: entity.id });
+}
+
 /** Updates the snapshots of `item`, `target` and each `as` name that are still present. */
 export function refreshSnapshots(state: WorldState, verbRun: VerbRun): void {
   const presentItemId = verbRun.itemIds.find((entityId) => findEntityIfPresent(state, entityId));

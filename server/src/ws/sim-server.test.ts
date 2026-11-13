@@ -42,6 +42,7 @@ const agent = {
   bodyChanges: {},
   starvingSinceTick: null,
   death: null,
+  bodyReplacedById: null,
   mood: "",
   goals: [],
   dailyPlan: "",

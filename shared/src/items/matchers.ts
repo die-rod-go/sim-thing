@@ -1,7 +1,15 @@
 import { parseComponentPath } from "./component-schema";
 import type { ResolvedComponents } from "./components";
 import type { ItemDefinition } from "./item-file";
-import type { FieldMatcher, Matcher, ThingWhere } from "./matcher-schema";
+import {
+  isValueRead,
+  readFieldComparison,
+  type FieldComparison,
+  type FieldComparisonTerm,
+  type FieldMatcher,
+  type Matcher,
+  type ThingWhere,
+} from "./matcher-schema";
 
 /** What a matcher is checked against: an entity or a body, as it is right now. */
 export interface ThingView {
@@ -11,18 +19,28 @@ export interface ThingView {
   where?: ThingWhere;
 }
 
+function compareField(value: unknown, term: FieldComparisonTerm): boolean {
+  const expected = term.value;
+  if (term.comparison === "equals") return value === expected;
+  if (typeof value !== "number" || typeof expected !== "number") return false;
+  if (term.comparison === "atLeast") return value >= expected;
+  if (term.comparison === "atMost") return value <= expected;
+  if (term.comparison === "above") return value > expected;
+  return value < expected;
+}
+
 function matchesField(matcher: FieldMatcher, view: ThingView): boolean {
   const path = parseComponentPath(matcher.field);
   const value = path === null ? undefined : view.components[path.component]?.[path.field];
-  if (value === undefined) return false;
-  if (matcher.equals !== undefined) return value === matcher.equals;
-  if (typeof value !== "number") return false;
-  if (matcher.atLeast !== undefined) return value >= matcher.atLeast;
-  if (matcher.atMost !== undefined) return value <= matcher.atMost;
-  if (matcher.above !== undefined) return value > matcher.above;
-  return matcher.below !== undefined && value < matcher.below;
+  const term = readFieldComparison(matcher);
+  if (value === undefined || term === null || isValueRead(term.value)) return false;
+  return compareField(value, term);
 }
 
+/**
+ * Whether the thing matches. A comparison with a value read still in it never matches: the run
+ * resolves reads first (`resolveMatcherReads` on the server), and one it couldn't resolve fails.
+ */
 export function matchesThing(matcher: Matcher, view: ThingView): boolean {
   if ("anyOf" in matcher) return matcher.anyOf.some((part) => matchesThing(part, view));
   if ("allOf" in matcher) return matcher.allOf.every((part) => matchesThing(part, view));
@@ -31,6 +49,28 @@ export function matchesThing(matcher: Matcher, view: ThingView): boolean {
   if ("definition" in matcher) return view.definitionId === matcher.definition;
   if ("where" in matcher) return view.where === matcher.where;
   return matchesField(matcher, view);
+}
+
+/** The same matcher with each field term replaced, however deep. */
+export function mapFieldTerms(matcher: Matcher, replace: (term: FieldMatcher) => Matcher): Matcher {
+  if ("anyOf" in matcher)
+    return { anyOf: matcher.anyOf.map((part) => mapFieldTerms(part, replace)) };
+  if ("allOf" in matcher)
+    return { allOf: matcher.allOf.map((part) => mapFieldTerms(part, replace)) };
+  if ("not" in matcher) return { not: mapFieldTerms(matcher.not, replace) };
+  return "field" in matcher ? replace(matcher) : matcher;
+}
+
+/** Every field term that compares with a value read, with the path it reads. */
+export function listComparisonReads(
+  matcher: Matcher,
+): { term: FieldMatcher; comparison: FieldComparison; from: string }[] {
+  return listMatcherTerms(matcher).flatMap((term) => {
+    if (!("field" in term)) return [];
+    const comparison = readFieldComparison(term);
+    if (comparison === null || !isValueRead(comparison.value)) return [];
+    return [{ term, comparison: comparison.comparison, from: comparison.value.from }];
+  });
 }
 
 /** Every term of the matcher that isn't a combination, however deep. */

@@ -229,7 +229,7 @@ describe("combat in decisions", () => {
     handOver(sim, "mara", "knife");
     await sim.advance();
     const prompt = buildDecisionPrompt(buildDecisionContext(sim.state, "tobias", false));
-    expect(prompt).toContain("You can also: punch.");
+    expect(prompt).toContain("You can also: bury, punch.");
     expect(prompt).toMatch(/Mara, carrying [^(]*a knife/);
   });
 

@@ -1,5 +1,6 @@
 import {
   FIELD_COMPARISONS,
+  isValueRead,
   parseComponentPath,
   THING_WHERES,
   type FieldComparison,
@@ -7,6 +8,7 @@ import {
   type FieldType,
   type ItemFile,
   type Matcher,
+  type ValueRead,
 } from "@village/shared";
 import { clientConfig } from "../client-config";
 
@@ -39,7 +41,8 @@ export const FIELD_COMPARISON_LABELS: Record<FieldComparison, string> = {
   equals: "equals",
 };
 
-type FieldComparisonValue = number | string | boolean;
+/** A literal, or (in a step's `rule` or `if`) a read of a value of the run. */
+export type FieldComparisonValue = number | string | boolean | ValueRead;
 type MatcherGroup = { allOf: Matcher[] } | { anyOf: Matcher[] };
 
 /** Field types a `field` matcher can compare; a range is rolled, never compared. */
@@ -80,7 +83,7 @@ function buildFieldMatcher(
   value: FieldComparisonValue,
 ): FieldMatcher {
   if (comparison === "equals") return { field, equals: value };
-  return { field, [comparison]: typeof value === "number" ? value : 0 };
+  return { field, [comparison]: typeof value === "number" || isValueRead(value) ? value : 0 };
 }
 
 export function findFieldComparison(matcher: FieldMatcher): {

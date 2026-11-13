@@ -204,6 +204,54 @@ describe("create", () => {
   });
 });
 
+describe("create naming what it made, with fresh ids", () => {
+  const makeLocks = {
+    step: "create",
+    item: "lock",
+    count: 2,
+    into: "user",
+    as: "made",
+    fields: { "lock.lockId": { newId: true } },
+  };
+
+  function heldLockIds(sim: ReturnType<typeof setUpSteps>): unknown[] {
+    return listContents(sim.state, "mara").map((lock) =>
+      readField(sim.state, refOf(lock.id), "lock.lockId"),
+    );
+  }
+
+  it("gives each new entity its own id, counted on from the world", () => {
+    const sim = setUpSteps();
+    const counterBefore = sim.state.nextFreshId;
+    expect(runSteps(sim, [makeLocks]).failure).toBeNull();
+    const lockIds = heldLockIds(sim);
+    expect(new Set(lockIds).size).toBe(2);
+    expect(sim.state.nextFreshId).toBe(counterBefore + 2);
+  });
+
+  it("names the first entity it makes, for later steps to work on and read", () => {
+    const sim = setUpSteps();
+    const result = runSteps(sim, [
+      makeLocks,
+      { step: "set", on: "made", field: "lock.lockId", to: "the first" },
+      {
+        step: "create",
+        item: "key",
+        count: 1,
+        into: "user",
+        fields: { "key.lockId": { from: "made.lock.lockId" } },
+      },
+    ]);
+    expect(result.failure).toBeNull();
+    const [first, second] = heldLockIds(sim);
+    expect(first).toBe("the first");
+    expect(second).not.toBe("the first");
+    const key = listContents(sim.state, "mara").find((entity) => entity.definitionId === "key");
+    if (!key) throw new Error("no key was made");
+    expect(readField(sim.state, refOf(key.id), "key.lockId")).toBe("the first");
+  });
+});
+
 describe("transform and destroy", () => {
   it("transforms an entity where it is and notes it as touched", () => {
     const sim = setUpSteps();
@@ -228,7 +276,7 @@ describe("transform and destroy", () => {
     });
   });
 
-  it("does nothing to a body", () => {
+  it("does nothing to a living body", () => {
     const sim = setUpSteps();
     const result = runSteps(
       sim,

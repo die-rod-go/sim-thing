@@ -15,6 +15,8 @@ import {
   findSimpleValueMode,
   SIMPLE_VALUE_MODE_LABELS,
   switchSimpleValueMode,
+  TEXT_FIELD_MODE_LABELS,
+  type TextFieldMode,
   type ValueMode,
 } from "./value-modes";
 import { listReadablePaths, type ValueKind } from "./value-scope";
@@ -114,8 +116,13 @@ export function DefinitionValueInput({
 
 const RANGE_MODES: readonly ValueMode[] = ["roll", "from"];
 
+function isNewId(value: FieldValueInput): value is { newId: true } {
+  return typeof value === "object" && "newId" in value;
+}
+
 function toNumberValue(value: FieldValueInput): NumberValue {
-  return typeof value === "number" || (typeof value === "object" && value !== null) ? value : 0;
+  if (typeof value === "number") return value;
+  return typeof value === "object" && !isNewId(value) ? value : 0;
 }
 
 function toTextValue(value: FieldValueInput): TextValue {
@@ -148,6 +155,34 @@ function BooleanValueInput({
         <Checkbox label={literal ? "yes" : "no"} checked={literal} onChange={onLiteralChange} />
       )}
     />
+  );
+}
+
+/** A text field: text (a literal or a read), or a fresh id. */
+function TextFieldValueInput({
+  value,
+  onChange,
+  spot,
+}: {
+  value: FieldValueInput;
+  onChange: (value: FieldValueInput) => void;
+  spot: ValueSpot;
+}) {
+  const mode: TextFieldMode = isNewId(value) ? "newId" : "text";
+  return (
+    <span className="value-input">
+      <Choice
+        value={mode}
+        choices={["text", "newId"]}
+        labels={TEXT_FIELD_MODE_LABELS}
+        onChange={(next) =>
+          onChange(next === "newId" ? { newId: true } : clientConfig.itemEditor.newTextValue)
+        }
+      />
+      {mode === "text" && (
+        <TextValueInput value={toTextValue(value)} onChange={onChange} spot={spot} />
+      )}
+    </span>
   );
 }
 
@@ -186,7 +221,7 @@ export function FieldSlotValueInput({
     return <BooleanValueInput value={toBooleanValue(value)} onChange={onChange} spot={spot} />;
   }
   if (field?.type === "text") {
-    return <TextValueInput value={toTextValue(value)} onChange={onChange} spot={spot} />;
+    return <TextFieldValueInput value={value} onChange={onChange} spot={spot} />;
   }
   if (field?.type === "item") {
     return <DefinitionValueInput value={toTextValue(value)} onChange={onChange} spot={spot} />;

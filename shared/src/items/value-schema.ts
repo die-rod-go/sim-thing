@@ -14,8 +14,20 @@ export type RunRole = (typeof RUN_ROLES)[number];
 export const CHOICE_NAMES = ["amount", "minutes", "text"] as const;
 export type ChoiceName = (typeof CHOICE_NAMES)[number];
 
-/** Names an `as` may not take: the roles, `choice` and `nearby`. */
-export const RESERVED_NAMES: ReadonlySet<string> = new Set([...RUN_ROLES, "choice", "nearby"]);
+/** What `on` can fan out to instead of naming one thing. */
+export const FAN_OUT_NAMES = ["nearby", "earshot"] as const;
+export type FanOutName = (typeof FAN_OUT_NAMES)[number];
+
+export function isFanOutName(name: string | undefined): name is FanOutName {
+  return (FAN_OUT_NAMES as readonly (string | undefined)[]).includes(name);
+}
+
+/** Names an `as` may not take: the roles, `choice`, `nearby` and `earshot`. */
+export const RESERVED_NAMES: ReadonlySet<string> = new Set([
+  ...RUN_ROLES,
+  "choice",
+  ...FAN_OUT_NAMES,
+]);
 
 /** An `as` name: lowercase, camelCase allowed (`bullet`, `firstNote`). */
 export const AS_NAME_PATTERN = /^[a-z][A-Za-z0-9]*$/;
@@ -77,21 +89,30 @@ const rollSchema = z.strictObject({
 export const numberValueSchema = z.union([z.number(), readSchema, rollSchema]);
 export type NumberValue = z.infer<typeof numberValueSchema>;
 
-const plainReadSchema = z.strictObject({ from: valuePathSchema });
+/** A read of somebody's field, as it is: `{ "from": "item.key.lockId" }`. */
+export const valueReadSchema = z.strictObject({ from: valuePathSchema });
+export type ValueRead = z.infer<typeof valueReadSchema>;
 
-export const textValueSchema = z.union([z.string().min(1), plainReadSchema]);
+export const textValueSchema = z.union([z.string().min(1), valueReadSchema]);
 export type TextValue = z.infer<typeof textValueSchema>;
 
 /** A definition id, or an `item` field naming one. */
-export const definitionValueSchema = z.union([identifierSchema, plainReadSchema]);
+export const definitionValueSchema = z.union([identifierSchema, valueReadSchema]);
 export type DefinitionValue = z.infer<typeof definitionValueSchema>;
 
-/** Any field value: a number, text or boolean literal, or a read. Its type is checked against the field. */
+/** A text id no other `newId` in the world has given, taken from a counter saved with the world. */
+export const newIdSchema = z.strictObject({ newId: z.literal(true) });
+
+/**
+ * Any field value: a number, text or boolean literal, a read, a roll, or a fresh id (text fields
+ * only). Its type is checked against the field.
+ */
 export const fieldValueInputSchema = z.union([
   z.number(),
   z.string(),
   z.boolean(),
   readSchema,
   rollSchema,
+  newIdSchema,
 ]);
 export type FieldValueInput = z.infer<typeof fieldValueInputSchema>;

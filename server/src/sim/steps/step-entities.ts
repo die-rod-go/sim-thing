@@ -1,22 +1,30 @@
-import type { Entity } from "@village/shared";
+import type { Entity, EntityLocation, ThingId } from "@village/shared";
 import {
+  createEntity,
   listContents,
   moveEntity,
   removeEntity,
   resolveEntityPosition,
 } from "../../items/entity-store";
-import { markEntityChanged, markEntityRemoved } from "../world-access";
+import { isDead } from "../../status/health";
+import { findPlaceAt } from "../../world/map-loader";
+import { getAgentRuntime } from "../agent-runtime";
+import {
+  findAgent,
+  markAgentChanged,
+  markEntityChanged,
+  markEntityRemoved,
+  replaceAgent,
+} from "../world-access";
 import type { TickContext } from "../tick-context";
 import { recordTouched } from "./step-roles";
 import type { StepRun } from "./step-run";
 
-/** What a destroyed container held falls where it stood, so nothing is lost with it. */
-function spillContents(context: TickContext, container: Entity): void {
+/** What the holder held falls onto the tile, so nothing is lost with it. */
+function dropContents(context: TickContext, holderId: ThingId, tile: EntityLocation): void {
   const { state, result } = context;
-  const position = resolveEntityPosition(state, container);
-  if (!position) return;
-  for (const entity of listContents(state, container.id)) {
-    moveEntity(state, entity.id, { kind: "tile", place: position.place, pos: { ...position.pos } });
+  for (const entity of listContents(state, holderId)) {
+    moveEntity(state, entity.id, structuredClone(tile));
     markEntityChanged(result, entity.id);
   }
 }
@@ -25,7 +33,8 @@ function spillContents(context: TickContext, container: Entity): void {
 export function destroyEntities(run: StepRun, entities: readonly Entity[]): void {
   const { context } = run;
   for (const entity of entities) {
-    spillContents(context, entity);
+    const position = resolveEntityPosition(context.state, entity);
+    if (position) dropContents(context, entity.id, { kind: "tile", ...position });
     removeEntity(context.state, entity.id);
     markEntityRemoved(context.result, entity.id);
   }
@@ -33,4 +42,30 @@ export function destroyEntities(run: StepRun, entities: readonly Entity[]): void
     run,
     entities.map((entity) => entity.id),
   );
+}
+
+/**
+ * A dead agent's body becomes an entity of the definition on its tile (a grave): what it carried
+ * drops there, as a `move at` would put it, and the body leaves the world. The agent stays dead,
+ * with its death and memories. A body that is gone leaves everyone's sight at once. A living body,
+ * or one already replaced, is left as it is.
+ */
+export function replaceBody(context: TickContext, agentId: string, definitionId: string): void {
+  const { state, result } = context;
+  const agent = findAgent(state, agentId);
+  if (!isDead(agent) || agent.bodyReplacedById !== null) return;
+  const tile: EntityLocation = {
+    kind: "tile",
+    place: findPlaceAt(state.map, agent.pos),
+    pos: { ...agent.pos },
+  };
+  const replacement = createEntity(state, definitionId, structuredClone(tile));
+  markEntityChanged(result, replacement.id);
+  dropContents(context, agentId, tile);
+  replaceAgent(state, { ...agent, bodyReplacedById: replacement.id });
+  markAgentChanged(result, agentId);
+  for (const other of state.agents) {
+    const runtime = getAgentRuntime(state, other.id);
+    runtime.visibleAgentIds = runtime.visibleAgentIds.filter((visibleId) => visibleId !== agentId);
+  }
 }

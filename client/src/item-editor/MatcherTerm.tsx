@@ -1,4 +1,5 @@
 import {
+  isValueRead,
   parseComponentPath,
   THING_WHERES,
   type FieldMatcher,
@@ -15,6 +16,7 @@ import {
   setFieldComparison,
   setFieldComparisonValue,
   setMatcherField,
+  type FieldComparisonValue,
 } from "./matcher-edits";
 import { ComponentPathPicker, ComponentPicker, DefinitionPicker } from "./pickers";
 import { Checkbox, Choice } from "./widgets";
@@ -32,8 +34,7 @@ function FieldComparisonInputs({
   const fieldType =
     path === null ? undefined : file.components[path.component]?.fields[path.field]?.type;
   const { comparison, value } = findFieldComparison(matcher);
-  const setValue = (next: number | string | boolean) =>
-    onChange(setFieldComparisonValue(matcher, next));
+  const setValue = (next: FieldComparisonValue) => onChange(setFieldComparisonValue(matcher, next));
   return (
     <>
       <ComponentPathPicker
@@ -48,6 +49,9 @@ function FieldComparisonInputs({
         labels={FIELD_COMPARISON_LABELS}
         onChange={(next) => onChange(setFieldComparison(matcher, next))}
       />
+      {isValueRead(value) && (
+        <TextInput value={value.from} onChange={(from) => setValue({ from })} />
+      )}
       {typeof value === "number" && (
         <NumberInput value={value} step={clientConfig.itemEditor.numberStep} onChange={setValue} />
       )}

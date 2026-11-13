@@ -8,10 +8,10 @@ import {
 } from "@village/shared";
 import { listContents } from "../../items/entity-store";
 import { describeThingName, viewThing, type ThingRef } from "../../items/things";
-import { readThingName, scopeOf } from "../../items/values";
+import { readThingName, resolveMatcherReads, scopeOf } from "../../items/values";
 import { describePlace } from "../../memory/filing";
 import { destroyEntities } from "./step-entities";
-import { findRoleThing, findStepThings, snapshotThing } from "./step-roles";
+import { findRoleThing, findStepThings, nameEntity } from "./step-roles";
 import { DONE, type StepHandler, type StepOutcome, type StepRun } from "./step-run";
 
 type PickStep = StepOfType<"require"> | StepOfType<"use_up">;
@@ -65,26 +65,23 @@ interface Picked {
   refusal: string | null;
 }
 
-/** What the step would take; a holder that isn't there yet (an unset `as`) can't be judged. */
+/**
+ * What the step would take. A holder that isn't there yet (an unset `as`), or a `rule` reading a
+ * name not picked yet, can't be judged before the verb runs.
+ */
 function pick(run: StepRun, step: PickStep, isJudgedLate: boolean): Picked {
   const holder = findRoleThing(run, step.in);
   if (holder === null) {
     const refusal = isJudgedLate ? "there was nothing to look in" : null;
     return { found: [], refusal };
   }
-  const matching = listMatching(run, holder, step.rule);
+  const rule = resolveMatcherReads(scopeOf(run), step.rule);
+  if (!rule.isFullyResolved && !isJudgedLate) return { found: [], refusal: null };
+  const matching = listMatching(run, holder, rule.matcher);
   const found = matching.slice(0, step.count);
   const refusal =
     found.length < step.count ? describeShortfall(run, step, holder, matching.length) : null;
   return { found, refusal };
-}
-
-function nameFirst(run: StepRun, step: PickStep, first: Entity | undefined): void {
-  const { verbRun } = run;
-  if (step.as === undefined || verbRun === null || first === undefined) return;
-  verbRun.namedIds[step.as] = first.id;
-  const snapshot = snapshotThing(run.context.state, { kind: "entity", entityId: first.id });
-  if (snapshot !== null) verbRun.snapshots[step.as] = snapshot;
 }
 
 export const requireStep: StepHandler<"require"> = {
@@ -93,7 +90,7 @@ export const requireStep: StepHandler<"require"> = {
   run(run, step) {
     const { found, refusal } = pick(run, step, true);
     if (refusal !== null) return { kind: "refused", reason: refusal };
-    nameFirst(run, step, found[0]);
+    nameEntity(run, step.as, found[0]);
     return DONE;
   },
 };
@@ -106,7 +103,7 @@ export const useUpStep: StepHandler<"use_up"> = {
   run(run, step) {
     const { found, refusal } = pick(run, step, true);
     if (refusal !== null) return { kind: "refused", reason: refusal };
-    nameFirst(run, step, found[0]);
+    nameEntity(run, step.as, found[0]);
     destroyEntities(run, found);
     return DONE;
   },
@@ -119,21 +116,28 @@ function fillCheckText(run: StepRun, text: string): string {
   return text.split("{item}").join(item).split("{target}").join(target);
 }
 
-function findCheckFailure(run: StepRun, step: StepOfType<"check">): string | null {
+/** An `if` reading a name not picked yet can't be judged before the verb runs. */
+function findCheckFailure(
+  run: StepRun,
+  step: StepOfType<"check">,
+  isJudgedLate: boolean,
+): string | null {
   const { state } = run.context;
   const things = findStepThings(run, step.on ?? "self");
+  const condition = resolveMatcherReads(scopeOf(run), step.if);
+  if (!condition.isFullyResolved && !isJudgedLate) return null;
   const failed = things.some((thing) => {
     const view = viewThing(state, thing);
-    return view === null || !matchesThing(step.if, view);
+    return view === null || !matchesThing(condition.matcher, view);
   });
   return failed ? fillCheckText(run, step.otherwise) : null;
 }
 
 export const checkStep: StepHandler<"check"> = {
   isVerbOnly: true,
-  findRefusal: findCheckFailure,
+  findRefusal: (run, step) => findCheckFailure(run, step, false),
   run(run, step): StepOutcome {
-    const reason = findCheckFailure(run, step);
+    const reason = findCheckFailure(run, step, true);
     return reason === null ? DONE : { kind: "refused", reason };
   },
 };

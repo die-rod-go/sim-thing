@@ -126,13 +126,43 @@
     },
     "seat": { "description": "Something to sit on." },
     "lockable": { "description": "A lock can be fitted to it." },
-    "fitted_lock": { "description": "Has a lock fitted, so it can be locked with a key." },
+    "fitted_lock": {
+      "description": "Has a lock fitted, so it can be locked with a key.",
+      "fields": {
+        "lockId": {
+          "type": "text",
+          "description": "Which lock: a key opens the lock with the same id.",
+          "default": ""
+        }
+      }
+    },
+    "lock": {
+      "description": "A lock that can be fitted to something.",
+      "fields": {
+        "lockId": {
+          "type": "text",
+          "description": "Which lock: a key opens the lock with the same id.",
+          "default": ""
+        }
+      }
+    },
+    "key": {
+      "description": "Opens the lock with the same id.",
+      "fields": {
+        "lockId": {
+          "type": "text",
+          "description": "Which lock: a key opens the lock with the same id.",
+          "default": ""
+        }
+      }
+    },
     "locked": {
       "description": "Locked: it won't open and nobody can see or reach inside.",
       "words": "locked",
       "isVisible": true
     },
     "opens_locks": { "description": "Locks and unlocks fitted locks." },
+    "instrument": { "description": "Something to play music on." },
     "chops": { "description": "Fells trees." },
     "mines": { "description": "Breaks rock and ore out of the ground." },
     "digs": { "description": "Digs earth, clay and sand." },
@@ -1251,14 +1281,14 @@
       "name": "key",
       "plural": "keys",
       "glyph": { "index": 12, "color": "#e8c040" },
-      "components": { "holdable": { "kilograms": 0.02 }, "metal": {}, "opens_locks": {} }
+      "components": { "holdable": { "kilograms": 0.02 }, "metal": {}, "opens_locks": {}, "key": {} }
     },
     {
       "id": "lock",
       "name": "lock",
       "plural": "locks",
       "glyph": { "index": 8, "color": "#9a9aa8" },
-      "components": { "holdable": { "kilograms": 0.4 }, "metal": {} }
+      "components": { "holdable": { "kilograms": 0.4 }, "metal": {}, "lock": {} }
     },
     {
       "id": "lantern",
@@ -1310,6 +1340,13 @@
       "name": "dice",
       "glyph": { "index": 254, "color": "#f4f4ec" },
       "components": { "holdable": { "kilograms": 0.02 }, "dice": {} }
+    },
+    {
+      "id": "lute",
+      "name": "lute",
+      "plural": "lutes",
+      "glyph": { "index": 14, "color": "#c89048" },
+      "components": { "holdable": { "kilograms": 1.2 }, "flammable": {}, "instrument": {} }
     },
     {
       "id": "ash",
@@ -2135,18 +2172,25 @@
       }
     },
     {
-      "name": "forge key",
+      "name": "copy key",
       "appliesTo": { "definition": "anvil" },
       "steps": [
+        { "step": "require", "in": "user", "rule": { "has": "key" }, "as": "original" },
         { "step": "use_up", "in": "user", "rule": { "definition": "iron_ingot" }, "count": 1 },
         { "step": "wait", "minutes": 30, "loudness": 12 },
-        { "step": "create", "item": "key", "count": 2, "into": "user" },
+        {
+          "step": "create",
+          "item": "key",
+          "count": 1,
+          "into": "user",
+          "fields": { "key.lockId": { "from": "original.key.lockId" } }
+        },
         { "step": "change_need", "on": "user", "need": "energy", "amount": -0.05 }
       ],
       "phrases": {
-        "ongoing": "forging key at the {item}",
-        "done": "forged key",
-        "attempt": "forge key at the {item}"
+        "ongoing": "copying a key at the {item}",
+        "done": "copied a key",
+        "attempt": "copy a key at the {item}"
       }
     },
     {
@@ -2155,13 +2199,27 @@
       "steps": [
         { "step": "use_up", "in": "user", "rule": { "definition": "iron_ingot" }, "count": 1 },
         { "step": "wait", "minutes": 60, "loudness": 12 },
-        { "step": "create", "item": "lock", "count": 1, "into": "user" },
+        {
+          "step": "create",
+          "item": "lock",
+          "count": 1,
+          "into": "user",
+          "as": "newLock",
+          "fields": { "lock.lockId": { "newId": true } }
+        },
+        {
+          "step": "create",
+          "item": "key",
+          "count": 1,
+          "into": "user",
+          "fields": { "key.lockId": { "from": "newLock.lock.lockId" } }
+        },
         { "step": "change_need", "on": "user", "need": "energy", "amount": -0.05 }
       ],
       "phrases": {
-        "ongoing": "forging lock at the {item}",
-        "done": "forged lock",
-        "attempt": "forge lock at the {item}"
+        "ongoing": "forging a lock and its key at the {item}",
+        "done": "forged a lock and its key",
+        "attempt": "forge a lock at the {item}"
       }
     },
     {
@@ -2574,6 +2632,22 @@
       }
     },
     {
+      "name": "write on",
+      "appliesTo": { "allOf": [{ "definition": "paper" }, { "where": "held" }] },
+      "takes": ["text"],
+      "steps": [
+        { "step": "wait", "minutes": 10 },
+        { "step": "transform", "on": "item", "into": "note" },
+        { "step": "set", "on": "item", "field": "writing.text", "to": { "from": "choice.text" } },
+        { "step": "set", "on": "item", "field": "writing.author", "to": { "from": "user.name" } }
+      ],
+      "phrases": {
+        "ongoing": "writing on the {item}",
+        "done": "wrote a note",
+        "attempt": "write on the {item}"
+      }
+    },
+    {
       "name": "play cards",
       "appliesTo": { "definition": "card_table" },
       "steps": [
@@ -2613,6 +2687,27 @@
       }
     },
     {
+      "name": "play",
+      "appliesTo": { "allOf": [{ "has": "instrument" }, { "where": "held" }] },
+      "steps": [
+        { "step": "wait", "minutes": 30, "loudness": 8 },
+        { "step": "change_need", "on": "user", "need": "fun", "amount": 0.15 },
+        {
+          "step": "change_need",
+          "on": "earshot",
+          "loudness": 8,
+          "around": "user",
+          "need": "fun",
+          "amount": 0.1
+        }
+      ],
+      "phrases": {
+        "ongoing": "playing the {item}",
+        "done": "played the {item}",
+        "attempt": "play the {item}"
+      }
+    },
+    {
       "name": "dig grave",
       "appliesTo": { "allOf": [{ "has": "digs" }, { "where": "held" }] },
       "steps": [
@@ -2622,6 +2717,19 @@
         { "step": "change_need", "on": "user", "need": "energy", "amount": -0.2 }
       ],
       "phrases": { "ongoing": "digging a grave", "done": "dug a grave", "attempt": "dig a grave" }
+    },
+    {
+      "name": "bury",
+      "target": { "allOf": [{ "definition": "person" }, { "not": { "has": "alive" } }] },
+      "steps": [
+        { "step": "wait", "minutes": 60, "loudness": 6 },
+        { "step": "transform", "on": "target", "into": "grave" }
+      ],
+      "phrases": {
+        "ongoing": "burying {target}",
+        "done": "buried {target}",
+        "attempt": "bury {target}"
+      }
     },
     {
       "name": "carve",
@@ -2734,7 +2842,12 @@
       "target": { "allOf": [{ "has": "lockable" }, { "not": { "has": "fitted_lock" } }] },
       "steps": [
         { "step": "wait", "minutes": 15, "loudness": 6 },
-        { "step": "add", "on": "target", "component": "fitted_lock" },
+        {
+          "step": "add",
+          "on": "target",
+          "component": "fitted_lock",
+          "fields": { "lockId": { "from": "item.lock.lockId" } }
+        },
         { "step": "destroy", "on": "item" }
       ],
       "phrases": {
@@ -2753,7 +2866,16 @@
         ]
       },
       "steps": [
-        { "step": "require", "in": "user", "rule": { "has": "opens_locks" } },
+        {
+          "step": "require",
+          "in": "user",
+          "rule": {
+            "allOf": [
+              { "has": "key" },
+              { "field": "key.lockId", "equals": { "from": "item.fitted_lock.lockId" } }
+            ]
+          }
+        },
         { "step": "wait", "minutes": 1, "loudness": 2 },
         { "step": "add", "on": "item", "component": "locked" }
       ],
@@ -2765,9 +2887,18 @@
     },
     {
       "name": "unlock",
-      "appliesTo": { "allOf": [{ "has": "lockable" }, { "has": "locked" }] },
+      "appliesTo": { "allOf": [{ "has": "fitted_lock" }, { "has": "locked" }] },
       "steps": [
-        { "step": "require", "in": "user", "rule": { "has": "opens_locks" } },
+        {
+          "step": "require",
+          "in": "user",
+          "rule": {
+            "allOf": [
+              { "has": "key" },
+              { "field": "key.lockId", "equals": { "from": "item.fitted_lock.lockId" } }
+            ]
+          }
+        },
         { "step": "wait", "minutes": 1, "loudness": 2 },
         { "step": "remove", "on": "item", "component": "locked" }
       ],
