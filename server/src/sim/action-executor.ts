@@ -102,7 +102,13 @@ function executeWalk(context: TickContext, agentId: string, targetName: string):
     startWalk(context, agentId, { kind: "entity", entityId: entity.id }, null);
     return;
   }
-  failAction(state, result, agentId, `walk to ${targetName}`, "I don't know how to get there");
+  failAction(
+    state,
+    result,
+    agentId,
+    `walk to ${targetName}`,
+    "I don't know of any place by that name, and no one and nothing by that name is in sight",
+  );
 }
 
 function executeGiveAction(

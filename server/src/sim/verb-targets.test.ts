@@ -72,7 +72,7 @@ describe("aiming a verb", () => {
     aim(sim, "mara", { verb: "punch", targetName: "Tobias" });
     sim.placeAgent("tobias", FAR_OUT_OF_SIGHT);
     finish(sim, "mara");
-    expect(lastFailure(sim, "mara")).toBe("I tried to punch Tobias but Tobias was already gone");
+    expect(lastFailure(sim, "mara")).toBe("I tried to punch Tobias but Tobias was out of sight");
     expect(readHealth(sim, "tobias")).toBe(1);
   });
 
@@ -129,7 +129,7 @@ describe("verb steps and their modifiers", () => {
     const wood = handOver(sim, "mara", "wood");
     aimWith(sim, "mara", wood, "whittle");
     expect(lastFailure(sim, "mara")).toBe(
-      "I tried to whittle the wood but I don't have what I need for that",
+      "I tried to whittle the wood but I need a knife, an axe or a broken bottle for that and have none",
     );
     handOver(sim, "mara", "knife");
     aimWith(sim, "mara", wood, "whittle");
@@ -201,7 +201,9 @@ describe("resolving a target", () => {
     const sim = buildCombatSim();
     place(sim, { mara: SQUARE, tobias: NEXT_TO_SQUARE });
     aim(sim, "mara", { verb: "punch" });
-    expect(lastFailure(sim, "mara")).toBe("I tried to punch but I didn't say who or what to punch");
+    expect(lastFailure(sim, "mara")).toBe(
+      "I tried to punch but I named no target, and 'punch' has to be aimed at someone or something",
+    );
   });
 
   it("uses the first verb of that name in file order that applies", () => {

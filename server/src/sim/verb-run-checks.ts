@@ -49,7 +49,7 @@ function findTargetProblem(run: StepRun, verb: Verb, verbRun: VerbRun): ResumePr
   if (!matchesThing(verb.target, view)) {
     return refused(`I couldn't ${verb.name} ${name} any more`);
   }
-  if (!isThingInSight(state, verbRun.agentId, target)) return refused(`${name} was already gone`);
+  if (!isThingInSight(state, verbRun.agentId, target)) return refused(`${name} was out of sight`);
   const reach = resolveNumber(scopeOf(run), verb.reach);
   if (!isThingInReach(state, verbRun.agentId, target, reach)) {
     return refused(`${name} was out of reach`, true);

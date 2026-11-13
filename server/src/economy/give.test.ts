@@ -69,7 +69,7 @@ describe("give", () => {
   it("fails when the recipient is out of reach", () => {
     expect(giveFromMara(buildWorld(), "coins", 1, { x: 7, y: 5 })).toEqual({
       isSuccess: false,
-      reason: "Bob is too far away to hand anything to",
+      reason: "Bob is too far away to hand anything to: I have to be right next to them",
     });
   });
 

@@ -64,7 +64,9 @@ describe("require and use_up", () => {
   it("matches by component and keeps what it requires", () => {
     const sim = setUpSteps();
     const steps = [{ step: "require", in: "user", rule: { has: "sharp" } }];
-    expect(runSteps(sim, steps).failure).toBe("I don't have what I need for that");
+    expect(runSteps(sim, steps).failure).toBe(
+      "I need a knife, an axe or a broken bottle for that and have none",
+    );
     const knife = handOver(sim, "mara", "knife");
     expect(runSteps(sim, steps).failure).toBeNull();
     expect(findEntityIfPresent(sim.state, knife.id)).toBeDefined();
@@ -104,7 +106,7 @@ describe("require and use_up", () => {
     expect(runSteps(sim, steps, { items: [gun] }).failure).toBe("the gun has no bullets");
     const generic = [{ step: "use_up", in: "item", rule: { has: "ammo" } }];
     expect(runSteps(sim, generic, { items: [gun] }).failure).toBe(
-      "there wasn't what it needs in the gun",
+      "there wasn't what it needs in the gun: it needs a bullet",
     );
   });
 

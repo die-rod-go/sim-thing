@@ -214,7 +214,7 @@ describe("resolving the target", () => {
     handOver(sim, "mara", "bandage");
     putChest(sim, 20, "tavern chest");
     expect(resolveFailure(sim, { verb: "use", targetName: "Tobias" })).toBe(
-      "use | I didn't say which thing to use",
+      "use | I didn't name the thing to use: the item could be bandage",
     );
     expect(resolveFollowUp(sim, { verb: "put", targetName: "tavern chest" })).toBe(undefined);
   });
@@ -222,14 +222,14 @@ describe("resolving the target", () => {
   it("keeps a lone target that names a person, not a thing", () => {
     const sim = buildTavernSim([EXAMINE_HERE]);
     expect(resolveFailure(sim, { verb: "examine", targetName: "Tobias" })).toBe(
-      "examine | I didn't say which thing to examine",
+      "examine | I didn't name the thing to examine: the item could be notice board, bench",
     );
   });
 
   it("says no thing was named, not that the verb is unknown, when only the item is missing", () => {
     const sim = buildTavernSim([EXAMINE_HERE]);
     expect(resolveFailure(sim, { verb: "examine" })).toBe(
-      "examine | I didn't say which thing to examine",
+      "examine | I didn't name the thing to examine: the item could be notice board, bench",
     );
   });
 
@@ -237,7 +237,7 @@ describe("resolving the target", () => {
     const sim = buildTavernSim();
     placeOnGround(sim, "notice_board", 20);
     expect(resolveFailure(sim, { verb: "dance", targetName: "notice board" })).toBe(
-      "dance | I don't know how to 'dance'",
+      "dance | 'dance' isn't something I can do: only the verbs shown in brackets beside things work",
     );
   });
 
@@ -297,6 +297,78 @@ describe("resolving the target", () => {
 
   it("fails without a target when the verb can't be aimed at the user", () => {
     const sim = buildTavernSim();
-    expect(resolveFailure(sim, { verb: "punch" })).toContain("I didn't say who or what to punch");
+    expect(resolveFailure(sim, { verb: "punch" })).toContain(
+      "I named no target, and 'punch' has to be aimed at someone or something",
+    );
+  });
+});
+
+describe("refusing a thing that offers no verb", () => {
+  it("says a chest in reach with nothing inside is empty", () => {
+    const sim = buildTavernSim();
+    putChest(sim, SQUARE.x, "tavern chest");
+    expect(resolveFailure(sim, { verb: "open", itemName: "tavern chest" })).toBe(
+      "use the tavern chest | the tavern chest has nothing in it, and there is nothing else I can do with it",
+    );
+  });
+
+  it("says a chest across the room is too far away to see into", () => {
+    const sim = buildTavernSim();
+    putChest(sim, SQUARE.x + 6, "tavern chest");
+    expect(resolveFailure(sim, { verb: "open", itemName: "tavern chest" })).toBe(
+      "use the tavern chest | I am too far from the tavern chest to see inside it, and there is nothing else I can do with it from here",
+    );
+  });
+
+  it("says how to take what a chest holds", () => {
+    const sim = buildTavernSim([]);
+    const chest = putChest(sim, SQUARE.x, "tavern chest");
+    createEntity(sim.state, "bandage", { kind: "inside", holderId: chest.id });
+    expect(resolveFailure(sim, { verb: "open", itemName: "tavern chest" })).toBe(
+      "use the tavern chest | the tavern chest itself has no uses: to take something out of it, I name that thing as the item",
+    );
+  });
+
+  it("says a reply named no verb", () => {
+    const sim = buildTavernSim();
+    expect(resolveFailure(sim, { verb: "" })).toBe(
+      " | I named no verb: interact needs one of the verbs shown in brackets beside a thing",
+    );
+  });
+});
+
+describe("verbs that share a name", () => {
+  const STOW_ON_BOARD = {
+    name: "stow",
+    appliesTo: { where: "held" },
+    target: { definition: "notice_board" },
+    steps: [{ step: "wait", minutes: 1 }],
+  };
+  const STOW_IN_CHEST = {
+    name: "stow",
+    appliesTo: { where: "held" },
+    target: { definition: "chest" },
+    steps: [{ step: "wait", minutes: 1 }],
+  };
+
+  it("means the one that can be aimed at the target named, not only the first for the item", () => {
+    const sim = buildTavernSim([STOW_ON_BOARD, STOW_IN_CHEST]);
+    handOver(sim, "mara", "bandage");
+    const chest = putChest(sim, SQUARE.x, "tavern chest");
+    const ready = resolveReady(sim, {
+      verb: "stow",
+      itemName: "bandage",
+      targetName: "tavern chest",
+    });
+    expect(ready.verb.target).toEqual(STOW_IN_CHEST.target);
+    expect(ready.start.target).toEqual({ kind: "entity", entityId: chest.id });
+  });
+
+  it("keeps the first one's refusal when none can be aimed at the target", () => {
+    const sim = buildTavernSim([STOW_ON_BOARD, STOW_IN_CHEST]);
+    handOver(sim, "mara", "bandage");
+    expect(resolveFailure(sim, { verb: "stow", itemName: "bandage", targetName: "Tobias" })).toBe(
+      "stow the bandage | that doesn't work on Tobias",
+    );
   });
 });

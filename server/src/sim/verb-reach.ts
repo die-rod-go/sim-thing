@@ -59,7 +59,7 @@ export function checkApproach(state: WorldState, agentId: string, ready: ReadyIn
   return {
     kind: "approach",
     destination: toDestination(target),
-    reason: isInSight ? `${name} was out of reach` : `${name} was already gone`,
+    reason: isInSight ? `${name} was out of reach` : `${name} was out of sight`,
     isTargetOutOfSight: !isInSight,
   };
 }

@@ -282,7 +282,8 @@ describe("decision loop", () => {
     sim.placeAgent("mara", SQUARE);
     sim.placeAgent("ilsa", { x: SQUARE.x + 4, y: SQUARE.y });
     await sim.advance();
-    const failure = "I tried to hand Ilsa 1 bread but Ilsa is too far away to hand anything to";
+    const failure =
+      "I tried to hand Ilsa 1 bread but Ilsa is too far away to hand anything to: I have to be right next to them";
     expect(countHeld(sim.state, "mara", "bread")).toBe(2);
     expect(memoriesOf(sim, "mara")).toContainEqual(
       expect.objectContaining({ bucket: "did", text: failure }),
@@ -312,7 +313,7 @@ describe("decision loop", () => {
     await sim.advance();
     const texts = memoriesOf(sim, "tobias").map((memory) => memory.text);
     expect(texts).toContain(
-      "I saw that Mara tried to hand Ilsa 1 bread, but Ilsa is too far away to hand anything to",
+      "I saw that Mara tried to hand Ilsa 1 bread, but Ilsa is too far away to hand anything to: they have to be right next to them",
     );
   });
 

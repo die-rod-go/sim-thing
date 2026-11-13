@@ -77,7 +77,10 @@ export function resolveTarget(
   const name = describeTargetName(state, agentId, target);
   if (view === null || !matchesThing(verb.target, view)) {
     if (targetName === undefined) {
-      return { kind: "failed", reason: `I didn't say who or what to ${verb.name}` };
+      return {
+        kind: "failed",
+        reason: `I named no target, and '${verb.name}' has to be aimed at someone or something`,
+      };
     }
     const reason =
       target.kind === "agent" && target.agentId === agentId

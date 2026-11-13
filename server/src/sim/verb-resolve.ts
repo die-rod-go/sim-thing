@@ -8,9 +8,10 @@
   type Entity,
   type Verb,
 } from "@village/shared";
-import { describeEntityName } from "../items/entity-store";
+import { describeEntityName, listContents, listHeldEntities } from "../items/entity-store";
 import type { ThingRef } from "../items/things";
 import { buildEntityView, listVerbsForEntity } from "../items/verb-offers";
+import { judgeInsideView } from "../items/world-physics";
 import { describeAttempt, describeHolderName } from "./action-phrases";
 import type { InteractRequest } from "./agent-runtime";
 import { listToolUses, type ToolUse } from "./tool-uses";
@@ -20,7 +21,7 @@ import {
   repairInteractRequest,
   type NamedVerb,
 } from "./interact-request-repair";
-import { listItemCandidates, type ItemCandidate } from "./verb-candidates";
+import { listHereNearestFirst, listItemCandidates, type ItemCandidate } from "./verb-candidates";
 import type { VerbStart } from "./verb-runner";
 import { viewThingFrom } from "./thing-where";
 import { describeTargetName, resolveTarget } from "./verb-target";
@@ -123,6 +124,37 @@ function describeItemName(state: WorldState, stack: readonly Entity[]): string {
   return describeCount(findDefinition(state.items, first.definitionId), stack.length);
 }
 
+/** Why a verb that isn't in `items.json` at all can't be done, and what can. */
+function describeUnknownVerb(verbName: string): string {
+  if (verbName.trim() === "") {
+    return "I named no verb: interact needs one of the verbs shown in brackets beside a thing";
+  }
+  return `'${verbName}' isn't something I can do: only the verbs shown in brackets beside things work`;
+}
+
+function entityThing(entity: Entity): ThingRef {
+  return { kind: "entity", entityId: entity.id };
+}
+
+/**
+ * Why a thing that offers no verb at all can't be used, with what the agent can tell of its
+ * insides: an empty chest reads as empty, not as shut.
+ */
+function describeNoUse(state: WorldState, agentId: string, entity: Entity): string {
+  const name = describeEntityName(state, entity);
+  const insideView = judgeInsideView(state, agentId, entityThing(entity));
+  if (insideView === "hidden") {
+    return `I can't see inside the ${name}, and there is nothing else I can do with it`;
+  }
+  if (insideView === "too_far") {
+    return `I am too far from the ${name} to see inside it, and there is nothing else I can do with it from here`;
+  }
+  if (listContents(state, entity.id).length > 0) {
+    return `the ${name} itself has no uses: to take something out of it, I name that thing as the item`;
+  }
+  return `the ${name} has nothing in it, and there is nothing else I can do with it`;
+}
+
 /** Why no verb of that name applies to anything the reply named for the item. */
 function describeNotOffered(
   state: WorldState,
@@ -136,17 +168,43 @@ function describeNotOffered(
   const [firstCandidate] = candidates;
   if (first === undefined && firstCandidate !== undefined) {
     const name = describeEntityName(state, firstCandidate.entity);
-    return fail(`use the ${name}`, "there is nothing I can do with it");
+    return fail(`use the ${name}`, describeNoUse(state, agentId, firstCandidate.entity));
   }
-  if (first === undefined) return fail(verbName, `I don't know how to '${verbName}'`);
+  if (first === undefined) return fail(verbName, describeUnknownVerb(verbName));
   const name = describeEntityName(state, first);
   const isHeld = buildEntityView(state, agentId, first).where === "held";
-  const reason = isHeld ? `I can't '${verbName}' ${name}` : `The ${name} doesn't do '${verbName}'`;
   const choices = [
     ...listVerbChoices(listVerbsForEntity(state, agentId, first)),
     ...listToolUseChoices(state, listToolUses(state, agentId, first)),
   ];
+  const offered = choices.map((choice) => choice.label).join(", ");
+  const reason = isHeld
+    ? `I can't '${verbName}' ${name}: what I can do with it is ${offered}`
+    : `The ${name} doesn't do '${verbName}': what it does is ${offered}`;
   return fail(`use the ${name}`, reason, { item: first, choices });
+}
+
+/** How many things a refusal names as ones the verb could have meant. */
+const SUGGESTED_THING_COUNT = 3;
+
+/** Why a verb that needs an item can't run without one, naming things here it could be done with. */
+function describeMissingItem(
+  state: WorldState,
+  agentId: string,
+  verbName: string,
+  named: readonly NamedVerb[],
+): string {
+  const around = [...listHeldEntities(state, agentId), ...listHereNearestFirst(state, agentId)];
+  const usable = around.filter((entity) => {
+    const view = buildEntityView(state, agentId, entity);
+    return named.some(({ verb }) => matchesAppliesTo(verb, view));
+  });
+  const names = [...new Set(usable.map((entity) => describeEntityName(state, entity)))];
+  if (names.length === 0) {
+    return `I didn't name the thing to ${verbName}, and nothing here or on me can be used for that`;
+  }
+  const suggested = names.slice(0, SUGGESTED_THING_COUNT).join(", ");
+  return `I didn't name the thing to ${verbName}: the item could be ${suggested}`;
 }
 
 /**
@@ -228,8 +286,8 @@ function chooseVerbAndItem(
     if (entry) return { entry, candidate: null };
     const reason =
       named.length > 0
-        ? `I didn't say which thing to ${request.verb}`
-        : `I don't know how to '${request.verb}'`;
+        ? describeMissingItem(state, agentId, request.verb, named)
+        : describeUnknownVerb(request.verb);
     return fail(request.verb, reason);
   }
   const listed = listItemCandidates(state, agentId, request.itemName, request.fromName);
@@ -247,20 +305,13 @@ function chooseVerbAndItem(
   return describeNotOffered(state, agentId, request.verb, candidates);
 }
 
-/**
- * Turns a reply's words into the things a verb works on: the verb (the first in file order that
- * applies to some candidate for the item), its item and stack, where the item came from, and its
- * target. Nothing is changed; whether they are in sight and reach is judged separately.
- */
-export function resolveInteract(
+/** The verb's stack, where the item came from and its target, or why the target won't do. */
+function resolveWithVerb(
   state: WorldState,
   agentId: string,
-  reply: InteractRequest,
+  request: InteractRequest,
+  { entry, candidate }: ItemChoice,
 ): InteractResolution {
-  const request = repairInteractRequest(state, agentId, reply);
-  const choice = chooseVerbAndItem(state, agentId, request);
-  if ("kind" in choice) return choice;
-  const { entry, candidate } = choice;
   const { verb, index } = entry;
   const amount = request.amount ?? 1;
   const items = candidate ? buildStack(state, agentId, verb, candidate.entity, amount) : [];
@@ -281,4 +332,36 @@ export function resolveInteract(
   }
   const start = { verbIndex: index, itemIds, itemName, from, target, targetName };
   return { kind: "ready", verb, start: { ...start, choice: buildChoice(request) } };
+}
+
+/**
+ * Turns a reply's words into the things a verb works on: the verb (the first in file order that
+ * applies to some candidate for the item), its item and stack, where the item came from, and its
+ * target. When that verb can't be aimed at the target named, a later verb of the same name that
+ * applies to the same item and can be is meant ("put" a note in a chest, not on the notice board).
+ * Nothing is changed; whether they are in sight and reach is judged separately.
+ */
+export function resolveInteract(
+  state: WorldState,
+  agentId: string,
+  reply: InteractRequest,
+): InteractResolution {
+  const request = repairInteractRequest(state, agentId, reply);
+  const choice = chooseVerbAndItem(state, agentId, request);
+  if ("kind" in choice) return choice;
+  const first = resolveWithVerb(state, agentId, request, choice);
+  const { candidate } = choice;
+  if (first.kind === "ready" || candidate === null) return first;
+  const itemView = buildEntityView(state, agentId, candidate.entity);
+  const others = listVerbsNamed(state, request.verb).filter(
+    (entry) =>
+      entry.index !== choice.entry.index &&
+      entry.verb.target !== undefined &&
+      matchesAppliesTo(entry.verb, itemView),
+  );
+  for (const entry of others) {
+    const other = resolveWithVerb(state, agentId, request, { entry, candidate });
+    if (other.kind === "ready") return other;
+  }
+  return first;
 }

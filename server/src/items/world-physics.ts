@@ -64,6 +64,14 @@ function isWithinContentsReach(world: EntityWorld, agentId: string, thing: Thing
   return distance <= config.perception.contentsReachTiles;
 }
 
+/** Whether the agent sees into the thing, and if not, whether it is hidden or only too far off. */
+export type InsideView = "seen" | "hidden" | "too_far";
+
+export function judgeInsideView(world: EntityWorld, agentId: string, thing: ThingRef): InsideView {
+  if (canSeeInto(world, agentId, thing)) return "seen";
+  return hidesContents(world, thing) ? "hidden" : "too_far";
+}
+
 /**
  * Whether the agent sees what is directly inside the thing: it is the agent's own body, or the
  * agent holds it or stands close to it, and the world's `contentsHiddenBy` doesn't match it. Every

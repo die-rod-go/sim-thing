@@ -54,7 +54,9 @@ describe("verbs done with a carried tool", () => {
     const sim = buildIdleWoodlotSim();
     giveMara(sim, "bread");
     const resolution = resolveInteract(sim.state, "mara", { verb: "chop down", itemName: "bread" });
-    expect(resolution.kind === "failed" && resolution.reason).toBe("I can't 'chop down' bread");
+    expect(resolution.kind === "failed" && resolution.reason).toBe(
+      "I can't 'chop down' bread: what I can do with it is eat, drop, throw, put",
+    );
   });
 
   it("offers chopping the tree when the axe is aimed at it with a verb that can't", () => {

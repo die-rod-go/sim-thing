@@ -550,7 +550,9 @@ Resolution, in `decision-runner.ts` and `verb-use.ts`:
 4. **The target.** If the verb has a `target` matcher, the reply's `target` is resolved among:
    `yourself` or the agent's own name (the user's body), agents in sight (the dead by their body
    name), entities at the agent's place, and entities the agent holds other than the item. It must
-   match the matcher.
+   match the matcher. When it doesn't, a later verb of the same name that also applies to the item
+   and whose `target` does match is used instead ("put" a note in a chest, though the notice-board
+   "put" comes first).
 5. **Reach.** The item and the target must each be within `reach` tiles (held things and the
    user's own body always are; an `inside` thing is where its outermost holder is), and the target
    in sight. Otherwise the agent walks first, to the item and then to the target, using today's

@@ -41,13 +41,54 @@ function describeHolder(run: StepRun, step: PickStep, holder: ThingRef): string 
   return describeThingName(run.context.state, holder);
 }
 
-function describeShortfall(run: StepRun, step: PickStep, holder: ThingRef, held: number): string {
-  const isUser = step.in === "user";
-  if (!("definition" in step.rule)) {
-    return isUser
+/** How many kinds of thing a refusal names as ones that would do. */
+const SUGGESTED_KIND_COUNT = 3;
+
+/** "an axe", "an axe or a sword": the kinds of thing that, as first made, the rule would accept. */
+function describeWhatWouldDo(run: StepRun, rule: Matcher): string | null {
+  const { items } = run.context.state;
+  const fitting = [...items.definitionsById.values()].filter((definition) => {
+    const components = items.definitionComponentsById.get(definition.id);
+    return (
+      components !== undefined && matchesThing(rule, { definitionId: definition.id, components })
+    );
+  });
+  if (fitting.length === 0) return null;
+  const kinds = fitting
+    .slice(0, SUGGESTED_KIND_COUNT)
+    .map((definition) => describeCount(definition, 1));
+  const last = kinds[kinds.length - 1] ?? "";
+  return kinds.length === 1 ? last : `${kinds.slice(0, -1).join(", ")} or ${last}`;
+}
+
+/** A rule that names no one definition: the refusal names the kinds of thing that would do. */
+function describeUnnamedShortfall(
+  run: StepRun,
+  step: PickStep,
+  holder: ThingRef,
+  rule: Matcher,
+): string {
+  const wouldDo = describeWhatWouldDo(run, rule);
+  if (step.in === "user") {
+    return wouldDo === null
       ? "I don't have what I need for that"
-      : `there wasn't what it needs in ${describeHolder(run, step, holder)}`;
+      : `I need ${wouldDo} for that and have none`;
   }
+  const holderName = describeHolder(run, step, holder);
+  return wouldDo === null
+    ? `there wasn't what it needs in ${holderName}`
+    : `there wasn't what it needs in ${holderName}: it needs ${wouldDo}`;
+}
+
+function describeShortfall(
+  run: StepRun,
+  step: PickStep,
+  holder: ThingRef,
+  held: number,
+  rule: Matcher,
+): string {
+  const isUser = step.in === "user";
+  if (!("definition" in step.rule)) return describeUnnamedShortfall(run, step, holder, rule);
   const definition = findDefinition(run.context.state.items, step.rule.definition);
   const plural = definition.plural ?? definition.name;
   const needed = describeCount(definition, step.count);
@@ -80,7 +121,9 @@ function pick(run: StepRun, step: PickStep, isJudgedLate: boolean): Picked {
   const matching = listMatching(run, holder, rule.matcher);
   const found = matching.slice(0, step.count);
   const refusal =
-    found.length < step.count ? describeShortfall(run, step, holder, matching.length) : null;
+    found.length < step.count
+      ? describeShortfall(run, step, holder, matching.length, rule.matcher)
+      : null;
   return { found, refusal };
 }
 

@@ -43,7 +43,9 @@ export function chooseEntitiesToGive(
   const reachTiles = request.reachTiles ?? config.economy.giveReachTiles;
   if (giver.id === recipient.id) return failWith("I can't hand something to myself");
   if (computeChebyshevDistance(giver.pos, recipient.pos) > reachTiles) {
-    return failWith(`${recipient.name} is too far away to hand anything to`);
+    return failWith(
+      `${recipient.name} is too far away to hand anything to: I have to be right next to them`,
+    );
   }
   if (!Number.isInteger(amount) || amount <= 0) {
     return failWith("I can only hand over a whole number of things, at least one");

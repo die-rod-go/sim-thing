@@ -1,4 +1,9 @@
-import type { Entity, Position } from "@village/shared";
+import {
+  listComponentWords,
+  resolveEntityComponents,
+  type Entity,
+  type Position,
+} from "@village/shared";
 import { describeEntityName, findEntityIfPresent } from "../items/entity-store";
 import { listVerbsDoneInPassing } from "../items/verb-offers";
 import { blocksMovement } from "../items/world-physics";
@@ -16,6 +21,17 @@ function listBlockersOnTile(state: WorldState, tile: Position): Entity[] {
   );
 }
 
+/** "tavern door (closed, locked)": the blocker with what can be seen of its state. */
+function describeBlocker(state: WorldState, blocker: Entity): string {
+  const name = describeEntityName(state, blocker);
+  const words = listComponentWords(
+    state.items.declarations,
+    resolveEntityComponents(state.items, blocker),
+    true,
+  );
+  return words.length > 0 ? `${name} (${words.join(", ")})` : name;
+}
+
 /**
  * Stepping onto a tile something blocks does what the blocker allows in passing (clearing its way):
  * the verb's steps are checked, then all run at once with no waiting, and it is seen as the verb
@@ -28,13 +44,14 @@ export function clearTileInPassing(
 ): string | null {
   const { state } = context;
   for (const blocker of listBlockersOnTile(state, tile)) {
-    const name = describeEntityName(state, blocker);
     const [verb] = listVerbsDoneInPassing(state, agentId, blocker);
-    if (!verb) return `the ${name} was in the way`;
+    if (!verb) return `the ${describeBlocker(state, blocker)} was in the way`;
     const refusal = runVerbInPassing(context, agentId, state.items.verbs.indexOf(verb), blocker);
     if (refusal !== null) return refusal;
     const remaining = findEntityIfPresent(state, blocker.id);
-    if (remaining && blocksMovement(state, remaining)) return `the ${name} was still in the way`;
+    if (remaining && blocksMovement(state, remaining)) {
+      return `the ${describeBlocker(state, remaining)} was still in the way`;
+    }
   }
   return null;
 }

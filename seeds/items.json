@@ -2505,7 +2505,7 @@
               "from": "item.crop.count"
             }
           },
-          "otherwise": "there isn't enough left on the {item} to harvest"
+          "otherwise": "there isn't enough left on the {item} to harvest yet: it has to grow back"
         },
         {
           "step": "wait",
