@@ -74,7 +74,6 @@ function requireFieldsForAction(reply: DecisionReply, context: z.RefinementCtx):
   }
   if (reply.action === "give" && !reply.item) missingFields.push("item");
   if (reply.action === "give" && reply.amount === undefined) missingFields.push("amount");
-  if (reply.action === "say" && !reply.say) missingFields.push("say");
   if (reply.action === "recall" && !reply.query) missingFields.push("query");
   for (const field of missingFields) {
     context.addIssue({ code: "custom", path: [field], message: `${reply.action} needs ${field}` });

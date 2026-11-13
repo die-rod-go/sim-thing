@@ -11,7 +11,7 @@ describe("summarizeLlmCall", () => {
         intention: "Sell Bob bread",
         say: "Bread, Bob?",
         volume: "whisper",
-        action: "say",
+        action: "continue",
       },
     };
     const entry = summarizeLlmCall(call);
@@ -22,7 +22,7 @@ describe("summarizeLlmCall", () => {
     ]);
   });
 
-  it("lists what was done and leaves out words not spoken by a say action", () => {
+  it("lists words spoken alongside another action", () => {
     const call = {
       ...makeSampleLlmCall(1, "ada", 10),
       parsed: {
@@ -36,6 +36,7 @@ describe("summarizeLlmCall", () => {
       },
     };
     expect(summarizeLlmCall(call).parts).toEqual([
+      { label: "said", text: "Bread, Bob?" },
       { label: "does", text: "give 1 bread to Bob" },
       { label: "intends", text: "Sell Bob bread" },
     ]);

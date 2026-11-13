@@ -9,6 +9,7 @@ import {
   decisionReply,
   findEntityByLabel,
   promptOf,
+  interruptDuringWait,
   scriptByAgent,
 } from "./test-sim";
 
@@ -31,11 +32,11 @@ describe("talking and perception", () => {
       responder: scriptByAgent({
         Ilsa: (request) =>
           promptOf(request).includes("No one has been talking with you.")
-            ? decisionReply({ say: "Morning, Mara", action: "say", minutes: 60 })
+            ? decisionReply({ say: "Morning, Mara", action: "wait", minutes: 60 })
             : undefined,
         Mara: (request) =>
           promptOf(request).includes('"Morning, Mara"')
-            ? decisionReply({ say: "Morning, Ilsa", action: "say", minutes: 30 })
+            ? decisionReply({ say: "Morning, Ilsa", action: "wait", minutes: 30 })
             : undefined,
       }),
     });
@@ -82,9 +83,9 @@ describe("talking and perception", () => {
         Ilsa: () => {
           ilsaCalls += 1;
           if (ilsaCalls === 1)
-            return decisionReply({ say: "Lovely morning in here", action: "say", minutes: 1 });
+            return decisionReply({ say: "Lovely morning in here", action: "wait", minutes: 1 });
           if (ilsaCalls === 2)
-            return decisionReply({ say: "Mara, wake up!", action: "say", minutes: 240 });
+            return decisionReply({ say: "Mara, wake up!", action: "wait", minutes: 240 });
           return undefined;
         },
         Mara: (request) => keepGoing(request),
@@ -109,7 +110,7 @@ describe("talking and perception", () => {
     const sim = createTestSim({
       agentIds: ["mara", "ilsa"],
       responder: scriptByAgent({
-        Ilsa: () => decisionReply({ say: "La la la", action: "say", minutes: 1 }),
+        Ilsa: () => decisionReply({ say: "La la la", action: "wait", minutes: 1 }),
         Mara: (request) => keepGoing(request),
       }),
     });
@@ -146,7 +147,7 @@ describe("talking and perception", () => {
     expect(sim.results.flatMap((result) => result.changedEntityIds)).toContain(door.id);
   });
 
-  it("speaks only when say is the chosen action", async () => {
+  it("speaks while setting off on a walk", async () => {
     const sim = createTestSim({
       agentIds: ["mara", "ilsa"],
       responder: scriptByAgent({
@@ -160,14 +161,33 @@ describe("talking and perception", () => {
     const said = sim.results
       .flatMap((result) => result.events)
       .filter((event) => event.kind === "said");
-    expect(said).toEqual([]);
+    expect(said.map((event) => event.speech?.words)).toEqual(["Off I go"]);
+    expect(sim.agent("ilsa").currentAction).toMatchObject({ kind: "walk_to", target: "bakery" });
+  });
+
+  it("keeps doing what it was doing when it speaks and continues", async () => {
+    const sim = createTestSim({
+      agentIds: ["ilsa"],
+      responder: scriptByAgent({
+        Ilsa: () => decisionReply({ say: "Just a moment", action: "continue" }),
+      }),
+    });
+    sim.placeAgent("ilsa", SQUARE);
+    interruptDuringWait(sim, "ilsa", 60);
+    const waitBefore = sim.agent("ilsa").currentAction;
+    await sim.advance(1);
+    const said = sim.results
+      .flatMap((result) => result.events)
+      .filter((event) => event.kind === "said");
+    expect(said.map((event) => event.speech?.words)).toEqual(["Just a moment"]);
+    expect(sim.agent("ilsa").currentAction).toEqual(waitBefore);
   });
 
   it("waits the minutes the speaker chose after speaking", async () => {
     const sim = createTestSim({
       agentIds: ["ilsa"],
       responder: scriptByAgent({
-        Ilsa: () => decisionReply({ say: "Anyone about?", action: "say", minutes: 20 }),
+        Ilsa: () => decisionReply({ say: "Anyone about?", action: "wait", minutes: 20 }),
       }),
     });
     sim.placeAgent("ilsa", SQUARE);
@@ -179,7 +199,7 @@ describe("talking and perception", () => {
     const sim = createTestSim({
       agentIds: ["ilsa"],
       responder: scriptByAgent({
-        Ilsa: () => decisionReply({ say: "Anyone about?", action: "say" }),
+        Ilsa: () => decisionReply({ say: "Anyone about?", action: "wait" }),
       }),
     });
     sim.placeAgent("ilsa", SQUARE);

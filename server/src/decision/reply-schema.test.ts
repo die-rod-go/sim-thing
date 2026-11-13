@@ -124,9 +124,12 @@ describe("buildDecisionReplySchema", () => {
     expect(
       schema.safeParse({ thought: "Hm.", intention: "think", action: "recall", query: "" }).success,
     ).toBe(false);
-    expect(schema.safeParse({ thought: "Hm.", intention: "greet", action: "say" }).success).toBe(
-      false,
-    );
+  });
+
+  it("takes words alongside any action", () => {
+    const { schema } = buildDecisionReplySchema(targets, items, holders);
+    const greeting = { thought: "Hm.", intention: "greet", say: "Morning!" };
+    expect(schema.safeParse({ ...greeting, action: "wait" }).success).toBe(true);
   });
 
   it("lists every field as required in field order for strict mode", () => {

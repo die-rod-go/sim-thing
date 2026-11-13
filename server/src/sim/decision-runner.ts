@@ -22,12 +22,6 @@ export type PlannedAction =
   | { kind: "walk_to"; target: string }
   | { kind: "interact"; request: InteractRequest }
   | { kind: "give"; target: string; item: string; amount: number }
-  | {
-      kind: "say";
-      line: { words: string; volume: Volume };
-      origin: SpeechOrigin;
-      minutes: number;
-    }
   | { kind: "wait"; minutes: number }
   | { kind: "continue" };
 
@@ -39,6 +33,12 @@ export interface DecidedReply {
   unknownNameNotes?: string[];
 }
 
+/** Words spoken along with the action, from the decision's last reply. */
+export interface PlannedSpeech {
+  line: { words: string; volume: Volume };
+  origin: SpeechOrigin;
+}
+
 /** Everything one decision produced; applied to the world after all decisions of the tick return. */
 export interface DecisionPlan {
   agentId: string;
@@ -46,6 +46,7 @@ export interface DecisionPlan {
   /** Replies in order (two after a recall); free acts of each apply, the last one's action wins. */
   replies: DecidedReply[];
   action: PlannedAction;
+  speech: PlannedSpeech | null;
   /** Working-memory entries from a recall, already stamped. */
   recallEntries: string[];
   /** "I wanted to go to the river, but ...": names the agent tried that aren't there. */
@@ -136,21 +137,27 @@ export function runRecall(state: WorldState, agent: Agent, query: string, roll: 
   return lines.map((line) => formatWorkingMemoryEntry(state.tick, line));
 }
 
-function planSay(decided: DecidedReply): PlannedAction {
+function planSpeech(decided: DecidedReply): PlannedSpeech | null {
   const { reply, llmCallId } = decided;
+  const words = reply.say?.trim() ?? "";
+  if (words === "") return null;
   return {
-    kind: "say",
-    line: { words: reply.say ?? "", volume: reply.volume ?? "normal" },
+    line: { words, volume: reply.volume ?? "normal" },
     origin: { thought: reply.thought, llmCallId },
-    minutes: reply.minutes ?? config.decision.sayWaitMinutes,
   };
+}
+
+/** A wait after speaking is a pause to hear the answer, so it defaults shorter. */
+function chooseWaitMinutes(reply: DecisionReply): number {
+  if (reply.minutes !== undefined) return reply.minutes;
+  return planSpeech({ reply, llmCallId: null }) === null
+    ? config.decision.defaultWaitMinutes
+    : config.decision.sayWaitMinutes;
 }
 
 function planSimpleAction(decided: DecidedReply): PlannedAction {
   const { reply } = decided;
   switch (reply.action) {
-    case "say":
-      return planSay(decided);
     case "walk_to":
       return { kind: "walk_to", target: reply.target ?? "" };
     case "give":
@@ -163,7 +170,7 @@ function planSimpleAction(decided: DecidedReply): PlannedAction {
     case "continue":
       return { kind: "continue" };
     default:
-      return { kind: "wait", minutes: reply.minutes ?? config.decision.defaultWaitMinutes };
+      return { kind: "wait", minutes: chooseWaitMinutes(reply) };
   }
 }
 
@@ -210,6 +217,7 @@ export async function runDecision(
     isMidActionInterrupt: request.isMidActionInterrupt,
     replies,
     action,
+    speech: planSpeech({ reply: finalReply, llmCallId: finalCallId }),
     recallEntries,
     unknownNameNotes: [...new Set(replies.flatMap((decided) => decided.unknownNameNotes ?? []))],
   };

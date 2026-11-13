@@ -10,7 +10,7 @@ import { isDead } from "../status/health";
 import { WAIT_ACTION } from "./action-phrases";
 import { stopCurrentAction } from "./action-stopping";
 import { getAgentRuntime } from "./agent-runtime";
-import type { DecidedReply, DecisionPlan, PlannedAction } from "./decision-runner";
+import type { DecidedReply, DecisionPlan, PlannedAction, PlannedSpeech } from "./decision-runner";
 import { broadcastEvent } from "./event-broadcast";
 import { createEvent, createSpeechEvent } from "./event-factory";
 import { failAction } from "./failure";
@@ -59,16 +59,11 @@ function startWait(context: TickContext, agentId: string, minutes: number): void
   markAgentChanged(context.result, agentId);
 }
 
-/** Speaks, then stays to hear an answer; anything newly noticed ends the wait early. */
-function executeSay(
-  context: TickContext,
-  agentId: string,
-  action: Extract<PlannedAction, { kind: "say" }>,
-): void {
+/** Words go along with any action, so the agent can talk while it walks, works or waits. */
+function speak(context: TickContext, agentId: string, speech: PlannedSpeech): void {
   const { state } = context;
-  const speech = createSpeechEvent(state, findAgent(state, agentId), action.line, action.origin);
-  broadcastEvent(state, speech, context.result);
-  startWait(context, agentId, action.minutes);
+  const event = createSpeechEvent(state, findAgent(state, agentId), speech.line, speech.origin);
+  broadcastEvent(state, event, context.result);
 }
 
 function executeWalk(context: TickContext, agentId: string, targetName: string): void {
@@ -174,8 +169,6 @@ function executeAction(context: TickContext, agentId: string, action: PlannedAct
       return startOrApproachVerb(context, agentId, action.request);
     case "give":
       return executeGiveAction(context, agentId, action);
-    case "say":
-      return executeSay(context, agentId, action);
     case "wait":
       return startWait(context, agentId, action.minutes);
     case "continue":
@@ -201,8 +194,8 @@ function noteUnknownName(context: TickContext, agentId: string, note: string): v
 
 /**
  * Applies one decision: free acts, recall results into working memory, notes of names that
- * weren't found,
- * then the act itself. Choosing anything but `continue` stops the current action first.
+ * weren't found, the words spoken, then the act itself. Choosing anything but `continue` stops the
+ * current action first.
  */
 export function applyDecisionPlan(context: TickContext, plan: DecisionPlan): void {
   const { state, result } = context;
@@ -226,6 +219,7 @@ export function applyDecisionPlan(context: TickContext, plan: DecisionPlan): voi
   for (const note of plan.unknownNameNotes) noteUnknownName(context, agentId, note);
   markAgentChanged(result, agentId);
   result.decidedAgentIds.push(agentId);
+  if (plan.speech !== null) speak(context, agentId, plan.speech);
   if (isContinuing) return;
   const action: PlannedAction =
     plan.action.kind === "continue"

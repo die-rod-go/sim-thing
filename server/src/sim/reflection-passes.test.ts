@@ -67,7 +67,7 @@ describe("reflection hook", () => {
       reflection: () => undefined,
       responder: (request, callIndex) =>
         request.schemaName === "decision_reply"
-          ? decisionReply({ action: "say", minutes: 60, say: "Is anyone about?" })
+          ? decisionReply({ action: "wait", minutes: 60, say: "Is anyone about?" })
           : fake(request, callIndex),
     });
     await sim.advance(2 * 60 + 1);
@@ -89,7 +89,7 @@ describe("reflection hook", () => {
       shouldCallLlmInBackground: true,
       responder: (request, callIndex) => {
         if (request.schemaName === "decision_reply") {
-          return decisionReply({ action: "say", minutes: 60, say: "Is anyone about?" });
+          return decisionReply({ action: "wait", minutes: 60, say: "Is anyone about?" });
         }
         const reply = fake(request, callIndex);
         if (request.schemaName !== "daytime_reply") return reply;

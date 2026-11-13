@@ -60,7 +60,7 @@ describe("moments", () => {
     const sim = createTestSim({
       agentIds: ["mara"],
       responder: () =>
-        decisionReply({ thought: "Someone should hear this.", say: "Hello!", action: "say" }),
+        decisionReply({ thought: "Someone should hear this.", say: "Hello!", action: "wait" }),
     });
     const [result] = await sim.advance();
     expect(sim.agent("mara").lastThought).toEqual({ text: "Someone should hear this.", tick: 0 });

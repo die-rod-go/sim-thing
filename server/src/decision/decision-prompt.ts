@@ -23,14 +23,7 @@ const DECISION_TEMPLATE = "decision";
 const CONTINUE_ACTION_TEMPLATE = "decision-continue";
 /** Marks the end of a part of the template that is stable enough for the provider to cache. */
 const CACHE_BREAKPOINT_MARKER = "<<<cache>>>\n";
-const BASE_ACTIONS: readonly DecisionAction[] = [
-  "walk_to",
-  "interact",
-  "give",
-  "say",
-  "recall",
-  "wait",
-];
+const BASE_ACTIONS: readonly DecisionAction[] = ["walk_to", "interact", "give", "recall", "wait"];
 
 type RecalledMemories = Partial<Record<Bucket, RecalledMemory[]>>;
 

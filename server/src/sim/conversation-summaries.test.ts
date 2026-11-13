@@ -17,11 +17,11 @@ const TICKS_UNTIL_SUMMARY = 1 + endAfterQuietTicks + 1;
 const greetings = scriptByAgent({
   Ilsa: (request) =>
     promptOf(request).includes("No one has been talking with you.")
-      ? decisionReply({ say: "Morning, Mara", action: "say", minutes: 240 })
+      ? decisionReply({ say: "Morning, Mara", action: "wait", minutes: 240 })
       : undefined,
   Mara: (request) =>
     promptOf(request).includes('"Morning, Mara"')
-      ? decisionReply({ say: "Morning, Ilsa", action: "say", minutes: 240 })
+      ? decisionReply({ say: "Morning, Ilsa", action: "wait", minutes: 240 })
       : undefined,
 });
 

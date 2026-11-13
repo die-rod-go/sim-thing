@@ -4,6 +4,8 @@ import { findMealToEat, type DecisionChoices, type JsonRecord } from "./fake-cho
 
 /** The responder's own pseudo-action for an interact with a hit-roll verb. */
 const ATTACK_CHOICE = "attack";
+/** Speaking is a free extra, not an action; the fake picks it like one and pairs it with a wait. */
+const SPEAK_CHOICE = "say";
 /** The target name meaning the acting agent itself. */
 const YOURSELF = "yourself";
 
@@ -128,6 +130,7 @@ export function buildDecisionReply(
     [ATTACK_CHOICE, tuning.attackWeight] as [string, number],
   ].filter(([action]) => {
     if (action === ATTACK_CHOICE) return attack !== null && choices.actions.includes("interact");
+    if (action === SPEAK_CHOICE) return choices.actions.includes("wait");
     if (!choices.actions.includes(action)) return false;
     if (action === "interact") return interact !== null;
     if (action === "walk_to") return otherPlaces.length > 0;
@@ -156,11 +159,11 @@ export function buildDecisionReply(
     const target = random.pick(choices.inSight);
     return { ...reply, action, target, item: random.pick(choices.items), amount: 1 };
   }
-  if (action === "say") {
+  if (action === SPEAK_CHOICE) {
     const line = random.pick(tuning.lines);
     const say = choices.inSight.length > 0 ? `${random.pick(choices.inSight)}! ${line}` : line;
     const { min, max } = tuning.waitMinutes;
-    return { ...reply, action, say, volume: "normal", minutes: random.nextInt(min, max) };
+    return { ...reply, action: "wait", say, volume: "normal", minutes: random.nextInt(min, max) };
   }
   if (action === "recall") {
     return {
