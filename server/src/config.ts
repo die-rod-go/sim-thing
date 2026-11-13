@@ -544,7 +544,7 @@ export const config = {
     workingMemorySize: 8,
     /** Memories fade (applyForgetting) every this many ticks; bucket caps are enforced every tick. */
     forgettingEveryTicks: 60,
-    recallActionResultLimit: 6,
+    recallActionResultLimit: 9,
     /** How many of the current conversation's last lines go into the recall cue text. */
     cueConversationLines: 3,
     reflectionInsightStrength: 1.0,

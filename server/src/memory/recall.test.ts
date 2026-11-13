@@ -1,6 +1,7 @@
 import type { Memory } from "@village/shared";
 import { describe, expect, it } from "vitest";
 import { MemoryStore } from "./memory-store";
+import { config } from "../config";
 import { buildCue, buildCueText, recallForDecision, scoreMemory, searchMemories } from "./recall";
 
 const TICKS_PER_HOUR = 60;
@@ -291,15 +292,17 @@ describe("searchMemories", () => {
 
   it("returns at most the recall action's result limit", () => {
     const store = new MemoryStore();
-    for (let index = 0; index < 10; index += 1) {
+    for (let index = 0; index < config.memory.recallActionResultLimit + 4; index += 1) {
       store.add(makeMemory({ id: `c${index}`, tags: ["bob"] }));
     }
-    expect(searchMemories(store, "mara", "Bob", knownNames, 0)).toHaveLength(6);
+    expect(searchMemories(store, "mara", "Bob", knownNames, 0)).toHaveLength(
+      config.memory.recallActionResultLimit,
+    );
   });
 
   it("keeps a lone matching memory from another bucket among many better-scoring retellings", () => {
     const store = new MemoryStore();
-    for (let index = 0; index < 8; index += 1) {
+    for (let index = 0; index < config.memory.recallActionResultLimit + 2; index += 1) {
       store.add(
         makeMemory({
           id: `r${index}`,
@@ -326,7 +329,7 @@ describe("searchMemories", () => {
       knownNames,
       10 * TICKS_PER_HOUR,
     );
-    expect(results).toHaveLength(6);
+    expect(results).toHaveLength(config.memory.recallActionResultLimit);
     expect(results.map((memory) => memory.id)).toContain("place");
   });
 });
