@@ -219,3 +219,23 @@ export function ReadStepSettings({
     </>
   );
 }
+
+export function InspectStepSettings({
+  step,
+  onChange,
+  spot,
+  isInRule,
+}: StepSettingsProps<"inspect">) {
+  const update = buildUpdater(step, onChange);
+  return (
+    <>
+      <OnSettings step={step} spot={spot} isInRule={isInRule} onChange={update} />
+      <Setting label="when empty">
+        <TextInput
+          value={step.emptyText ?? ""}
+          onChange={(text) => update({ emptyText: text.trim() === "" ? undefined : text })}
+        />
+      </Setting>
+    </>
+  );
+}

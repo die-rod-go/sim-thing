@@ -162,7 +162,7 @@ Keys are ordinary items: they can be given, lent, stolen or copied in secret.
 
 | Item         | Use                                                                    |
 | ------------ | ---------------------------------------------------------------------- |
-| chest        | container (20 items); lockable                                         |
+| chest        | container (20 items); lockable; `inspect` counts what it holds         |
 | door         | open and close; blocks movement, sight and sound when closed; lockable |
 | bench        | sit: energy +0.1 per 20 minutes                                        |
 | bed          | sleep                                                                  |

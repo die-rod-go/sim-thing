@@ -11,7 +11,7 @@ import {
   locateInside,
 } from "../items/entity-store";
 import { loadItemCatalog } from "../items/load-items";
-import { readField, type ThingRef } from "../items/things";
+import { readField, readThingId, type ThingRef } from "../items/things";
 import {
   NEXT_TO_SQUARE,
   SQUARE,
@@ -261,6 +261,15 @@ describe("locks and keys", () => {
     expect(hasComponentNow(sim, chest, "locked")).toBe(false);
   });
 
+  it("can't see inside a locked chest when inspecting it", () => {
+    const sim = setUpVillage();
+    setUpLockedChest(sim);
+    doVerb(sim, "tobias", "inspect", "chest");
+    expect(memoryTexts(sim, "tobias")).toContain(
+      "I inspected the chest: locked, I couldn't see inside it",
+    );
+  });
+
   it("forces a locked chest open with an axe, damaging it and taking its lock", () => {
     const sim = setUpVillage();
     const chest = setUpLockedChest(sim);
@@ -423,5 +432,38 @@ describe("writing and the notice board", () => {
     expect(listContents(sim.state, board.entityId).map((entity) => entity.definitionId)).toEqual([
       "note",
     ]);
+  });
+});
+
+describe("inspecting", () => {
+  it("counts what a chest holds into a seen memory", () => {
+    const sim = setUpVillage();
+    const chest = placeThing(sim, "chest", SQUARE);
+    giveSome(sim, "mara", "wheat", 3);
+    doVerb(sim, "mara", "put", "wheat", "chest");
+    doVerb(sim, "mara", "put", "wheat", "chest");
+    doVerb(sim, "tobias", "inspect", "chest");
+    const memory = sim.state.memoryStore
+      .listByAgent("tobias")
+      .find((candidate) => candidate.text.startsWith("I inspected the chest"));
+    expect(memory?.text).toBe("I inspected the chest: holding 2 wheat");
+    expect(memory?.bucket).toBe("seen");
+    expect(memory?.tags).toContain("wheat");
+    expect(listContents(sim.state, readThingId(chest))).toHaveLength(2);
+  });
+
+  it("says an empty chest is empty", () => {
+    const sim = setUpVillage();
+    placeThing(sim, "chest", SQUARE);
+    doVerb(sim, "mara", "inspect", "chest");
+    expect(memoryTexts(sim, "mara")).toContain("I inspected the chest: empty");
+  });
+
+  it("notes how much a source has left, and nothing about its insides", () => {
+    const sim = setUpVillage();
+    const field = placeThing(sim, "wheat_field", SQUARE);
+    setField(sim, field, "stock.amount", 6);
+    doVerb(sim, "mara", "inspect", "wheat field");
+    expect(memoryTexts(sim, "mara")).toContain("I inspected the wheat field: 6 left");
   });
 });

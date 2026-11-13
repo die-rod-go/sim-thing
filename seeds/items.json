@@ -4468,6 +4468,58 @@
       }
     },
     {
+      "name": "inspect",
+      "appliesTo": {
+        "has": "capacity"
+      },
+      "steps": [
+        {
+          "step": "wait",
+          "minutes": 2
+        },
+        {
+          "step": "inspect",
+          "on": "item",
+          "emptyText": "empty"
+        }
+      ],
+      "phrases": {
+        "ongoing": "inspecting the {item}",
+        "done": "inspected the {item}",
+        "attempt": "inspect the {item}"
+      }
+    },
+    {
+      "name": "inspect",
+      "appliesTo": {
+        "allOf": [
+          {
+            "has": "stock"
+          },
+          {
+            "not": {
+              "has": "capacity"
+            }
+          }
+        ]
+      },
+      "steps": [
+        {
+          "step": "wait",
+          "minutes": 2
+        },
+        {
+          "step": "inspect",
+          "on": "item"
+        }
+      ],
+      "phrases": {
+        "ongoing": "inspecting the {item}",
+        "done": "inspected the {item}",
+        "attempt": "inspect the {item}"
+      }
+    },
+    {
       "name": "carve",
       "appliesTo": {
         "definition": "grave"

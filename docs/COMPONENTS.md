@@ -697,13 +697,14 @@ untouched: a grave says nothing of who lies in it until someone carves it.
 
 **Reaching the world and agents**
 
-| Step          | Settings                                | Does                                                                                                                                                                                                                                           |
-| ------------- | --------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `send`        | `on`, `stimulus`                        | Sends the stimulus (a text value) to the thing, firing `stimulus` rules                                                                                                                                                                        |
-| `sound`       | `on`, `loudness`                        | A `sound` event from where the thing is, as `make_sound` does today                                                                                                                                                                            |
-| `announce`    | `on`, `text`, `isPrivate?`              | An `announced` event whose subject is the thing ("the jar broke", "Tobias caught fire")                                                                                                                                                        |
-| `change_need` | `on`, `need`, `amount`, `perOtherUser?` | Adds to a living agent's hunger, energy, social or fun. `perOtherUser` adds that much again per other agent running a verb on the same item. Skips anything that isn't a living agent                                                          |
-| `read`        | `on`, `field`, `author?`                | The user files `seen` memories of the text in `field` (and the writer in `author`) of the thing, and of the newest `reading.thingsShownOnRead` entities directly inside it that have the field. Already-remembered texts are skipped, as today |
+| Step          | Settings                                | Does                                                                                                                                                                                                                                                              |
+| ------------- | --------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `send`        | `on`, `stimulus`                        | Sends the stimulus (a text value) to the thing, firing `stimulus` rules                                                                                                                                                                                           |
+| `sound`       | `on`, `loudness`                        | A `sound` event from where the thing is, as `make_sound` does today                                                                                                                                                                                               |
+| `announce`    | `on`, `text`, `isPrivate?`              | An `announced` event whose subject is the thing ("the jar broke", "Tobias caught fire")                                                                                                                                                                           |
+| `change_need` | `on`, `need`, `amount`, `perOtherUser?` | Adds to a living agent's hunger, energy, social or fun. `perOtherUser` adds that much again per other agent running a verb on the same item. Skips anything that isn't a living agent                                                                             |
+| `read`        | `on`, `field`, `author?`                | The user files `seen` memories of the text in `field` (and the writer in `author`) of the thing, and of the newest `reading.thingsShownOnRead` entities directly inside it that have the field. Already-remembered texts are skipped, as today                    |
+| `inspect`     | `on`, `emptyText?`                      | The user files a `seen` memory of the thing: its visible words ("6 left") and what is directly inside it, counted ("holding 2 wheat"), or `emptyText` when nothing is. A thing that hides its contents reads as `inspecting.hiddenText`. A recount is filed again |
 
 An `announce` on a living agent's body is that agent's own event: the agent files it in the first
 person ("I caught fire") and gets an urgent decision, which is what a condition starting does
@@ -818,7 +819,7 @@ These three triggers replace four mechanisms: reactions (`stimulus`), a conditio
 (`becomes`). Nothing in code knows that 0 health means broken; rules say so.
 
 Steps that need an agent doing something are for verbs only: `require`, `use_up`, `check`, `wait`,
-`sleep`, `roll_hit`, `read`, and the settings `scaledByStrength` and `evenOnMiss`.
+`sleep`, `roll_hit`, `read`, `inspect`, and the settings `scaledByStrength` and `evenOnMiss`.
 
 ### Exactly when rules fire
 

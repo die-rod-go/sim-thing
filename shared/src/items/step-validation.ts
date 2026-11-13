@@ -38,6 +38,7 @@ const ON_STEPS: ReadonlySet<StepType> = new Set<StepType>([
   "announce",
   "change_need",
   "read",
+  "inspect",
 ]);
 
 const PICKING_PLACES = ["user", "item", "target"];

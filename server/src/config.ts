@@ -433,6 +433,15 @@ export const config = {
     maxTextChars: 200,
   },
 
+  inspecting: {
+    /** The `seen` memory an `inspect` step files. `{details}` is what was found, joined by commas. */
+    memory: "I inspected the {thing}: {details}",
+    /** Among the details when the thing hides what is inside it (a locked chest). */
+    hiddenText: "I couldn't see inside it",
+    /** The details when there was nothing to note. */
+    nothingOfNoteText: "nothing of note",
+  },
+
   reading: {
     /** A `read` step reads the newest this many things inside what is read (notes on a board). */
     thingsShownOnRead: 5,

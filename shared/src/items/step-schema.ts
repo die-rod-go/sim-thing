@@ -149,6 +149,12 @@ export const stepSchema = z.discriminatedUnion("step", [
     /** The field naming who wrote it. */
     author: componentPathSchema.optional(),
   }),
+  z.strictObject({
+    step: z.literal("inspect"),
+    ...onSettings,
+    /** What the memory says when nothing is inside ("empty"); omitted, it says nothing of it. */
+    emptyText: z.string().trim().min(1).optional(),
+  }),
 ]);
 
 export type Step = z.infer<typeof stepSchema>;
@@ -168,6 +174,7 @@ export const VERB_ONLY_STEPS: ReadonlySet<StepType> = new Set<StepType>([
   "sleep",
   "roll_hit",
   "read",
+  "inspect",
 ]);
 
 /** The thing a step works on, if it takes `on`. */

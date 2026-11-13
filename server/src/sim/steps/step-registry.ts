@@ -12,6 +12,7 @@ import { listClearHearers } from "../../perception/perceive-event";
 import { buildPerceptionWorld, listLivingAgents, toPerceiver } from "../world-access";
 import { addStep, changeStep, damageStep, removeStep, setStep } from "./data-steps";
 import { checkStep, requireStep, useUpStep } from "./need-steps";
+import { inspectStep } from "./inspect-step";
 import { readStep } from "./read-step";
 import { findRoleThing } from "./step-roles";
 import {
@@ -51,6 +52,7 @@ export const STEP_REGISTRY: StepRegistry = {
   announce: announceStep,
   change_need: changeNeedStep,
   read: readStep,
+  inspect: inspectStep,
 };
 
 export function isStepBuilt(type: StepType): boolean {

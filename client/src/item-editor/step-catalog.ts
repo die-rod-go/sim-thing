@@ -30,6 +30,7 @@ export const STEP_DESCRIPTIONS: Record<StepType, string> = {
   announce: "Tells the world something happened to a thing",
   change_need: "Adds to a living agent's hunger, energy, social or fun",
   read: "The user remembers the text written in a field of a thing",
+  inspect: "The user remembers what a thing holds, counted, and how it looks",
 };
 
 export const STEP_GROUPS: readonly { label: string; types: readonly StepType[] }[] = [
@@ -39,7 +40,7 @@ export const STEP_GROUPS: readonly { label: string; types: readonly StepType[] }
   { label: "Things and places", types: ["move", "create", "transform", "destroy"] },
   {
     label: "Reaching the world and agents",
-    types: ["send", "sound", "announce", "change_need", "read"],
+    types: ["send", "sound", "announce", "change_need", "read", "inspect"],
   },
 ];
 
@@ -158,5 +159,7 @@ export function buildNewStep(type: StepType, spot: ValueSpot): Step {
       };
     case "read":
       return { step: "read", ...on, field: findFirstField(file, "text") };
+    case "inspect":
+      return { step: "inspect", ...on };
   }
 }

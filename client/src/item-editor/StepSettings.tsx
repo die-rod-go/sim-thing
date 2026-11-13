@@ -18,6 +18,7 @@ import {
   ChangeNeedStepSettings,
   CreateStepSettings,
   DestroyStepSettings,
+  InspectStepSettings,
   MoveStepSettings,
   ReadStepSettings,
   SendStepSettings,
@@ -74,5 +75,7 @@ export function StepSettings({ step, onChange, spot, file, isInRule }: AnyStepSe
       return <ChangeNeedStepSettings step={step} onChange={onChange} {...shared} />;
     case "read":
       return <ReadStepSettings step={step} onChange={onChange} {...shared} />;
+    case "inspect":
+      return <InspectStepSettings step={step} onChange={onChange} {...shared} />;
   }
 }
