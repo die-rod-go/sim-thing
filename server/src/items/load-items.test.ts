@@ -1,4 +1,4 @@
-import { readFileSync } from "node:fs";
+﻿import { readFileSync } from "node:fs";
 import { resolve } from "node:path";
 import { describe, expect, it } from "vitest";
 import type { ItemReference } from "@village/shared";
@@ -45,7 +45,7 @@ describe("loading items.json", () => {
   });
 
   it("refuses a seed inventory naming an unknown definition", () => {
-    expect(() => buildCheckedItemCatalog(itemsJson, [seedItem("lute")])).toThrow(/"lute"/);
+    expect(() => buildCheckedItemCatalog(itemsJson, [seedItem("harp")])).toThrow(/"harp"/);
   });
 
   it("refuses a malformed file", () => {

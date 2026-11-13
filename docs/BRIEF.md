@@ -78,39 +78,14 @@ Agents learn about the world only through two small simulations that run in code
 
 ## Economy and professions
 
-Five of the six agents have a profession tied to a workplace, and a fixed supply of coins lets them trade. Data in `items.json` defines only what each object produces; prices, deals, debts and haggling are entirely up to the agents.
+Agents have professions tied to workplaces, and a fixed supply of coins lets them trade. Data in `items.json` defines only what each object produces; prices, deals, debts and haggling are entirely up to the agents.
 
-&#91;embedded content: production chain · 2 raw goods, 2 products\]
-
-The baker and tavern keeper both depend on the farmers and the woodcutter, and everyone depends on the baker, so there is pressure to trade from day one.
-
-| Place                                     | Objects: verbs                                                                                          |
-| ----------------------------------------- | ------------------------------------------------------------------------------------------------------- |
-| Homes (one per agent except the newcomer) | bed: sleep. Which home is whose is only persona and seed text, not a rule; the tavern has one spare bed |
-| Town square                               | notice board: read, post a note; bench: sit                                                             |
-| Farm                                      | wheat field: harvest wheat                                                                              |
-| Woodlot                                   | trees: chop wood                                                                                        |
-| Bakery                                    | oven: bake bread                                                                                        |
-| Tavern                                    | brew kettle: brew ale; card table: play cards                                                           |
-
-Starting verb values (all in `seeds/items.json`; tune by watching):
-
-| Verb          | Inputs          | Outputs                                             | Ticks                                                    | Need effects                                                                                                           |
-| ------------- | --------------- | --------------------------------------------------- | -------------------------------------------------------- | ---------------------------------------------------------------------------------------------------------------------- |
-| harvest wheat | —               | 3 wheat (one shared field holds 12, regrows 12/day) | 60                                                       | energy −0.1                                                                                                            |
-| chop wood     | —               | 2 wood (trees hold 10, regrow 10/day)               | 60                                                       | energy −0.15                                                                                                           |
-| bake bread    | 2 wheat, 1 wood | 4 bread                                             | 90                                                       | energy −0.05                                                                                                           |
-| brew ale      | 2 wheat, 1 wood | 6 ale                                               | 120                                                      | energy −0.05                                                                                                           |
-| eat (bread)   | 1 bread         | —                                                   | 15                                                       | hunger +0.5                                                                                                            |
-| drink (ale)   | 1 ale           | —                                                   | 15                                                       | fun +0.3, energy −0.05                                                                                                 |
-| play cards    | —               | —                                                   | 30                                                       | fun +0.2, +0.1 more per other player at the table                                                                      |
-| sit on bench  | —               | —                                                   | 20                                                       | energy +0.1                                                                                                            |
-| sleep (bed)   | —               | —                                                   | until rested or woken, or the nap length the agent chose | energy + the agent's own recovery rate per hour, halved while hunger is below 0.3; other needs decay at a quarter rate |
+The item set is described in `VILLAGE-ITEMS.md`. In short: eleven harvestables from sources that either regrow or run out (wheat fields, the well, trees, iron and diamond veins, the pig pen, the lake, four herb patches), six workstations (oven, brewing vat, forge, anvil, carpentry table, cauldron) whose recipes turn them into food, ale, tools, weapons, locks and keys, furniture, potions and rings, and tools that wear out. Bread needs wheat and water; iron needs ore and wood; every tool needs iron; so the baker, farmer, woodcutter, miner and smith depend on each other from day one.
 
 - **Money:** a closed supply of `coin` entities. Each agent starts with 30 coins in its inventory. Nothing makes or destroys coins (validation warns if a verb could). There are no wages, set prices or shop logic: agents sell what they make by saying so and using `give`. Credit, debt, haggling and refusing to trade all emerge from talk.
 - **Inventory:** an agent's inventory is every entity directly inside its body. Prompts group things whose lines are identical ("30 coins", "3 bread (eat)"). Held items offer verbs through their components (bread has `food`: eat; ale has `drink`: drink). Any agent may use any object in v1, and everyone nearby sees it.
-- **Notice board:** an object whose state is a list of short notes (author, text, tick). Reading puts the newest 5 into the reader's `seen` bucket. It gives the square a purpose: offers, prices, rumors.
-- **Scarcity:** there is one wheat field, shared by both farmers, and one stand of trees, and both regrow slowly. Each agent needs about 2 bread a day, so the village needs about 3 bakes daily (6 wheat, 3 wood) plus ale, which supply only just covers. No death in v1; at zero hunger an agent just feels starving.
+- **Notice board:** a container for notes in the town square. Writing on paper makes a note; pinning it is `put`, so a notice costs a sheet of paper. Reading shows the newest notes and files them in the reader's `seen` bucket. It gives the square a purpose: offers, prices, rumors.
+- **Scarcity:** wheat fields, herb patches and the pig pen regrow slowly; trees grow back from stumps in four days; iron and diamond veins never come back. Tools last about 50 uses, so iron keeps being needed. At zero hunger an agent starves and can die.
 - **Professions are persona text, not code.** Nothing stops a baker from chopping wood or the newcomer from taking up farming.
 
 v1 cast, 6 agents: a farmer, a second farmer competing with the first, a woodcutter, a baker, a tavern keeper, and a newcomer with no profession, no home and 10 coins. The newcomer's seed notes mention the tavern's spare bed; where they actually sleep is up to them. Everyone starts with 2 bread; the baker also starts with 4 wheat and 2 wood, and the tavern keeper with 6 ale, so day 1 doesn't open in a famine.

@@ -6,7 +6,7 @@ import { afterEach, beforeEach, describe, expect, it } from "vitest";
 import type { WorldEvent } from "@village/shared";
 import { config } from "../config";
 import { buildSeededWorld, loadSeedFile } from "../seeds";
-import { loadTestItems } from "../sim/test-sim";
+import { loadItemCatalog } from "../items/load-items";
 import { createDefaultSettings, createWorldState, toSavedWorld } from "../sim/world-state";
 import { loadWorldMap } from "../world/map-loader";
 import { IN_MEMORY_DATABASE, openDatabase, wipeDatabase, type Database } from "./database";
@@ -25,7 +25,7 @@ import { loadWorld, saveWorld } from "./world-repository";
 const repositoryRoot = resolve(import.meta.dirname, "../../..");
 const map = loadWorldMap(resolve(repositoryRoot, config.server.mapPath));
 const seedFile = loadSeedFile(resolve(repositoryRoot, config.server.seedsPath));
-const items = loadTestItems();
+const items = loadItemCatalog(resolve(repositoryRoot, config.server.itemsPath), []);
 
 function buildWorld() {
   return createWorldState(map, buildSeededWorld(seedFile, map, items), items);

@@ -3,7 +3,7 @@ import { describe, expect, it } from "vitest";
 import { config } from "./config";
 import type { SeedAgent } from "@village/shared";
 import { buildSeededWorld, loadSeedFile, parseSeedFile } from "./seeds";
-import { loadTestItems } from "./sim/test-sim";
+import { loadItemCatalog } from "./items/load-items";
 import { loadWorldMap } from "./world/map-loader";
 
 const repositoryRoot = resolve(import.meta.dirname, "../..");
@@ -26,7 +26,7 @@ const map = {
     ilsa: findPlaceCenter("town square"),
   },
 };
-const items = loadTestItems();
+const items = loadItemCatalog(resolve(repositoryRoot, config.server.itemsPath), []);
 
 function makeSeedAgent(overrides: Partial<SeedAgent> = {}): SeedAgent {
   return {
