@@ -23,7 +23,7 @@ export function describeDistance(distanceTiles: number): string {
 }
 
 /**
- * "Tobias, next to you, looks hurt, carrying a knife (chopping wood)", or "Mara's body, a few
+ * "Tobias, next to you, looks in poor shape, carrying a knife (chopping wood)", or "Mara's body, a few
  * steps away" for someone lying dead in sight ("Mara's body, next to you, on fire").
  */
 function describeInSight(entry: AwarenessEntry): string {

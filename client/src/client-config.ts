@@ -284,7 +284,7 @@ export const clientConfig = {
   healthLevels: {
     upperBounds: [0.15, 0.35, 0.6, 0.9],
     alertLevelIndex: 1,
-    words: ["near death", "badly wounded", "hurt", "bruised", "unhurt"],
+    words: ["near death", "in a bad way", "in poor shape", "a little worse for wear", "unhurt"],
   },
 
   /** Words for each trait's low and high end, and how far from 0 each intensity starts. */

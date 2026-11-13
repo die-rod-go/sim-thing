@@ -106,6 +106,8 @@ export interface DecisionContext {
   mood: string;
   needs: Needs;
   health: number;
+  /** Going without food has begun to cost health. */
+  isStarvationHarming: boolean;
   /** Words for every condition the agent has. */
   conditionWords: string[];
   body: AgentBody;

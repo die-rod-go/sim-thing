@@ -245,7 +245,11 @@ export const config = {
     decisionThresholds: [0.5, 0.25],
     /** Others see an agent's health as words only once it drops below this. */
     visibleToOthersBelow: 0.9,
-    /** Checked in order like need words: the first whose `below` exceeds the value wins. */
+    /**
+     * Checked in order like need words: the first whose `below` exceeds the value wins. The words
+     * don't say what did the harm (a blow, a fire, hunger): the agent learns that from what it
+     * perceived, and others from what they see, like bleeding.
+     */
     words: [
       {
         below: 0.15,
@@ -257,16 +261,20 @@ export const config = {
       },
       {
         below: 0.35,
-        text: "badly wounded",
-        looks: "looks badly wounded",
-        urge: "your wounds throb and you feel faint",
+        text: "in a bad way",
+        looks: "looks in a bad way",
+        urge: "your body is failing and you feel faint",
         slowdown: 0.4,
         recallFailureChance: 0.1,
       },
-      { below: 0.6, text: "hurt", looks: "looks hurt" },
-      { below: 0.9, text: "bruised", looks: "looks bruised" },
+      { below: 0.6, text: "in poor shape", looks: "looks in poor shape" },
+      { below: 0.9, text: "a little worse for wear", looks: "looks a little worse for wear" },
       { below: Infinity, text: "unhurt", looks: "looks unhurt" },
     ] satisfies HealthWord[] as HealthWord[],
+    /** Added to the starving sentence once going without food has begun to cost health. */
+    starvationHarmText: "going without food is now wearing your body down",
+    /** The decision reason when health drops below one of `decisionThresholds`. */
+    worsenedDecisionReason: "my health getting worse",
   },
 
   stats: {

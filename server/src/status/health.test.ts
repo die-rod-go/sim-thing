@@ -90,6 +90,6 @@ describe("health thresholds and words", () => {
 
   it("only shows others' health once it drops below the visible threshold", () => {
     expect(describeHealthAsSeen(config.health.visibleToOthersBelow)).toBeNull();
-    expect(describeHealthAsSeen(0.3)).toBe("looks badly wounded");
+    expect(describeHealthAsSeen(0.3)).toBe("looks in a bad way");
   });
 });

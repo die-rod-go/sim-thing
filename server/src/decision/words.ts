@@ -8,6 +8,8 @@ import { findHealthWord } from "../status/health";
 export interface StatusView {
   health: number;
   needs: Needs;
+  /** Going without food has begun to cost health. */
+  isStarvationHarming?: boolean;
 }
 
 const NO_CONDITIONS: readonly string[] = [];
@@ -47,10 +49,14 @@ export function describeStatus(
       word: findNeedWord(needName, needs[needName]),
     })),
   ];
+  const hungerWord = findNeedWord("hunger", needs.hunger);
+  const harmText = status.isStarvationHarming === true ? config.health.starvationHarmText : null;
+  const describeUrge = (word: NeedWord) =>
+    word === hungerWord && harmText !== null ? `${word.urge ?? ""}; ${harmText}` : word.urge;
   const pressingSentences = needWords
     .filter((needWord) => needWord.word.urge !== undefined)
     .sort((first, second) => first.value - second.value)
-    .map((needWord) => `You are ${needWord.word.text}: ${needWord.word.urge ?? ""}.`);
+    .map((needWord) => `You are ${needWord.word.text}: ${describeUrge(needWord.word) ?? ""}.`);
   const otherWords = needWords
     .filter((needWord) => needWord.word.urge === undefined)
     .map((needWord) => needWord.word.text);

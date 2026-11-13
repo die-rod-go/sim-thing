@@ -18,7 +18,7 @@ import {
 } from "../memory/recall";
 import { findObviousListeners } from "../perception/listeners";
 import { listBodyWords } from "../status/conditions";
-import { describeHealthAsSeen, isDead } from "../status/health";
+import { computeStarvationDamage, describeHealthAsSeen, isDead } from "../status/health";
 import { findFailedRecall, readStatusView } from "../status/impairment";
 import { describeDoing } from "./action-phrases";
 import { getAgentRuntime } from "./agent-runtime";
@@ -185,6 +185,7 @@ export function buildDecisionContext(
     mood: agent.mood,
     needs: agent.needs,
     health: readAgentHealth(state.items, agent),
+    isStarvationHarming: computeStarvationDamage(agent, state.tick, minutesPerTick) > 0,
     conditionWords: listBodyWords(state.items, agent, false),
     body: agent.body,
     goals: agent.goals,

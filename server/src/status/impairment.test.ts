@@ -24,7 +24,7 @@ describe("impairment", () => {
   });
 
   it("counts a serious wound as slowing the agent down", () => {
-    expect(findSlowdown({ health: 0.2, needs: SATISFIED })?.statusWords).toBe("badly wounded");
+    expect(findSlowdown({ health: 0.2, needs: SATISFIED })?.statusWords).toBe("in a bad way");
   });
 
   it("fails recall only when the roll is under the fog chance", () => {

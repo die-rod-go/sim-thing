@@ -27,6 +27,7 @@ function buildContext(overrides: Partial<DecisionContext> = {}): DecisionContext
     mood: "busy but content",
     needs: { hunger: 0.4, energy: 0.9, social: 0.45, fun: 0.6 },
     health: 1,
+    isStarvationHarming: false,
     conditionWords: [],
     body: { sleepRecoveryPerHour: 0.15, strength: 0.7, agility: 0.3 },
     goals: [
@@ -86,23 +87,33 @@ describe("buildDecisionPrompt", () => {
     expect(describeStatus({ health: 0.7, needs })).toBe(
       "You are exhausted: you can barely keep your eyes open and need to find a bed to sleep. " +
         "You are very hungry: your stomach aches and you need to eat soon. " +
-        "Otherwise you are bruised, socially fulfilled and a bit bored.",
+        "Otherwise you are a little worse for wear, socially fulfilled and a bit bored.",
     );
   });
 
   it("lists the agent's own conditions next to its health", () => {
     const needs = { hunger: 0.4, energy: 0.9, social: 0.9, fun: 0.9 };
     expect(describeStatus({ health: 0.5, needs }, ["bleeding"])).toMatch(
-      /^You are hurt, bleeding, quite hungry, rested/,
+      /^You are in poor shape, bleeding, quite hungry, rested/,
     );
     const prompt = buildDecisionPrompt(buildContext({ conditionWords: ["poisoned"] }));
     expect(prompt).toContain("unhurt, poisoned, quite hungry");
   });
 
-  it("puts a serious wound first like a pressing need", () => {
+  it("puts serious harm first like a pressing need, without saying what caused it", () => {
     const needs = { hunger: 0.8, energy: 0.8, social: 0.8, fun: 0.8 };
     expect(describeStatus({ health: 0.3, needs })).toMatch(
-      /^You are badly wounded: your wounds throb and you feel faint\. Otherwise you are well fed/,
+      /^You are in a bad way: your body is failing and you feel faint\. Otherwise you are well fed/,
+    );
+  });
+
+  it("says when going without food has begun to cost health", () => {
+    const needs = { hunger: 0, energy: 0.8, social: 0.8, fun: 0.8 };
+    expect(describeStatus({ health: 0.5, needs, isStarvationHarming: true })).toMatch(
+      /^You are starving: you feel weak and shaky and need food now; going without food is now wearing your body down\. Otherwise you are in poor shape/,
+    );
+    expect(describeStatus({ health: 0.5, needs })).toMatch(
+      /^You are starving: you feel weak and shaky and need food now\. Otherwise/,
     );
   });
 
@@ -386,7 +397,7 @@ describe("describeAroundYou", () => {
           doing: "sitting",
           isDead: false,
           distanceTiles: null,
-          healthAsSeen: "looks hurt",
+          healthAsSeen: "looks in poor shape",
           visibleCarried: [],
           visibleConditions: [],
         },
@@ -406,9 +417,10 @@ describe("describeAroundYou", () => {
       whisperHearerIds: [],
     });
     expect(text).toBe(
-      ["In sight, would hear you: Bob, looks hurt (sitting).", "Also in sight: Mara's body."].join(
-        "\n",
-      ),
+      [
+        "In sight, would hear you: Bob, looks in poor shape (sitting).",
+        "Also in sight: Mara's body.",
+      ].join("\n"),
     );
   });
 
@@ -423,7 +435,7 @@ describe("describeAroundYou", () => {
           doing: "",
           isDead: false,
           distanceTiles: null,
-          healthAsSeen: "looks hurt",
+          healthAsSeen: "looks in poor shape",
           visibleCarried: [],
           visibleConditions: ["bleeding"],
         },
@@ -444,7 +456,7 @@ describe("describeAroundYou", () => {
     });
     expect(text).toBe(
       [
-        "In sight, would hear you: Tobias, looks hurt, bleeding.",
+        "In sight, would hear you: Tobias, looks in poor shape, bleeding.",
         "Also in sight: Mara's body, farther off, on fire.",
       ].join("\n"),
     );

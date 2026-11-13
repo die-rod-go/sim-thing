@@ -56,7 +56,7 @@ export function applyDamage(context: TickContext, agentId: string, damage: Damag
     rememberBriefly(state, agentId, config.health.wokeInPainText);
     requestDecision(runtime, config.health.wokeInPainText, true);
   } else if (findCrossedHealthThresholds(before, health).length > 0) {
-    requestDecision(runtime, "my wounds", true);
+    requestDecision(runtime, config.health.worsenedDecisionReason, true);
   }
 }
 

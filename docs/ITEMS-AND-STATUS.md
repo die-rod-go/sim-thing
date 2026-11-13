@@ -549,8 +549,10 @@ effects. `unless` skips the reaction if the receiver has that property or condit
   (default 0.1). An agent who starts the day fed and never eats dies after about two days.
 - **Regeneration:** `health.regenPerHourAwake` (0.01) and `health.regenPerHourAsleep` (0.04), only
   while hunger is above `health.regenHungerThreshold` (0.4). Healing items add on top.
-- **Prompt words:** "unhurt", "bruised", "hurt", "badly wounded", "near death", in config like need
-  words. Never numbers.
+- **Prompt words:** "unhurt", "a little worse for wear", "in poor shape", "in a bad way", "near
+  death", in config like need words. Never numbers. They don't name the cause (a blow, fire,
+  hunger); once starvation is draining health, the starving sentence says so
+  (`health.starvationHarmText`).
 - **Decisions:** health crossing a value in `health.decisionThresholds` (default `[0.5, 0.25]`) gives
   a decision, like a need crossing its threshold. Being attacked (hit or miss) always gives the
   target a decision. Any damage wakes a sleeper. A sleeper doesn't perceive the attack itself, only
@@ -596,8 +598,8 @@ Shown in the prompt next to needs ("Body and spirits: hurt and bleeding, quite h
 Visible conditions on others show in "Around you" ("Tobias, bleeding").
 
 Others' health shows there too, as words, once it drops below `health.visibleToOthersBelow`
-(default 0.9): "Tobias, looks badly wounded and bleeding". The observer words ("looks bruised",
-"looks hurt", "looks badly wounded", "looks near death") are in config beside the agent's own
+(default 0.9): "Tobias, looks in a bad way, bleeding". The observer words ("looks a little worse
+for wear", "looks in poor shape", "looks in a bad way", "looks near death") are in config beside the agent's own
 health words. Seeing it never gives a decision by itself.
 
 ### UI: the "Needs" section becomes "Status"
