@@ -12,8 +12,24 @@ function continueSentence(reason: string): string {
 }
 
 /**
+ * "I was already right next to them" as onlookers learn it: "they were already right next to
+ * them". The actor is already named in the sentence, so "they" needs no name repeated.
+ */
+export function describeReasonAsSeen(reason: string): string {
+  return reason
+    .replace(/\bI'm\b/g, "they're")
+    .replace(/\bI am\b/g, "they are")
+    .replace(/\bI was\b/g, "they were")
+    .replace(/\bI\b/g, "they")
+    .replace(/\bmyself\b/g, "themselves")
+    .replace(/\bmy\b/g, "their")
+    .replace(/\bme\b/g, "them");
+}
+
+/**
  * An act that couldn't be carried out fails in the world: the agent stops, an `action_failed`
- * event is broadcast (so the agent files "I tried to ... but ..." in `did` and onlookers see it),
+ * event is broadcast (so the agent files "I tried to ... but ..." in `did` and onlookers see the
+ * attempt and why it failed),
  * the text goes into working memory and is shown as the last failure in the next prompt. With no
  * current action, the agent gets a decision on the next decision phase.
  */
@@ -31,9 +47,14 @@ export function failAction(
   runtime.verbRun = null;
   const actorDescription = `tried to ${attempt} but ${continueSentence(reason)}`;
   runtime.lastFailure = `I ${actorDescription}`;
+  const description = config.combat.failedAttemptDescription
+    .split("{attempt}")
+    .join(attempt)
+    .split("{reason}")
+    .join(describeReasonAsSeen(continueSentence(reason)));
   const event = createEvent(state, agent, {
     kind: "action_failed",
-    description: config.combat.failedAttemptDescription.split("{attempt}").join(attempt),
+    description,
     actorDescription,
   });
   broadcastEvent(state, event, result);

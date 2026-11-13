@@ -274,7 +274,7 @@ describe("decision loop", () => {
     expect(secondPrompt).toContain(`What just went wrong: ${failure}`);
   });
 
-  it("keeps the giver's private reason out of what a bystander remembers", async () => {
+  it("lets a bystander remember why a give failed", async () => {
     const sim = createTestSim({
       agentIds: ["mara", "ilsa", "tobias"],
       responder: scriptByAgent({
@@ -289,8 +289,9 @@ describe("decision loop", () => {
     sim.placeAgent("tobias", { x: SQUARE.x, y: SQUARE.y + 1 });
     await sim.advance();
     const texts = memoriesOf(sim, "tobias").map((memory) => memory.text);
-    expect(texts).toContain("I saw that Mara tried to hand Ilsa 1 bread, but it didn't happen");
-    expect(texts.join(" ")).not.toContain("too far away");
+    expect(texts).toContain(
+      "I saw that Mara tried to hand Ilsa 1 bread, but Ilsa is too far away to hand anything to",
+    );
   });
 
   it("recall puts results in working memory and decides again in the same tick", async () => {
