@@ -52,7 +52,11 @@ function buildContext(overrides: Partial<DecisionContext> = {}): DecisionContext
     conversation: [{ speakerName: "Tom", words: "Morning, Mara!", minutesAgo: 2 }],
     recalledMemories: {},
     foggedBy: null,
-    knownPlaces: ["bakery", "farm", "town square"],
+    seenPlaces: [
+      { name: "bakery", entityNames: ["oven", "2 bread"], seenAt: null },
+      { name: "farm", entityNames: [], seenAt: "Day 1, 6:10 am" },
+      { name: "town square", entityNames: null, seenAt: null },
+    ],
     currentAction: null,
     isMidActionInterrupt: false,
     decisionReason: null,
@@ -481,16 +485,36 @@ describe("describeAroundYou", () => {
   });
 });
 
+describe("places you have seen", () => {
+  it("lists each seen place with what it held and when, marking one not yet looked into", () => {
+    const prompt = buildDecisionPrompt(buildContext());
+    expect(prompt).toContain(
+      [
+        "## Places you have seen",
+        "- bakery (in view now): oven, 2 bread",
+        "- farm (as of Day 1, 6:10 am): nothing",
+        "- town square (not yet looked into)",
+      ].join("\n"),
+    );
+  });
+
+  it("says so when no place has been seen", () => {
+    const prompt = buildDecisionPrompt(buildContext({ seenPlaces: [] }));
+    expect(prompt).toContain("## Places you have seen\nNone yet.");
+  });
+});
+
 describe("buildCacheableDecisionPrompt", () => {
   it("puts what is the same for every agent before the first cache breakpoint", () => {
     const { text, cacheBreakpoints } = buildCacheableDecisionPrompt(buildContext());
-    const [sharedEnd, perAgentEnd] = cacheBreakpoints;
-    expect(cacheBreakpoints).toHaveLength(2);
+    const [sharedEnd, perAgentEnd, placesEnd] = cacheBreakpoints;
+    expect(cacheBreakpoints).toHaveLength(3);
     expect(text.slice(0, sharedEnd)).toContain("## What you can do");
     expect(text.slice(0, sharedEnd)).toContain("## Reply");
     expect(text.slice(0, sharedEnd)).not.toContain("## Who you are");
     expect(text.slice(sharedEnd, perAgentEnd)).toContain("## Goals and plans");
-    expect(text.slice(perAgentEnd)).toContain("## Now");
+    expect(text.slice(perAgentEnd, placesEnd)).toContain("## Places you have seen");
+    expect(text.slice(placesEnd)).toContain("## Now");
     expect(text).not.toContain("<<<cache>>>");
   });
 

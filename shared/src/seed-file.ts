@@ -32,6 +32,8 @@ export const seedAgentSchema = z.object({
     }),
   ),
   peopleNotes: z.record(z.string(), z.string()),
+  /** Names of the map's places the character has already seen when the sim starts. */
+  seenPlaces: z.array(z.string()),
 });
 
 /** The shape of `seeds/agents.json`. Value rules that need the map or config are in `findSeedFileProblems`. */
@@ -49,6 +51,8 @@ export interface SeedRules {
   agentsWithStartTiles: string[];
   /** What an inventory may hold: every definition in `items.json` but the agents' body. */
   inventoryItems: { id: string; name: string }[];
+  /** The map's place names: what a character's seen places may name. */
+  placeNames: string[];
 }
 
 export type SeedProblemSeverity = "error" | "warning";
@@ -171,6 +175,22 @@ function findPeopleNoteProblems(
   });
 }
 
+function findSeenPlaceProblems(
+  agent: SeedAgent,
+  agentIndex: number,
+  rules: SeedRules,
+): SeedProblem[] {
+  const placeNames = new Set(rules.placeNames);
+  return agent.seenPlaces
+    .filter((placeName) => !placeNames.has(placeName))
+    .map((placeName) => ({
+      severity: "error",
+      agentIndex,
+      field: "seenPlaces",
+      message: `"${placeName}" is not a place on the map.`,
+    }));
+}
+
 function findDuplicateProblems(agents: readonly SeedAgent[]): SeedProblem[] {
   const problems: SeedProblem[] = [];
   const firstIndexById = new Map<string, number>();
@@ -223,6 +243,7 @@ export function findSeedFileProblems(seedFile: SeedFile, rules: SeedRules): Seed
       ...findStatProblems(agent, agentIndex, rules),
       ...findStartingStateProblems(agent, agentIndex, rules),
       ...findPeopleNoteProblems(agent, agentIndex, knownNames),
+      ...findSeenPlaceProblems(agent, agentIndex, rules),
     ]),
   ];
 }

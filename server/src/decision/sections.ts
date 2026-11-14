@@ -11,6 +11,7 @@ import type {
   PersonOnMind,
   PromptEntityGroup,
   RecalledMemory,
+  SeenPlaceLine,
 } from "./context";
 
 const NOTHING = "Nothing.";
@@ -74,6 +75,24 @@ export function describeBelongings(groups: PromptEntityGroup[], itemlessVerbs: s
   return itemlessVerbs.length > 0
     ? `${belongings}\nYou can also: ${itemlessVerbs.join(", ")}.`
     : belongings;
+}
+
+function describeSeenPlace(place: SeenPlaceLine): string {
+  const texts = config.places.promptTexts;
+  if (place.entityNames === null) return texts.notLookedInto.split("{place}").join(place.name);
+  const template = place.seenAt === null ? texts.inViewNow : texts.seenEarlier;
+  return template
+    .split("{place}")
+    .join(place.name)
+    .split("{time}")
+    .join(place.seenAt ?? "")
+    .split("{entities}")
+    .join(place.entityNames.length > 0 ? place.entityNames.join(", ") : texts.nothingThere);
+}
+
+/** The bullet list under "Places you have seen". */
+export function describeSeenPlaces(places: SeenPlaceLine[]): string {
+  return bulletList(places.map(describeSeenPlace), config.places.promptTexts.noneSeen);
 }
 
 export function describeWorkingMemory(workingMemory: string[]): string {

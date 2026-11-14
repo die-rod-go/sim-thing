@@ -33,6 +33,7 @@ export function makeAgent(overrides: Partial<Agent> = {}): Agent {
     workingMemory: [],
     awareness: {},
     dossiers: {},
+    seenPlaces: [],
     lastThought: null,
     ...overrides,
   };

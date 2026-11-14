@@ -51,6 +51,7 @@ function makeSeedAgent(overrides: Partial<SeedAgent> = {}): SeedAgent {
       { text: "Bake every day", why: "It is my job", progress: "Not started", kind: "world" },
     ],
     peopleNotes: {},
+    seenPlaces: [],
     ...overrides,
   };
 }

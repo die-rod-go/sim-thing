@@ -27,6 +27,12 @@ export function nullableJsonEnum(values: readonly string[]): JsonSchema {
     : { type: "null" };
 }
 
+/** Any string or null, with the names a reply would usually use listed first. */
+export function nullableJsonStringOffering(names: readonly string[]): JsonSchema {
+  if (names.length === 0) return nullableJsonString();
+  return { anyOf: [{ type: "string", enum: [...names] }, { type: "string" }, { type: "null" }] };
+}
+
 export function nullableJsonObject(schema: JsonSchema): JsonSchema {
   return { anyOf: [schema, { type: "null" }] };
 }

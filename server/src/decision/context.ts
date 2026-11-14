@@ -90,6 +90,15 @@ export interface RecalledMemory {
   minutesAgo: number;
 }
 
+/** One entry of "Places you have seen". */
+export interface SeenPlaceLine {
+  name: string;
+  /** What was there when last seen; null when the agent has not looked into the place yet. */
+  entityNames: string[] | null;
+  /** When the inside was last seen ("Day 1, 6:30 am"); null while it is in view now. */
+  seenAt: string | null;
+}
+
 export interface CurrentActionSummary {
   /** e.g. "baking bread at the oven". */
   description: string;
@@ -130,7 +139,7 @@ export interface DecisionContext {
   recalledMemories: Partial<Record<Bucket, RecalledMemory[]>>;
   /** What kept memories from coming to mind this decision ("exhausted"), or null. */
   foggedBy: string | null;
-  knownPlaces: string[];
+  seenPlaces: SeenPlaceLine[];
   currentAction: CurrentActionSummary | null;
   /** True for a perception interrupt during an action; only then is `continue` offered. */
   isMidActionInterrupt: boolean;

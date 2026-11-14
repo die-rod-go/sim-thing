@@ -459,6 +459,21 @@ export const config = {
     nothingToRead: "There was nothing to read on the {thing}",
   },
 
+  places: {
+    /** How labelled things that differ only by a trailing number read together: "tree ×32". */
+    numberedLabelsText: "{label} ×{count}",
+    /** The lines of "Places you have seen". `{time}` is absolute, so the section stays cacheable. */
+    promptTexts: {
+      noneSeen: "None yet.",
+      notLookedInto: "{place} (not yet looked into)",
+      inViewNow: "{place} (in view now): {entities}",
+      seenEarlier: "{place} (as of {time}): {entities}",
+      nothingThere: "nothing",
+    },
+    /** Why a `walk_to` fails when its target is no place, no one in sight and nothing here. */
+    unknownWalkTargetReason: "no place with that name exists",
+  },
+
   walking: {
     /** A walker whose way stays blocked by other agents this many ticks gives up the walk. */
     blockedGiveUpTicks: 5,
@@ -653,8 +668,6 @@ export const config = {
      * and asked again). `{name}` is the name as the reply wrote it.
      */
     unknownNameTexts: {
-      walkTarget:
-        "I wanted to go to {name}, but I don't know of any place by that name, and no one by that name is in sight",
       thing: "I looked for {name}, but there was nothing and no one by that name here or on me",
     },
     /** "Current conversation" shows at most this many of the conversation's latest lines. */

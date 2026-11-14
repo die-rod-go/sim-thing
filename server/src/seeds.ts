@@ -10,6 +10,7 @@ import {
   type Needs,
   type Position,
   type SeedAgent,
+  type SeenPlace,
   type SeedFile,
   type SeedProblem,
   type SeedRules,
@@ -17,6 +18,7 @@ import {
 import { config } from "./config";
 import { resolveName } from "./decision/resolve-name";
 import { createEntity, locateInside, type EntityWorld } from "./items/entity-store";
+import { listPlaceEntityNames } from "./sim/place-sighting";
 import { findPlaceAt } from "./world/map-loader";
 import { findNearestFreeTile } from "./world/pathfinding";
 import { tileIndex, type WorldMap } from "./world/types";
@@ -57,6 +59,7 @@ export function buildNewAgentTemplate(): SeedAgent {
     mood: "",
     goals: [],
     peopleNotes: {},
+    seenPlaces: [],
   };
 }
 
@@ -67,6 +70,7 @@ export function buildSeedRules(map: WorldMap, items: ItemCatalog): SeedRules {
     sleepRecoveryRange: { ...config.seeds.sleepRecoveryRange },
     agentsWithStartTiles: Object.keys(map.startTiles).sort(),
     inventoryItems: listInventoryItems(items),
+    placeNames: map.places.map((place) => place.name),
   };
 }
 
@@ -132,6 +136,7 @@ function buildAgent(
     workingMemory: [],
     awareness: {},
     dossiers,
+    seenPlaces: [],
     lastThought: null,
   };
 }
@@ -165,9 +170,18 @@ function seedEntities(seedFile: SeedFile, map: WorldMap, world: EntityWorld): vo
   }
 }
 
+/** Each seeded place starts with what is really there at tick 0. */
+function buildSeenPlaces(seed: SeedAgent, world: EntityWorld): SeenPlace[] {
+  return [...new Set(seed.seenPlaces)].map((placeName) => ({
+    name: placeName,
+    firstSeenTick: 0,
+    entities: { tick: 0, names: listPlaceEntityNames(world, placeName) },
+  }));
+}
+
 /**
- * Builds the starting agents, with their seeded dossiers, and the entities: the map's objects
- * and everyone's starting inventory. Throws on any seed error.
+ * Builds the starting agents, with their seeded dossiers and seen places, and the entities: the
+ * map's objects and everyone's starting inventory. Throws on any seed error.
  */
 export function buildSeededWorld(
   seedFile: SeedFile,
@@ -187,6 +201,10 @@ export function buildSeededWorld(
   );
   const world: EntityWorld = { agents, entities: [], nextEntityId: 1, items };
   seedEntities(seedFile, map, world);
+  seedFile.agents.forEach((seed, agentIndex) => {
+    const agent = agents[agentIndex];
+    if (agent) agents[agentIndex] = { ...agent, seenPlaces: buildSeenPlaces(seed, world) };
+  });
   return {
     agents,
     entities: world.entities,

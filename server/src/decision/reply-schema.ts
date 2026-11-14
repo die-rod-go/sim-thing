@@ -3,6 +3,7 @@ import { z } from "zod";
 import type { JsonSchema } from "../llm/types";
 import type { DecisionTargets, ValidItem } from "./context";
 import { listOfferedActions } from "./decision-prompt";
+import { normalizeDisplayName } from "./resolve-name";
 import { listTargetNames } from "./sections";
 import {
   aliasedNameEnum,
@@ -12,6 +13,7 @@ import {
   nullableJsonEnum,
   nullableJsonInteger,
   nullableJsonString,
+  nullableJsonStringOffering,
   strictJsonObject,
 } from "./schema-fields";
 
@@ -56,7 +58,8 @@ function buildDecisionJsonSchema(
     verb: nullableJsonString(),
     item: nameField(itemNames),
     from: nameField(holderNames),
-    target: nameField(targetNames),
+    // `walk_to` takes any name, so the names are only offered; zod checks the other actions' targets.
+    target: isStable ? nullableJsonString() : nullableJsonStringOffering(targetNames),
     text: nullableJsonString(),
     amount: nullableJsonInteger(),
     query: nullableJsonString(),
@@ -81,9 +84,35 @@ function requireFieldsForAction(reply: DecisionReply, context: z.RefinementCtx):
 }
 
 /**
- * The decision reply as a zod schema plus the matching strict JSON schema. `action`, `target` and
- * `item` and `from` are enums of what is valid right now, so a structured-output provider can't produce
- * anything else; `item` also accepts plurals ("coins").
+ * A target must be one of the names valid right now, and parses to that name's spelling. Only
+ * `walk_to` takes any name: an agent may set out for a place it has only heard of.
+ */
+function checkTarget(targetNames: readonly string[]) {
+  const canonicalByNormalized = new Map(
+    targetNames.map((name) => [normalizeDisplayName(name), name] as const),
+  );
+  const findCanonical = (target: string) => canonicalByNormalized.get(normalizeDisplayName(target));
+  return {
+    refine(reply: DecisionReply, context: z.RefinementCtx): void {
+      if (reply.target === undefined || reply.action === "walk_to") return;
+      if (findCanonical(reply.target) !== undefined) return;
+      context.addIssue({
+        code: "custom",
+        path: ["target"],
+        message: `target must be one of: ${targetNames.join(", ")}`,
+      });
+    },
+    canonicalize(reply: DecisionReply): DecisionReply {
+      if (reply.target === undefined) return reply;
+      return { ...reply, target: findCanonical(reply.target) ?? reply.target };
+    },
+  };
+}
+
+/**
+ * The decision reply as a zod schema plus the matching strict JSON schema. `action`, `item` and
+ * `from` are enums of what is valid right now, so a structured-output provider can't produce
+ * anything else; `item` also accepts plurals ("coins"). `target` is checked by zod alone.
  */
 export function buildDecisionReplySchema(
   validTargets: DecisionTargets,
@@ -98,6 +127,7 @@ export function buildDecisionReplySchema(
   const itemAliases = new Map(
     validItems.flatMap((item) => (item.plural ? [[item.plural, item.name] as const] : [])),
   );
+  const targetCheck = checkTarget(targetNames);
   const replyObject = z
     .object({
       thought: z.string().trim().min(1),
@@ -108,7 +138,7 @@ export function buildDecisionReplySchema(
       verb: z.string().trim().optional(),
       item: aliasedNameEnum(itemNames, itemAliases, "item").optional(),
       from: displayNameEnum(validHolders, "from").optional(),
-      target: displayNameEnum(targetNames, "target").optional(),
+      target: z.string().trim().optional(),
       text: z.string().trim().optional(),
       amount: z.number().int().positive().optional(),
       query: z.string().trim().optional(),
@@ -116,7 +146,9 @@ export function buildDecisionReplySchema(
       mood: z.string().trim().optional(),
       stepDone: z.number().int().optional(),
     })
-    .superRefine(requireFieldsForAction);
+    .superRefine(requireFieldsForAction)
+    .superRefine(targetCheck.refine)
+    .transform(targetCheck.canonicalize);
   return {
     schema: z.preprocess(dropEmptyFields, replyObject),
     jsonSchema: buildDecisionJsonSchema(

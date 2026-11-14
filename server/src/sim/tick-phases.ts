@@ -14,6 +14,7 @@ import { writeField } from "../items/thing-writes";
 import { wakeAgent } from "./action-stopping";
 import { WAIT_ACTION, WALK_ACTION, describeDoing } from "./action-phrases";
 import { getAgentRuntime, requestDecision } from "./agent-runtime";
+import { lookAtPlaces } from "./place-sighting";
 import { NO_RULE_CAUSE } from "./rule-cause";
 import { expireComponents, runEveryRules } from "./rule-timers";
 import type { TickContext } from "./tick-context";
@@ -107,9 +108,12 @@ export function progressActions(context: TickContext): void {
   }
 }
 
-/** Phase 3a: everyone's awareness is refreshed from sight; someone newly in view interrupts. */
+/**
+ * Phase 3a: everyone's awareness and seen places are refreshed from sight; someone newly in view
+ * interrupts.
+ */
 export function updateSight(context: TickContext): void {
-  const { state } = context;
+  const { state, result } = context;
   const world = buildPerceptionWorld(state);
   const observed = state.agents.filter(isBodyInWorld).map((agent) => ({
     agentId: agent.id,
@@ -121,7 +125,13 @@ export function updateSight(context: TickContext): void {
     const agent = findAgent(state, agentId);
     const runtime = getAgentRuntime(state, agentId);
     const sighted = observeAgents(world, toPerceiver(agent), observed, state.tick);
-    replaceAgent(state, { ...agent, awareness: mergeAwareness(agent.awareness, sighted) });
+    const places = lookAtPlaces(state, world, agent);
+    replaceAgent(state, {
+      ...agent,
+      awareness: mergeAwareness(agent.awareness, sighted),
+      seenPlaces: places.seenPlaces,
+    });
+    if (places.hasNewKnowledge) markAgentChanged(result, agentId);
     const visibleIds = listVisibleAgentIds(state, world, agent);
     const newlyVisible = detectNewPerceptions(runtime.visibleAgentIds, visibleIds);
     if (newlyVisible.length > 0) {

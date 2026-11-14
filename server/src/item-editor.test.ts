@@ -32,6 +32,7 @@ const seedAgent = {
   mood: "",
   goals: [],
   peopleNotes: {},
+  seenPlaces: [],
 };
 
 describe("item editor", () => {

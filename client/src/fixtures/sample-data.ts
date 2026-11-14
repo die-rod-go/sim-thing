@@ -53,6 +53,7 @@ export function makeSampleAgent(id: string, name: string, x: number, y: number):
     workingMemory: [],
     awareness: {},
     dossiers: {},
+    seenPlaces: [],
     lastThought: { text: `${name} wonders whether anyone wants bread today.`, tick: 28 },
   };
 }

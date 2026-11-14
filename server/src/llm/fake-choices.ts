@@ -77,6 +77,20 @@ export function parseThingList(prompt: string, header: string, itemNames: string
   return things;
 }
 
+/** The names opening each bullet under `header`: "- bakery (in view now): oven" → "bakery". */
+function readBulletNames(prompt: string, header: string): string[] {
+  const lines = prompt.split("\n");
+  const start = lines.findIndex((candidate) => candidate.startsWith(header));
+  if (start === -1) return [];
+  const names: string[] = [];
+  for (const line of lines.slice(start + 1)) {
+    const text = line.match(BULLET_PATTERN)?.[2];
+    if (text === undefined) break;
+    names.push((text.split(" (")[0] ?? "").trim());
+  }
+  return names;
+}
+
 function groupVerbsByName(things: ListedThing[]): Map<string, string[]> {
   return new Map(
     things.filter((thing) => thing.from === null).map((thing) => [thing.name, thing.verbs]),
@@ -116,9 +130,7 @@ export function readDecisionChoices(schema: JsonSchema, prompt: string): Decisio
     items,
     holders: readEnum(schema, "from"),
     insideThings: [...hereThings, ...carriedThings].filter((thing) => thing.from !== null),
-    places: (readLine(prompt, "Places you know: ") ?? "")
-      .split(", ")
-      .filter((name) => targets.has(name)),
+    places: readBulletNames(prompt, "## Places you have seen").filter((name) => targets.has(name)),
     currentPlace: (readLine(prompt, "You are at the ") ?? "").replace(/\.$/, ""),
     objects: groupVerbsByName(hereThings),
     heldItems: groupVerbsByName(carriedThings),

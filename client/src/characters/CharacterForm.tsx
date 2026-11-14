@@ -18,7 +18,7 @@ import {
   TextInput,
   TraitSlider,
 } from "./fields";
-import { GoalsEditor, InventoryEditor, PeopleNotesEditor } from "./list-editors";
+import { GoalsEditor, InventoryEditor, PeopleNotesEditor, SeenPlacesEditor } from "./list-editors";
 import { selectFieldProblems } from "./seed-edits";
 
 interface CharacterFormProps {
@@ -228,7 +228,7 @@ interface SectionProps {
 }
 
 export function CharacterForm(props: CharacterFormProps) {
-  const { seedFile, agentIndex, problems, onChange } = props;
+  const { seedFile, agentIndex, rules, problems, onChange } = props;
   const agent = seedFile.agents[agentIndex];
   if (!agent) return null;
   const sectionProps: SectionProps = { ...props, agent };
@@ -254,6 +254,17 @@ export function CharacterForm(props: CharacterFormProps) {
           agent={agent}
           problems={problems}
           onChange={onChange}
+        />
+      </FormSection>
+      <FormSection
+        title="Places seen"
+        description="The places they already know on day 1, each with what is really there. Any other place they learn by seeing it."
+      >
+        <SeenPlacesEditor
+          agent={agent}
+          problems={problems}
+          onChange={onChange}
+          placeNames={rules.placeNames}
         />
       </FormSection>
     </div>

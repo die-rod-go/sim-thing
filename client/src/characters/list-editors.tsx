@@ -228,3 +228,45 @@ export function PeopleNotesEditor({
     </div>
   );
 }
+
+/** The map's places as a multi-select: the ones ticked are already seen when the sim starts. */
+export function SeenPlacesEditor({
+  agent,
+  problems,
+  onChange,
+  placeNames,
+}: AgentEditorProps & { placeNames: readonly string[] }) {
+  const seenNames = new Set(agent.seenPlaces);
+  const offMapNames = agent.seenPlaces.filter((placeName) => !placeNames.includes(placeName));
+  const setSeen = (placeName: string, isSeen: boolean) =>
+    onChange({
+      ...agent,
+      seenPlaces: [...placeNames, ...offMapNames].filter((candidate) =>
+        candidate === placeName ? isSeen : seenNames.has(candidate),
+      ),
+    });
+  const setAll = (isSeen: boolean) =>
+    onChange({ ...agent, seenPlaces: isSeen ? [...placeNames] : [] });
+  return (
+    <div className="row-list">
+      {placeNames.length === 0 && <p className="muted">The map has no places yet.</p>}
+      <div className="place-options">
+        {[...placeNames, ...offMapNames].map((placeName) => (
+          <label className="place-option" key={placeName}>
+            <input
+              type="checkbox"
+              checked={seenNames.has(placeName)}
+              onChange={(event) => setSeen(placeName, event.target.checked)}
+            />
+            {placeName}
+          </label>
+        ))}
+      </div>
+      <div className="place-actions">
+        <button onClick={() => setAll(true)}>All</button>
+        <button onClick={() => setAll(false)}>None</button>
+      </div>
+      <ProblemList problems={selectFieldProblems(problems, "seenPlaces")} />
+    </div>
+  );
+}

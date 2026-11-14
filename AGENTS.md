@@ -86,9 +86,9 @@ need one, ask first.
 ## Tests
 
 - Tests never call a real LLM. Use the fake LLM client with fixed replies.
-- Cover the code-driven core with unit tests: perception (sight and sound), memory filing, recall
-  scoring, forgetting, needs decay, each step type, the verb runner, rules, matchers, `items.json`
-  validation and `give`.
+- Cover the code-driven core with unit tests: perception (sight and sound), seen places, memory
+  filing, recall scoring, forgetting, needs decay, each step type, the verb runner, rules,
+  matchers, `items.json` validation and `give`.
 - Name tests by behavior: `"muffles speech heard through a closed door"`.
 
 ## Errors and logging
@@ -115,6 +115,7 @@ need one, ask first.
 | strength       | A memory's 0–1 weight; fades by half-life, bumped by recall                           |
 | awareness      | The structured record of when each other agent was last perceived                     |
 | earshot        | Whether the sound simulation lets a listener hear a sound                             |
+| seen place     | A place the agent has seen, with the entities it held when last looked into           |
 | needs          | Hunger, energy, social, fun (0–1, 1 = satisfied)                                      |
 | reflection     | The morning, daytime, night and weekly LLM passes                                     |
 | component      | A named set of typed fields declared in `items.json`. With no fields it is a tag      |

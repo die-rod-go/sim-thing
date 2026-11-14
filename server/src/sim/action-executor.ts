@@ -107,7 +107,7 @@ function executeWalk(context: TickContext, agentId: string, targetName: string):
     result,
     agentId,
     `walk to ${targetName}`,
-    "I don't know of any place by that name, and no one and nothing by that name is in sight",
+    config.places.unknownWalkTargetReason,
   );
 }
 

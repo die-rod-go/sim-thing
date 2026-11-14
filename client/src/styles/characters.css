@@ -321,3 +321,20 @@ select {
   display: flex;
   gap: 6px;
 }
+
+.place-options {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px 14px;
+}
+
+.place-option {
+  display: flex;
+  align-items: center;
+  gap: 5px;
+}
+
+.place-actions {
+  display: flex;
+  gap: 6px;
+}

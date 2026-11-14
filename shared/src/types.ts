@@ -115,8 +115,26 @@ export interface Agent {
   awareness: Record<string, Awareness>;
   /** What the agent holds about each other person, keyed by their agent id; rewritten whole. */
   dossiers: Record<string, Dossier>;
+  /** The places the agent has seen, in the order it first saw them. */
+  seenPlaces: SeenPlace[];
   /** The `thought` from the agent's latest decision, for the viewer; never shown to agents. */
   lastThought: AgentThought | null;
+}
+
+/** What was at a place when the agent last saw inside it. */
+export interface SeenPlaceEntities {
+  /** The last tick the inside of the place was in view. */
+  tick: number;
+  /** Placed objects and ground items, collapsed for reading: "oven", "3 bread", "tree ×32". */
+  names: string[];
+}
+
+/** A place the agent has seen. */
+export interface SeenPlace {
+  name: string;
+  firstSeenTick: number;
+  /** Null while the agent has only seen the place from outside. */
+  entities: SeenPlaceEntities | null;
 }
 
 export interface Dossier {

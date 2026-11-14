@@ -32,6 +32,7 @@ function buildSeedAgent(name: string, overrides: Partial<SeedAgent> = {}): SeedA
     mood: "",
     goals: [],
     peopleNotes: {},
+    seenPlaces: [],
     ...overrides,
   };
 }

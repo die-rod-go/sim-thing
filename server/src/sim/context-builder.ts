@@ -239,7 +239,14 @@ export function buildDecisionContext(
           )
         : {},
     foggedBy: fog?.statusWords ?? null,
-    knownPlaces: state.map.places.map((place) => place.name),
+    seenPlaces: agent.seenPlaces.map((seenPlace) => ({
+      name: seenPlace.name,
+      entityNames: seenPlace.entities?.names ?? null,
+      seenAt:
+        seenPlace.entities === null || seenPlace.entities.tick === state.tick
+          ? null
+          : formatSimTime(seenPlace.entities.tick, config.clock),
+    })),
     currentAction:
       action === null
         ? null

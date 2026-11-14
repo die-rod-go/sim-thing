@@ -61,11 +61,21 @@ describe("buildDecisionReplySchema", () => {
     expect(jsonSchema.properties).not.toHaveProperty("note");
   });
 
+  it("lets walk_to name anything, keeping the spelling of a name it knows", () => {
+    const { schema, jsonSchema } = buildDecisionReplySchema(targets, items, holders);
+    const walk = { thought: "Go.", intention: "go", action: "walk_to" };
+    expect(schema.parse({ ...walk, target: "brewery" }).target).toBe("brewery");
+    expect(schema.parse({ ...walk, target: "The Bakery" }).target).toBe("bakery");
+    const properties = jsonSchema.properties as Record<string, { anyOf: unknown[] }>;
+    expect(properties.target?.anyOf).toContainEqual({ type: "string" });
+  });
+
   it("validates action enums against current targets", () => {
     const { schema, jsonSchema } = buildDecisionReplySchema(targets, items, holders);
     const walk = { thought: "Go.", intention: "go", action: "walk_to" };
     expect(schema.safeParse({ ...walk, target: "The Bakery" }).success).toBe(true);
-    expect(schema.safeParse({ ...walk, target: "brewery" }).success).toBe(false);
+    const give = { ...walk, action: "give", item: "bread", amount: 1 };
+    expect(schema.safeParse({ ...give, target: "Zed" }).success).toBe(false);
     expect(schema.safeParse({ ...walk, action: "fly", target: "bakery" }).success).toBe(false);
     expect(schema.safeParse({ ...walk, action: "continue" }).success).toBe(false);
     const properties = jsonSchema.properties as Record<string, unknown>;

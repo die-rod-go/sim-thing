@@ -16,6 +16,7 @@ const rules: SeedRules = {
     { id: "bread", name: "bread" },
     { id: "coin", name: "coin" },
   ],
+  placeNames: ["bakery", "town square"],
 };
 
 function buildSeedAgent(overrides: Partial<SeedAgent> = {}): SeedAgent {
@@ -39,6 +40,7 @@ function buildSeedAgent(overrides: Partial<SeedAgent> = {}): SeedAgent {
     mood: "",
     goals: [],
     peopleNotes: {},
+    seenPlaces: [],
     ...overrides,
   };
 }
@@ -126,6 +128,12 @@ describe("findSeedFileProblems", () => {
     );
     expect(problems.map((problem) => problem.severity)).toEqual(["warning", "error"]);
     expect(hasSeedErrors(problems)).toBe(true);
+  });
+
+  it("rejects a seen place that is not on the map", () => {
+    expect(listFields([buildSeedAgent({ seenPlaces: ["bakery", "castle"] })])).toEqual([
+      "seenPlaces",
+    ]);
   });
 
   it("matches people notes to characters by name, ignoring case", () => {

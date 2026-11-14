@@ -52,6 +52,7 @@ const agent = {
   workingMemory: [],
   awareness: {},
   dossiers: {},
+  seenPlaces: [],
   lastThought: null,
 };
 
@@ -69,6 +70,7 @@ const seedAgent = {
   mood: "",
   goals: [],
   peopleNotes: {},
+  seenPlaces: [],
 };
 
 /** Collects messages from one client and lets a test wait for a given type. */

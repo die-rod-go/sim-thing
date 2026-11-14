@@ -1,10 +1,12 @@
 import {
   NEED_NAMES,
   buildDefinitionNamer,
+  formatSimTime,
   listComponentWords,
   readAgentHealth,
   resolveBodyComponents,
   type Agent,
+  type SeenPlace,
 } from "@village/shared";
 import { describeDeath } from "../format/character-sheet";
 import { groupCarriedItems } from "../format/item-data";
@@ -50,6 +52,23 @@ function StatusSection({ agent }: { agent: Agent }) {
   );
 }
 
+function SeenPlaceRow({ seenPlace }: { seenPlace: SeenPlace }) {
+  const { state } = usePanelContext();
+  const { entities } = seenPlace;
+  return (
+    <div className="goal">
+      <div className="goal-text">{seenPlace.name}</div>
+      {entities === null ? (
+        <div className="goal-why">not yet looked into</div>
+      ) : (
+        <div className="goal-why" title={formatSimTime(entities.tick, state.timeSettings)}>
+          {entities.names.length > 0 ? entities.names.join(", ") : "nothing there"}
+        </div>
+      )}
+    </div>
+  );
+}
+
 export function OverviewTab({ agent }: { agent: Agent }) {
   const { state } = usePanelContext();
   const carrying = groupCarriedItems(agent.id, state.entities, state.catalog);
@@ -90,6 +109,12 @@ export function OverviewTab({ agent }: { agent: Agent }) {
             )}
             {plan.keepFrom && <div className="goal-why">kept from {plan.keepFrom}</div>}
           </div>
+        ))}
+      </PanelSection>
+      <PanelSection title="Places seen">
+        {agent.seenPlaces.length === 0 && <EmptyNote>None yet.</EmptyNote>}
+        {agent.seenPlaces.map((seenPlace) => (
+          <SeenPlaceRow key={seenPlace.name} seenPlace={seenPlace} />
         ))}
       </PanelSection>
       <PanelSection title="Today's plan">

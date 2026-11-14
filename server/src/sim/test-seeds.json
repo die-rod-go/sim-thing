@@ -49,7 +49,19 @@
         "Bram": "Quiet woodcutter. Kind. I need his wood for the oven.",
         "Tobias": "Runs the tavern. Charming, but I owe him 15 coins and he knows it.",
         "Ilsa": "A stranger who arrived in the village yesterday. Don't know anything about her."
-      }
+      },
+      "seenPlaces": [
+        "rose cottage",
+        "ivy cottage",
+        "stone cottage",
+        "willow cottage",
+        "hill cottage",
+        "bakery",
+        "tavern",
+        "town square",
+        "farm",
+        "woodlot"
+      ]
     },
     {
       "id": "edwin",
@@ -92,7 +104,19 @@
         "Bram": "Woodcutter. Keeps to himself. Decent man.",
         "Tobias": "Tavern keeper. Talks too much, but he buys wheat for his ale.",
         "Ilsa": "Some stranger who showed up yesterday. Keep an eye on her."
-      }
+      },
+      "seenPlaces": [
+        "rose cottage",
+        "ivy cottage",
+        "stone cottage",
+        "willow cottage",
+        "hill cottage",
+        "bakery",
+        "tavern",
+        "town square",
+        "farm",
+        "woodlot"
+      ]
     },
     {
       "id": "wren",
@@ -141,7 +165,19 @@
         "Bram": "Woodcutter. Shy but sweet. Might be an ally.",
         "Tobias": "Tavern keeper. Fun, knows everyone's business.",
         "Ilsa": "Newcomer, arrived yesterday. Seemed interesting. Maybe a friend?"
-      }
+      },
+      "seenPlaces": [
+        "rose cottage",
+        "ivy cottage",
+        "stone cottage",
+        "willow cottage",
+        "hill cottage",
+        "bakery",
+        "tavern",
+        "town square",
+        "farm",
+        "woodlot"
+      ]
     },
     {
       "id": "bram",
@@ -184,7 +220,19 @@
         "Wren": "Farmer. Very chatty, a bit much, but kind.",
         "Tobias": "Tavern keeper. Buys wood for brewing. He'd sell his mother for a coin.",
         "Ilsa": "Newcomer. Haven't met her yet."
-      }
+      },
+      "seenPlaces": [
+        "rose cottage",
+        "ivy cottage",
+        "stone cottage",
+        "willow cottage",
+        "hill cottage",
+        "bakery",
+        "tavern",
+        "town square",
+        "farm",
+        "woodlot"
+      ]
     },
     {
       "id": "tobias",
@@ -234,7 +282,19 @@
         "Wren": "Lively farmer. Good company at the card table.",
         "Bram": "Woodcutter. Hardly says a word. Reliable for wood.",
         "Ilsa": "Newcomer. I offered her the spare bed in the tavern. Wants something; not sure what."
-      }
+      },
+      "seenPlaces": [
+        "rose cottage",
+        "ivy cottage",
+        "stone cottage",
+        "willow cottage",
+        "hill cottage",
+        "bakery",
+        "tavern",
+        "town square",
+        "farm",
+        "woodlot"
+      ]
     },
     {
       "id": "ilsa",
@@ -283,7 +343,19 @@
         "Wren": "A farmer about my age. Smiled at me.",
         "Bram": "Woodcutter, someone said. Haven't met him.",
         "Tobias": "Runs the tavern. Friendly. Said the tavern has a spare bed."
-      }
+      },
+      "seenPlaces": [
+        "rose cottage",
+        "ivy cottage",
+        "stone cottage",
+        "willow cottage",
+        "hill cottage",
+        "bakery",
+        "tavern",
+        "town square",
+        "farm",
+        "woodlot"
+      ]
     }
   ]
 }

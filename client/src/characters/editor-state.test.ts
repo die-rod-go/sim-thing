@@ -16,6 +16,7 @@ const agent: SeedAgent = {
   mood: "",
   goals: [],
   peopleNotes: {},
+  seenPlaces: [],
 };
 
 const seedFile: SeedFile = { agents: [agent] };
@@ -30,6 +31,7 @@ const loadedMessage: SeedFileMessage = {
     sleepRecoveryRange: { min: 0.12, max: 0.18 },
     agentsWithStartTiles: ["mara"],
     inventoryItems: [{ id: "bread", name: "bread" }],
+    placeNames: ["bakery"],
   },
   newAgentTemplate: agent,
 };

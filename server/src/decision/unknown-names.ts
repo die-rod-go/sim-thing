@@ -11,22 +11,17 @@ function readTextField(value: unknown, field: string): string | null {
 }
 
 /**
- * What the agent learns from a rejected reply that named something that isn't there: "I wanted to
- * go to the river, but I don't know of any place by that name". Other rejections (bad JSON, text too
- * long) are the model's slips, not the agent's, and teach nothing.
+ * What the agent learns from a rejected reply that named something that isn't there: "I looked
+ * for nail box, but there was nothing and no one by that name here or on me". Other rejections (bad
+ * JSON, text too long) are the model's slips, not the agent's, and teach nothing.
  */
 export function describeUnknownNames(rejected: RejectedReply): string[] {
-  const action = readTextField(rejected.value, "action");
   const lines: string[] = [];
   for (const field of NAMING_FIELDS) {
     if (!rejected.fields.includes(field)) continue;
     const name = readTextField(rejected.value, field);
     if (name === null) continue;
-    const template =
-      action === "walk_to" && field === "target"
-        ? config.decision.unknownNameTexts.walkTarget
-        : config.decision.unknownNameTexts.thing;
-    lines.push(template.split("{name}").join(name));
+    lines.push(config.decision.unknownNameTexts.thing.split("{name}").join(name));
   }
   return lines;
 }

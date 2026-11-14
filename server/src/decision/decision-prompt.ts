@@ -15,6 +15,7 @@ import {
   describeNearbyEntities,
   describePeopleOnMind,
   describePlans,
+  describeSeenPlaces,
   describeWorkingMemory,
 } from "./sections";
 import { describeStats, describeTraits, joinWithAnd, splitStatus } from "./words";
@@ -77,7 +78,7 @@ function buildTemplateValues(
     lastFailure: describeLastFailure(context.lastFailure),
     place: context.place,
     here: describeNearbyEntities(context.nearbyEntities),
-    knownPlaces: context.knownPlaces.join(", "),
+    seenPlaces: describeSeenPlaces(context.seenPlaces),
     aroundYou: describeAroundYou(context.aroundYou),
     peopleOnMind: describePeopleOnMind(context.peopleOnMind),
     belongings: describeBelongings(context.belongings, context.itemlessVerbs),
