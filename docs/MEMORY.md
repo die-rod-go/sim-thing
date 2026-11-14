@@ -309,7 +309,6 @@ Traps:
 
 Mine, not the owner's. Ask before changing them.
 
-- **A place not yet looked into** is listed by name with a mark saying so.
 - **Place entity lists** hold placed objects and ground items only.
 - **Merging repeats** only joins an entry to the one directly before it.
 - **Profession** is changed by the identity pass.
