@@ -37,16 +37,6 @@ export interface Goal {
   kind: GoalKind;
 }
 
-/** A scheme the agent is carrying out over hours or days. */
-export interface Plan {
-  /** One line: what and why. */
-  aim: string;
-  /** Remaining steps in order; the first is the next one. */
-  steps: string[];
-  /** Who must not find out, in the agent's words; "" if no one. */
-  keepFrom: string;
-}
-
 export interface CurrentAction {
   kind: string;
   target?: string;
@@ -107,11 +97,8 @@ export interface Agent {
   bodyReplacedById: string | null;
   mood: string;
   goals: Goal[];
-  dailyPlan: string;
-  plans: Plan[];
   intention: string;
   currentAction: CurrentAction | null;
-  workingMemory: string[];
   awareness: Record<string, Awareness>;
   /** What the agent holds about each other person, keyed by their agent id; rewritten whole. */
   dossiers: Record<string, Dossier>;
@@ -147,32 +134,24 @@ export interface AgentThought {
   tick: number;
 }
 
-export type Bucket = "seen" | "conversations" | "overheard" | "did" | "places" | "reflections";
-
-export const BUCKETS: readonly Bucket[] = [
-  "seen",
-  "conversations",
-  "overheard",
-  "did",
-  "places",
-  "reflections",
-];
-
-export interface Memory {
-  id: string;
-  agentId: string;
-  bucket: Bucket;
-  tick: number;
+/** One event in an agent's stream, worded as the agent took it in. */
+export interface StreamEntry {
   text: string;
-  tags: string[];
-  strength: number;
-  /** Tick of the last recall bump; recall bumps at most once per sim-hour. */
-  lastRecalledTick: number | null;
+  tick: number;
+  /** For a merged repeat: how many times it happened, and the tick of the last time. */
+  count?: number;
+  endTick?: number;
+}
+
+/** What an agent remembers. All of it is shown on every decision. */
+export interface AgentMemory {
+  /** The agent's most recent events, oldest first, word for word. */
+  stream: StreamEntry[];
 }
 
 export type Volume = "whisper" | "normal" | "shout";
 
-export type DecisionAction = "walk_to" | "interact" | "give" | "recall" | "wait" | "continue";
+export type DecisionAction = "walk_to" | "interact" | "give" | "wait" | "continue";
 
 export interface DecisionReply {
   thought: string;
@@ -186,11 +165,8 @@ export interface DecisionReply {
   item?: string;
   from?: string;
   amount?: number;
-  query?: string;
   minutes?: number;
   mood?: string;
-  /** The number of a plan whose next step is already done. */
-  stepDone?: number;
 }
 
 export interface EventSpeech {
@@ -254,8 +230,7 @@ export interface WorldEvent {
   holderDescription?: string;
 }
 
-export type LlmCallKind =
-  "decision" | "interact" | "morning" | "daytime" | "night" | "weekly" | "conversation_summary";
+export type LlmCallKind = "decision" | "interact";
 
 /** The prompt is plain text; lines starting with "## " open a section the prompt viewer can collapse. */
 export interface LlmCallRecord {
@@ -299,8 +274,6 @@ export interface ClockState {
   speed: number;
 }
 
-export type ReflectionPass = "morning" | "night" | "weekly";
-
 /** What a moment is about; `kind` says which fields are present. */
 export type MomentDetail =
   | {
@@ -313,14 +286,6 @@ export type MomentDetail =
   | { kind: "goal_added"; goal: Goal }
   | { kind: "goal_removed"; goal: Goal }
   | { kind: "goal_progressed"; goal: Goal; previousProgress: string }
-  | { kind: "daily_plan"; plan: string }
-  | {
-      kind: "reflection";
-      pass: ReflectionPass;
-      summary: string;
-      moodEntry: string | null;
-      insights: string[];
-    }
   | { kind: "action_failed"; eventId: number; description: string }
   | { kind: "died"; cause: string };
 

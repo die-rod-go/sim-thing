@@ -19,7 +19,7 @@ function placeBoard(sim: TestSim) {
 }
 
 describe("read", () => {
-  it("files a seen memory of each note on the board, with who wrote it", () => {
+  it("puts each note on the board in the reader's stream, with who wrote it", () => {
     const sim = setUpSteps();
     const board = placeBoard(sim);
     pinNote(sim, board.id, "Bread at dawn", "Tobias");
@@ -27,10 +27,6 @@ describe("read", () => {
     expect(memoryTexts(sim, "mara")).toContain(
       'I read a note from Tobias on the notice board: "Bread at dawn"',
     );
-    const memory = sim.state.memoryStore
-      .listByAgent("mara")
-      .find((candidate) => candidate.text.includes("Bread at dawn"));
-    expect(memory?.bucket).toBe("seen");
   });
 
   it("reads only the newest notes, newest first", () => {
@@ -47,23 +43,20 @@ describe("read", () => {
     expect(texts.some((text) => text.includes(`note number ${total - 1}`))).toBe(true);
   });
 
-  it("does not remember the same text twice, and skips empty notes", () => {
+  it("skips empty notes", () => {
     const sim = setUpSteps();
     const board = placeBoard(sim);
     pinNote(sim, board.id, "Same words", "Tobias");
     createEntity(sim.state, "note", locateInside(board.id));
     runVerb(sim, "read", { items: [board] });
-    runVerb(sim, "read", { items: [board] });
-    expect(memoryTexts(sim, "mara").filter((text) => text.includes("Same words"))).toHaveLength(1);
+    expect(memoryTexts(sim, "mara").filter((text) => text.startsWith("I read a"))).toHaveLength(1);
   });
 
   it("remembers briefly that there was nothing to read on an empty board", () => {
     const sim = setUpSteps();
     const board = placeBoard(sim);
     runVerb(sim, "read", { items: [board] });
-    expect(sim.agent("mara").workingMemory.at(-1)).toMatch(
-      /There was nothing to read on the notice board/,
-    );
+    expect(sim.streamTexts("mara").at(-1)).toMatch(/There was nothing to read on the notice board/);
   });
 
   it("reads the text on the thing itself", () => {

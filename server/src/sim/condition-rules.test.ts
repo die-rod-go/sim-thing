@@ -75,9 +75,9 @@ describe("conditions made of components and rules", () => {
     const started = contextOf(sim);
     addComponent(started, TOBIAS, "poisoned", { minutes: null });
     expect(started.result.events).toEqual([]);
-    expect(sim.agent("tobias").workingMemory.at(-1)).toMatch(/I was poisoned/);
+    expect(sim.streamTexts("tobias").at(-1)).toMatch(/I was poisoned/);
     removeComponent(contextOf(sim), TOBIAS, "poisoned");
-    expect(sim.agent("tobias").workingMemory.at(-1)).toMatch(/I got over the poison/);
+    expect(sim.streamTexts("tobias").at(-1)).toMatch(/I got over the poison/);
   });
 
   it("names a death from bleeding after whoever caused it", () => {

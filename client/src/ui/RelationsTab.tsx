@@ -37,9 +37,7 @@ function RelationCard({ relation }: { relation: Relation }) {
         <AgentName agentId={relation.agentId} name={relation.name} />
         <span className="muted">{relation.profession}</span>
         <span className="relation-counts muted">
-          {relation.sharedThreadCount > 0 &&
-            `${pluralize(relation.sharedThreadCount, "talk", "talks")} · `}
-          {pluralize(relation.memoryCount, "memory", "memories")}
+          {relation.sharedThreadCount > 0 && pluralize(relation.sharedThreadCount, "talk", "talks")}
         </span>
       </header>
       <LastPerceived relation={relation} />
@@ -61,7 +59,6 @@ export function RelationsTab({ detail }: { detail: AgentDetailMessage }) {
       buildRelations(
         detail.agent,
         state.agents,
-        detail.memories,
         threads,
         state.clock.tick,
         state.timeSettings.minutesPerTick,

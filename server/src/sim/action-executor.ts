@@ -1,11 +1,8 @@
-import { completeNextStep } from "../memory/plans";
 import { findDefinition, type Agent, type AgentThought, type DecisionReply } from "@village/shared";
 import { config } from "../config";
 import { normalizeDisplayName, resolveName } from "../decision/resolve-name";
 import { computeChebyshevDistance, executeGive } from "../economy/give";
 import { describeEntityName } from "../items/entity-store";
-import { fileOwnNote } from "../memory/filing";
-import { pushWorkingMemory } from "../memory/working-memory";
 import { isDead } from "../status/health";
 import { WAIT_ACTION } from "./action-phrases";
 import { stopCurrentAction } from "./action-stopping";
@@ -21,11 +18,10 @@ import { startWalk } from "./walk-start";
 import {
   describeAgentAsSeen,
   findAgent,
-  listKnownNames,
   listOthersAsSeen,
   markAgentChanged,
   markEntityChanged,
-  rememberBriefly,
+  appendToStream,
   replaceAgent,
 } from "./world-access";
 
@@ -36,7 +32,7 @@ function chooseLastThought(agent: Agent, reply: DecisionReply, tick: number): Ag
   return text ? { text, tick } : agent.lastThought;
 }
 
-/** intention, mood and stepDone: free mental acts that ride along with any action. */
+/** intention and mood: free mental acts that ride along with any action. */
 function applyFreeActs(context: TickContext, agentId: string, decided: DecidedReply): void {
   const { state } = context;
   const { reply } = decided;
@@ -45,8 +41,6 @@ function applyFreeActs(context: TickContext, agentId: string, decided: DecidedRe
     ...agent,
     intention: reply.intention || agent.intention,
     mood: reply.mood ?? agent.mood,
-    plans:
-      reply.stepDone === undefined ? agent.plans : completeNextStep(agent.plans, reply.stepDone),
     lastThought: chooseLastThought(agent, reply, state.tick),
   });
 }
@@ -186,21 +180,12 @@ function executeAction(context: TickContext, agentId: string, action: PlannedAct
 function noteUnknownName(context: TickContext, agentId: string, note: string): void {
   const { state } = context;
   getAgentRuntime(state, agentId).lastFailure = note;
-  rememberBriefly(state, agentId, note);
-  const memory = fileOwnNote(
-    agentId,
-    note,
-    state.tick,
-    state.memoryStore,
-    state.memoryIds,
-    listKnownNames(state),
-  );
-  if (memory) state.memoryStore.add(memory);
+  appendToStream(state, agentId, note);
 }
 
 /**
- * Applies one decision: free acts, recall results into working memory, notes of names that
- * weren't found, the words spoken, then the act itself. Choosing anything but `continue` stops the
+ * Applies one decision: free acts, notes of names that weren't found, the words spoken, then the
+ * act itself. Choosing anything but `continue` stops the
  * current action first.
  */
 export function applyDecisionPlan(context: TickContext, plan: DecisionPlan): void {
@@ -211,15 +196,7 @@ export function applyDecisionPlan(context: TickContext, plan: DecisionPlan): voi
   const isContinuing =
     plan.action.kind === "continue" && findAgent(state, agentId).currentAction !== null;
   if (!isContinuing) stopCurrentAction(context, agentId);
-  for (const reply of plan.replies) applyFreeActs(context, agentId, reply);
-  if (plan.recallEntries.length > 0) {
-    const agent = findAgent(state, agentId);
-    const workingMemory = plan.recallEntries.reduce(
-      (entries, entry) => pushWorkingMemory(entries, entry),
-      agent.workingMemory,
-    );
-    replaceAgent(state, { ...agent, workingMemory });
-  }
+  applyFreeActs(context, agentId, plan.reply);
   const runtime = getAgentRuntime(state, agentId);
   runtime.lastFailure = null;
   for (const note of plan.unknownNameNotes) noteUnknownName(context, agentId, note);

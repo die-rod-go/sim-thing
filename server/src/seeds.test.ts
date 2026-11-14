@@ -89,10 +89,8 @@ describe("seeds", () => {
     expect(mara?.pos).toEqual(map.startTiles.mara);
     expect(mara?.needs).toEqual({ hunger: 0.8, energy: 0.8, social: 0.8, fun: 0.8 });
     expect(mara).toMatchObject({
-      dailyPlan: "",
       intention: "",
       currentAction: null,
-      workingMemory: [],
       awareness: {},
       lastThought: null,
     });

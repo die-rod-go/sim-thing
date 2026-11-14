@@ -9,10 +9,9 @@ import { getAgentRuntime, requestDecision } from "./agent-runtime";
 import {
   buildPerceptionWorld,
   findAgent,
-  listKnownNames,
   listLivingAgents,
   markAgentChanged,
-  rememberBriefly,
+  appendToStream,
   replaceAgent,
   toPerceiver,
 } from "./world-access";
@@ -29,10 +28,7 @@ function buildKnownVoices(state: WorldState): Record<string, string[]> {
 
 function buildFilingContext(state: WorldState): FilingContext {
   return {
-    memories: state.memoryStore,
-    idGenerator: state.memoryIds,
     conversationLog: state.conversationLog,
-    knownNames: listKnownNames(state),
     knownAgentIdsByListener: buildKnownVoices(state),
   };
 }
@@ -107,8 +103,8 @@ export interface BroadcastOptions {
 
 /**
  * The brief's `broadcast(event)`: works out who perceived it, updates heard awareness and the
- * conversation log, files memories for the actor and every perceiver, mirrors them into working
- * memory, adds conversation social, and flags who needs a decision because of it.
+ * conversation log, adds it to the stream of the actor and of every perceiver, adds conversation
+ * social, and flags who needs a decision because of it.
  */
 export function broadcastEvent(
   state: WorldState,
@@ -128,9 +124,8 @@ export function broadcastEvent(
   const perceived = { event, perceptions };
   mergeHeardAwareness(state, event, perceptions);
   if (event.kind === "said") state.conversationLog = recordSpeech(state.conversationLog, perceived);
-  for (const memory of fileEvent(perceived, buildFilingContext(state))) {
-    state.memoryStore.add(memory);
-    rememberBriefly(state, memory.agentId, memory.text);
+  for (const filed of fileEvent(perceived, buildFilingContext(state))) {
+    appendToStream(state, filed.agentId, filed.text);
   }
   if (event.kind === "said") applyConversationSocial(state, event, perceptions, result);
   flagDecisions(state, event, perceptions);

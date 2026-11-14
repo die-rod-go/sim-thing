@@ -1,4 +1,4 @@
-import type { Bucket, LlmCallKind, NeedName, StatName, TraitName, Volume } from "@village/shared";
+import type { LlmCallKind, NeedName, StatName, TraitName, Volume } from "@village/shared";
 
 /**
  * Every global tunable in the sim lives here: rates, caps, weights, loudness and budgets. Item
@@ -13,8 +13,6 @@ export interface NeedWord {
   urge?: string;
   /** Extra share of time a verb takes at this level (0.5 = half as long again). */
   slowdown?: number;
-  /** Chance, per decision, that recall fails at this level. */
-  recallFailureChance?: number;
 }
 
 /** A health level: what the agent feels about itself, and what others see once it shows. */
@@ -27,8 +25,6 @@ export interface HealthWord {
   urge?: string;
   /** Extra share of time a verb takes at this level, as for needs. */
   slowdown?: number;
-  /** Chance, per decision, that recall fails at this level, as for needs. */
-  recallFailureChance?: number;
 }
 
 export const config = {
@@ -126,14 +122,12 @@ export const config = {
           text: "starving",
           urge: "you feel weak and shaky and need food now; half a day more without it and your health will start to fail",
           slowdown: 0.5,
-          recallFailureChance: 0.3,
         },
         {
           below: 0.3,
           text: "very hungry",
           urge: "your stomach aches and you need to eat soon; if you don't, you will be starving",
           slowdown: 0.2,
-          recallFailureChance: 0.1,
         },
         { below: 0.5, text: "quite hungry" },
         { below: 0.7, text: "a little peckish" },
@@ -145,14 +139,12 @@ export const config = {
           text: "exhausted",
           urge: "you can barely keep your eyes open and need to find a bed to sleep; until you do, everything takes far longer and your thoughts slip away",
           slowdown: 0.6,
-          recallFailureChance: 0.35,
         },
         {
           below: 0.3,
           text: "very tired",
           urge: "your body is heavy and you need sleep soon; it is already slowing you down",
           slowdown: 0.3,
-          recallFailureChance: 0.15,
         },
         { below: 0.5, text: "tired" },
         { below: 0.7, text: "a bit tired" },
@@ -164,13 +156,11 @@ export const config = {
           text: "desperately lonely",
           urge: "you ache for real company, and it is clouding your thoughts",
           slowdown: 0.1,
-          recallFailureChance: 0.1,
         },
         {
           below: 0.3,
           text: "lonely",
           urge: "you want someone to really talk to",
-          recallFailureChance: 0.05,
         },
         { below: 0.5, text: "a bit lonely" },
         { below: 0.7, text: "content with company" },
@@ -182,7 +172,6 @@ export const config = {
           text: "miserably bored",
           urge: "you badly need something enjoyable to do, and it is dragging on everything you do",
           slowdown: 0.1,
-          recallFailureChance: 0.05,
         },
         { below: 0.3, text: "bored", urge: "you want something enjoyable to do" },
         { below: 0.5, text: "a bit bored" },
@@ -219,15 +208,13 @@ export const config = {
   },
 
   /**
-   * How pressing needs and wounds get in the way, using the `slowdown` and `recallFailureChance` of
+   * How pressing needs and wounds get in the way, using the `slowdown` of
    * each level above. `{status}` becomes the words for what is getting in the way.
    */
   impairment: {
     slowStartText: "This will take longer than usual because I'm {status}",
     slowOngoingText: "slow going because you are {status}",
     slowFinishText: "slowly, because I was {status}",
-    recallFailedText: `I tried to recall "{query}" but couldn't think straight because I'm {status}`,
-    foggyMindText: "Your thoughts are foggy because you are {status}; little comes to mind.",
   },
 
   health: {
@@ -258,7 +245,6 @@ export const config = {
         looks: "looks near death",
         urge: "you can barely stand and feel your life slipping away",
         slowdown: 0.8,
-        recallFailureChance: 0.3,
       },
       {
         below: 0.35,
@@ -266,7 +252,6 @@ export const config = {
         looks: "looks in a bad way",
         urge: "your body is failing and you feel faint",
         slowdown: 0.4,
-        recallFailureChance: 0.1,
       },
       { below: 0.6, text: "in poor shape", looks: "looks in poor shape" },
       { below: 0.9, text: "a little worse for wear", looks: "looks a little worse for wear" },
@@ -482,159 +467,18 @@ export const config = {
   },
 
   memory: {
-    maxMemoryChars: 200,
-    bucketCap: 60,
-    deleteBelowStrength: 0.05,
-    halfLifeHours: {
-      seen: 12,
-      overheard: 12,
-      conversations: 24,
-      did: 24,
-      places: 72,
-      reflections: 168,
-    } satisfies Record<Bucket, number>,
-    recallPerBucket: {
-      conversations: 3,
-      seen: 3,
-      overheard: 2,
-      did: 3,
-      places: 1,
-      reflections: 3,
-    } satisfies Record<Bucket, number>,
-    /** After the per-bucket picks, only this many best-scoring memories are kept. */
-    recallTotal: 10,
-    scoreWeights: { tagOverlap: 1.0, recency: 0.3, strength: 0.3, similarity: 1.0 },
-    recencyHalfLifeHours: 6,
-    associationSeedCount: 3,
-    associationTotal: 3,
-    /** Lexical similarity between a cue or query and a memory's words. */
-    similarity: {
-      minWordLength: 3,
-      /** A suffix is stripped only if at least this many letters remain. */
-      minStemLength: 3,
-      stemSuffixes: ["ing", "ed", "es", "s"],
-      stopWords: [
-        "the",
-        "and",
-        "but",
-        "for",
-        "nor",
-        "yet",
-        "with",
-        "from",
-        "into",
-        "onto",
-        "that",
-        "this",
-        "these",
-        "those",
-        "then",
-        "than",
-        "there",
-        "here",
-        "what",
-        "when",
-        "where",
-        "which",
-        "who",
-        "whom",
-        "whose",
-        "why",
-        "how",
-        "are",
-        "was",
-        "were",
-        "been",
-        "being",
-        "have",
-        "has",
-        "had",
-        "does",
-        "did",
-        "doing",
-        "will",
-        "would",
-        "could",
-        "should",
-        "can",
-        "may",
-        "might",
-        "must",
-        "not",
-        "you",
-        "your",
-        "yours",
-        "his",
-        "her",
-        "hers",
-        "its",
-        "our",
-        "ours",
-        "their",
-        "theirs",
-        "him",
-        "she",
-        "they",
-        "them",
-        "myself",
-        "about",
-        "just",
-        "very",
-        "some",
-        "any",
-        "all",
-        "out",
-        "off",
-        "over",
-        "under",
-        "again",
-        "once",
-        "too",
-        "also",
-        "get",
-        "got",
-        "let",
-        "say",
-        "said",
-      ],
-    },
-    /** The `recall` action also returns memories with at least this lexical similarity to the query. */
-    recallActionMinSimilarity: 0.2,
-    recallBump: 0.2,
-    recallBumpCooldownHours: 1,
-    /** Skip filing when the same actor did the same thing within this many ticks. */
-    duplicateWindowTicks: 30,
+    /** Length limit of one stream entry; longer text is cut and ends with an ellipsis. */
+    streamEntryMaxChars: 200,
+    /** Entries the stream holds. Until summaries exist, the oldest entries past this are dropped. */
+    streamMax: 60,
     /** An agent takes part in a conversation if it spoke within earshot of the speaker this recently. */
     participationWindowTicks: 10,
-    workingMemorySize: 8,
-    /** Memories fade (applyForgetting) every this many ticks; bucket caps are enforced every tick. */
-    forgettingEveryTicks: 60,
-    recallActionResultLimit: 12,
-    /** How many of the current conversation's last lines go into the recall cue text. */
-    cueConversationLines: 3,
-    reflectionInsightStrength: 1.0,
-    newMemoryStrength: 1.0,
-    /**
-     * When a conversation ends, each participant's line memories from it are replaced by one
-     * summary the agent writes. Lines summarised early when a conversation runs long.
-     */
-    conversationSummary: {
-      endAfterQuietTicks: 15,
-      maxLinesPerSummary: 30,
-      maxChars: 500,
-      retryAfterTicks: 30,
-      /** The agent's own `did` and `seen` memories from the conversation's span shown to the summary. */
-      meanwhileMemoriesShown: 12,
+    /** How a stream entry reads in a prompt; `{time}` is absolute. A merged repeat shows its span and count. */
+    streamTexts: {
+      entry: "[{time}] {text}",
+      repeated: "[{time} to {endTime}] {text} (×{count})",
+      empty: "Nothing yet.",
     },
-  },
-
-  /** One rewritable text per known person, kept by each agent. */
-  plans: {
-    maxPlans: 3,
-    maxSteps: 5,
-    maxAimChars: 200,
-    maxStepChars: 200,
-    maxKeepFromChars: 200,
   },
 
   dossier: {
@@ -646,15 +490,12 @@ export const config = {
     unknownPersonText: "nothing known yet beyond what you see.",
     /** The decision section's text when no one is on the agent's mind. */
     nobodyOnMindText: "No one in particular.",
-    /** Shown in a reflection prompt for a person the agent has no entry for. */
-    reflectionUnknownPersonText: "nothing written down about them yet.",
   },
 
   decision: {
     /**
-     * The running sim lets the clock go on while an agent interrupted mid-action decides and while
-     * conversation summaries and reflection passes run; idle agents' decisions still hold it.
-     * Tests always wait for every call.
+     * The running sim lets the clock go on while an agent interrupted mid-action decides; idle
+     * agents' decisions still hold it. Tests always wait for every call.
      */
     shouldCallLlmInBackground: true,
     /**
@@ -669,29 +510,12 @@ export const config = {
     unknownNameTexts: {
       thing: "I looked for {name}, but there was nothing and no one by that name here or on me",
     },
-    /** "Current conversation" shows at most this many of the conversation's latest lines. */
-    conversationLines: 30,
-    /** A conversation stays in view this many ticks after its last line. */
-    conversationLingerTicks: 30,
-    /** Sized so a typical prompt keeps its recalled memories; only unusually long ones get trimmed. */
-    promptTokenTarget: 6000,
-    /** Trimming stops at this many recalled memories, even if the prompt stays over the target. */
-    minimumRecalledMemories: 3,
-    /** Rough characters-per-token used to estimate prompt size before trimming memories. Measured from logged Haiku calls: about 2.3. */
+    /** Rough characters per token, for estimating token counts. Measured from logged Haiku calls: about 2.3. */
     charsPerToken: 2.3,
     defaultWaitMinutes: 10,
     /** How long a speaker stays to hear an answer when the reply names no minutes. */
     sayWaitMinutes: 5,
     maxWaitMinutes: 240,
-    /** Recalled memories are trimmed from these buckets first (oldest first) when over the token target. */
-    memoryTrimOrder: [
-      "seen",
-      "overheard",
-      "places",
-      "did",
-      "reflections",
-      "conversations",
-    ] satisfies Bucket[] as Bucket[],
   },
 
   llm: {
@@ -715,14 +539,9 @@ export const config = {
     maxReplyTokens: {
       decision: 1500,
       interact: 500,
-      morning: 3000,
-      daytime: 3000,
-      night: 4500,
-      weekly: 3000,
-      conversation_summary: 2000,
     },
     /** Calls of these kinds use `LLM_REFLECTION_MODEL` when it is set. */
-    reflectionKinds: ["morning", "daytime", "night", "weekly"] as LlmCallKind[],
+    reflectionKinds: [] as LlmCallKind[],
     dailyTokenBudget: 100_000_000,
     /**
      * Tries per call, the first included. A rejected reply (bad JSON, failed validation, too long)
@@ -736,7 +555,7 @@ export const config = {
     /** The offline `LLM_PROVIDER=fake` responder: seeded, and weights for the actions it picks. */
     fakeResponder: {
       seed: 7,
-      actionWeights: { walk_to: 3, interact: 4, say: 2, wait: 2, give: 0.5, recall: 0.5 },
+      actionWeights: { walk_to: 3, interact: 4, say: 2, wait: 2, give: 0.5 },
       /** Verbs with a hit roll are picked this rarely, so soak runs see fights without a massacre. */
       attackWeight: 0.05,
       continueChance: 0.5,
@@ -756,31 +575,6 @@ export const config = {
         "I'll pay two coins for that.",
       ],
     },
-  },
-
-  reflection: {
-    morningMinSleepHours: 4,
-    nightCooldownHours: 16,
-    nightForcedHour: 2,
-    maxInsights: 3,
-    /** The daytime pass files at most this many insights. */
-    daytimeMaxInsights: 2,
-    /** The morning and daytime prompts show at most this many dossiers (people in the memories, then people named in goals and plans). */
-    dossiersShown: 6,
-    /** An awake agent thinks things over (the daytime pass) this many sim-hours after its last reflection. */
-    daytimeEveryHours: 2,
-    /** At most this many memories since the last reflection (strongest, then newest) reach the daytime prompt. */
-    daytimeMemoriesShown: 25,
-    /** The daytime prompt shows this many of the agent's newest insights, so it builds on them. */
-    daytimeEarlierInsightsShown: 4,
-    weeklyEveryNights: 7,
-    daySummariesShownWeekly: 7,
-    /** The night pass shows the agent's memories from this many sim-hours back. */
-    nightMemoryWindowHours: 24,
-    /** At most this many of the day's memories (strongest, then newest) reach the night prompt. */
-    nightMemoriesShown: 40,
-    /** Trait values are rounded to this many decimals after a weekly change. */
-    traitValueDecimals: 3,
   },
 };
 

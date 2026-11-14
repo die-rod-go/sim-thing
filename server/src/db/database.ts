@@ -45,7 +45,7 @@ export function wipeDatabase(database: Database): void {
     "meta",
     "agents",
     "entities",
-    "memories",
+    "agent_memories",
     "events",
     "llm_calls",
     "personality_history",

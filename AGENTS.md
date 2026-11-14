@@ -42,7 +42,7 @@ need one, ask first.
 - Use full, descriptive names. No single-letter names, including loop variables and callback
   parameters (`agents.map((agent) => ...)`, not `agents.map((a) => ...)`).
 - No abbreviations except widely known ones (`id`, `url`, `json`, `llm`, `ui`).
-- Variables and properties are nouns: `nearbyAgents`, `memoryStrength`, `tickCount`.
+- Variables and properties are nouns: `nearbyAgents`, `streamEntry`, `tickCount`.
 - Functions are verb phrases: `buildDecisionPrompt`, `fileMemory`, `computeSoundReach`.
 - Booleans read as questions: `isAsleep`, `hasPendingDecision`, `canHear`.
 - Types and classes are nouns in PascalCase: `Agent`, `Memory`, `DecisionReply`.
@@ -86,9 +86,9 @@ need one, ask first.
 ## Tests
 
 - Tests never call a real LLM. Use the fake LLM client with fixed replies.
-- Cover the code-driven core with unit tests: perception (sight and sound), seen places, memory
-  filing, recall scoring, forgetting, needs decay, each step type, the verb runner, rules,
-  matchers, `items.json` validation and `give`.
+- Cover the code-driven core with unit tests: perception (sight and sound), seen places, event
+  filing, the stream (appending, merging repeats), needs decay, each step type, the verb runner,
+  rules, matchers, `items.json` validation and `give`.
 - Name tests by behavior: `"muffles speech heard through a closed door"`.
 
 ## Errors and logging
@@ -111,13 +111,11 @@ need one, ask first.
 | tick           | One step of the sim clock (1 sim-minute by default)                                   |
 | decision       | One LLM call that returns a `DecisionReply`                                           |
 | intention      | The agent's current one-line goal, carried between decisions                          |
-| bucket         | A category of memories, set by where they came from                                   |
-| strength       | A memory's 0–1 weight; fades by half-life, bumped by recall                           |
+| stream         | The agent's most recent events, in time order, word for word                          |
 | awareness      | The structured record of when each other agent was last perceived                     |
 | earshot        | Whether the sound simulation lets a listener hear a sound                             |
 | seen place     | A place the agent has seen, with the entities it held when last looked into           |
 | needs          | Hunger, energy, social, fun (0–1, 1 = satisfied)                                      |
-| reflection     | The morning, daytime, night and weekly LLM passes                                     |
 | component      | A named set of typed fields declared in `items.json`. With no fields it is a tag      |
 | definition     | A template in `seeds/items.json`: id, name, glyph and components with field values    |
 | entity         | One instance of a definition in the world, with its own id, location and changes      |

@@ -23,7 +23,7 @@ function makeDetail(agentId: string): AgentDetailMessage {
     type: "agent_detail",
     agentId,
     agent: { ...agent, mood: "inspected" },
-    memories: [],
+    memory: { stream: [] },
     llmCalls: [],
     personalityHistory: [],
     perceptionView: null,

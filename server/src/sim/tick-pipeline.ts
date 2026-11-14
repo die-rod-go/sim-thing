@@ -1,10 +1,8 @@
 import { pruneConversationLog } from "../memory/conversation";
 import { applyDecisionPlan } from "./action-executor";
 import { BackgroundWork } from "./background-work";
-import { createConversationSummarizer } from "./conversation-summaries";
 import { runDecision, type DecisionPlan } from "./decision-runner";
 import type { AdvanceTick } from "./loop";
-import { enforceBucketCaps, runScheduledForgetting } from "./memory-upkeep";
 import type { SimDependencies, TickContext } from "./tick-context";
 import type { DecisionRequest } from "./tick-phases";
 import {
@@ -27,26 +25,25 @@ function listIdleAgentIds(state: WorldState): string[] {
  * The LLM-driven strategy for the sim loop. Each tick, in order:
  * 1. mechanics: stocks regrow, needs decay (slower asleep), sleepers recover, crowds take effect;
  * 2. actions progress: walks step (clearing what is in the way), arrivals, verbs finish, sleepers
- *    wake on their own, waits run out; every event is broadcast (perceived and filed) as it happens;
- * 3. sight: awareness of everyone in view is refreshed; someone newly in view flags a decision;
+ *    wake on their own, waits run out; every event is broadcast (perceived and added to streams)
+ *    as it happens;
+ * 3. sight: awareness of everyone in view and seen places are refreshed; someone newly in view
+ *    flags a decision;
  * 4. needs that crossed the decision threshold flag a decision;
  * 5. decisions: everyone who needs one gets it, all in parallel through the limiter; the tick
  *    waits for all of them, then applies them in agent order (speech first, then the act), so
  *    the result doesn't depend on which LLM call returned first;
- * 6. conversation summaries: each ended conversation's lines are replaced by the agent's summary;
- * 7. upkeep: bucket caps, hourly forgetting, conversation log pruning, then the reflection hook.
+ * 6. upkeep: the conversation log is pruned.
  * Events from step 5 flag decisions for the next tick, like a reply to what was just said.
  *
  * With `shouldCallLlmInBackground`, only agents with nothing to do hold the clock: step 5 applies
  * the decisions that returned since the last tick, starts the new ones, waits for those of idle
- * agents (up to `idleDecisionWaitMs`), then applies every finished plan (in agent order). An agent interrupted mid-action
- * keeps doing what it was doing until its decision lands, so a slow call doesn't stall the
- * village, while idle agents (and the replies they give) never fall behind the clock. Summaries
- * (step 6) and reflection passes (step 7) never hold it: each is applied on the first tick after
- * its reply arrives.
+ * agents (up to `idleDecisionWaitMs`), then applies every finished plan (in agent order). An agent
+ * interrupted mid-action keeps doing what it was doing until its decision lands, so a slow call
+ * doesn't stall the village, while idle agents (and the replies they give) never fall behind the
+ * clock.
  */
 export function createDecisionStrategy(dependencies: SimDependencies): AdvanceTick {
-  const summarizeEndedConversations = createConversationSummarizer(dependencies);
   const backgroundDecisions = dependencies.shouldCallLlmInBackground
     ? new BackgroundWork<DecisionPlan>("decision")
     : null;
@@ -81,11 +78,7 @@ export function createDecisionStrategy(dependencies: SimDependencies): AdvanceTi
       const plans = await Promise.all(requests.map((request) => decide(state, request)));
       for (const plan of plans) applyDecisionPlan(context, plan);
     }
-    await summarizeEndedConversations(state, context.result);
-    enforceBucketCaps(state);
-    runScheduledForgetting(state);
     state.conversationLog = pruneConversationLog(state.conversationLog, state.tick);
-    await dependencies.reflectionHook.afterTick(state, context.result);
     return context.result;
   };
 }

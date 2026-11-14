@@ -1,12 +1,4 @@
-import type {
-  AgentBody,
-  AwarenessVia,
-  Bucket,
-  Goal,
-  Needs,
-  Personality,
-  Plan,
-} from "@village/shared";
+import type { AgentBody, AwarenessVia, Goal, Needs, Personality } from "@village/shared";
 
 /** Names the agent may use as an action `target` right now. */
 export interface DecisionTargets {
@@ -72,22 +64,10 @@ export interface AroundYou {
   whisperHearerIds: string[];
 }
 
-export interface ConversationLine {
-  /** "You" for the agent's own lines. */
-  speakerName: string;
-  words: string;
-  minutesAgo: number;
-}
-
 /** One entry of "People on your mind": a person's name and what the agent holds about them. */
 export interface PersonOnMind {
   name: string;
   text: string;
-}
-
-export interface RecalledMemory {
-  text: string;
-  minutesAgo: number;
 }
 
 /** One entry of "Places you have seen". */
@@ -121,8 +101,6 @@ export interface DecisionContext {
   conditionWords: string[];
   body: AgentBody;
   goals: Goal[];
-  dailyPlan: string;
-  plans: Plan[];
   intention: string;
   /** e.g. "Day 1, 6:30 am" from `formatSimTime`. */
   simTime: string;
@@ -134,11 +112,8 @@ export interface DecisionContext {
   belongings: PromptEntityGroup[];
   /** Verbs that need no item (`punch`), listed after belongings. */
   itemlessVerbs: string[];
-  workingMemory: string[];
-  conversation: ConversationLine[];
-  recalledMemories: Partial<Record<Bucket, RecalledMemory[]>>;
-  /** What kept memories from coming to mind this decision ("exhausted"), or null. */
-  foggedBy: string | null;
+  /** The agent's stream, oldest first, each entry as it reads ("[Day 1, 6:32 am] I saw ..."). */
+  stream: string[];
   seenPlaces: SeenPlaceLine[];
   currentAction: CurrentActionSummary | null;
   /** True for a perception interrupt during an action; only then is `continue` offered. */

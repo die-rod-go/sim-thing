@@ -14,6 +14,7 @@ import {
 } from "../db/log-repository";
 import type { TokenBudget } from "../llm/token-budget";
 import { computeVisibleTiles } from "../perception/sight";
+import { getAgentMemory } from "../sim/world-access";
 import { computeSpeechReachTiles } from "../perception/sound";
 import type { SimLoop } from "../sim/loop";
 import { buildPerceptionWorld } from "../sim/world-access";
@@ -94,7 +95,7 @@ export function buildAgentDetail(
     type: "agent_detail",
     agentId,
     agent,
-    memories: state.memoryStore.listByAgent(agentId),
+    memory: getAgentMemory(state, agentId),
     llmCalls: listLlmCalls(context.database, agentId, config.server.llmCallsInDetail),
     personalityHistory: listPersonalityHistory(context.database, agentId),
     perceptionView: buildPerceptionView(state, agentId),

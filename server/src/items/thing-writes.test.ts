@@ -195,7 +195,7 @@ describe("an agent's health field", () => {
     writeField(context, TOBIAS, HEALTH, 0.8);
     expect(sim.agent("tobias").currentAction).toBeNull();
     expect(context.result.events.map((event) => event.kind)).toContain("woke");
-    expect(sim.agent("tobias").workingMemory.at(-1)).toMatch(/I woke up in pain/);
+    expect(sim.streamTexts("tobias").at(-1)).toMatch(/I woke up in pain/);
   });
 
   it("settles death when it reaches 0, with the given cause", () => {

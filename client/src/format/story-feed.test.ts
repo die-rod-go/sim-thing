@@ -51,9 +51,10 @@ const goalMoment: Moment = {
 };
 const planMoment: Moment = {
   ...makeSampleMoment(8, ada, 6),
-  kind: "daily_plan",
-  text: "planned the day",
-  plan: "Bake",
+  kind: "goal_progressed",
+  text: "made progress",
+  goal: { text: "Open a stall", why: "", progress: "Found a spot", kind: "world" },
+  previousProgress: "",
 };
 
 describe("buildPlaceChats", () => {

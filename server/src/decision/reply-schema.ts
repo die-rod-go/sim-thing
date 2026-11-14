@@ -49,8 +49,7 @@ function buildDecisionJsonSchema(
     thought: { type: "string", description: "One or two short private sentences." },
     intention: {
       type: "string",
-      description:
-        "One line: what you are trying to get done and why; usually the next step of one of your plans.",
+      description: "One line: what you are trying to get done and why.",
     },
     say: nullableJsonString(),
     volume: nullableJsonEnum(VOLUMES),
@@ -62,10 +61,8 @@ function buildDecisionJsonSchema(
     target: isStable ? nullableJsonString() : nullableJsonStringOffering(targetNames),
     text: nullableJsonString(),
     amount: nullableJsonInteger(),
-    query: nullableJsonString(),
     minutes: nullableJsonInteger(),
     mood: nullableJsonString(),
-    stepDone: nullableJsonInteger(),
   });
 }
 
@@ -77,7 +74,6 @@ function requireFieldsForAction(reply: DecisionReply, context: z.RefinementCtx):
   }
   if (reply.action === "give" && !reply.item) missingFields.push("item");
   if (reply.action === "give" && reply.amount === undefined) missingFields.push("amount");
-  if (reply.action === "recall" && !reply.query) missingFields.push("query");
   for (const field of missingFields) {
     context.addIssue({ code: "custom", path: [field], message: `${reply.action} needs ${field}` });
   }
@@ -141,10 +137,8 @@ export function buildDecisionReplySchema(
       target: z.string().trim().optional(),
       text: z.string().trim().optional(),
       amount: z.number().int().positive().optional(),
-      query: z.string().trim().optional(),
       minutes: z.number().positive().optional(),
       mood: z.string().trim().optional(),
-      stepDone: z.number().int().optional(),
     })
     .superRefine(requireFieldsForAction)
     .superRefine(targetCheck.refine)

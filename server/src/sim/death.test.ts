@@ -5,7 +5,6 @@ import { getAgentRuntime } from "./agent-runtime";
 import { applyDamage } from "./damage";
 import { readHealth, setAgentHealth } from "./combat-test-kit";
 import { buildRunRecord } from "./verb-run-test-kit";
-import { createNoReflectionHook } from "./reflection-hook";
 import {
   createTestSim,
   decisionReply,
@@ -29,10 +28,7 @@ function contextOf(sim: TestSim): TickContext {
   return {
     state: sim.state,
     result: createEmptyTickResult(sim.state.tick),
-    dependencies: {
-      callStructured: sim.llm.callStructured,
-      reflectionHook: createNoReflectionHook(),
-    },
+    dependencies: { callStructured: sim.llm.callStructured },
   };
 }
 
@@ -69,18 +65,15 @@ describe("death", () => {
     );
   });
 
-  it("gives witnesses a seen memory and an urgent decision", async () => {
+  it("puts the death in witnesses' streams and gives them an urgent decision", async () => {
     const sim = createTestSim({ agentIds: ["mara", "ilsa"], responder: scriptByAgent({}) });
     sim.placeAgent("mara", SQUARE);
     sim.placeAgent("ilsa", NEXT_TO_SQUARE);
     await sim.advance();
     applyDamage(contextOf(sim), "mara", { amount: LETHAL, killed: "starved", sourceAgentId: null });
-    const witnessed = sim.state.memoryStore.listByAgent("ilsa").map((memory) => memory.text);
-    expect(witnessed).toContain("I saw that Mara died");
+    expect(sim.streamTexts("ilsa")).toContain("I saw that Mara died");
     expect(getAgentRuntime(sim.state, "ilsa").pendingDecision?.isUrgent).toBe(true);
-    expect(sim.state.memoryStore.listByAgent("mara").map((memory) => memory.text)).not.toContain(
-      "I died",
-    );
+    expect(sim.streamTexts("mara")).not.toContain("I died");
   });
 
   it("cancels the current action and stops the verb run, so the object has one user less", async () => {

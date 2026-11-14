@@ -71,14 +71,9 @@ export interface ActivityGroup {
   items: ActivityItem[];
 }
 
-export type ActivityFilter = "all" | "thoughts" | "reflections" | "doings";
+export type ActivityFilter = "all" | "thoughts" | "doings";
 
-export const ACTIVITY_FILTERS: readonly ActivityFilter[] = [
-  "all",
-  "thoughts",
-  "reflections",
-  "doings",
-];
+export const ACTIVITY_FILTERS: readonly ActivityFilter[] = ["all", "thoughts", "doings"];
 
 export interface LatestThought {
   text: string;
@@ -102,13 +97,6 @@ const PARTS_SHOWN_AS_EVENTS: ReadonlySet<string> = new Set([
   "whispered",
   "shouted",
   "does",
-]);
-
-const REFLECTION_KINDS: ReadonlySet<ActivityThought["thoughtKind"]> = new Set([
-  "morning",
-  "daytime",
-  "night",
-  "weekly",
 ]);
 
 const READING_ORDER: Record<ActivityItem["kind"], number> = {
@@ -203,12 +191,7 @@ function collectSpeech(agentId: string, threads: ConversationThread[]): Activity
 
 function isShownByFilter(item: ActivityItem, filter: ActivityFilter): boolean {
   if (filter === "all") return true;
-  if (item.kind === "moment") {
-    return item.moment.kind === "reflection" ? filter !== "doings" : filter === "doings";
-  }
-  if (filter === "doings") return item.kind !== "thought";
-  if (item.kind !== "thought") return false;
-  return filter === "thoughts" || REFLECTION_KINDS.has(item.thoughtKind);
+  return filter === "thoughts" ? item.kind === "thought" : item.kind !== "thought";
 }
 
 function groupByTick(items: ActivityItem[]): ActivityGroup[] {
@@ -260,7 +243,7 @@ export function buildAgentActivity(
   const items: ActivityItem[] = [
     ...thoughtItems,
     ...buildLatestThoughtItems(input.latestThought, thoughtItems),
-    ...collectMoments(input.agentId, input.moments, thoughtItems),
+    ...collectMoments(input.agentId, input.moments),
     ...foldFailures(collectActions(input.agentId, input.events)),
     ...pairSpeechWithThoughts(collectSpeech(input.agentId, input.threads), thoughtItems),
   ].filter((item) => isShownByFilter(item, filter));

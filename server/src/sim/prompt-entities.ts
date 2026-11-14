@@ -46,17 +46,6 @@ export function listNearbyEntityNames(state: WorldState, agent: Agent): string[]
   ];
 }
 
-/**
- * The recall cue's nearby things: entities here (items on the ground included) and what the agent
- * can see inside containers and bodies.
- */
-export function listNearbyThingNames(state: WorldState, agent: Agent): string[] {
-  const contents = listAllSeenInside(state, agent.id).map(
-    ({ entity }) => getDefinition(state, entity).name,
-  );
-  return [...new Set([...listNearbyEntityNames(state, agent), ...contents])];
-}
-
 /** Every verb the agent could use right now: with what it carries, here, or bare-handed. */
 function listAvailableVerbs(state: WorldState, agent: Agent): Verb[] {
   const things = [...listHeldEntities(state, agent.id), ...listNearbyEntities(state, agent)];

@@ -18,15 +18,6 @@ export interface ConversationLog {
   lines: SpokenLine[];
 }
 
-/** A line in an agent's "current conversation"; the agent's own lines are spoken by "You". */
-export interface ConversationLineView {
-  speakerName: string;
-  words: string;
-  tick: number;
-}
-
-export const OWN_SPEAKER_NAME = "You";
-
 export function createConversationLog(): ConversationLog {
   return { lines: [] };
 }
@@ -75,63 +66,11 @@ export function isTakingPart(
   );
 }
 
-function isSaidOrHeardClearlyBy(line: SpokenLine, agentId: string): boolean {
-  return line.speakerId === agentId || line.clearListenerIds.includes(agentId);
-}
-
-/**
- * The agent's current conversation as raw lines: walking back from the newest line it said or
- * heard clearly until a quiet gap of `endAfterQuietTicks` (the gap that also ends a conversation
- * for summaries), so a long exchange stays in view however long it runs. A time window alone
- * dropped answers from conversations that kept going, and agents asked the same thing again.
- */
-function selectConversationLines(
-  log: ConversationLog,
-  agentId: string,
-  tick: number,
-): SpokenLine[] {
-  const heardLines = log.lines.filter(
-    (line) => line.tick <= tick && isSaidOrHeardClearlyBy(line, agentId),
-  );
-  const newestLine = heardLines[heardLines.length - 1];
-  if (newestLine === undefined) return [];
-  if (tick - newestLine.tick > config.decision.conversationLingerTicks) return [];
-  const { endAfterQuietTicks } = config.memory.conversationSummary;
-  let startIndex = heardLines.length - 1;
-  while (startIndex > 0) {
-    const earlierLine = heardLines[startIndex - 1];
-    const laterLine = heardLines[startIndex];
-    if (earlierLine === undefined || laterLine === undefined) break;
-    if (laterLine.tick - earlierLine.tick >= endAfterQuietTicks) break;
-    startIndex -= 1;
-  }
-  return heardLines.slice(startIndex).slice(-config.decision.conversationLines);
-}
-
-/** The last `conversationLines` lines of the conversation the agent is in, its own as "You". */
-export function currentConversation(
-  log: ConversationLog,
-  agentId: string,
-  tick: number,
-): ConversationLineView[] {
-  return selectConversationLines(log, agentId, tick).map((line) => ({
-    speakerName: line.speakerId === agentId ? OWN_SPEAKER_NAME : line.speakerName,
-    words: line.words,
-    tick: line.tick,
-  }));
-}
-
-/** Keeps lines still needed for participation or for anyone's current conversation. */
+/** Keeps only the lines that can still decide who is taking part. */
 export function pruneConversationLog(log: ConversationLog, tick: number): ConversationLog {
-  const agentIds = new Set(log.lines.flatMap((line) => [line.speakerId, ...line.clearListenerIds]));
-  const linesInView = new Set(
-    [...agentIds].flatMap((agentId) => selectConversationLines(log, agentId, tick)),
-  );
   return {
-    lines: log.lines.filter(
-      (line) =>
-        linesInView.has(line) ||
-        isWithinTicks(line.tick, tick, config.memory.participationWindowTicks),
+    lines: log.lines.filter((line) =>
+      isWithinTicks(line.tick, tick, config.memory.participationWindowTicks),
     ),
   };
 }

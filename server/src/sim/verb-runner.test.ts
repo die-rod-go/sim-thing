@@ -167,10 +167,10 @@ describe("slowed by pressing needs", () => {
     exhaust(tired, "mara");
     startBaking(tired);
     expect(minutesUntilDone(tired, "mara")).toBeGreaterThan(minutesUntilDone(rested, "mara"));
-    expect(tired.agent("mara").workingMemory.at(-1)).toContain(
+    expect(tired.streamTexts("mara").at(-1)).toContain(
       "This will take longer than usual because I'm exhausted",
     );
-    expect(rested.agent("mara").workingMemory.join(" ")).not.toContain("longer than usual");
+    expect(rested.streamTexts("mara").join(" ")).not.toContain("longer than usual");
   });
 
   it("tells only the agent itself that it finished slowly", () => {

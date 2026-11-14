@@ -30,7 +30,7 @@ function fillWakeWords(words: string, placeName: string | null, sleptMinutes: nu
 }
 
 /**
- * Wakes a sleeping agent, frees what it slept in, broadcasts `woke` and tells the reflection hook.
+ * Wakes a sleeping agent, frees what it slept in and broadcasts `woke`.
  * A `reason` is given when the sleep ended on its own. The sleeper's own memory of waking says how
  * long it slept and why it ended, so it can tell whether lying down again would do any good.
  */
@@ -47,12 +47,6 @@ export function wakeAgent(context: TickContext, agentId: string, reason?: WakeRe
     actorDescription: fillWakeWords(words.own, placeName, sleptMinutes),
   });
   broadcastEvent(state, event, context.result);
-  context.dependencies.reflectionHook.onWoke(
-    state,
-    agentId,
-    state.tick,
-    state.tick - startedAtTick,
-  );
 }
 
 /**

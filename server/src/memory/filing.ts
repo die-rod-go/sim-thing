@@ -1,31 +1,21 @@
-import type { Bucket, Memory, Volume, WorldEvent } from "@village/shared";
-import { config } from "../config";
+import type { Volume, WorldEvent } from "@village/shared";
 import type { EventPerception, PerceivedEvent } from "../perception/types";
 import { isTakingPart, type ConversationLog } from "./conversation";
-import type { MemoryIdGenerator, MemoryReader } from "./memory-store";
-import { extractTags, uniqueTags } from "./tags";
 
 /** What filing needs besides the event itself. */
 export interface FilingContext {
-  /** Existing memories, used to skip duplicates. */
-  memories: MemoryReader;
-  idGenerator: MemoryIdGenerator;
   /** Recent speech, used to tell conversation participants from bystanders. */
   conversationLog: ConversationLog;
-  /** Agent, object and place names that speech is searched for when tagging. */
-  knownNames: readonly string[];
   /** Per listener, the agent ids whose voices it recognizes without seeing them. */
   knownAgentIdsByListener: Readonly<Record<string, readonly string[]>>;
 }
 
-interface MemoryDraft {
+/** One event as one agent took it in: the text that goes into that agent's stream. */
+export interface FiledEvent {
   agentId: string;
-  bucket: Bucket;
   text: string;
-  tags: string[];
 }
 
-export const ELLIPSIS = "…";
 const UNKNOWN_SPEAKER = "someone";
 
 const SPEECH_PAST_TENSE: Record<Volume, string> = {
@@ -39,15 +29,6 @@ const SPEECH_BASE_FORM: Record<Volume, string> = {
   normal: "say",
   shout: "shout",
 };
-
-/** Keeps a memory to `maxChars` (default `maxMemoryChars`), ending a cut text with an ellipsis. */
-export function truncateMemoryText(
-  text: string,
-  maxChars: number = config.memory.maxMemoryChars,
-): string {
-  if (text.length <= maxChars) return text;
-  return text.slice(0, maxChars - ELLIPSIS.length).trimEnd() + ELLIPSIS;
-}
 
 /** "bakery" reads as "the bakery"; names that are capitalized or already have "the" stay as is. */
 export function describePlace(name: string): string {
@@ -84,16 +65,6 @@ function describeGiftForRecipient(event: WorldEvent): string {
   return `${event.actorName} gave me ${amount}${event.item}`;
 }
 
-function eventTags(event: WorldEvent, context: FilingContext, isActorKnown: boolean): string[] {
-  return uniqueTags([
-    isActorKnown ? event.actorName : null,
-    event.targetName,
-    event.place,
-    ...extractTags(event.description, context.knownNames),
-    ...(event.speech === undefined ? [] : extractTags(event.speech.words, context.knownNames)),
-  ]);
-}
-
 /**
  * The agent an act was aimed at, who files it as done to them ("Tobias hit me with a knife"), if
  * they took it in: a sleeper doesn't perceive the attack that wakes them.
@@ -108,36 +79,28 @@ function aimedTargetId(event: WorldEvent, perceptions: readonly EventPerception[
 function draftsForParticipants(
   event: WorldEvent,
   perceptions: readonly EventPerception[],
-  context: FilingContext,
-): MemoryDraft[] {
+): FiledEvent[] {
   // The dead remember nothing more, not even dying; a thing remembers nothing at all.
   if (event.kind === "died" || event.isActorThing === true) return [];
-  const tags = eventTags(event, context, true);
-  const actorDraft: MemoryDraft = isSpeech(event)
+  const actorDraft: FiledEvent = isSpeech(event)
     ? {
         agentId: event.actorId,
-        bucket: "conversations",
         text: `I ${SPEECH_PAST_TENSE[event.speech.volume]}: "${event.speech.words}"`,
-        tags,
       }
     : {
         agentId: event.actorId,
-        bucket: "did",
         text: `I ${event.actorDescription ?? event.description}`,
-        tags,
       };
   const targetId = aimedTargetId(event, perceptions);
   if (targetId !== null && event.targetDescription !== undefined) {
     const text = `${event.actorName} ${event.targetDescription}`;
-    return [actorDraft, { agentId: targetId, bucket: "did", text, tags }];
+    return [actorDraft, { agentId: targetId, text }];
   }
   const recipientId = giveRecipientId(event);
   if (recipientId === null) return [actorDraft];
-  const recipientDraft: MemoryDraft = {
+  const recipientDraft: FiledEvent = {
     agentId: recipientId,
-    bucket: "did",
     text: describeGiftForRecipient(event),
-    tags: uniqueTags([...tags, event.item]),
   };
   return [actorDraft, recipientDraft];
 }
@@ -156,49 +119,47 @@ function draftForSpeechPerceiver(
   perception: EventPerception,
   event: WorldEvent & { speech: NonNullable<WorldEvent["speech"]> },
   context: FilingContext,
-): MemoryDraft | null {
+): FiledEvent | null {
   const isActorKnown = recognizesActor(perception, event, context);
   const speakerLabel = isActorKnown ? event.actorName : UNKNOWN_SPEAKER;
   const { words, volume } = event.speech;
-  const base = { agentId: perception.agentId, tags: eventTags(event, context, isActorKnown) };
+  const base = { agentId: perception.agentId };
   if (perception.hearing === "clear") {
     if (isTakingPart(context.conversationLog, perception.agentId, event.actorId, event.tick)) {
       const text = `${capitalize(speakerLabel)} ${SPEECH_PAST_TENSE[volume]}: "${words}"`;
-      return { ...base, bucket: "conversations", text };
+      return { ...base, text };
     }
     const text = `I overheard ${speakerLabel} ${SPEECH_BASE_FORM[volume]}: "${words}"`;
-    return { ...base, bucket: "overheard", text };
+    return { ...base, text };
   }
-  const placeTags = uniqueTags([isActorKnown ? event.actorName : null, event.place]);
   if (perception.hearing === "muffled") {
     const text =
       `I heard ${speakerLabel}'s voice from ${describePlace(event.place)}` +
       `${describeDirection(perception.direction)} but couldn't make out the words`;
-    return { agentId: perception.agentId, bucket: "overheard", text, tags: placeTags };
+    return { agentId: perception.agentId, text };
   }
   if (!perception.isInSight) return null;
   const text = `I saw ${event.actorName} speaking but couldn't hear the words`;
-  return { agentId: perception.agentId, bucket: "seen", text, tags: placeTags };
+  return { agentId: perception.agentId, text };
 }
 
 function draftForActionPerceiver(
   perception: EventPerception,
   event: WorldEvent,
-  context: FilingContext,
-): MemoryDraft | null {
+): FiledEvent | null {
   const agentId = perception.agentId;
   if (perception.isInSight) {
     const text = `I saw that ${event.actorName} ${event.description}`;
-    return { agentId, bucket: "seen", text, tags: eventTags(event, context, true) };
+    return { agentId, text };
   }
   const source = `${describePlace(event.place)}${describeDirection(perception.direction)}`;
   if (perception.hearing === "clear") {
     const text = `I heard sounds from ${source}: someone ${event.description}`;
-    return { agentId, bucket: "seen", text, tags: eventTags(event, context, false) };
+    return { agentId, text };
   }
   if (perception.hearing === "muffled") {
     const text = `I heard muffled sounds from ${source}`;
-    return { agentId, bucket: "seen", text, tags: uniqueTags([event.place]) };
+    return { agentId, text };
   }
   return null;
 }
@@ -208,31 +169,29 @@ function draftForPerceiver(
   perception: EventPerception,
   event: WorldEvent,
   context: FilingContext,
-): MemoryDraft | null {
+): FiledEvent | null {
   if (perception.agentId === event.holderId && event.holderDescription !== undefined) {
     return {
       agentId: perception.agentId,
-      bucket: "seen",
       text: capitalize(event.holderDescription),
-      tags: eventTags(event, context, true),
     };
   }
   return isSpeech(event)
     ? draftForSpeechPerceiver(perception, event, context)
-    : draftForActionPerceiver(perception, event, context);
+    : draftForActionPerceiver(perception, event);
 }
 
 function draftsForPerceivers(
   event: WorldEvent,
   perceptions: readonly EventPerception[],
   context: FilingContext,
-): MemoryDraft[] {
+): FiledEvent[] {
   const participantIds = new Set([
     event.actorId,
     giveRecipientId(event),
     aimedTargetId(event, perceptions),
   ]);
-  const drafts: MemoryDraft[] = [];
+  const drafts: FiledEvent[] = [];
   for (const perception of perceptions) {
     if (participantIds.has(perception.agentId)) continue;
     const draft = draftForPerceiver(perception, event, context);
@@ -242,102 +201,14 @@ function draftsForPerceivers(
 }
 
 /**
- * Duplicates are judged by identical text for the same agent within `duplicateWindowTicks`, so an
- * action's start and its result ("started baking", "finished baking") are both kept.
+ * Files one world event for everyone involved: the actor (and a give's recipient) take it in as
+ * their own, and each perceiver as what it saw or heard. Returns one text per agent; the caller
+ * appends them to the streams.
  */
-function isDuplicate(draft: MemoryDraft, tick: number, recentMemories: readonly Memory[]): boolean {
-  return recentMemories.some(
-    (memory) =>
-      memory.agentId === draft.agentId &&
-      memory.text === draft.text &&
-      tick - memory.tick <= config.memory.duplicateWindowTicks,
-  );
-}
-
-function createMemory(draft: MemoryDraft, tick: number, idGenerator: MemoryIdGenerator): Memory {
-  return {
-    id: idGenerator.nextId(draft.agentId, tick),
-    agentId: draft.agentId,
-    bucket: draft.bucket,
-    tick,
-    text: draft.text,
-    tags: draft.tags,
-    strength: config.memory.newMemoryStrength,
-    lastRecalledTick: null,
-  };
-}
-
-function materializeDrafts(
-  drafts: readonly MemoryDraft[],
-  tick: number,
-  context: FilingContext,
-): Memory[] {
-  const filed: Memory[] = [];
-  for (const draft of drafts) {
-    const truncated = { ...draft, text: truncateMemoryText(draft.text) };
-    const recentMemories = [...context.memories.listByAgent(draft.agentId), ...filed];
-    if (isDuplicate(truncated, tick, recentMemories)) continue;
-    filed.push(createMemory(truncated, tick, context.idGenerator));
-  }
-  return filed;
-}
-
-/**
- * Files one world event for everyone involved: the actor (and a give's recipient) remember it as
- * their own, and each perceiver remembers what it saw or heard. Returns the new memories; the
- * caller adds them to the store.
- */
-export function fileEvent(perceived: PerceivedEvent, context: FilingContext): Memory[] {
+export function fileEvent(perceived: PerceivedEvent, context: FilingContext): FiledEvent[] {
   const { event, perceptions } = perceived;
-  const drafts = [
-    ...draftsForParticipants(event, perceptions, context),
+  return [
+    ...draftsForParticipants(event, perceptions),
     ...draftsForPerceivers(event, perceptions, context),
   ];
-  return materializeDrafts(drafts, event.tick, context);
-}
-
-/** A `places` memory for an agent's first visit to a place, naming the objects found there. */
-export function fileFirstVisit(
-  agentId: string,
-  place: string,
-  objectNames: readonly string[],
-  tick: number,
-  idGenerator: MemoryIdGenerator,
-): Memory {
-  const visit = `I visited ${describePlace(place)} for the first time`;
-  const objectList = objectNames.map(describePlace);
-  const lastObject = objectList.pop();
-  const found =
-    lastObject === undefined
-      ? ""
-      : `; I found ${objectList.length > 0 ? `${objectList.join(", ")} and ` : ""}${lastObject} here`;
-  const draft: MemoryDraft = {
-    agentId,
-    bucket: "places",
-    text: truncateMemoryText(visit + found),
-    tags: uniqueTags([place, ...objectNames]),
-  };
-  return createMemory(draft, tick, idGenerator);
-}
-
-/**
- * A `did` memory of something only the agent knows it tried, like looking for a place that isn't
- * there. Null when the same note was filed recently.
- */
-export function fileOwnNote(
-  agentId: string,
-  text: string,
-  tick: number,
-  memories: MemoryReader,
-  idGenerator: MemoryIdGenerator,
-  knownNames: readonly string[],
-): Memory | null {
-  const draft: MemoryDraft = {
-    agentId,
-    bucket: "did",
-    text: truncateMemoryText(text),
-    tags: extractTags(text, knownNames),
-  };
-  if (isDuplicate(draft, tick, memories.listByAgent(agentId))) return null;
-  return createMemory(draft, tick, idGenerator);
 }

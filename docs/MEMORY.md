@@ -1,7 +1,9 @@
 # Memory, people and goals: design
 
-Status: **designed, not built.** This replaces the current memory model, the reflection passes,
-dossiers and plans. Old saves do not need to load; the owner resets.
+Status: **being built.** Phases 1 (places) and 2 (the stream) of the [Build order](#build-order)
+are done; "Where things are today" below describes the code before phase 1. This replaces the old
+memory model, the reflection passes, dossiers and plans. Old saves do not need to load; the owner
+resets.
 
 If you are implementing this: read it all once, then work phase by phase from
 [Build order](#build-order). `AGENTS.md` still applies to everything, above all the design rule:

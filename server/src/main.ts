@@ -9,7 +9,6 @@ import {
   appendEvent,
   appendLlmCall,
   appendMoment,
-  appendPersonalityChange,
   createTokenUsageStore,
 } from "./db/log-repository";
 import { loadWorld, saveWorld } from "./db/world-repository";
@@ -24,7 +23,6 @@ import { createMapEditor } from "./map-editor";
 import { createSeedEditor } from "./seed-editor";
 import { buildSeededWorld, loadSeedFile } from "./seeds";
 import { SimLoop } from "./sim/loop";
-import { createReflectionHook } from "./sim/reflection-passes";
 import { createRealScheduler } from "./sim/scheduler";
 import { createDecisionStrategy } from "./sim/tick-pipeline";
 import {
@@ -152,13 +150,6 @@ async function run(): Promise<void> {
       isReplySchemaStable: environment.LLM_PROVIDER === "anthropic",
       shouldCallLlmInBackground: config.decision.shouldCallLlmInBackground,
       idleDecisionWaitMs: config.decision.idleDecisionWaitMs,
-      reflectionHook: createReflectionHook({
-        callStructured: llm.callStructured,
-        shouldRunInBackground: config.decision.shouldCallLlmInBackground,
-        recordPersonalityChange: (change) => {
-          appendPersonalityChange(database, change);
-        },
-      }),
     }),
     scheduler: createRealScheduler(),
     speed: settings.speed,

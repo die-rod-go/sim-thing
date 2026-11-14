@@ -1,20 +1,15 @@
 import type { Agent, DecisionReply, Volume } from "@village/shared";
 import { config } from "../config";
-import { formatMinutesAgo } from "../decision/around-you";
 import { buildCacheableDecisionPrompt } from "../decision/decision-prompt";
 import { buildDecisionReplySchema } from "../decision/reply-schema";
 import { describeUnknownNames } from "../decision/unknown-names";
-import { searchMemories } from "../memory/recall";
-import { fillStatusWords, findFailedRecall, readStatusView } from "../status/impairment";
-import { extractTags } from "../memory/tags";
-import { pushWorkingMemory } from "../memory/working-memory";
 import type { InteractRequest } from "./agent-runtime";
 import { buildDecisionContext } from "./context-builder";
 import type { SpeechOrigin } from "./event-factory";
 import type { DecisionRequest } from "./tick-phases";
 import type { SimDependencies } from "./tick-context";
 import { planInteract } from "./interact-planning";
-import { findAgent, formatWorkingMemoryEntry, listKnownNames } from "./world-access";
+import { findAgent } from "./world-access";
 import type { WorldState } from "./world-state";
 
 /** The physical act a decision settled on, with names already resolved where that needs the LLM. */
@@ -43,13 +38,10 @@ export interface PlannedSpeech {
 export interface DecisionPlan {
   agentId: string;
   isMidActionInterrupt: boolean;
-  /** Replies in order (two after a recall); free acts of each apply, the last one's action wins. */
-  replies: DecidedReply[];
+  reply: DecidedReply;
   action: PlannedAction;
   speech: PlannedSpeech | null;
-  /** Working-memory entries from a recall, already stamped. */
-  recallEntries: string[];
-  /** "I wanted to go to the river, but ...": names the agent tried that aren't there. */
+  /** "I looked for nail box, but ...": names the agent tried that aren't there. */
   unknownNameNotes: string[];
 }
 
@@ -66,13 +58,13 @@ async function askForDecision(
   state: WorldState,
   dependencies: SimDependencies,
   request: DecisionRequest,
-  agentOverride?: Agent,
 ): Promise<DecidedReply> {
-  const context = buildDecisionContext(state, request.agentId, request.isMidActionInterrupt, {
-    passiveRecallRoll: request.recallRolls.passive,
-    decisionReason: request.reason,
-    ...(agentOverride ? { agentOverride } : {}),
-  });
+  const context = buildDecisionContext(
+    state,
+    request.agentId,
+    request.isMidActionInterrupt,
+    request.reason,
+  );
   const { text: prompt, cacheBreakpoints } = buildCacheableDecisionPrompt(
     context,
     dependencies.promptsDirectory,
@@ -98,43 +90,6 @@ async function askForDecision(
   return reply.ok
     ? { reply: reply.value, llmCallId: reply.callId, unknownNameNotes }
     : { reply: fallbackWait(findAgent(state, request.agentId)), llmCallId: null, unknownNameNotes };
-}
-
-/**
- * The `recall` action: memories sharing names in the query, plus where named agents were last
- * perceived. A pressing need or wound can make the search fail, leaving every memory untouched.
- */
-export function runRecall(state: WorldState, agent: Agent, query: string, roll: number): string[] {
-  const fog = findFailedRecall(readStatusView(state.items, agent), roll);
-  if (fog !== null) {
-    const failed = fillStatusWords(config.impairment.recallFailedText, fog.statusWords);
-    return [formatWorkingMemoryEntry(state.tick, failed.split("{query}").join(query))];
-  }
-  const memories = searchMemories(
-    state.memoryStore,
-    agent.id,
-    query,
-    listKnownNames(state),
-    state.tick,
-  );
-  const lines = memories.map(
-    (memory) =>
-      `I recall: ${memory.text} (${formatMinutesAgo((state.tick - memory.tick) * config.clock.minutesPerTick)})`,
-  );
-  const namedAgents = extractTags(
-    query,
-    state.agents.map((other) => other.name),
-  );
-  for (const other of state.agents) {
-    const entry = agent.awareness[other.id];
-    if (other.id === agent.id || !entry || !namedAgents.includes(other.name.toLowerCase()))
-      continue;
-    const how = entry.via === "saw" ? "saw" : "heard";
-    const when = formatMinutesAgo((state.tick - entry.tick) * config.clock.minutesPerTick);
-    lines.push(`I last ${how} ${other.name} ${when} at ${entry.place}, ${entry.doing}`);
-  }
-  if (lines.length === 0) lines.push(`I tried to recall "${query}" but nothing came to mind`);
-  return lines.map((line) => formatWorkingMemoryEntry(state.tick, line));
 }
 
 function planSpeech(decided: DecidedReply): PlannedSpeech | null {
@@ -175,9 +130,8 @@ function planSimpleAction(decided: DecidedReply): PlannedAction {
 }
 
 /**
- * One decision for one agent, reading the world without changing it (apart from recall bumps).
- * Invalid or failed replies fall back to `wait`; the failed calls are still logged by the caller.
- * A `recall` runs the search and asks once more in the same tick; a second recall becomes a wait.
+ * One decision for one agent, reading the world without changing it. An invalid or failed reply
+ * falls back to `wait`; the failed calls are still logged by the caller.
  */
 export async function runDecision(
   state: WorldState,
@@ -185,40 +139,17 @@ export async function runDecision(
   request: DecisionRequest,
 ): Promise<DecisionPlan> {
   const agent = findAgent(state, request.agentId);
-  const first = await askForDecision(state, dependencies, request);
-  const replies = [first];
-  let recallEntries: string[] = [];
-  let finalReply = first.reply;
-  let finalCallId = first.llmCallId;
-  if (finalReply.action === "recall") {
-    recallEntries = runRecall(state, agent, finalReply.query ?? "", request.recallRolls.explicit);
-    const workingMemory = recallEntries.reduce(
-      (entries, entry) => pushWorkingMemory(entries, entry),
-      agent.workingMemory,
-    );
-    const second = await askForDecision(state, dependencies, request, { ...agent, workingMemory });
-    finalReply =
-      second.reply.action === "recall"
-        ? { ...second.reply, action: "wait", minutes: config.decision.defaultWaitMinutes }
-        : second.reply;
-    finalCallId = second.llmCallId;
-    replies.push({
-      reply: finalReply,
-      llmCallId: finalCallId,
-      unknownNameNotes: second.unknownNameNotes ?? [],
-    });
-  }
+  const decided = await askForDecision(state, dependencies, request);
   const action =
-    finalReply.action === "interact"
-      ? await planInteract(state, dependencies, agent, finalReply)
-      : planSimpleAction({ reply: finalReply, llmCallId: finalCallId });
+    decided.reply.action === "interact"
+      ? await planInteract(state, dependencies, agent, decided.reply)
+      : planSimpleAction(decided);
   return {
     agentId: agent.id,
     isMidActionInterrupt: request.isMidActionInterrupt,
-    replies,
+    reply: decided,
     action,
-    speech: planSpeech({ reply: finalReply, llmCallId: finalCallId }),
-    recallEntries,
-    unknownNameNotes: [...new Set(replies.flatMap((decided) => decided.unknownNameNotes ?? []))],
+    speech: planSpeech(decided),
+    unknownNameNotes: [...new Set(decided.unknownNameNotes ?? [])],
   };
 }

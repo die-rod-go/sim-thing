@@ -73,24 +73,6 @@ describe("buildAgentActivity", () => {
     expect(buildFor([bobAction])).toEqual([]);
   });
 
-  it("keeps only reflections under the reflections filter", () => {
-    const morning = { ...makeSampleLlmCall(2, "ada", 3), kind: "morning" as const, parsed: {} };
-    const groups = buildAgentActivity(
-      {
-        agentId: "ada",
-        events: [act(1, 3, "action_started")],
-        threads: [],
-        thoughts: [summarizeLlmCall(makeSampleLlmCall(1, "ada", 3)), summarizeLlmCall(morning)],
-        latestThought: null,
-        moments: [],
-      },
-      "reflections",
-    );
-    expect(groups[0]?.items.map((item) => item.kind === "thought" && item.thoughtKind)).toEqual([
-      "morning",
-    ]);
-  });
-
   it("adds the server's latest thought when no call covers it", () => {
     const groups = buildAgentActivity({
       agentId: "ada",

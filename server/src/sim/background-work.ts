@@ -12,7 +12,7 @@ interface InFlightWork<Outcome> {
 }
 
 /**
- * Per-agent LLM work (decisions, summaries, reflections) that may run while the clock keeps going:
+ * Per-agent LLM work (decisions, summaries, passes) that may run while the clock keeps going:
  * each piece starts on the tick it is asked for and its result is collected on the first tick
  * after it returns, or on the same tick when the tick waits for it. One piece per agent at a time.
  */

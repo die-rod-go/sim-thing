@@ -10,7 +10,7 @@ export interface ThoughtEntry {
   callId: number;
   tick: number;
   kind: LlmCallKind;
-  /** The main line: the decision's thought, the night summary, the morning plan. */
+  /** The main line: the decision's thought. */
   headline: string | null;
   parts: ThoughtPart[];
   error: string | null;
@@ -32,52 +32,8 @@ function readNumber(fields: ReplyFields, key: string): number | null {
   return typeof value === "number" ? value : null;
 }
 
-function readRecords(fields: ReplyFields, key: string): ReplyFields[] {
-  const value = fields[key];
-  return Array.isArray(value) ? value.filter(isRecord) : [];
-}
-
 function part(label: string, text: string | null): ThoughtPart[] {
   return text === null ? [] : [{ label, text }];
-}
-
-function dossierParts(fields: ReplyFields): ThoughtPart[] {
-  return readRecords(fields, "dossiers").flatMap((entry) =>
-    part(`on ${readText(entry, "person") ?? "someone"}`, readText(entry, "text")),
-  );
-}
-
-/** "Win Malin over: next, bring her the axe; then ask her to the tavern". */
-function describePlan(plan: ReplyFields): string | null {
-  const aim = readText(plan, "aim");
-  if (aim === null) return null;
-  const steps = Array.isArray(plan.steps)
-    ? plan.steps.filter((step): step is string => typeof step === "string")
-    : [];
-  const [nextStep, ...laterSteps] = steps;
-  const next = nextStep === undefined ? "" : `: next, ${nextStep}`;
-  const later = laterSteps.length === 0 ? "" : `; then ${laterSteps.join("; ")}`;
-  const keepFrom = readText(plan, "keepFrom");
-  const secret = keepFrom === null ? "" : ` (kept from ${keepFrom})`;
-  return `${aim}${next}${later}${secret}`;
-}
-
-/** A reply's `plans` list; a null list means the plans were kept, so it shows nothing. */
-function planParts(fields: ReplyFields): ThoughtPart[] {
-  return readRecords(fields, "plans").flatMap((plan) => part("plans", describePlan(plan)));
-}
-
-function goalParts(fields: ReplyFields): ThoughtPart[] {
-  return readRecords(fields, "goals").flatMap((goal) =>
-    part(`${readText(goal, "kind") ?? ""} goal`.trim(), readText(goal, "text")),
-  );
-}
-
-function goalProgressParts(fields: ReplyFields): ThoughtPart[] {
-  return readRecords(fields, "goalProgress").flatMap((entry) => {
-    const goalNumber = readNumber(entry, "goal");
-    return part(`goal ${goalNumber ?? "?"}`, readText(entry, "progress"));
-  });
 }
 
 function describeDecisionAction(fields: ReplyFields): string | null {
@@ -96,8 +52,6 @@ function describeDecisionAction(fields: ReplyFields): string | null {
       const item = readText(fields, "item") ?? "?";
       return `give ${amount ?? ""}${amount === null ? "" : " "}${item} to ${target ?? "?"}`;
     }
-    case "recall":
-      return `try to recall "${readText(fields, "query") ?? ""}"`;
     case "wait": {
       const minutes = readNumber(fields, "minutes");
       return minutes === null ? "wait" : `wait ${minutes} min`;
@@ -117,46 +71,6 @@ function summarizeDecision(fields: ReplyFields): Pick<ThoughtEntry, "headline" |
       ...part("does", describeDecisionAction(fields)),
       ...part("intends", readText(fields, "intention")),
       ...part("feels", readText(fields, "mood")),
-      ...part("finished a step of", stepDoneText(fields)),
-    ],
-  };
-}
-
-function stepDoneText(fields: ReplyFields): string | null {
-  const planNumber = readNumber(fields, "stepDone");
-  return planNumber === null ? null : `plan ${planNumber}`;
-}
-
-function summarizeNight(fields: ReplyFields): Pick<ThoughtEntry, "headline" | "parts"> {
-  return {
-    headline: readText(fields, "summary"),
-    parts: [
-      ...part("feels", readText(fields, "moodEntry")),
-      ...readRecords(fields, "insights").flatMap((insight) =>
-        part("realized", readText(insight, "text")),
-      ),
-      ...goalParts(fields),
-      ...planParts(fields),
-      ...dossierParts(fields),
-    ],
-  };
-}
-
-function summarizeWeekly(fields: ReplyFields): Pick<ThoughtEntry, "headline" | "parts"> {
-  const traitChanges = readRecords(fields, "traitChanges").flatMap((change) => {
-    const delta = readNumber(change, "delta");
-    const sign = delta !== null && delta >= 0 ? "+" : "";
-    const amount = delta === null ? "" : ` ${sign}${delta.toFixed(2)}`;
-    return part(`${readText(change, "trait") ?? "trait"}${amount}`, readText(change, "reason"));
-  });
-  const goals = goalParts(fields);
-  return {
-    headline: readText(fields, "selfImage") ?? readText(fields, "core"),
-    parts: [
-      ...part("work", readText(fields, "profession")),
-      ...part("core", readText(fields, "core")),
-      ...traitChanges,
-      ...goals,
     ],
   };
 }
@@ -175,30 +89,6 @@ function summarizeReply(
   switch (kind) {
     case "decision":
       return summarizeDecision(fields);
-    case "morning":
-      return {
-        headline: readText(fields, "dailyPlan"),
-        parts: [...planParts(fields), ...part("feels", readText(fields, "mood"))],
-      };
-    case "daytime":
-      return {
-        headline: readText(fields, "thinking"),
-        parts: [
-          ...readRecords(fields, "insights").flatMap((insight) =>
-            part("realized", readText(insight, "text")),
-          ),
-          ...goalProgressParts(fields),
-          ...planParts(fields),
-          ...dossierParts(fields),
-          ...part("feels", readText(fields, "mood")),
-        ],
-      };
-    case "night":
-      return summarizeNight(fields);
-    case "weekly":
-      return summarizeWeekly(fields);
-    case "conversation_summary":
-      return { headline: readText(fields, "summary"), parts: dossierParts(fields) };
     case "interact":
       return summarizeOther(fields);
   }

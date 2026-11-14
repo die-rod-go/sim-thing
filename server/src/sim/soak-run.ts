@@ -1,9 +1,10 @@
-import { BUCKETS, type PersonalityChange, type WorldEventKind } from "@village/shared";
+import type { WorldEventKind } from "@village/shared";
 import { config } from "../config";
 import { isAsleep } from "../economy/sleep";
 import { createFakeResponder } from "../llm/fake-responder";
 import { listHitRollVerbNames } from "../items/verb-offers";
 import { createTestSim, loadTestItems, type TestSim } from "./test-sim";
+import { getAgentMemory } from "./world-access";
 
 /** Events that only a decision can start, so each needs an LLM call by the actor on that tick. */
 const DECIDED_EVENT_KINDS: readonly WorldEventKind[] = ["said", "walk_started", "gave"];
@@ -14,7 +15,6 @@ export interface SoakReport {
   events: number;
   /** Human-readable problems; empty when the run is healthy. */
   problems: string[];
-  personalityChanges: Omit<PersonalityChange, "id">[];
   /** Who died and how; deaths are reported, not counted as problems. */
   deaths: string[];
   sim: TestSim;
@@ -31,16 +31,14 @@ const ticksPerHour = 60 / config.clock.minutesPerTick;
 /**
  * Runs all seed agents with the fake LLM responder and checks the brief's done-when conditions:
  * no crash, no awake agent left without an action or decision for over a sim-hour, every decided
- * act traceable to a stored LLM call, every agent's buckets within their cap, and no reaction
- * chain cut off at the depth cap. Any thrown error ends the run with that error.
+ * act traceable to a stored LLM call, every agent's stream within its cap, and no reaction chain
+ * cut off at the depth cap. Any thrown error ends the run with that error.
  */
 export async function runSoak(options: SoakOptions): Promise<SoakReport> {
-  const personalityChanges: Omit<PersonalityChange, "id">[] = [];
   const sim = createTestSim({
     responder: createFakeResponder({}, undefined, {
       hitRollVerbNames: listHitRollVerbNames(loadTestItems()),
     }),
-    reflection: (change) => personalityChanges.push(change),
   });
   sim.client.requests.length = 0;
   const problems: string[] = [];
@@ -82,11 +80,9 @@ export async function runSoak(options: SoakOptions): Promise<SoakReport> {
     if (sim.state.tick % ticksPerHour === 0) options.onHour?.(sim.state.tick);
   }
   for (const agent of sim.state.agents) {
-    for (const bucket of BUCKETS) {
-      const count = sim.state.memoryStore.listByAgentAndBucket(agent.id, bucket).length;
-      if (count > config.memory.bucketCap)
-        problems.push(`${agent.id} has ${count} ${bucket} memories`);
-    }
+    const entryCount = getAgentMemory(sim.state, agent.id).stream.length;
+    if (entryCount > config.memory.streamMax)
+      problems.push(`${agent.id} has ${entryCount} stream entries`);
   }
   const deaths = sim.state.agents.flatMap((agent) =>
     agent.death ? [`tick ${agent.death.tick}: ${agent.id} ${agent.death.cause}`] : [],
@@ -96,7 +92,6 @@ export async function runSoak(options: SoakOptions): Promise<SoakReport> {
     llmCalls,
     events: eventCount,
     problems,
-    personalityChanges,
     deaths,
     sim,
   };

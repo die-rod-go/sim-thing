@@ -6,7 +6,6 @@ import type {
   PersonalityChange,
   WorldEvent,
 } from "@village/shared";
-import type { NightReflection } from "../reflection/night";
 import { takeNextMomentId, type TickResult, type WorldState } from "./world-state";
 
 type DistributiveOmit<Shape, Key extends keyof Shape> = Shape extends unknown
@@ -100,33 +99,6 @@ export function buildGoalMoments(
     );
   }
   return moments;
-}
-
-export function buildDailyPlanMoment(
-  subject: MomentSubject,
-  tick: number,
-  plan: string,
-): MomentDraft | null {
-  const trimmed = plan.trim();
-  if (!trimmed) return null;
-  return draftMoment(subject, tick, `planned the day: ${trimmed}`, {
-    kind: "daily_plan",
-    plan: trimmed,
-  });
-}
-
-export function buildNightReflectionMoment(
-  subject: MomentSubject,
-  tick: number,
-  reflection: NightReflection,
-): MomentDraft {
-  return draftMoment(subject, tick, `looked back on the day: ${reflection.summary}`, {
-    kind: "reflection",
-    pass: "night",
-    summary: reflection.summary,
-    moodEntry: reflection.moodEntry || null,
-    insights: [...reflection.insights],
-  });
 }
 
 export function buildFailureMoment(event: WorldEvent): MomentDraft | null {

@@ -6,7 +6,7 @@ import { createTestSim } from "./test-sim";
 import { createDefaultSettings, restoreWorldState, takeFreshId, toSavedWorld } from "./world-state";
 
 describe("persistence", () => {
-  it("state survives save and restore including memory ids", async () => {
+  it("state survives save and restore including every agent's stream", async () => {
     const sim = createTestSim({ responder: createFakeResponder() });
     await sim.advance(120);
     const database = openDatabase(IN_MEMORY_DATABASE);
@@ -20,12 +20,8 @@ describe("persistence", () => {
     expect(toSavedWorld(restored.state, restored.settings)).toEqual(
       JSON.parse(JSON.stringify(saved)),
     );
-    expect(restored.state.memoryIds.getState()).toBe(sim.state.memoryIds.getState());
-    const existingIds = new Set(restored.state.memoryStore.all().map((memory) => memory.id));
-    expect(existingIds.size).toBeGreaterThan(30);
-    const nextId = restored.state.memoryIds.nextId("mara", restored.state.tick);
-    expect(existingIds.has(nextId)).toBe(false);
-    expect(sim.state.memoryIds.nextId("mara", sim.state.tick)).toBe(nextId);
+    expect(restored.state.agentMemories).toEqual(sim.state.agentMemories);
+    expect(restored.state.agentMemories.mara?.stream.length).toBeGreaterThan(5);
     database.close();
   });
 

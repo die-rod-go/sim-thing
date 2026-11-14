@@ -6,7 +6,6 @@ import { describeActivity, formatClockTime } from "../format/character-sheet";
 import { parseStoredChoice } from "../format/stored-preferences";
 import { summarizeLlmCall } from "../format/thoughts";
 import { ActivityTab } from "./ActivityTab";
-import { DiaryTab } from "./DiaryTab";
 import { MemoryTab } from "./MemoryTab";
 import { OverviewTab } from "./OverviewTab";
 import { usePanelContext } from "./panel-context";
@@ -18,7 +17,6 @@ import { ColorDot, EmptyNote, TabBar } from "./widgets";
 
 const SHEET_TAB_NAMES = [
   "activity",
-  "diary",
   "overview",
   "personality",
   "relations",
@@ -30,7 +28,6 @@ type SheetTabName = (typeof SHEET_TAB_NAMES)[number];
 
 const SHEET_TAB_LABELS: Record<SheetTabName, string> = {
   activity: "Activity",
-  diary: "Diary",
   overview: "Overview",
   personality: "Personality",
   relations: "Relations",
@@ -85,7 +82,6 @@ function SheetBody({ tab, agent, detail, focusedCallId, onViewPrompt }: SheetBod
   if (tab === "activity") {
     return <ActivityTab agent={agent} detail={detail} onViewPrompt={onViewPrompt} />;
   }
-  if (tab === "diary") return <DiaryTab agent={agent} />;
   if (tab === "overview") return <OverviewTab agent={agent} />;
   if (tab === "personality") return <PersonalityTab agent={agent} detail={detail} />;
   if (!detail) return <EmptyNote>Waiting for {agent.name}'s details from the server…</EmptyNote>;

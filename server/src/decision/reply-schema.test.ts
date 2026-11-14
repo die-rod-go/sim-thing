@@ -29,10 +29,8 @@ const nullReply = {
   target: "bob",
   text: null,
   amount: 1,
-  query: null,
   minutes: null,
   mood: null,
-  stepDone: null,
 };
 
 describe("buildDecisionReplySchema", () => {
@@ -46,12 +44,6 @@ describe("buildDecisionReplySchema", () => {
       item: "bread",
       amount: 1,
     });
-  });
-
-  it("keeps stepDone when given and drops it when null", () => {
-    const { schema } = buildDecisionReplySchema(targets, items, holders);
-    expect(schema.parse({ ...nullReply, stepDone: 2 })).toMatchObject({ stepDone: 2 });
-    expect(schema.parse(nullReply)).not.toHaveProperty("stepDone");
   });
 
   it("has no note field in the reply or its JSON schema", () => {
@@ -131,9 +123,7 @@ describe("buildDecisionReplySchema", () => {
   it("requires the fields an action needs", () => {
     const { schema } = buildDecisionReplySchema(targets, items, holders);
     expect(schema.safeParse({ ...nullReply, amount: null }).success).toBe(false);
-    expect(
-      schema.safeParse({ thought: "Hm.", intention: "think", action: "recall", query: "" }).success,
-    ).toBe(false);
+    expect(schema.safeParse({ ...nullReply, action: "recall" }).success).toBe(false);
   });
 
   it("takes words alongside any action", () => {

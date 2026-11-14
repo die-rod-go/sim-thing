@@ -19,17 +19,13 @@ CREATE TABLE IF NOT EXISTS entities (
   changes TEXT NOT NULL
 );
 
-CREATE TABLE IF NOT EXISTS memories (
-  id TEXT PRIMARY KEY,
-  agent_id TEXT NOT NULL,
-  bucket TEXT NOT NULL,
-  tick INTEGER NOT NULL,
-  text TEXT NOT NULL,
-  tags TEXT NOT NULL,
-  strength REAL NOT NULL,
-  last_recalled_tick INTEGER
+-- The memory store became one record per agent; saves from before it need `make reset`.
+DROP TABLE IF EXISTS memories;
+
+CREATE TABLE IF NOT EXISTS agent_memories (
+  agent_id TEXT PRIMARY KEY,
+  data TEXT NOT NULL
 );
-CREATE INDEX IF NOT EXISTS memories_by_agent ON memories (agent_id, bucket);
 
 CREATE TABLE IF NOT EXISTS events (
   id INTEGER PRIMARY KEY,

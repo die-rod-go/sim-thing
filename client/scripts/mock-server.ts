@@ -16,7 +16,7 @@ import {
   makeSampleAgent,
   makeSampleEvent,
   makeSampleLlmCall,
-  makeSampleMemory,
+  makeSampleStreamEntry,
   makeSampleMoment,
   makeSampleSnapshot,
 } from "../src/fixtures/sample-data";
@@ -83,9 +83,11 @@ function buildDetail(agent: Agent): AgentDetailMessage {
     type: "agent_detail",
     agentId: agent.id,
     agent,
-    memories: [1, 2, 3, 4].map((index) =>
-      makeSampleMemory(`${agent.id}-m${index}`, agent.id, tick - index * 7),
-    ),
+    memory: {
+      stream: [4, 3, 2, 1].map((index) =>
+        makeSampleStreamEntry(`visitor ${index}`, tick - index * 7),
+      ),
+    },
     llmCalls: [1, 2, 3].map((index) => makeSampleLlmCall(index, agent.id, tick - index * 5)),
     personalityHistory: [],
     perceptionView: {

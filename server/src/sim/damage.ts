@@ -8,7 +8,7 @@ import { createEvent } from "./event-factory";
 import { abandonCurrentAction, wakeAgent } from "./action-stopping";
 import { buildDeathMoment, recordMoments } from "./moments";
 import type { TickContext } from "./tick-context";
-import { findAgent, markAgentChanged, rememberBriefly, replaceAgent } from "./world-access";
+import { findAgent, markAgentChanged, appendToStream, replaceAgent } from "./world-access";
 
 const ACTOR_PLACEHOLDER = "{actor}";
 
@@ -53,7 +53,7 @@ export function applyDamage(context: TickContext, agentId: string, damage: Damag
   const runtime = getAgentRuntime(state, agentId);
   if (isAsleep(agent)) {
     wakeAgent(context, agentId);
-    rememberBriefly(state, agentId, config.health.wokeInPainText);
+    appendToStream(state, agentId, config.health.wokeInPainText);
     requestDecision(runtime, config.health.wokeInPainText, true);
   } else if (findCrossedHealthThresholds(before, health).length > 0) {
     requestDecision(runtime, config.health.worsenedDecisionReason, true);

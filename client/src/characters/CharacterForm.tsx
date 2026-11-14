@@ -108,7 +108,7 @@ function PersonalitySection({ agent, rules, problems, onChange }: SectionProps) 
   return (
     <FormSection
       title="Personality"
-      description="The weekly reflection can shift traits, the core and the self-image over time."
+      description="Where they start. Traits, the core and the self-image can shift over time."
     >
       <div className="trait-sliders">
         {TRAIT_NAMES.map((traitName) => (

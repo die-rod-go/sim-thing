@@ -7,7 +7,7 @@ import {
   type Impairment,
 } from "../status/impairment";
 import type { VerbRun } from "./agent-runtime";
-import { rememberBriefly } from "./world-access";
+import { appendToStream } from "./world-access";
 import type { WorldState } from "./world-state";
 
 /** Only a verb that waits can drag on; one that runs until stopped (sleep) can't. */
@@ -31,7 +31,7 @@ export function stretchWaitMinutes(verbRun: VerbRun | null, minutes: number): nu
 export function noteSlowStart(state: WorldState, verbRun: VerbRun): void {
   if (verbRun.slowedBy === undefined) return;
   const text = fillStatusWords(config.impairment.slowStartText, verbRun.slowedBy);
-  rememberBriefly(state, verbRun.agentId, text);
+  appendToStream(state, verbRun.agentId, text);
 }
 
 /** Only the agent itself knows why it was slow: "finished chopping wood, slowly, because I was exhausted". */

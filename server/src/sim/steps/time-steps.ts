@@ -61,7 +61,6 @@ export const sleepStep: StepHandler<"sleep"> = {
       targetName: placeName,
     });
     broadcastEvent(state, event, result);
-    context.dependencies.reflectionHook.onSleepStarted(state, verbRun.agentId, state.tick);
     return { kind: "pause", untilTick: slept.agent.currentAction?.endsAtTick ?? null };
   },
 };

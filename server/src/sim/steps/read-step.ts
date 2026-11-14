@@ -1,11 +1,9 @@
-import type { Entity, Memory, StepOfType } from "@village/shared";
+import type { Entity, StepOfType } from "@village/shared";
 import { config } from "../../config";
 import { findEntityIfPresent, getDefinition, listContents } from "../../items/entity-store";
-import { locateThing, readField, type ThingRef } from "../../items/things";
+import { readField, type ThingRef } from "../../items/things";
 import { readThingName, scopeOf } from "../../items/values";
-import { truncateMemoryText } from "../../memory/filing";
-import { extractTags, uniqueTags } from "../../memory/tags";
-import { listKnownNames, rememberBriefly } from "../world-access";
+import { appendToStream } from "../world-access";
 import type { WorldState } from "../world-state";
 import { findStepThings, requireVerbRun } from "./step-roles";
 import { DONE, type StepHandler, type StepRun } from "./step-run";
@@ -81,34 +79,13 @@ function pickTemplate(found: FoundText): string {
   return hasHolder ? memories.withHolder : memories.plain;
 }
 
-function buildTextMemory(
-  state: WorldState,
-  readerId: string,
-  thing: ThingRef,
-  found: FoundText,
-): Memory {
-  const place = locateThing(state, thing)?.place ?? "";
-  const text = fillTemplate(pickTemplate(found), {
+function describeFoundText(found: FoundText): string {
+  return fillTemplate(pickTemplate(found), {
     thing: found.thingName,
     holder: found.holderName ?? "",
     author: found.author,
     text: found.text,
   });
-  return {
-    id: state.memoryIds.nextId(readerId, state.tick),
-    agentId: readerId,
-    bucket: "seen",
-    tick: state.tick,
-    text: truncateMemoryText(text),
-    tags: uniqueTags([
-      found.author,
-      found.holderName ?? found.thingName,
-      place,
-      ...extractTags(found.text, listKnownNames(state)),
-    ]),
-    strength: config.memory.newMemoryStrength,
-    lastRecalledTick: null,
-  };
 }
 
 function readThing(
@@ -123,21 +100,13 @@ function readThing(
     const nothing = fillTemplate(config.reading.nothingToRead, {
       thing: readThingName(scopeOf(run), step.on ?? "self"),
     });
-    rememberBriefly(state, readerId, nothing);
+    appendToStream(state, readerId, nothing);
     return;
   }
-  const existingTexts = new Set(
-    state.memoryStore.listByAgent(readerId).map((memory) => memory.text),
-  );
-  for (const found of texts) {
-    const memory = buildTextMemory(state, readerId, thing, found);
-    if (existingTexts.has(memory.text)) continue;
-    state.memoryStore.add(memory);
-    rememberBriefly(state, readerId, memory.text);
-  }
+  for (const found of texts) appendToStream(state, readerId, describeFoundText(found));
 }
 
-/** The user files `seen` memories of the text on the thing and on the newest things inside it. */
+/** The user's stream gets the text on the thing and on the newest things inside it. */
 export const readStep: StepHandler<"read"> = {
   isVerbOnly: true,
   run(run, step) {

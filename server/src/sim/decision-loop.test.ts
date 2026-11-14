@@ -6,7 +6,6 @@ import { getAgentRuntime } from "./agent-runtime";
 import { SimLoop } from "./loop";
 import { ManualScheduler } from "./manual-scheduler";
 import { createDecisionStrategy } from "./tick-pipeline";
-import { createNoReflectionHook } from "./reflection-hook";
 import {
   createTestSim,
   decisionReply,
@@ -40,10 +39,6 @@ function countInOven(sim: TestSim, definitionId: string): number {
   ).length;
 }
 
-function memoriesOf(sim: ReturnType<typeof createTestSim>, agentId: string) {
-  return sim.state.memoryStore.listByAgent(agentId);
-}
-
 describe("decision loop", () => {
   it("an agent with no action gets a decision and walks to the chosen place", async () => {
     const sim = createTestSim({
@@ -65,9 +60,7 @@ describe("decision loop", () => {
     const kinds = sim.results.flatMap((result) => result.events.map((event) => event.kind));
     expect(kinds).toContain("walk_started");
     expect(kinds).toContain("arrived");
-    expect(memoriesOf(sim, "mara").map((memory) => memory.text)).toContain(
-      "I visited the town square for the first time; I found the notice board and the bench here",
-    );
+    expect(sim.streamTexts("mara")).toContain("I arrived at the town square");
   });
 
   it("tells an interrupted agent what flagged the decision", async () => {
@@ -99,7 +92,6 @@ describe("decision loop", () => {
       state: sim.state,
       advanceTick: createDecisionStrategy({
         callStructured: sim.llm.callStructured,
-        reflectionHook: createNoReflectionHook(),
       }),
       scheduler: new ManualScheduler(),
       isPaused: true,
@@ -241,10 +233,8 @@ describe("decision loop", () => {
     await sim.advance();
     expect(countHeld(sim.state, "mara", "coin")).toBe(27);
     expect(countHeld(sim.state, "ilsa", "coin")).toBe(13);
-    expect(memoriesOf(sim, "mara").map((memory) => memory.text)).toContain("I gave Ilsa 3 coins");
-    expect(memoriesOf(sim, "ilsa")).toContainEqual(
-      expect.objectContaining({ bucket: "did", text: "Mara gave me 3 coins" }),
-    );
+    expect(sim.streamTexts("mara")).toContain("I gave Ilsa 3 coins");
+    expect(sim.streamTexts("ilsa")).toContain("Mara gave me 3 coins");
   });
 
   it("a give to an agent out of reach fails in the world and is remembered", async () => {
@@ -263,10 +253,7 @@ describe("decision loop", () => {
     const failure =
       "I tried to hand Ilsa 1 bread but Ilsa is too far away to hand anything to: I have to be right next to them";
     expect(countHeld(sim.state, "mara", "bread")).toBe(2);
-    expect(memoriesOf(sim, "mara")).toContainEqual(
-      expect.objectContaining({ bucket: "did", text: failure }),
-    );
-    expect(sim.agent("mara").workingMemory.at(-1)).toContain(failure);
+    expect(sim.streamTexts("mara").at(-1)).toBe(failure);
     expect(sim.agent("mara").currentAction).toBeNull();
     await sim.advance();
     const secondPrompt = promptOf(
@@ -289,43 +276,9 @@ describe("decision loop", () => {
     sim.placeAgent("ilsa", { x: SQUARE.x + 4, y: SQUARE.y });
     sim.placeAgent("tobias", { x: SQUARE.x, y: SQUARE.y + 1 });
     await sim.advance();
-    const texts = memoriesOf(sim, "tobias").map((memory) => memory.text);
-    expect(texts).toContain(
+    expect(sim.streamTexts("tobias")).toContain(
       "I saw that Mara tried to hand Ilsa 1 bread, but Ilsa is too far away to hand anything to: they have to be right next to them",
     );
-  });
-
-  it("recall puts results in working memory and decides again in the same tick", async () => {
-    const sim = createTestSim({
-      agentIds: ["mara", "tobias"],
-      responder: scriptByAgent({
-        Mara: (_request, callIndex) =>
-          callIndex === 0
-            ? decisionReply({ action: "recall", query: "What do I know about Tobias?" })
-            : undefined,
-      }),
-    });
-    sim.state.memoryStore.add({
-      id: "tobias-note",
-      agentId: "mara",
-      bucket: "conversations",
-      tick: 0,
-      text: "Tobias: Runs the tavern.",
-      tags: ["tobias"],
-      strength: 1,
-      lastRecalledTick: null,
-    });
-    await sim.advance();
-    const decisions = sim.records.filter((record) => record.agentId === "mara");
-    expect(decisions.map((record) => [record.kind, record.tick])).toEqual([
-      ["decision", 0],
-      ["decision", 0],
-    ]);
-    expect(decisions[1]?.prompt).toContain("I recall: Tobias:");
-    expect(
-      sim.agent("mara").workingMemory.some((entry) => entry.includes("I recall: Tobias:")),
-    ).toBe(true);
-    expect(sim.agent("mara").currentAction?.kind).toBe("wait");
   });
 
   it("a need crossing its threshold triggers a decision", async () => {

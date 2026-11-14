@@ -1,22 +1,19 @@
-import type { Bucket, DecisionAction } from "@village/shared";
+import type { DecisionAction } from "@village/shared";
 import { config } from "../config";
 import { fillTemplate, loadTemplate } from "../llm/templates";
 import type { TemplateValues } from "../llm/templates";
 import { describeAroundYou } from "./around-you";
-import type { DecisionContext, RecalledMemory } from "./context";
+import type { DecisionContext } from "./context";
 import {
   describeBelongings,
-  describeConversation,
   describeCurrentAction,
   describeGoals,
   describeDecisionReason,
   describeLastFailure,
-  describeMemories,
   describeNearbyEntities,
   describePeopleOnMind,
-  describePlans,
   describeSeenPlaces,
-  describeWorkingMemory,
+  describeStream,
 } from "./sections";
 import { describeStats, describeTraits, joinWithAnd, splitStatus } from "./words";
 
@@ -25,16 +22,10 @@ const CONTINUE_ACTION_TEMPLATE = "decision-continue";
 const PRESSING_NEEDS_TEMPLATE = "decision-pressing";
 /** Marks the end of a part of the template that is stable enough for the provider to cache. */
 const CACHE_BREAKPOINT_MARKER = "<<<cache>>>\n";
-const BASE_ACTIONS: readonly DecisionAction[] = ["walk_to", "interact", "give", "recall", "wait"];
-
-type RecalledMemories = Partial<Record<Bucket, RecalledMemory[]>>;
+const BASE_ACTIONS: readonly DecisionAction[] = ["walk_to", "interact", "give", "wait"];
 
 export function listOfferedActions(isMidActionInterrupt: boolean): DecisionAction[] {
   return isMidActionInterrupt ? [...BASE_ACTIONS, "continue"] : [...BASE_ACTIONS];
-}
-
-export function estimatePromptTokens(prompt: string): number {
-  return Math.ceil(prompt.length / config.decision.charsPerToken);
 }
 
 /** Optional parts of the prompt, each its own template, filled only when it applies. */
@@ -45,7 +36,6 @@ interface OptionalTemplates {
 
 function buildTemplateValues(
   context: DecisionContext,
-  memories: RecalledMemories,
   optional: OptionalTemplates,
 ): TemplateValues {
   const { personality } = context;
@@ -69,8 +59,6 @@ function buildTemplateValues(
     status: status.otherWords.length === 0 ? "" : `You are ${joinWithAnd(status.otherWords)}.`,
     pressingNeeds,
     goals: describeGoals(context.goals),
-    plans: describePlans(context.plans),
-    dailyPlan: context.dailyPlan || "none yet",
     simTime: context.simTime,
     intention: context.intention || "nothing in particular",
     currentAction: describeCurrentAction(context.currentAction, context.isMidActionInterrupt),
@@ -82,34 +70,10 @@ function buildTemplateValues(
     aroundYou: describeAroundYou(context.aroundYou),
     peopleOnMind: describePeopleOnMind(context.peopleOnMind),
     belongings: describeBelongings(context.belongings, context.itemlessVerbs),
-    workingMemory: describeWorkingMemory(context.workingMemory),
-    conversation: describeConversation(context.conversation),
-    memories: describeMemories(memories, context.foggedBy),
+    stream: describeStream(context.stream),
     actions: listOfferedActions(context.isMidActionInterrupt).join(", "),
     sayWaitMinutes: String(config.decision.sayWaitMinutes),
     continueAction: context.isMidActionInterrupt ? optional.continueAction : "",
-  };
-}
-
-function countMemories(memories: RecalledMemories): number {
-  return Object.values(memories).reduce((sum, bucketMemories) => sum + bucketMemories.length, 0);
-}
-
-/** Drops the oldest memory from the lowest-priority bucket that still has any; null if none left. */
-function withoutOneMemory(memories: RecalledMemories): RecalledMemories | null {
-  const bucket = config.decision.memoryTrimOrder.find(
-    (candidate) => (memories[candidate]?.length ?? 0) > 0,
-  );
-  if (!bucket) return null;
-  const bucketMemories = memories[bucket] ?? [];
-  const oldestIndex = bucketMemories.reduce(
-    (oldest, memory, index) =>
-      memory.minutesAgo > (bucketMemories[oldest]?.minutesAgo ?? -Infinity) ? index : oldest,
-    0,
-  );
-  return {
-    ...memories,
-    [bucket]: bucketMemories.filter((_memory, index) => index !== oldestIndex),
   };
 }
 
@@ -131,10 +95,7 @@ function extractCacheBreakpoints(filledTemplate: string): DecisionPrompt {
   return { text: pieces.join(""), cacheBreakpoints };
 }
 
-/**
- * Renders `decision.txt` for one agent. When the prompt is over `config.decision.promptTokenTarget`,
- * recalled memories are trimmed first: lowest-priority buckets, oldest first, down to the minimum.
- */
+/** Renders `decision.txt` for one agent. */
 export function buildCacheableDecisionPrompt(
   context: DecisionContext,
   promptsDirectory?: string,
@@ -144,20 +105,8 @@ export function buildCacheableDecisionPrompt(
     continueAction: loadTemplate(CONTINUE_ACTION_TEMPLATE, promptsDirectory).trim(),
     pressingNeeds: loadTemplate(PRESSING_NEEDS_TEMPLATE, promptsDirectory).trim(),
   };
-  const fillDecisionTemplate = (memories: RecalledMemories): string =>
-    fillTemplate(template, buildTemplateValues(context, memories, optional), DECISION_TEMPLATE);
-  let memories: RecalledMemories = context.recalledMemories;
-  let prompt = fillDecisionTemplate(memories);
-  while (
-    estimatePromptTokens(prompt) > config.decision.promptTokenTarget &&
-    countMemories(memories) > config.decision.minimumRecalledMemories
-  ) {
-    const trimmedMemories = withoutOneMemory(memories);
-    if (!trimmedMemories) break;
-    memories = trimmedMemories;
-    prompt = fillDecisionTemplate(memories);
-  }
-  return extractCacheBreakpoints(prompt);
+  const filled = fillTemplate(template, buildTemplateValues(context, optional), DECISION_TEMPLATE);
+  return extractCacheBreakpoints(filled);
 }
 
 export function buildDecisionPrompt(context: DecisionContext, promptsDirectory?: string): string {

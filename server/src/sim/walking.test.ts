@@ -65,6 +65,6 @@ describe("walking", () => {
       x: ROSE_COTTAGE_DOORWAY.x,
       y: ROSE_COTTAGE_DOORWAY.y - 1,
     });
-    expect(sim.agent("mara").workingMemory.join("\n")).not.toContain("was in the way");
+    expect(sim.streamTexts("mara").join("\n")).not.toContain("was in the way");
   });
 });

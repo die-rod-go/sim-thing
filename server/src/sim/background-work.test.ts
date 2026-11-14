@@ -32,11 +32,10 @@ function waitPlan(agentId: string): DecisionPlan {
   return {
     agentId,
     isMidActionInterrupt: false,
-    replies: [],
+    reply: { reply: { thought: "", intention: "", action: "wait" }, llmCallId: null },
     speech: null,
     unknownNameNotes: [],
     action: { kind: "wait", minutes: 10 },
-    recallEntries: [],
   };
 }
 

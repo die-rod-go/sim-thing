@@ -15,11 +15,6 @@ import { AgentName } from "./widgets";
 const THOUGHT_LABELS: Record<ActivityThought["thoughtKind"], string> = {
   decision: "thought",
   interact: "thought, while busy",
-  morning: "morning",
-  daytime: "thinking things over",
-  night: "night reflection",
-  weekly: "weekly reflection",
-  conversation_summary: "remembering a conversation",
   latest: "thought",
 };
 

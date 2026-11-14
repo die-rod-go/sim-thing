@@ -109,10 +109,8 @@ export function buildDecisionReply(
     item: null,
     from: null,
     amount: null,
-    query: null,
     minutes: null,
     mood: null,
-    stepDone: null,
   };
   const meal = findMealToEat(choices);
   if (meal !== null) {
@@ -164,13 +162,6 @@ export function buildDecisionReply(
     const say = choices.inSight.length > 0 ? `${random.pick(choices.inSight)}! ${line}` : line;
     const { min, max } = tuning.waitMinutes;
     return { ...reply, action: "wait", say, volume: "normal", minutes: random.nextInt(min, max) };
-  }
-  if (action === "recall") {
-    return {
-      ...reply,
-      action,
-      query: random.pick(choices.places.length > 0 ? choices.places : ["village"]),
-    };
   }
   const { min, max } = tuning.waitMinutes;
   return { ...reply, action: "wait", minutes: random.nextInt(min, max) };

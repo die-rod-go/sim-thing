@@ -17,7 +17,6 @@ import { EmptyNote } from "./widgets";
 const FILTER_LABELS: Record<ActivityFilter, string> = {
   all: "everything",
   thoughts: "thoughts",
-  reflections: "reflections",
   doings: "doings & words",
 };
 

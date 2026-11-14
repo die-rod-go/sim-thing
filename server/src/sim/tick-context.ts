@@ -1,19 +1,16 @@
 import type { StructuredCaller } from "../llm/call-structured";
-import type { ReflectionHook } from "./reflection-hook";
 import type { TickResult, WorldState } from "./world-state";
 
 /** What the decision strategy needs from outside the world. */
 export interface SimDependencies {
   callStructured: StructuredCaller;
-  reflectionHook: ReflectionHook;
   /** Overrides `config.server.promptsDirectory`, e.g. in tests. */
   promptsDirectory?: string;
   /** Keeps the decision reply's JSON schema identical across calls, so prompt caching can match. */
   isReplySchemaStable?: boolean;
   /**
-   * Lets the clock run on while decisions, conversation summaries and reflection passes wait for the
-   * LLM, applying each on the first tick after it returns. Off (each tick waits for all of them)
-   * keeps runs reproducible, e.g. in tests.
+   * Lets the clock run on while decisions wait for the LLM, applying each on the first tick after
+   * it returns. Off (each tick waits for all of them) keeps runs reproducible, e.g. in tests.
    */
   shouldCallLlmInBackground?: boolean;
   /** With `shouldCallLlmInBackground`, caps how long idle agents' decisions hold a tick; no cap when omitted. */

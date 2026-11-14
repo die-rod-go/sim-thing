@@ -1,25 +1,12 @@
-import { BUCKETS, formatSimTime, readAgentHealth, type Agent, type Bucket } from "@village/shared";
+import { formatSimTime, readAgentHealth, type Agent } from "@village/shared";
 import { config } from "../config";
-import type {
-  AwarenessEntry,
-  DecisionContext,
-  DecisionTargets,
-  RecalledMemory,
-} from "../decision/context";
+import type { AwarenessEntry, DecisionContext, DecisionTargets } from "../decision/context";
 import { listPeopleOnMind } from "../decision/people-on-mind";
 import { computeChebyshevDistance } from "../economy/give";
-import { describePlanFocus, describePlanText } from "../memory/plans";
-import { currentConversation, OWN_SPEAKER_NAME } from "../memory/conversation";
-import {
-  buildCue,
-  buildCueText,
-  recallForDecision,
-  repeatsConversationLine,
-} from "../memory/recall";
+import { describeStreamEntry } from "../memory/stream";
 import { findObviousListeners } from "../perception/listeners";
 import { listBodyWords } from "../status/conditions";
 import { computeStarvationDamage, describeHealthAsSeen, isDead } from "../status/health";
-import { findFailedRecall, readStatusView } from "../status/impairment";
 import { describeDoing } from "./action-phrases";
 import { getAgentRuntime } from "./agent-runtime";
 import {
@@ -29,7 +16,6 @@ import {
   listItemlessVerbNames,
   listVisibleCarried,
   listNearbyEntityNames,
-  listNearbyThingNames,
   listValidHolders,
   listValidItems,
 } from "./prompt-entities";
@@ -37,8 +23,7 @@ import {
   buildPerceptionWorld,
   describeAgentAsSeen,
   findAgent,
-  formatWorkingMemoryEntry,
-  listKnownNames,
+  getAgentMemory,
   listLivingAgents,
   toPerceiver,
 } from "./world-access";
@@ -88,82 +73,17 @@ export function buildValidTargets(state: WorldState, agent: Agent): DecisionTarg
   };
 }
 
-function recallMemories(
-  state: WorldState,
-  agent: Agent,
-  aroundYou: AwarenessEntry[],
-  nearbyEntityNames: string[],
-  conversationLines: readonly string[],
-  decisionReason: string | null,
-): Partial<Record<Bucket, RecalledMemory[]>> {
-  const goalsText = agent.goals.map((goal) => goal.text).join(" ");
-  const cue = buildCue({
-    place: agent.place,
-    aroundAgentNames: aroundYou
-      .filter((entry) => entry.minutesAgo <= config.perception.awarenessPromptWindowMinutes)
-      .map((entry) => entry.name),
-    nearbyEntityNames,
-    actionTarget: agent.currentAction?.target ?? null,
-    conversationText: conversationLines.join(" "),
-    intention: agent.intention,
-    dailyPlan: agent.dailyPlan,
-    goalsText,
-    plansText: describePlanFocus(agent.plans),
-    knownNames: listKnownNames(state),
-  });
-  const cueText = buildCueText({
-    intention: agent.intention,
-    dailyPlan: agent.dailyPlan,
-    decisionReason,
-    goalsText,
-    plansText: describePlanFocus(agent.plans),
-    conversationLines,
-  });
-  const recalled = recallForDecision(state.memoryStore, agent.id, cue, state.tick, {
-    cueText,
-    conversationWords: conversationLines,
-  });
-  const onMind = new Set(agent.workingMemory);
-  return Object.fromEntries(
-    BUCKETS.map((bucket) => [
-      bucket,
-      recalled[bucket]
-        .filter((memory) => !onMind.has(formatWorkingMemoryEntry(memory.tick, memory.text)))
-        .map((memory) => ({
-          text: memory.text,
-          minutesAgo: minutesSince(memory.tick, state.tick),
-        })),
-    ]),
-  );
-}
-
-export interface DecisionContextOptions {
-  /** Lets a re-decision after `recall` see the updated working memory. */
-  agentOverride?: Agent;
-  /** Below the agent's recall fog chance, no memories come to mind; left out, they always do. */
-  passiveRecallRoll?: number;
-  /** What flagged the decision, shown to the agent as it was perceived. */
-  decisionReason?: string | null;
-}
-
-/** A roll no chance is above, for a context built without one. */
-const CLEAR_MIND_ROLL = 1;
-
 /**
  * Step 1 of a decision: everything the agent knows right now, from its own state, its awareness,
- * the current conversation and recalled memories (unless a pressing need or wound fogs them out).
+ * its seen places and its stream. `decisionReason` is what flagged the decision, as perceived.
  */
 export function buildDecisionContext(
   state: WorldState,
   agentId: string,
   isMidActionInterrupt: boolean,
-  options: DecisionContextOptions = {},
+  decisionReason: string | null = null,
 ): DecisionContext {
-  const agent = options.agentOverride ?? findAgent(state, agentId);
-  const fog = findFailedRecall(
-    readStatusView(state.items, agent),
-    options.passiveRecallRoll ?? CLEAR_MIND_ROLL,
-  );
+  const agent = findAgent(state, agentId);
   const runtime = getAgentRuntime(state, agentId);
   const world = buildPerceptionWorld(state);
   const listeners = findObviousListeners(
@@ -175,8 +95,6 @@ export function buildDecisionContext(
   );
   const aroundYouEntries = buildAwarenessEntries(state, agent);
   const nearbyEntities = buildHere(state, agent);
-  const conversation = currentConversation(state.conversationLog, agentId, state.tick);
-  const conversationLines = conversation.map((line) => line.words);
   const action = agent.currentAction;
   return {
     name: agent.name,
@@ -189,8 +107,6 @@ export function buildDecisionContext(
     conditionWords: listBodyWords(state.items, agent, false),
     body: agent.body,
     goals: agent.goals,
-    dailyPlan: agent.dailyPlan,
-    plans: agent.plans,
     intention: agent.intention,
     simTime: formatSimTime(state.tick, config.clock),
     place: agent.place,
@@ -206,39 +122,11 @@ export function buildDecisionContext(
         .map((other) => ({ id: other.id, name: other.name })),
       dossiers: agent.dossiers,
       inSightIds: runtime.visibleAgentIds,
-      speakerNames: conversation
-        .map((line) => line.speakerName)
-        .filter((speakerName) => speakerName !== OWN_SPEAKER_NAME),
-      mentioningTexts: [
-        agent.intention,
-        agent.dailyPlan,
-        ...agent.goals.map((goal) => goal.text),
-        ...describePlanText(agent.plans),
-        ...conversationLines,
-      ],
+      mentioningTexts: [agent.intention, ...agent.goals.map((goal) => goal.text)],
     }),
     belongings: buildBelongings(state, agent),
     itemlessVerbs: listItemlessVerbNames(state),
-    workingMemory: agent.workingMemory.filter(
-      (entry) => !repeatsConversationLine(entry, conversationLines),
-    ),
-    conversation: conversation.map((line) => ({
-      speakerName: line.speakerName,
-      words: line.words,
-      minutesAgo: minutesSince(line.tick, state.tick),
-    })),
-    recalledMemories:
-      fog === null
-        ? recallMemories(
-            state,
-            agent,
-            aroundYouEntries,
-            listNearbyThingNames(state, agent),
-            conversationLines,
-            options.decisionReason ?? null,
-          )
-        : {},
-    foggedBy: fog?.statusWords ?? null,
+    stream: getAgentMemory(state, agentId).stream.map(describeStreamEntry),
     seenPlaces: agent.seenPlaces.map((seenPlace) => ({
       name: seenPlace.name,
       entityNames: seenPlace.entities?.names ?? null,
@@ -257,7 +145,7 @@ export function buildDecisionContext(
             slowedBy: runtime.verbRun?.slowedBy ?? null,
           },
     isMidActionInterrupt,
-    decisionReason: options.decisionReason ?? null,
+    decisionReason,
     lastFailure: runtime.lastFailure,
     validTargets: buildValidTargets(state, agent),
     validItems: listValidItems(state, agent),

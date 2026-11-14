@@ -1,12 +1,8 @@
 import { describe, expect, it } from "vitest";
 import { config } from "../config";
 import { describeAroundYou } from "./around-you";
-import type { DecisionContext, RecalledMemory } from "./context";
-import {
-  buildCacheableDecisionPrompt,
-  buildDecisionPrompt,
-  estimatePromptTokens,
-} from "./decision-prompt";
+import type { DecisionContext } from "./context";
+import { buildCacheableDecisionPrompt, buildDecisionPrompt } from "./decision-prompt";
 import { describeStats, describeStatus, describeTraits } from "./words";
 
 function buildContext(overrides: Partial<DecisionContext> = {}): DecisionContext {
@@ -33,8 +29,6 @@ function buildContext(overrides: Partial<DecisionContext> = {}): DecisionContext
     goals: [
       { text: "Bake every day", why: "people rely on me", progress: "on track", kind: "world" },
     ],
-    dailyPlan: "Bake at dawn, sell at the square.",
-    plans: [],
     intention: "going to buy wheat from Tom, offering 2 coins",
     simTime: "Day 1, 06:30",
     place: "bakery",
@@ -48,10 +42,10 @@ function buildContext(overrides: Partial<DecisionContext> = {}): DecisionContext
       { text: "2 bread", details: [], verbs: ["eat"], toolUses: [], contents: [] },
     ],
     itemlessVerbs: [],
-    workingMemory: ["I baked bread at the oven."],
-    conversation: [{ speakerName: "Tom", words: "Morning, Mara!", minutesAgo: 2 }],
-    recalledMemories: {},
-    foggedBy: null,
+    stream: [
+      "[Day 1, 6:10 am] I baked bread at the oven",
+      '[Day 1, 6:28 am] Tom said: "Morning, Mara!"',
+    ],
     seenPlaces: [
       { name: "bakery", entityNames: ["oven", "2 bread"], seenAt: null },
       { name: "farm", entityNames: [], seenAt: "Day 1, 6:10 am" },
@@ -66,13 +60,6 @@ function buildContext(overrides: Partial<DecisionContext> = {}): DecisionContext
     validHolders: [],
     ...overrides,
   };
-}
-
-function manyMemories(count: number, text: string): RecalledMemory[] {
-  return Array.from({ length: count }, (_unused, index) => ({
-    text: `${text} ${index} ${"lorem ipsum ".repeat(12)}`,
-    minutesAgo: (index + 1) * 10,
-  }));
 }
 
 describe("buildDecisionPrompt", () => {
@@ -156,27 +143,6 @@ describe("buildDecisionPrompt", () => {
     );
   });
 
-  it("numbers the plans with their next step, later steps and who to keep them from", () => {
-    const prompt = buildDecisionPrompt(
-      buildContext({
-        plans: [
-          { aim: "Buy the mill", steps: ["Save coins", "Ask Bob"], keepFrom: "Clara" },
-          { aim: "Rest more", steps: [], keepFrom: "" },
-        ],
-      }),
-    );
-    expect(prompt).toContain("## Goals and plans");
-    expect(prompt).toContain(
-      "Plan 1: Buy the mill. Next: Save coins. Then: Ask Bob. Keep it from: Clara.",
-    );
-    expect(prompt).toContain("Plan 2: Rest more.");
-    expect(prompt).toContain("stepDone");
-  });
-
-  it("says when there are no plans", () => {
-    expect(buildDecisionPrompt(buildContext())).toContain("No plans yet.");
-  });
-
   it("includes the intention as 'You were:'", () => {
     const prompt = buildDecisionPrompt(buildContext());
     expect(prompt).toContain("You were: going to buy wheat from Tom, offering 2 coins");
@@ -213,7 +179,7 @@ describe("buildDecisionPrompt", () => {
 
   it("offers continue only when interrupted mid-action", () => {
     const calm = buildDecisionPrompt(buildContext());
-    expect(calm).toMatch(/^Actions: walk_to, interact, give, recall, wait$/m);
+    expect(calm).toMatch(/^Actions: walk_to, interact, give, wait$/m);
     expect(calm).not.toMatch(/^- continue:/m);
     const interrupted = buildDecisionPrompt(
       buildContext({
@@ -265,52 +231,25 @@ describe("buildDecisionPrompt", () => {
     expect(prompt).toContain(`## People on your mind\n${config.dossier.nobodyOnMindText}`);
   });
 
-  it("replaces recalled memories with a foggy mind and its cause", () => {
-    const prompt = buildDecisionPrompt(
-      buildContext({
-        recalledMemories: { did: [{ text: "Tom owes me 3 coins.", minutesAgo: 600 }] },
-        foggedBy: "exhausted",
-      }),
+  it("shows the whole stream, oldest first, and says so when it is empty", () => {
+    const prompt = buildDecisionPrompt(buildContext());
+    expect(prompt).toContain(
+      [
+        "- [Day 1, 6:10 am] I baked bread at the oven",
+        '- [Day 1, 6:28 am] Tom said: "Morning, Mara!"',
+      ].join("\n"),
     );
-    expect(prompt).toContain("Your thoughts are foggy because you are exhausted");
-    expect(prompt).not.toContain("Tom owes me 3 coins.");
+    const empty = buildDecisionPrompt(buildContext({ stream: [] }));
+    expect(empty).toContain(config.memory.streamTexts.empty);
   });
 
-  it("groups recalled memories by bucket in their own sections", () => {
-    const prompt = buildDecisionPrompt(
-      buildContext({
-        recalledMemories: { did: [{ text: "Tom owes me 3 coins.", minutesAgo: 600 }] },
-      }),
-    );
-    expect(prompt).toContain("## Memories: did\n- Tom owes me 3 coins. (10 h ago)");
-    expect(prompt).not.toContain("## Memories: seen");
-  });
-
-  it("trims recalled memories first when over the token target", () => {
-    const context = buildContext({
-      recalledMemories: {
-        seen: manyMemories(120, "I saw a cart"),
-        conversations: [{ text: "Tom owes me 3 coins.", minutesAgo: 600 }],
-      },
-    });
-    const prompt = buildDecisionPrompt(context);
-    expect(estimatePromptTokens(prompt)).toBeLessThanOrEqual(config.decision.promptTokenTarget);
-    expect(prompt).toContain("Tom owes me 3 coins.");
-    expect(prompt).toContain("I saw a cart 0 ");
-    expect(prompt).not.toContain("I saw a cart 119 ");
-    expect(prompt).toContain("You were: going to buy wheat");
-  });
-
-  it("keeps the minimum of recalled memories even when the prompt stays over the token target", () => {
-    const context = buildContext({
-      intention: "x".repeat(config.decision.promptTokenTarget * config.decision.charsPerToken),
-      recalledMemories: {
-        seen: manyMemories(config.decision.minimumRecalledMemories + 2, "I saw a cart"),
-      },
-    });
-    const prompt = buildDecisionPrompt(context);
-    const keptCount = (prompt.match(/I saw a cart \d+ /g) ?? []).length;
-    expect(keptCount).toBe(config.decision.minimumRecalledMemories);
+  it("has no section left from the old memory model", () => {
+    const prompt = buildDecisionPrompt(buildContext());
+    for (const title of ["On your mind", "Current conversation", "Memories", "Today's plan"]) {
+      expect(prompt).not.toContain(title);
+    }
+    expect(prompt).not.toContain("stepDone");
+    expect(prompt).not.toContain("recall");
   });
 });
 
@@ -513,7 +452,7 @@ describe("buildCacheableDecisionPrompt", () => {
     expect(text.slice(0, sharedEnd)).toContain("## What you can do");
     expect(text.slice(0, sharedEnd)).toContain("## Reply");
     expect(text.slice(0, sharedEnd)).not.toContain("## Who you are");
-    expect(text.slice(sharedEnd, perAgentEnd)).toContain("## Goals and plans");
+    expect(text.slice(sharedEnd, perAgentEnd)).toContain("## Goals");
     expect(text.slice(perAgentEnd, placesEnd)).toContain("## Places you have seen");
     expect(text.slice(placesEnd)).toContain("## Now");
     expect(text).not.toContain("<<<cache>>>");

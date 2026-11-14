@@ -112,7 +112,7 @@ describe("attacking someone", () => {
     expect(readHealth(sim, "tobias")).toBeLessThan(1);
     expect(sim.agent("tobias").currentAction).toBeNull();
     expect(newMemories.some((text) => text.includes("Mara"))).toBe(false);
-    expect(sim.agent("tobias").workingMemory.at(-1)).toMatch(/I woke up in pain/);
+    expect(sim.streamTexts("tobias").at(-1)).toMatch(/I woke up in pain/);
   });
 
   it("can't be aimed at the dead", () => {

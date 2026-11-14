@@ -6,7 +6,6 @@ import {
   type Agent,
   type Entity,
   type ItemCatalog,
-  type PersonalityChange,
   type Position,
 } from "@village/shared";
 import { config } from "../config";
@@ -15,14 +14,11 @@ import { FakeLlmClient, type FakeResponder } from "../llm/fake-llm-client";
 import { buildLlmStack, type LlmStack } from "../llm/llm-stack";
 import { InMemoryTokenUsageStore } from "../llm/token-budget";
 import type { LlmRequest } from "../llm/types";
-import { CONVERSATION_SUMMARY_SCHEMA_NAME } from "../memory/conversation-summary";
 import { buildSeededWorld, loadSeedFile, type SeededWorld } from "../seeds";
 import { findPlaceAt, loadWorldMap } from "../world/map-loader";
 import { getAgentRuntime, requestDecision } from "./agent-runtime";
-import { createNoReflectionHook } from "./reflection-hook";
-import { createReflectionHook } from "./reflection-passes";
 import { createDecisionStrategy } from "./tick-pipeline";
-import { findAgent, replaceAgent } from "./world-access";
+import { findAgent, getAgentMemory, replaceAgent } from "./world-access";
 import { createWorldState, type TickResult, type WorldState } from "./world-state";
 
 /*
@@ -116,17 +112,9 @@ export function decisionReply(fields: Record<string, unknown>): string {
 
 export type AgentScript = (request: LlmRequest, callIndex: number) => string | undefined;
 
-export const DEFAULT_CONVERSATION_SUMMARY = "I talked with the people nearby.";
-
-/**
- * Replies per agent name; anyone unscripted (or a script returning undefined) waits a long time.
- * Conversation summary calls get a fixed summary, so scripts only deal with decisions.
- */
+/** Replies per agent name; anyone unscripted (or a script returning undefined) waits a long time. */
 export function scriptByAgent(scripts: Record<string, AgentScript>): FakeResponder {
   return (request, callIndex) => {
-    if (request.schemaName === CONVERSATION_SUMMARY_SCHEMA_NAME) {
-      return JSON.stringify({ summary: DEFAULT_CONVERSATION_SUMMARY });
-    }
     const reply = scripts[findPromptAgentName(request)]?.(request, callIndex);
     return reply ?? decisionReply({ action: "wait", minutes: config.decision.maxWaitMinutes });
   };
@@ -149,14 +137,14 @@ export interface TestSim {
   advance(ticks?: number): Promise<TickResult[]>;
   placeAgent(agentId: string, pos: Position): void;
   agent(agentId: string): Agent;
+  /** The texts in the agent's stream, oldest first. */
+  streamTexts(agentId: string): string[];
 }
 
 export interface TestSimOptions {
   responder: FakeResponder;
   /** Keep only these seed agents (all when omitted). */
   agentIds?: string[];
-  /** Runs the real reflection passes, handing personality changes here; off when omitted. */
-  reflection?: (change: Omit<PersonalityChange, "id">) => void;
   dailyTokenBudget?: number;
   /** Runs LLM calls in the background, as the live sim does; off (each tick waits) when omitted. */
   shouldCallLlmInBackground?: boolean;
@@ -171,9 +159,6 @@ export function createTestSim(options: TestSimOptions): TestSim {
   if (options.agentIds) {
     const kept = new Set(options.agentIds);
     state.agents = state.agents.filter((agent) => kept.has(agent.id));
-    state.memoryStore.replaceAll(
-      state.memoryStore.all().filter((memory) => kept.has(memory.agentId)),
-    );
   }
   const records: LlmCallDraft[] = [];
   const client = new FakeLlmClient(options.responder);
@@ -190,13 +175,6 @@ export function createTestSim(options: TestSimOptions): TestSim {
     callStructured: llm.callStructured,
     shouldCallLlmInBackground: options.shouldCallLlmInBackground,
     idleDecisionWaitMs: options.idleDecisionWaitMs,
-    reflectionHook: options.reflection
-      ? createReflectionHook({
-          callStructured: llm.callStructured,
-          shouldRunInBackground: options.shouldCallLlmInBackground,
-          recordPersonalityChange: options.reflection,
-        })
-      : createNoReflectionHook(),
   });
   const results: TickResult[] = [];
   return {
@@ -219,9 +197,8 @@ export function createTestSim(options: TestSimOptions): TestSim {
       const agent = findAgent(state, agentId);
       const place = findPlaceAt(state.map, pos);
       replaceAgent(state, { ...agent, pos: { ...pos }, place });
-      const runtime = state.agentRuntimes[agentId];
-      if (runtime && !runtime.visitedPlaces.includes(place)) runtime.visitedPlaces.push(place);
     },
     agent: (agentId) => findAgent(state, agentId),
+    streamTexts: (agentId) => getAgentMemory(state, agentId).stream.map((entry) => entry.text),
   };
 }

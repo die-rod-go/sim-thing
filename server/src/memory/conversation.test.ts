@@ -3,7 +3,6 @@ import { describe, expect, it } from "vitest";
 import type { EventPerception, PerceivedEvent } from "../perception/types";
 import {
   createConversationLog,
-  currentConversation,
   isTakingPart,
   pruneConversationLog,
   recordSpeech,
@@ -61,61 +60,14 @@ describe("isTakingPart", () => {
   });
 });
 
-describe("currentConversation", () => {
-  it("lists lines the agent said or heard clearly, with its own as You", () => {
-    const log = buildLog([
-      speech("bob", 100, "Morning", [hearing("mara", "clear")]),
-      speech("mara", 101, "Morning, Bob", [hearing("bob", "clear")]),
-      speech("clara", 102, "Psst", [hearing("mara", "muffled")]),
-    ]);
-    expect(currentConversation(log, "mara", 105)).toEqual([
-      { speakerName: "Bob", words: "Morning", tick: 100 },
-      { speakerName: "You", words: "Morning, Bob", tick: 101 },
-    ]);
-  });
-
-  it("keeps an hour-long conversation in view, up to its last 30 lines", () => {
-    const events = Array.from({ length: 40 }, (_, index) =>
-      speech("bob", 100 + index * 2, `line ${index}`, [hearing("mara", "clear")]),
-    );
-    const lines = currentConversation(buildLog(events), "mara", 180);
-    expect(lines).toHaveLength(30);
-    expect(lines[0]).toEqual({ speakerName: "Bob", words: "line 10", tick: 120 });
-  });
-
-  it("starts the conversation after the last quiet gap", () => {
-    const log = buildLog([
-      speech("bob", 100, "earlier talk", [hearing("mara", "clear")]),
-      speech("bob", 120, "new talk", [hearing("mara", "clear")]),
-      speech("mara", 121, "yes?", [hearing("bob", "clear")]),
-    ]);
-    expect(currentConversation(log, "mara", 125).map((line) => line.words)).toEqual([
-      "new talk",
-      "yes?",
-    ]);
-  });
-
-  it("shows nothing once the conversation has been quiet for 30 ticks", () => {
-    const log = buildLog([speech("bob", 100, "Morning", [hearing("mara", "clear")])]);
-    expect(currentConversation(log, "mara", 130)).toHaveLength(1);
-    expect(currentConversation(log, "mara", 131)).toEqual([]);
-  });
-});
-
 describe("pruneConversationLog", () => {
-  it("keeps every line of a conversation that is still going", () => {
-    const events = Array.from({ length: 10 }, (_, index) =>
-      speech("bob", 100 + index * 10, `line ${index}`, [hearing("mara", "clear")]),
-    );
-    expect(pruneConversationLog(buildLog(events), 195).lines).toHaveLength(10);
-  });
-
-  it("drops lines from a conversation that has ended", () => {
+  it("keeps only the lines that can still decide who is taking part", () => {
     const log = buildLog([
       speech("bob", 100, "old", [hearing("mara", "clear")]),
       speech("bob", 140, "new", [hearing("mara", "clear")]),
     ]);
     expect(pruneConversationLog(log, 140).lines.map((line) => line.words)).toEqual(["new"]);
+    expect(pruneConversationLog(log, 105).lines.map((line) => line.words)).toEqual(["old"]);
   });
 });
 

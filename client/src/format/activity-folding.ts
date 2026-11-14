@@ -42,20 +42,11 @@ export function foldFailures(actions: ActivityAction[]): (ActivityAction | Activ
 
 /**
  * The agent's moments, minus ones the timeline already shows another way: failures appear as
- * events, and a reflection whose LLM call is listed appears as that thought.
+ * events.
  */
-export function collectMoments(
-  agentId: string,
-  moments: Moment[],
-  thoughtItems: ActivityThought[],
-): ActivityMoment[] {
+export function collectMoments(agentId: string, moments: Moment[]): ActivityMoment[] {
   return moments
     .filter((moment) => moment.agentId === agentId && moment.kind !== "action_failed")
-    .filter(
-      (moment) =>
-        moment.kind !== "reflection" ||
-        !thoughtItems.some((item) => item.thoughtKind === moment.pass && item.tick === moment.tick),
-    )
     .map((moment) => ({ kind: "moment", key: `moment-${moment.id}`, tick: moment.tick, moment }));
 }
 

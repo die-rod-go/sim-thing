@@ -1,9 +1,9 @@
 import { z } from "zod";
 import type {
   Agent,
+  AgentMemory,
   ClockState,
   LlmCallRecord,
-  Memory,
   Moment,
   PersonalityChange,
   Position,
@@ -146,7 +146,7 @@ export interface AgentDetailMessage {
   type: "agent_detail";
   agentId: string;
   agent: Agent;
-  memories: Memory[];
+  memory: AgentMemory;
   llmCalls: LlmCallRecord[];
   personalityHistory: PersonalityChange[];
   /** Tile indexes (y * width + x) for the debug overlay, computed by the server's perception code. */

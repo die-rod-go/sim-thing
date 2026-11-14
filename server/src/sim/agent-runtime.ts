@@ -107,7 +107,6 @@ const agentRuntimeSchema = z.object({
   visibleAgentIds: z.array(z.string()),
   lastFailure: z.string().nullable(),
   pendingDecision: pendingDecisionSchema.nullable(),
-  visitedPlaces: z.array(z.string()),
 });
 
 const spokenLineSchema = z.object({
@@ -120,25 +119,11 @@ const spokenLineSchema = z.object({
   muffledListenerIds: z.array(z.string()),
 });
 
-/** Everything besides agents, entities and memories that the sim needs to resume exactly. */
+/** Everything besides agents, entities and their memories that the sim needs to resume exactly. */
 export const simRuntimeSchema = z.object({
   agentRuntimes: z.record(z.string(), agentRuntimeSchema),
   conversationLog: z.object({ lines: z.array(spokenLineSchema) }),
-  memoryIdCounter: z.number().int().nonnegative(),
-  lastForgettingTick: z.number().int().nonnegative(),
-  /** Per agent: when reflection passes last ran and whether the agent is asleep; see `reflection/schedule`. */
-  reflectionSchedules: z.record(
-    z.string(),
-    z.object({
-      lastNightPassTick: z.number().int().nullable(),
-      nightPassCount: z.number().int().nonnegative(),
-      sleepStartedAtTick: z.number().int().nullable(),
-      /** Absent in saves made before the daytime pass existed. */
-      lastReflectionTick: z.number().int().nullable().default(null),
-    }),
-  ),
-  /** Absent in saves made before moments existed. */
-  nextMomentId: z.number().int().positive().optional(),
+  nextMomentId: z.number().int().positive(),
 });
 
 export type SimRuntime = z.infer<typeof simRuntimeSchema>;
@@ -151,7 +136,7 @@ export type VerbChoice = z.infer<typeof verbChoiceSchema>;
 export type ThingSnapshot = z.infer<typeof thingSnapshotSchema>;
 export type PendingDecision = z.infer<typeof pendingDecisionSchema>;
 
-export function createAgentRuntime(startPlace: string): AgentRuntime {
+export function createAgentRuntime(): AgentRuntime {
   return {
     walk: null,
     verbRun: null,
@@ -159,7 +144,6 @@ export function createAgentRuntime(startPlace: string): AgentRuntime {
     visibleAgentIds: [],
     lastFailure: null,
     pendingDecision: null,
-    visitedPlaces: [startPlace],
   };
 }
 
@@ -167,8 +151,7 @@ export function createAgentRuntime(startPlace: string): AgentRuntime {
 export function getAgentRuntime(state: WorldState, agentId: string): AgentRuntime {
   const existing = state.agentRuntimes[agentId];
   if (existing) return existing;
-  const agent = state.agents.find((candidate) => candidate.id === agentId);
-  const created = createAgentRuntime(agent?.place ?? "");
+  const created = createAgentRuntime();
   state.agentRuntimes[agentId] = created;
   return created;
 }

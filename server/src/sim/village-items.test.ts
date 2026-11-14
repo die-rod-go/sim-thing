@@ -436,19 +436,14 @@ describe("writing and the notice board", () => {
 });
 
 describe("inspecting", () => {
-  it("counts what a chest holds into a seen memory", () => {
+  it("counts what a chest holds into the inspector's stream", () => {
     const sim = setUpVillage();
     const chest = placeThing(sim, "chest", SQUARE);
     giveSome(sim, "mara", "wheat", 3);
     doVerb(sim, "mara", "put", "wheat", "chest");
     doVerb(sim, "mara", "put", "wheat", "chest");
     doVerb(sim, "tobias", "inspect", "chest");
-    const memory = sim.state.memoryStore
-      .listByAgent("tobias")
-      .find((candidate) => candidate.text.startsWith("I inspected the chest"));
-    expect(memory?.text).toBe("I inspected the chest: holding 2 wheat");
-    expect(memory?.bucket).toBe("seen");
-    expect(memory?.tags).toContain("wheat");
+    expect(sim.streamTexts("tobias")).toContain("I inspected the chest: holding 2 wheat");
     expect(listContents(sim.state, readThingId(chest))).toHaveLength(2);
   });
 

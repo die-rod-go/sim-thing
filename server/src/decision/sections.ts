@@ -1,16 +1,11 @@
-import { BUCKETS } from "@village/shared";
-import type { Bucket, Goal, Plan } from "@village/shared";
-import { describePlanLines } from "../memory/plans";
+import type { Goal } from "@village/shared";
 import { config } from "../config";
 import { fillStatusWords } from "../status/impairment";
-import { formatMinutesAgo } from "./around-you";
 import type {
-  ConversationLine,
   CurrentActionSummary,
   DecisionTargets,
   PersonOnMind,
   PromptEntityGroup,
-  RecalledMemory,
   SeenPlaceLine,
 } from "./context";
 
@@ -25,14 +20,6 @@ export function describeGoals(goals: Goal[]): string {
     goals.map((goal) => `${goal.text} (why: ${goal.why}; so far: ${goal.progress})`),
     "No particular goals right now.",
   );
-}
-
-const NO_PLANS = "No plans yet.";
-const NEWLINE = "\n";
-
-/** The numbered plans, one per line, or "No plans yet.". */
-export function describePlans(plans: Plan[]): string {
-  return plans.length > 0 ? describePlanLines(plans).join(NEWLINE) : NO_PLANS;
 }
 
 const NESTED_INDENT = "  ";
@@ -95,23 +82,15 @@ export function describeSeenPlaces(places: SeenPlaceLine[]): string {
   return bulletList(places.map(describeSeenPlace), config.places.promptTexts.noneSeen);
 }
 
-export function describeWorkingMemory(workingMemory: string[]): string {
-  return bulletList(workingMemory, NOTHING);
+/** The stream as a bullet list, oldest first. */
+export function describeStream(stream: string[]): string {
+  return bulletList(stream, config.memory.streamTexts.empty);
 }
 
 export function describePeopleOnMind(people: PersonOnMind[]): string {
   return bulletList(
     people.map((person) => `${person.name}: ${person.text}`),
     config.dossier.nobodyOnMindText,
-  );
-}
-
-export function describeConversation(lines: ConversationLine[]): string {
-  return bulletList(
-    lines.map(
-      (line) => `${line.speakerName} (${formatMinutesAgo(line.minutesAgo)}): "${line.words}"`,
-    ),
-    "No one has been talking with you.",
   );
 }
 
@@ -136,22 +115,6 @@ export function describeDecisionReason(reason: string | null): string {
 
 export function describeLastFailure(lastFailure: string | null): string {
   return lastFailure ? `What just went wrong: ${lastFailure}` : "";
-}
-
-/** One `## Memories: <bucket>` section per bucket with recalled memories, in bucket order. */
-export function describeMemories(
-  memories: Partial<Record<Bucket, RecalledMemory[]>>,
-  foggedBy: string | null,
-): string {
-  if (foggedBy !== null) return fillStatusWords(config.impairment.foggyMindText, foggedBy);
-  return BUCKETS.flatMap((bucket) => {
-    const bucketMemories = memories[bucket] ?? [];
-    if (bucketMemories.length === 0) return [];
-    const lines = [...bucketMemories]
-      .sort((first, second) => first.minutesAgo - second.minutesAgo)
-      .map((memory) => `- ${memory.text} (${formatMinutesAgo(memory.minutesAgo)})`);
-    return [`## Memories: ${bucket}\n${lines.join("\n")}`];
-  }).join("\n\n");
 }
 
 export function listTargetNames(targets: DecisionTargets): string[] {

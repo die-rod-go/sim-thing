@@ -1,7 +1,7 @@
 import type {
   Agent,
   LlmCallRecord,
-  Memory,
+  StreamEntry,
   Moment,
   SnapshotMessage,
   WorldEvent,
@@ -46,11 +46,8 @@ export function makeSampleAgent(id: string, name: string, x: number, y: number):
         kind: "world",
       },
     ],
-    dailyPlan: "Bake in the morning, sell at the square, tavern in the evening.",
-    plans: [],
     intention: "Find someone who wants bread",
     currentAction: { kind: "walk_to", target: "square", endsAtTick: null },
-    workingMemory: [],
     awareness: {},
     dossiers: {},
     seenPlaces: [],
@@ -115,21 +112,6 @@ export function makeSampleMoment(id: number, actor: Agent, tick: number): Moment
   const others: Moment[] = [
     {
       ...base,
-      kind: "daily_plan",
-      text: "planned the day: bake early, sell at the square",
-      plan: "Bake early, sell at the square, rest by the well.",
-    },
-    {
-      ...base,
-      kind: "reflection",
-      text: "looked back on the day: a busy day of baking",
-      pass: "night",
-      summary: "A busy day of baking; Bob was short with me.",
-      moodEntry: "tired but proud",
-      insights: ["Bob is grumpy before noon"],
-    },
-    {
-      ...base,
       kind: "personality_changed",
       text: "openness rose from 0.6 to 0.65",
       field: "openness",
@@ -142,17 +124,8 @@ export function makeSampleMoment(id: number, actor: Agent, tick: number): Moment
   return samples[id % samples.length] ?? goalMoment;
 }
 
-export function makeSampleMemory(id: string, agentId: string, tick: number): Memory {
-  return {
-    id,
-    agentId,
-    bucket: id.endsWith("1") ? "seen" : "conversations",
-    tick,
-    text: `Memory ${id} about the bakery`,
-    tags: ["bakery", "bread"],
-    strength: 0.6,
-    lastRecalledTick: null,
-  };
+export function makeSampleStreamEntry(label: string, tick: number): StreamEntry {
+  return { text: `I saw ${label} at the bakery`, tick };
 }
 
 export const SAMPLE_PROMPT = [

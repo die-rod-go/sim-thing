@@ -10,7 +10,6 @@ import { createEntity, describeEntityName, locateInside } from "../items/entity-
 import { writeField } from "../items/thing-writes";
 import { readField, type ThingRef } from "../items/things";
 import { withAgentHealth } from "../status/health";
-import { createNoReflectionHook } from "./reflection-hook";
 import { createTestSim, scriptByAgent, type TestSim } from "./test-sim";
 import type { TickContext } from "./tick-context";
 import { startOrApproachVerb } from "./verb-approach";
@@ -32,10 +31,7 @@ export function contextOf(sim: TestSim): TickContext {
   return {
     state: sim.state,
     result: createEmptyTickResult(sim.state.tick),
-    dependencies: {
-      callStructured: sim.llm.callStructured,
-      reflectionHook: createNoReflectionHook(),
-    },
+    dependencies: { callStructured: sim.llm.callStructured },
   };
 }
 
@@ -86,7 +82,7 @@ export function lastFailure(sim: TestSim, agentId: string): string | null {
 }
 
 export function memoryTexts(sim: TestSim, agentId: string): string[] {
-  return sim.state.memoryStore.listByAgent(agentId).map((memory) => memory.text);
+  return sim.streamTexts(agentId);
 }
 
 /** The project's items plus extra verbs, for behavior the shipped content doesn't use. */

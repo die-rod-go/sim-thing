@@ -1,7 +1,5 @@
 import { config } from "../config";
 import { computeChebyshevDistance } from "../economy/give";
-import { describeEntityName, listTileEntitiesAt } from "../items/entity-store";
-import { fileFirstVisit } from "../memory/filing";
 import { canSee } from "../perception/sight";
 import { findPlaceAt } from "../world/map-loader";
 import { getAgentRuntime, type Walk } from "./agent-runtime";
@@ -18,24 +16,9 @@ import {
   findAgent,
   findAgentBlockingTile,
   markAgentChanged,
-  rememberBriefly,
   replaceAgent,
 } from "./world-access";
 import type { Agent, Position } from "@village/shared";
-
-function noteFirstVisit(context: TickContext, agentId: string, place: string): void {
-  const { state } = context;
-  const runtime = getAgentRuntime(state, agentId);
-  const isMapPlace = state.map.places.some((area) => area.name === place);
-  if (!isMapPlace || runtime.visitedPlaces.includes(place)) return;
-  runtime.visitedPlaces.push(place);
-  const objectNames = listTileEntitiesAt(state, place).map((entity) =>
-    describeEntityName(state, entity),
-  );
-  const memory = fileFirstVisit(agentId, place, objectNames, state.tick, state.memoryIds);
-  state.memoryStore.add(memory);
-  rememberBriefly(state, agentId, memory.text);
-}
 
 /** Takes one step; false when something in the way couldn't be dealt with and the walk failed. */
 function stepOnce(context: TickContext, agentId: string, nextStep: Position): boolean {
@@ -51,10 +34,7 @@ function stepOnce(context: TickContext, agentId: string, nextStep: Position): bo
   const place = findPlaceAt(state.map, nextStep);
   replaceAgent(state, { ...agent, pos: { ...nextStep }, place });
   result.moves.push({ agentId, pos: { ...nextStep }, place });
-  if (place !== agent.place) {
-    markAgentChanged(result, agentId);
-    noteFirstVisit(context, agentId, place);
-  }
+  if (place !== agent.place) markAgentChanged(result, agentId);
   return true;
 }
 

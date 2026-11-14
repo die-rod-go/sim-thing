@@ -88,13 +88,13 @@ describe("announce", () => {
       isPrivate: true,
     });
     expect(context.result.events).toEqual([]);
-    expect(sim.agent("tobias").workingMemory.at(-1)).toMatch(/I was poisoned/);
+    expect(sim.streamTexts("tobias").at(-1)).toMatch(/I was poisoned/);
     expect(getAgentRuntime(sim.state, "tobias").pendingDecision).toEqual({
       reason: "I was poisoned",
       isUrgent: true,
     });
     expect(memoryTexts(sim, "mara")).toEqual(marasMemories);
-    expect(sim.agent("mara").workingMemory.at(-1) ?? "").not.toMatch(/poisoned/);
+    expect(sim.streamTexts("mara").at(-1) ?? "").not.toMatch(/poisoned/);
   });
 
   it("says nothing for a private announcement on an entity or a dead body", () => {
@@ -107,15 +107,15 @@ describe("announce", () => {
         ? { ...agent, death: { tick: 0, cause: "x", sourceAgentId: null } }
         : agent,
     );
-    const workingMemory = sim.agent("tobias").workingMemory;
+    const streamBefore = sim.streamTexts("tobias");
     const onBody = applyOn(sim, TOBIAS, { step: "announce", text: "hummed", isPrivate: true });
     expect(onBody.result.events).toEqual([]);
-    expect(sim.agent("tobias").workingMemory).toEqual(workingMemory);
+    expect(sim.streamTexts("tobias")).toEqual(streamBefore);
   });
 
   it("is remembered by the poisoned agent only when the poison rules announce it", () => {
     const sim = setUpRules();
     addComponent(contextOf(sim), TOBIAS, "poisoned", { minutes: null });
-    expect(sim.agent("tobias").workingMemory.at(-1)).toMatch(/I was poisoned/);
+    expect(sim.streamTexts("tobias").at(-1)).toMatch(/I was poisoned/);
   });
 });

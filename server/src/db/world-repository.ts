@@ -1,15 +1,5 @@
 import { z } from "zod";
-import type {
-  Agent,
-  Bucket,
-  ComponentChanges,
-  Dossier,
-  Entity,
-  EntityLocation,
-  Memory,
-  Plan,
-} from "@village/shared";
-import { resolveName } from "../decision/resolve-name";
+import type { Agent, AgentMemory, ComponentChanges, Entity, EntityLocation } from "@village/shared";
 import { simRuntimeSchema, type SimRuntime } from "../sim/agent-runtime";
 import type { Database } from "./database";
 
@@ -24,9 +14,9 @@ export interface SavedWorld {
   entities: Entity[];
   nextEntityId: number;
   nextFreshId: number;
-  memories: Memory[];
-  /** Null for saves made before the runtime was persisted; the sim then starts it fresh. */
-  runtime: SimRuntime | null;
+  /** What each agent remembers, by agent id. */
+  agentMemories: Record<string, AgentMemory>;
+  runtime: SimRuntime;
 }
 
 const RUNTIME_KEY = "runtime";
@@ -46,51 +36,18 @@ const metaSchema = z.object({
 
 type SavedMeta = z.infer<typeof metaSchema>;
 
-/** Fields every saved agent must have; older saves lack `bodyChanges` or `bodyReplacedById`. */
+/** Fields every saved agent must have; a save without them is from an older version. */
 const currentAgentFieldsSchema = z.object({
   bodyChanges: z.record(z.string(), z.unknown()),
-  starvingSinceTick: z.number().nullable(),
-  death: z.object({ tick: z.number(), cause: z.string() }).nullable(),
   bodyReplacedById: z.string().nullable(),
-  body: z.object({ strength: z.number(), agility: z.number() }),
+  seenPlaces: z.array(z.unknown()),
 });
 
-/** A saved agent; saves from before dossiers lack them. */
-type SavedAgent = Omit<Agent, "dossiers" | "plans"> & {
-  dossiers?: Record<string, Dossier>;
-  plans?: Plan[];
-};
-
 /** Agent rows were written by saveWorld from typed values, so a current-format row is trusted. */
-function parseSavedAgent(data: string): SavedAgent {
+function parseSavedAgent(data: string): Agent {
   const parsed: unknown = JSON.parse(data);
   if (!currentAgentFieldsSchema.safeParse(parsed).success) throw new Error(OLD_SAVE_MESSAGE);
-  return parsed as SavedAgent;
-}
-
-/** Saves from before dossiers kept a `people` bucket of memories. */
-const LEGACY_PEOPLE_BUCKET = "people";
-
-/**
- * Dossiers for an agent saved without any, from its seed people notes: the `people` memories filed
- * at tick 0, as "Name: note". Later people notes are dropped on purpose, since many recorded
- * intended outcomes as facts. A note whose person is no longer in the village is dropped too.
- */
-function buildDossiersFromLegacyNotes(
-  agent: SavedAgent,
-  agents: readonly SavedAgent[],
-  legacyRows: readonly MemoryRow[],
-): Record<string, Dossier> {
-  const dossiers: Record<string, Dossier> = {};
-  const seedNotes = legacyRows.filter((row) => row.agent_id === agent.id && row.tick === 0);
-  for (const row of seedNotes) {
-    const separatorIndex = row.text.indexOf(": ");
-    if (separatorIndex < 0) continue;
-    const personId = resolveName(row.text.slice(0, separatorIndex), agents);
-    if (personId === null || personId === agent.id) continue;
-    dossiers[personId] = { text: row.text.slice(separatorIndex + 2), updatedTick: 0 };
-  }
-  return dossiers;
+  return parsed as Agent;
 }
 
 interface EntityRow {
@@ -112,17 +69,6 @@ function toEntity(row: EntityRow): Entity {
   };
 }
 
-interface MemoryRow {
-  id: string;
-  agent_id: string;
-  bucket: string;
-  tick: number;
-  text: string;
-  tags: string;
-  strength: number;
-  last_recalled_tick: number | null;
-}
-
 /** Replaces the whole saved world in one transaction. */
 export function saveWorld(database: Database, world: SavedWorld): void {
   const meta: SavedMeta = {
@@ -140,15 +86,14 @@ export function saveWorld(database: Database, world: SavedWorld): void {
     "INSERT INTO entities (id, definition_id, label, location, changes) VALUES (?, ?, ?, ?, ?)",
   );
   const insertMemory = database.prepare(
-    `INSERT INTO memories (id, agent_id, bucket, tick, text, tags, strength, last_recalled_tick)
-     VALUES (?, ?, ?, ?, ?, ?, ?, ?)`,
+    "INSERT INTO agent_memories (agent_id, data) VALUES (?, ?)",
   );
   database.transaction(() => {
-    for (const table of ["meta", "agents", "entities", "memories"]) {
+    for (const table of ["meta", "agents", "entities", "agent_memories"]) {
       database.exec(`DELETE FROM ${table}`);
     }
     for (const [key, value] of Object.entries(meta)) insertMeta.run(key, String(value));
-    if (world.runtime !== null) insertMeta.run(RUNTIME_KEY, JSON.stringify(world.runtime));
+    insertMeta.run(RUNTIME_KEY, JSON.stringify(world.runtime));
     for (const agent of world.agents) insertAgent.run(agent.id, JSON.stringify(agent));
     for (const entity of world.entities) {
       insertEntity.run(
@@ -159,32 +104,10 @@ export function saveWorld(database: Database, world: SavedWorld): void {
         JSON.stringify(entity.changes),
       );
     }
-    for (const memory of world.memories) {
-      insertMemory.run(
-        memory.id,
-        memory.agentId,
-        memory.bucket,
-        memory.tick,
-        memory.text,
-        JSON.stringify(memory.tags),
-        memory.strength,
-        memory.lastRecalledTick,
-      );
+    for (const [agentId, memory] of Object.entries(world.agentMemories)) {
+      insertMemory.run(agentId, JSON.stringify(memory));
     }
   })();
-}
-
-function toMemory(row: MemoryRow): Memory {
-  return {
-    id: row.id,
-    agentId: row.agent_id,
-    bucket: row.bucket as Bucket,
-    tick: row.tick,
-    text: row.text,
-    tags: z.array(z.string()).parse(JSON.parse(row.tags)),
-    strength: row.strength,
-    lastRecalledTick: row.last_recalled_tick,
-  };
 }
 
 /** Loads the saved world, or null if nothing has been saved yet. */
@@ -200,7 +123,10 @@ export function loadWorld(database: Database): SavedWorld | null {
   if (!parsedMeta.success) throw new Error(OLD_SAVE_MESSAGE, { cause: parsedMeta.error });
   const meta = parsedMeta.data;
   const runtimeRow = metaRows.find((row) => row.key === RUNTIME_KEY);
-  const runtime = runtimeRow ? simRuntimeSchema.parse(JSON.parse(runtimeRow.value)) : null;
+  if (!runtimeRow) throw new Error(OLD_SAVE_MESSAGE);
+  const parsedRuntime = simRuntimeSchema.safeParse(JSON.parse(runtimeRow.value));
+  if (!parsedRuntime.success) throw new Error(OLD_SAVE_MESSAGE, { cause: parsedRuntime.error });
+  const runtime = parsedRuntime.data;
 
   // Events are appended every tick but the world is saved less often, so after a crash the log
   // can be ahead of the saved counter; never hand out an id that is already taken.
@@ -211,31 +137,31 @@ export function loadWorld(database: Database): SavedWorld | null {
     maxMomentId: number | null;
   };
 
-  const savedAgents = database
+  const agents = database
     .prepare("SELECT data FROM agents ORDER BY rowid")
     .all()
     .map((row) => parseSavedAgent((row as { data: string }).data));
   const entities = (
     database.prepare("SELECT * FROM entities ORDER BY rowid").all() as EntityRow[]
   ).map(toEntity);
-  const memoryRows = database.prepare("SELECT * FROM memories ORDER BY rowid").all() as MemoryRow[];
-  const legacyRows = memoryRows.filter((row) => row.bucket === LEGACY_PEOPLE_BUCKET);
-  const memories = memoryRows.filter((row) => row.bucket !== LEGACY_PEOPLE_BUCKET).map(toMemory);
-  const agents = savedAgents.map((agent): Agent => ({
-    ...agent,
-    plans: agent.plans ?? [],
-    dossiers: agent.dossiers ?? buildDossiersFromLegacyNotes(agent, savedAgents, legacyRows),
-  }));
+  // Memory rows were written by saveWorld from typed values, so their JSON is trusted.
+  const memoryRows = database.prepare("SELECT agent_id, data FROM agent_memories").all() as {
+    agent_id: string;
+    data: string;
+  }[];
+  const agentMemories = Object.fromEntries(
+    memoryRows.map((row) => [row.agent_id, JSON.parse(row.data) as AgentMemory]),
+  );
 
   return {
     ...meta,
     nextEventId: Math.max(meta.nextEventId, (maxEventId ?? 0) + 1),
     agents,
     entities,
-    memories,
-    runtime: runtime && {
+    agentMemories,
+    runtime: {
       ...runtime,
-      nextMomentId: Math.max(runtime.nextMomentId ?? 1, (maxMomentId ?? 0) + 1),
+      nextMomentId: Math.max(runtime.nextMomentId, (maxMomentId ?? 0) + 1),
     },
   };
 }

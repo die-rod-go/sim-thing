@@ -1,10 +1,5 @@
 import { describe, expect, it } from "vitest";
 import type { JsonSchema } from "../llm/types";
-import {
-  buildMorningReplySchema,
-  buildNightReplySchema,
-  buildWeeklyReplySchema,
-} from "../reflection/reply-schemas";
 import { buildInteractReplySchema } from "./interact-prompt";
 import { buildDecisionReplySchema } from "./reply-schema";
 
@@ -29,9 +24,6 @@ const schemasSentToProviders: Record<string, JsonSchema> = {
     { isMidActionInterrupt: true },
   ).jsonSchema,
   interact: buildInteractReplySchema(["bake bread"]).jsonSchema,
-  morning: buildMorningReplySchema().jsonSchema,
-  night: buildNightReplySchema().jsonSchema,
-  weekly: buildWeeklyReplySchema().jsonSchema,
 };
 
 describe("reply schemas sent to providers", () => {

@@ -1,4 +1,3 @@
-import { TRAIT_NAMES } from "@village/shared";
 import { config } from "../config";
 import { isRecord, readDecisionChoices, readEnum } from "./fake-choices";
 import { buildDecisionReply } from "./fake-decision";
@@ -67,47 +66,11 @@ function buildBuiltInAnswers(hitRollVerbs: ReadonlySet<string>): Record<string, 
       text: random.pick(config.llm.fakeResponder.lines),
       minutes: null,
     }),
-    morning_reply: () => ({
-      dailyPlan: "Work in the morning, eat at midday, see who is around in the afternoon.",
-      plans: [],
-      mood: "ready for the day",
-    }),
-    daytime_reply: () => ({
-      thinking: "Nothing is in the way; I keep at my work.",
-      insights: [{ text: "The work goes better when I keep at it." }],
-      goalProgress: [],
-      plans: null,
-      dossiers: [],
-      mood: null,
-    }),
-    night_reply: () => ({
-      summary: "I went about my work and talked with a few people.",
-      moodEntry: "tired but settled",
-      insights: [{ text: "Keeping busy makes the day go well." }],
-      dossiers: [],
-      goals: [],
-      plans: null,
-    }),
-    conversation_summary_reply: () => ({
-      summary: "I chatted with the people around me about the day's work. Nothing was settled.",
-    }),
-    weekly_reply: (_request, random) => ({
-      traitChanges: [
-        {
-          trait: random.pick(TRAIT_NAMES),
-          delta: (random.next() < 0.5 ? -1 : 1) * config.traits.weeklyDeltaClamp,
-          reason: "This week I acted a little differently from how I used to.",
-        },
-      ],
-      profession: null,
-      core: null,
-      selfImage: null,
-    }),
   };
 }
 
 /**
- * Answers decision, interact and reflection calls with plausible valid replies, and any other
+ * Answers decision and interact calls with plausible valid replies, and any other
  * structured call with a minimal valid object. `answerOverrides` replaces answers per schema name.
  */
 export function createFakeResponder(

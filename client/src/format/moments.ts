@@ -5,8 +5,6 @@ export const MOMENT_GLYPHS: Record<MomentKind, string> = {
   goal_added: "⚑",
   goal_removed: "⚐",
   goal_progressed: "▸",
-  daily_plan: "☀",
-  reflection: "✎",
   action_failed: "✗",
   died: "✝",
 };
@@ -16,8 +14,6 @@ export const MOMENT_LABELS: Record<MomentKind, string> = {
   goal_added: "new goal",
   goal_removed: "dropped or finished a goal",
   goal_progressed: "goal progress",
-  daily_plan: "plan for the day",
-  reflection: "reflection",
   action_failed: "failed",
   died: "died",
 };
@@ -27,7 +23,6 @@ export const MOMENT_LABELS: Record<MomentKind, string> = {
  * their sheet, so the story isn't flooded with routine.
  */
 export function isStoryMoment(moment: Moment): boolean {
-  if (moment.kind === "reflection") return moment.pass === "weekly";
   return (
     moment.kind === "personality_changed" ||
     moment.kind === "died" ||
@@ -45,10 +40,6 @@ export function describeMomentDetail(moment: Moment): string | null {
       return moment.goal.why ? `because ${moment.goal.why}` : null;
     case "goal_progressed":
       return moment.goal.progress || null;
-    case "daily_plan":
-      return moment.plan;
-    case "reflection":
-      return moment.summary;
     case "died":
       return moment.cause;
     case "goal_removed":
@@ -66,38 +57,4 @@ export function selectToastMoments(moments: Moment[], lastSeenId: number): Momen
 
 export function findNewestMomentId(moments: Moment[]): number {
   return moments.reduce((newestId, moment) => Math.max(newestId, moment.id), 0);
-}
-
-export interface DiaryEntry {
-  momentId: number;
-  tick: number;
-  day: number;
-  summary: string;
-  moodEntry: string | null;
-  insights: string[];
-}
-
-/** One agent's night reflections as a diary, newest first. */
-export function buildDiary(
-  moments: Moment[],
-  agentId: string,
-  dayOfTick: (tick: number) => number,
-): DiaryEntry[] {
-  const entries: DiaryEntry[] = [];
-  for (const moment of moments) {
-    if (moment.agentId !== agentId || moment.kind !== "reflection" || moment.pass !== "night") {
-      continue;
-    }
-    entries.push({
-      momentId: moment.id,
-      tick: moment.tick,
-      day: dayOfTick(moment.tick),
-      summary: moment.summary,
-      moodEntry: moment.moodEntry,
-      insights: moment.insights,
-    });
-  }
-  return entries.sort(
-    (first, second) => second.tick - first.tick || second.momentId - first.momentId,
-  );
 }

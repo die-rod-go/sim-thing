@@ -1,8 +1,7 @@
 import {
-  formatTimeOfDay,
   isBodyInWorld,
-  toSimTime,
   type Agent,
+  type AgentMemory,
   type Entity,
   type Position,
 } from "@village/shared";
@@ -11,7 +10,7 @@ import type { NamedCandidate } from "../decision/resolve-name";
 import { isAsleep } from "../economy/sleep";
 import { isPassableInPassing } from "../items/verb-offers";
 import { blocksMovement, blocksSight, mufflesSound } from "../items/world-physics";
-import { pushWorkingMemory } from "../memory/working-memory";
+import { appendStreamEntry, capStream } from "../memory/stream";
 import { canSee } from "../perception/sight";
 import { describeBodyName, isDead } from "../status/health";
 import type { PerceptionWorld, Perceiver } from "../perception/types";
@@ -138,34 +137,14 @@ export function listVisibleAgentIds(
     .map((other) => other.id);
 }
 
-/**
- * All agent, place and item names (definition names and map labels): what tags and recall queries
- * are matched against.
- */
-export function listKnownNames(state: WorldState): string[] {
-  const labels = state.entities.flatMap((entity) => (entity.label === null ? [] : [entity.label]));
-  return [
-    ...new Set([
-      ...state.agents.map((agent) => agent.name),
-      ...labels,
-      ...state.items.file.definitions.map((definition) => definition.name),
-      ...state.map.places.map((place) => place.name),
-    ]),
-  ];
+/** What the agent remembers; empty for an agent that has taken nothing in yet. */
+export function getAgentMemory(state: WorldState, agentId: string): AgentMemory {
+  return state.agentMemories[agentId] ?? { stream: [] };
 }
 
-function formatClock(tick: number): string {
-  return formatTimeOfDay(toSimTime(tick, config.clock));
-}
-
-/** A raw working-memory entry, stamped with the sim clock: "[6:32 am] I saw that ...". */
-export function formatWorkingMemoryEntry(tick: number, text: string): string {
-  return `[${formatClock(tick)}] ${text}`;
-}
-
-/** Adds a raw, time-stamped entry to the agent's working memory (the last few events). */
-export function rememberBriefly(state: WorldState, agentId: string, text: string): void {
-  const agent = findAgent(state, agentId);
-  const entry = formatWorkingMemoryEntry(state.tick, text);
-  replaceAgent(state, { ...agent, workingMemory: pushWorkingMemory(agent.workingMemory, entry) });
+/** Appends one event, in the agent's own words, to its stream at the current tick. */
+export function appendToStream(state: WorldState, agentId: string, text: string): void {
+  const memory = getAgentMemory(state, agentId);
+  const stream = capStream(appendStreamEntry(memory.stream, text, state.tick));
+  state.agentMemories[agentId] = { ...memory, stream };
 }

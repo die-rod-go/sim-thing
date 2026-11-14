@@ -12,7 +12,6 @@ export interface Impairment {
 interface StatusLevel {
   text: string;
   slowdown?: number;
-  recallFailureChance?: number;
 }
 
 /** What the agent feels of itself: its health, read from its body, and its needs. */
@@ -42,25 +41,6 @@ export function findSlowdown(status: StatusView): Impairment | null {
     statusWords: describeLevels(slowingLevels),
     amount: slowingLevels.reduce((total, level) => total + (level.slowdown ?? 0), 0),
   };
-}
-
-/** The chance recall fails: each level is its own independent chance to lose the thought. */
-export function findRecallFog(status: StatusView): Impairment | null {
-  const foggingLevels = listStatusLevels(status).filter(
-    (level) => (level.recallFailureChance ?? 0) > 0,
-  );
-  if (foggingLevels.length === 0) return null;
-  const clearChance = foggingLevels.reduce(
-    (chance, level) => chance * (1 - (level.recallFailureChance ?? 0)),
-    1,
-  );
-  return { statusWords: describeLevels(foggingLevels), amount: 1 - clearChance };
-}
-
-/** The recall fog that wins a roll in [0, 1), or null when the agent thinks clearly. */
-export function findFailedRecall(status: StatusView, roll: number): Impairment | null {
-  const fog = findRecallFog(status);
-  return fog !== null && roll < fog.amount ? fog : null;
 }
 
 export function fillStatusWords(phrase: string, statusWords: string): string {

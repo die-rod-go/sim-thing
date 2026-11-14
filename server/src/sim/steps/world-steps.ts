@@ -6,7 +6,7 @@ import { isDead } from "../../status/health";
 import { getAgentRuntime, requestDecision } from "../agent-runtime";
 import { broadcastEvent } from "../event-broadcast";
 import { sendStimulus } from "../rule-engine";
-import { findAgent, markAgentChanged, rememberBriefly, replaceAgent } from "../world-access";
+import { findAgent, markAgentChanged, appendToStream, replaceAgent } from "../world-access";
 import { findStepThings } from "./step-roles";
 import { DONE, type StepHandler, type StepRun } from "./step-run";
 
@@ -58,7 +58,7 @@ export const announceStep: StepHandler<"announce"> = {
         const event = createThingEvent(state, thing, { kind: "announced", description: step.text });
         if (event !== null) broadcastEvent(state, event, result);
       } else if (agentId !== null) {
-        rememberBriefly(state, agentId, `I ${step.text}`);
+        appendToStream(state, agentId, `I ${step.text}`);
       }
       if (agentId !== null) {
         requestDecision(getAgentRuntime(state, agentId), `I ${step.text}`, true);

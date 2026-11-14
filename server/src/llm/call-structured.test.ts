@@ -1,5 +1,6 @@
 import { describe, expect, it } from "vitest";
 import { z } from "zod";
+import { config } from "../config";
 import type { LlmCallDraft } from "./call-structured";
 import { BUDGET_REACHED_ERROR, createStructuredCaller } from "./call-structured";
 import { ConcurrencyLimiter } from "./concurrency-limiter";
@@ -43,8 +44,13 @@ describe("callStructured with a reflection model", () => {
       1_000_000,
       "stronger-model",
     );
-    await callStructured({ ...request, kind: "daytime" });
-    await callStructured(request);
+    config.llm.reflectionKinds.push("interact");
+    try {
+      await callStructured({ ...request, kind: "interact" });
+      await callStructured(request);
+    } finally {
+      config.llm.reflectionKinds.pop();
+    }
     expect(client.requests.map((sent) => sent.model)).toEqual(["stronger-model", undefined]);
     expect(records.map((record) => record.model)).toEqual(["stronger-model", "fake-model"]);
   });

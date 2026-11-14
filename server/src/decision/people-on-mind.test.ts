@@ -13,21 +13,20 @@ const others = [
 const dossiers = Object.fromEntries(
   others.map((person) => [person.id, { text: `${person.name} notes`, updatedTick: 0 }]),
 );
-const base = { others, dossiers, inSightIds: [], speakerNames: [], mentioningTexts: [] };
+const base = { others, dossiers, inSightIds: [], mentioningTexts: [] };
 
 function names(entries: { name: string }[]): string[] {
   return entries.map((entry) => entry.name);
 }
 
 describe("listPeopleOnMind", () => {
-  it("lists people in sight, then speakers, then people named, without repeats", () => {
+  it("lists people in sight, then people named, without repeats", () => {
     const people = listPeopleOnMind({
       ...base,
       inSightIds: ["clara"],
-      speakerNames: ["Dan", "Clara"],
-      mentioningTexts: ["I want to ask Bob and Dan about the well"],
+      mentioningTexts: ["I want to ask Bob and Clara about the well"],
     });
-    expect(names(people)).toEqual(["Clara", "Dan", "Bob"]);
+    expect(names(people)).toEqual(["Clara", "Bob"]);
     expect(people[0]?.text).toBe("Clara notes");
   });
 
@@ -42,13 +41,9 @@ describe("listPeopleOnMind", () => {
       ...base,
       dossiers: {},
       inSightIds: ["bob"],
-      speakerNames: ["Clara"],
       mentioningTexts: ["Dan owes me"],
     });
-    expect(people).toEqual([
-      { name: "Bob", text: config.dossier.unknownPersonText },
-      { name: "Clara", text: config.dossier.unknownPersonText },
-    ]);
+    expect(people).toEqual([{ name: "Bob", text: config.dossier.unknownPersonText }]);
   });
 
   it("matches names as whole words only", () => {
