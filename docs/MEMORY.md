@@ -84,7 +84,8 @@ counting the ones made at midnight.
   `whatTheyWantFromMe`.
 - **Long-term goal:** `goal`, `reason`, `progress`.
 - **Short-term goal:** `goal`, `reason`, `steps` (a list), `progress`.
-- **Seen place:** name, the entities there as last seen, first-seen tick, last-seen tick.
+- **Seen place:** name, first-seen tick, and the entities there as last seen with the tick they
+  were seen, or none yet when the agent has only seen the place from outside.
 
 All of it is saved in the database and sent to the client.
 
@@ -209,12 +210,15 @@ every tick and would defeat the cache. "Now" gives the current time.
 
 ## Places
 
-- A place is added to an agent's seen places the first time any tile of it is in the agent's view.
-  The entry is permanent. A tile that blocks sight (a wall, a closed door) does not count, so an
-  indoor place is seen from inside, or through an open door or a window.
-- Whenever a seen place is in view, that place's whole entity list is replaced with what is really
-  there. Seeing one tile reveals the whole place: agents cannot steer tile by tile, and a place
-  must not look empty because of where they stood.
+- A place is added to an agent's seen places the first time any tile of it is in the agent's view,
+  a wall included: walking past the bakery is enough to know where the bakery is. The entry is
+  permanent.
+- The place's entity list is filled, and replaced with what is really there, whenever a tile of
+  the place that does not block sight is in view: from inside, or through an open door or a
+  window. Seeing one such tile reveals the whole place: agents cannot steer tile by tile, and a
+  place must not look empty because of where they stood.
+- A place whose inside the agent has not seen yet is listed by name and marked as not yet looked
+  into, so it does not read as empty.
 - The list holds placed objects and items on the ground.
 - Entities are collapsed for display: unlabelled identical ones as today ("3 bread"), and labels
   that differ only by a trailing number together ("tree ×32", "square bench ×4").
@@ -231,7 +235,8 @@ every tick and would defeat the cache. "Now" gives the current time.
   one-line notes move to `whatIThinkOfThem`.
 - A new per-character list of seen places, validated against the map's place names. A seeded place
   starts with the entity list that is really there at tick 0.
-- The character form edits all three; seen places is a multi-select of the map's places.
+- The character form edits everything a seed holds: each long-term goal's three fields, all four
+  fields of each person entry, and seen places as a multi-select of the map's places.
 - Short-term goals are not seeded. The short-term goals pass runs once at tick 0.
 
 ## What is removed
@@ -280,7 +285,8 @@ Traps:
 1. The sim starts at 6 am (`clock.startHour`). Find midnight from the day number `toSimTime`
    gives, not from the tick count.
 2. An indoor place's rectangle includes its walls, and `canSee` reports a wall as seen when it is
-   the tile looked at. This is why sight-blocking tiles do not count for seeing a place.
+   the tile looked at. Seeing a wall adds the place; only a tile that does not block sight fills
+   its entity list.
 3. Tiles outside every place belong to `config.map.defaultOutdoorPlace`, which is not in
    `map.places` and is never a seen place.
 4. The decision reply's `target` is one field checked against one list of names for `walk_to`,
@@ -293,8 +299,9 @@ Traps:
    entry.
 7. The fake LLM client needs a default reply for every new call kind: the tick-0 short-term goals
    pass runs in every sim test.
-8. Each new call kind needs an entry in `LlmCallKind` (shared) and `llm.maxReplyTokens`, and a
-   place in or out of `llm.reflectionKinds`, which routes kinds to `LLM_REFLECTION_MODEL`.
+8. Each new call kind needs an entry in `LlmCallKind` (shared) and `llm.maxReplyTokens`.
+   `llm.reflectionKinds` routes kinds to `LLM_REFLECTION_MODEL`: the four passes go in it, the
+   four summaries stay on the default model.
 9. Seen places are worked out for every agent on every tick. Stop at the first visible tile of
    each place.
 
@@ -302,7 +309,7 @@ Traps:
 
 Mine, not the owner's. Ask before changing them.
 
-- **Sight-blocking tiles do not count** for seeing a place.
+- **A place not yet looked into** is listed by name with a mark saying so.
 - **Place entity lists** hold placed objects and ground items only.
 - **Merging repeats** only joins an entry to the one directly before it.
 - **Profession** is changed by the identity pass.
@@ -310,8 +317,6 @@ Mine, not the owner's. Ask before changing them.
 - **Moments:** goal moments are raised for long-term goals only.
 - **A day with no chronicles** keeps the old day summary.
 - **The cache layout** of the decision prompt, and memory-first order in the pass context.
-- **Model routing:** the four passes go in `llm.reflectionKinds`; the four summaries use the
-  default model.
 - **Reply token ceilings** for the new calls: derive them from the length limits, following the
   config's note that JSON can cost about one token per character (roughly 520, 860, 1040 and 1730
   for the four summaries), and size each pass's ceiling to its largest possible reply.
