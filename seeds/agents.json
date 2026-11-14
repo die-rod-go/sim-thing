@@ -308,7 +308,7 @@
         "neuroticism": 0.2,
         "openness": 0.4
       },
-      "core": "You are a weaver with a sharp tongue and a sharper memory. You notice everything, remember who said what, and enjoy passing it along. You are fiercely loyal to the few people you like and cool to everyone else until they earn it.",
+      "core": "You are an herbalist with a sharp tongue and a sharper memory. You notice everything, remember who said what, and enjoy passing it along. You are fiercely loyal to the few people you like and cool to everyone else until they earn it.",
       "selfImage": "The only one paying attention. If something happens in this village, I know about it first.",
       "sleepRecoveryPerHour": 0.16,
       "strength": 0.35,
@@ -357,8 +357,8 @@
         "neuroticism": 0.6,
         "openness": 0.6
       },
-      "core": "You are a shy potter who talks more easily to clay than to people. You worry about everything, apologize too often, and secretly want to be noticed. When you do speak, it is honest and a little odd.",
-      "selfImage": "Not much to look at, but my bowls are good. Everyone in this village drinks from something I made.",
+      "core": "You are a shy brewer who talks more easily to ale than to people. You worry about everything, apologize too often, and secretly want to be noticed. When you do speak, it is honest and a little odd.",
+      "selfImage": "Not much to look at, but my ale is good. Everyone in this village drinks things I made.",
       "sleepRecoveryPerHour": 0.13,
       "strength": 0.4,
       "agility": 0.55,

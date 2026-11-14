@@ -309,6 +309,7 @@ Traps:
 
 Mine, not the owner's. Ask before changing them.
 
+- **A place not yet looked into** is listed by name with a mark saying so.
 - **Place entity lists** hold placed objects and ground items only.
 - **Merging repeats** only joins an entry to the one directly before it.
 - **Profession** is changed by the identity pass.
@@ -316,6 +317,8 @@ Mine, not the owner's. Ask before changing them.
 - **Moments:** goal moments are raised for long-term goals only.
 - **A day with no chronicles** keeps the old day summary.
 - **The cache layout** of the decision prompt, and memory-first order in the pass context.
+- **Model routing:** the four passes go in `llm.reflectionKinds`; the four summaries use the
+  default model.
 - **Reply token ceilings** for the new calls: derive them from the length limits, following the
   config's note that JSON can cost about one token per character (roughly 520, 860, 1040 and 1730
   for the four summaries), and size each pass's ceiling to its largest possible reply.
