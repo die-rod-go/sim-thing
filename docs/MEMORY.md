@@ -1,8 +1,7 @@
 # Memory, people and goals: design
 
-Status: **designed, not built.** This replaces the whole current memory model: buckets, strength
-and forgetting, recall, working memory, conversation summaries, the four reflection passes,
-dossiers and plans. Nothing here needs to load an old save; the owner resets.
+Status: **designed, not built.** This replaces the current memory model, the reflection passes,
+dossiers and plans. Old saves do not need to load; the owner resets.
 
 If you are implementing this: read it all once, then work phase by phase from
 [Build order](#build-order). `AGENTS.md` still applies to everything, above all the design rule:
@@ -14,14 +13,14 @@ Choices that are mine rather than the project owner's are listed under
 
 ## The idea
 
-- **Memory is compressed by time, not searched.** An agent sees its most recent events word for
-  word, and older time as summaries that get coarser with age: episodes, then chronicles, then one
-  day summary, then one history.
-- **Nothing is scored or recalled.** There are no buckets, no strength, no forgetting curve and no
-  `recall` action. What an agent remembers is what is still on the page.
+- **Memory is compressed by time.** An agent sees its most recent events word for word, and older
+  time as summaries that get coarser with age: episodes, then chronicles, then one day summary,
+  then one history.
+- **What an agent remembers is what is in its prompt.** All of its memory is shown on every
+  decision.
 - **Memory compression is the clock for everything else.** When episodes and chronicles form, the
   agent rewrites what it thinks of people, its goals and who it is.
-- **Places are known by sight.** An agent's list of places holds only places it has seen.
+- **Places are known by sight.** An agent's list of places holds the places it has seen.
 
 ## Vocabulary
 
@@ -38,40 +37,39 @@ Choices that are mine rather than the project owner's are listed under
 | short-term goal | A goal with a reason, steps and progress, rewritten every few episodes           |
 | seen place      | A place the agent has seen, with the entities it holds                           |
 
-These replace `bucket`, `strength` and `reflection` in the `AGENTS.md` glossary, and the plans and
-dossiers the old model kept. `intention` and `mood` stay as they are.
+Update the `AGENTS.md` glossary and test list in the phase that builds or removes each thing.
 
 ## Settings
 
-Every value lives in the config file under one `memory` block (and `people`, `goals`, `traits`
-where noted). None is hardcoded.
+Every value lives in the config file, in the block named in the table. None is hardcoded.
 
-| Setting                                | Value | Chosen by | Meaning                                                   |
-| -------------------------------------- | ----- | --------- | --------------------------------------------------------- |
-| `streamMax`                            | 60    | owner     | Events in the stream before an episode is made            |
-| `streamKeep`                           | 5     | owner     | Newest events left in the stream when an episode is made  |
-| `episodesMax`                          | 6     | owner     | Episodes before a chronicle is made                       |
-| `episodesKeep`                         | 1     | owner     | Newest episodes left when a chronicle is made             |
-| `earlierEpisodesShown`                 | 1     | owner     | Earlier episodes the episode summarizer sees for context  |
-| `earlierChroniclesShown`               | 1     | owner     | Earlier chronicles the chronicle summarizer sees          |
-| `episodeMaxChars`                      | 345   | owner     | Length limit of an episode                                |
-| `chronicleMaxChars`                    | 575   | owner     | Length limit of a chronicle                               |
-| `daySummaryMaxChars`                   | 690   | owner     | Length limit of the day summary                           |
-| `historyMaxChars`                      | 1150  | owner     | Length limit of the history                               |
-| `retryAfterTicks`                      | 40    | owner     | Wait before retrying a summary or pass that failed        |
-| `people.everyEpisodes`                 | 2     | owner     | New episodes between runs of the people pass              |
-| `people.fieldMaxChars`                 | 200   | owner     | Length limit of each of a person entry's four fields      |
-| `goals.shortTermEveryEpisodes`         | 2     | owner     | New episodes between runs of the short-term goals pass    |
-| `goals.maxShortTerm`                   | 3     | owner     | Most short-term goals (the old `plans.maxPlans`)          |
-| `goals.maxSteps`                       | 5     | owner     | Most steps per short-term goal (the old `plans.maxSteps`) |
-| `goals.shortTermFieldMaxChars`         | 200   | owner     | Length limit of each short-term goal text                 |
-| `goals.maxLongTerm`                    | 5     | owner     | Most long-term goals                                      |
-| `goals.longTermFieldMaxChars`          | 250   | owner     | Length limit of each long-term goal text                  |
-| `traits.passDeltaClamp`                | 0.003 | owner     | Most a trait moves in one identity pass                   |
-| `llm.maxReplyTokens` for each new call | open  | mine      | See [Open choices](#open-choices)                         |
+| Setting                         | Value | Chosen by | Meaning                                                  |
+| ------------------------------- | ----- | --------- | -------------------------------------------------------- |
+| `memory.streamMax`              | 60    | owner     | Entries in the stream before an episode is made          |
+| `memory.streamKeep`             | 5     | owner     | Newest entries left in the stream when an episode forms  |
+| `memory.episodesMax`            | 6     | owner     | Episodes before a chronicle is made                      |
+| `memory.episodesKeep`           | 1     | owner     | Newest episodes left when a chronicle forms              |
+| `memory.earlierEpisodesShown`   | 1     | owner     | Earlier episodes the episode summarizer sees for context |
+| `memory.earlierChroniclesShown` | 1     | owner     | Earlier chronicles the chronicle summarizer sees         |
+| `memory.streamEntryMaxChars`    | 200   | existing  | Length limit of one entry (today's `maxMemoryChars`)     |
+| `memory.episodeMaxChars`        | 345   | owner     | Length limit of an episode                               |
+| `memory.chronicleMaxChars`      | 575   | owner     | Length limit of a chronicle                              |
+| `memory.daySummaryMaxChars`     | 690   | owner     | Length limit of the day summary                          |
+| `memory.historyMaxChars`        | 1150  | owner     | Length limit of the history                              |
+| `memory.retryAfterTicks`        | 40    | owner     | Wait before retrying a summary or pass that failed       |
+| `people.everyEpisodes`          | 2     | owner     | New episodes between runs of the people pass             |
+| `people.fieldMaxChars`          | 200   | owner     | Length limit of each of a person entry's four fields     |
+| `goals.shortTermEveryEpisodes`  | 2     | owner     | New episodes between runs of the short-term goals pass   |
+| `goals.maxShortTerm`            | 3     | owner     | Most short-term goals                                    |
+| `goals.maxSteps`                | 5     | owner     | Most steps per short-term goal                           |
+| `goals.shortTermFieldMaxChars`  | 200   | owner     | Length limit of each short-term goal text                |
+| `goals.maxLongTerm`             | 5     | owner     | Most long-term goals                                     |
+| `goals.longTermFieldMaxChars`   | 250   | owner     | Length limit of each long-term goal text                 |
+| `traits.passDeltaClamp`         | 0.003 | owner     | Most a trait moves in one identity pass                  |
 
-Existing settings that still apply: `llm.attemptsPerCall` (2), `llm.replyTextSlack` (1.5),
-`perception.sightRangeTiles` (24), `memory.participationWindowTicks` (10).
+Existing settings the new model uses as they are: `llm.attemptsPerCall`, `llm.replyTextSlack`,
+`perception.sightRangeTiles`, `memory.participationWindowTicks`, and `traitValueDecimals`, which
+moves from the `reflection` block to `traits`.
 
 For scale: in the save measured while designing this, an agent filed about 370 to 450 events per
 sim-day. With the values above that is about 7 episodes and 2 to 3 chronicles per agent per day,
@@ -79,8 +77,7 @@ counting the ones made at midnight.
 
 ## Data
 
-- **Stream entry:** text, tick, and for merged repeats a count and an end tick. No bucket, strength
-  or tags.
+- **Stream entry:** text, tick, and for merged repeats a count and an end tick.
 - **Summary:** level (`episode`, `chronicle`, `daySummary`, `history`), start tick, end tick, text.
   An agent has any number of episodes and chronicles and at most one day summary and one history.
 - **Person entry**, per known person: `whatIThinkOfThem`, `whatTheyThinkOfMe`, `whatIWantFromThem`,
@@ -93,19 +90,18 @@ All of it is saved in the database and sent to the client.
 
 ## The stream
 
-One list per agent, in time order. Everything that used to go to a memory bucket or to working
-memory goes here and nowhere else:
+One list per agent, in time order. It holds:
 
 - Perceived events, worded exactly as filing words them today: what the agent did, what was done
   to it, what it saw, sounds from elsewhere, speech it took part in (`Cobb said: "…"`), speech it
-  overheard, muffled voices. Whether a line reads as "said" or "overheard" still follows the
+  overheard, muffled voices. Whether a line reads as "said" or "overheard" follows the
   participation rule in the speech log.
 - Notes the code writes for the agent: a failed action and why, arriving somewhere, what a read
   note said, what an inspection counted, waking in pain, being slowed.
 
 A new entry whose text is identical to the entry just before it is merged into that entry, which
-then shows a count and a time range. Merging happens when the entry is added, so the stream's
-length counts merged entries once.
+then shows a count and a time range. Merging happens when the entry is added, so a merged entry
+counts once toward `streamMax`.
 
 ## The memory pipeline
 
@@ -116,31 +112,31 @@ entry.
 
 **Episodes to chronicle.** When the agent holds `episodesMax` episodes, every episode except the
 newest `episodesKeep` goes to the chronicle summarizer, together with the last
-`earlierChroniclesShown` chronicles. The reply becomes one chronicle. There is no cap on
-chronicles within a day.
+`earlierChroniclesShown` chronicles. The reply becomes one chronicle. Any number of chronicles can
+form in a day.
 
-**Midnight** (the sim clock entering a new day), for every living agent:
+**Midnight** (the sim clock's day number going up), for every living agent, each step once:
 
 1. Stream to episode by the rule above, whatever the stream's length. The newest `streamKeep`
    entries stay and carry into the next day.
 2. Episodes to chronicle by the rule above, whatever their number. The newest `episodesKeep` stay.
-3. Any passes these two steps triggered (see [Order of work](#order-of-work)).
+3. Any passes these two steps made due (see [Order of work](#order-of-work)).
 4. All chronicles to the new day summary.
 5. The outgoing day summary and the existing history to the new history.
-6. The new day summary replaces the old one. The agent now has no chronicles.
+6. The new day summary replaces the old one, and the chronicles are gone.
 
 **Rules that hold everywhere:**
 
-- One job per agent at a time. A summary or pass that becomes due while another is running waits
-  its turn.
-- Inputs are removed only when their summary comes back. Until then the agent still sees them, so
-  there is never a gap. The stream may hold more than `streamMax` entries while a job runs.
+- One job per agent at a time, across all summaries and passes. A job that becomes due while
+  another is running waits its turn.
+- Inputs are removed only when their summary comes back. Until then the agent still sees them. The
+  stream may hold more than `streamMax` entries while a job runs.
 - A step with nothing to summarize is skipped: a stream of `streamKeep` entries or fewer makes no
   episode, `episodesKeep` episodes or fewer make no chronicle, and a day with no chronicles keeps
   the old day summary. On the first midnight there is no outgoing day summary, so step 5 is
   skipped.
 - A call that fails all its attempts leaves everything in place and is tried again after
-  `retryAfterTicks`. Nothing is dropped silently.
+  `retryAfterTicks`.
 - Summaries are written in the first person and past tense. Each reply is one `summary` field,
   validated against its length limit with the existing slack and retry.
 
@@ -154,21 +150,22 @@ chronicles within a day.
 | Long-term goals  | A chronicle forms                                                 | The long-term goal list              | The full list                                             |
 
 - Each pass is its own LLM call with its own prompt template and call kind.
-- **Every pass reads the same context:** who the agent is, its long-term goals, its short-term
-  goals, its person entries, its seen places, and all of its memory (history, day summary,
-  chronicles, episodes, stream). Only the question at the end differs. The context comes first in
-  the prompt so that passes run back to back read it from the provider's cache.
+- **Every pass reads the same context:** all of the agent's memory (history, day summary,
+  chronicles, episodes, stream), its seen places, who it is, its long-term goals, its short-term
+  goals and its person entries. Only the question at the end differs. Memory comes first in the
+  prompt: no pass changes it, so passes run back to back read it from the provider's cache.
 - Each of the two episode-counting passes keeps its own count of episodes formed since it last
   ran. Episodes made at midnight count like any other.
-- The identity pass carries over the old weekly prompt's rule: change a trait only on what the
+- The identity pass follows the rules of today's weekly prompt: change a trait only on what the
   agent actually did and felt, never on what it wishes. A trait moves at most
-  `traits.passDeltaClamp` per pass. Changes are recorded in the personality history as today.
+  `traits.passDeltaClamp` per pass.
+- Changes to traits, core, self-image, profession and long-term goals are recorded in the
+  personality history and raise the existing personality and goal moments.
 - Short-term goals should serve the long-term goals and answer what has happened lately. Their
-  steps are the plan; there is no separate plan. Steps and progress change only when the pass
-  runs; there is no `stepDone` field on a decision.
+  steps are the plan. Steps and progress change only when the pass runs.
 - **Who has a person entry:** everyone in the agent's seed, and anyone the agent has seen. An
-  entry made on first sight starts with empty fields. Someone only heard about has no entry until
-  seen; this is intended for now.
+  entry made on first sight starts with empty fields. Someone only heard about gets an entry when
+  first seen.
 
 ### Order of work
 
@@ -185,13 +182,19 @@ from slowest-changing to fastest:
 
 Step 7 is last so the passes read the day before it is compressed.
 
+### What is due
+
+What is due for an agent is read from saved state, so a failed call or a restart loses nothing:
+the stream's length, the number of episodes, each episode-counting pass's count, whether the
+identity and long-term goals passes are owed since the last chronicle, and how far the agent's
+midnight steps have got for the current day.
+
 ## The decision prompt
 
 Ordered from most stable to least, with a cache break after each of the first four groups (the
 provider allows four).
 
-1. **Same for everyone:** the instructions, "What you can do" and "Reply". No `recall` action, no
-   `query` field, no `stepDone` field.
+1. **Same for everyone:** the instructions, "What you can do" and "Reply".
 2. **Changes when a chronicle forms:** who you are (profession, traits, core, self-image),
    long-term goals, history, day summary, chronicles.
 3. **Changes when an episode forms:** people you know (every person entry, four fields each),
@@ -201,35 +204,31 @@ provider allows four).
    what triggered the decision, what just went wrong), where you are and what is here, around you,
    belongings, the stream, what your body needs.
 
-Everything above the stream is stamped with absolute times ("Day 8, 3:23 am"), never "38 min
-ago": a relative time changes every tick and would defeat the cache. "Now" gives the current time.
-
-Sections that no longer exist: "On your mind", "Current conversation", "Memories", "People on your
-mind", "Places you know", "Today's plan", and the foggy-thoughts line.
+Every time in the prompt is absolute ("Day 8, 3:23 am"). A relative time ("38 min ago") changes
+every tick and would defeat the cache. "Now" gives the current time.
 
 ## Places
 
-- A place is added to an agent's seen places the first time any tile of it is in the agent's view
-  (the existing line-of-sight code and `perception.sightRangeTiles`). The entry is permanent.
-- Whenever any tile of a seen place is in view, that place's whole entity list is replaced with
-  what is really there. Seeing one tile reveals the whole place: agents cannot steer tile by tile,
-  and a place must not look empty because of where they stood.
-- The list holds placed objects and items on the ground. It leaves out people, what containers
-  hold and what people carry. The open road between places is not a place.
+- A place is added to an agent's seen places the first time any tile of it is in the agent's view.
+  The entry is permanent. A tile that blocks sight (a wall, a closed door) does not count, so an
+  indoor place is seen from inside, or through an open door or a window.
+- Whenever a seen place is in view, that place's whole entity list is replaced with what is really
+  there. Seeing one tile reveals the whole place: agents cannot steer tile by tile, and a place
+  must not look empty because of where they stood.
+- The list holds placed objects and items on the ground.
 - Entities are collapsed for display: unlabelled identical ones as today ("3 bread"), and labels
   that differ only by a trailing number together ("tree ×32", "square bench ×4").
-- The section is titled "Places you have seen", so agents do not take it for every place there is.
-- `walk_to` accepts any name. A name that is no place on the map and no one in sight fails like
-  any other action, with "no place with that name exists", shown in "what just went wrong" and in
-  the stream. An agent may walk to a place it has only heard of. A wrong name no longer costs a
-  second LLM call.
-- The first-visit memory and the visited-places record are removed.
+- The section is titled "Places you have seen".
+- `walk_to` accepts any name. It resolves, as today, to a place on the map, a person in sight or a
+  thing here. A name that is none of these fails like any other action, with "no place with that
+  name exists", shown in "what just went wrong" and in the stream. An agent may walk to a place it
+  has only heard of.
 
 ## Seeds and the character form
 
-- `goals` in `agents.json` become the long-term goals: `goal`, `reason`, `progress`. `kind` is
-  dropped.
-- `peopleNotes` becomes person entries: the four fields per person, each optional.
+- `goals` in `agents.json` become the long-term goals: `goal`, `reason`, `progress`.
+- `peopleNotes` becomes person entries: the four fields per person, each optional. Today's
+  one-line notes move to `whatIThinkOfThem`.
 - A new per-character list of seen places, validated against the map's place names. A seeded place
   starts with the entity list that is really there at tick 0.
 - The character form edits all three; seen places is a multi-select of the map's places.
@@ -237,46 +236,100 @@ mind", "Places you know", "Today's plan", and the foggy-thoughts line.
 
 ## What is removed
 
-- **Memory:** the memory store, buckets, strength, forgetting and bucket caps, recall scoring and
-  lexical similarity, tags, working memory, the `recall` action, conversation summaries.
-- **Passes:** the morning, daytime, night and weekly reflections, with their prompts, schedules
-  and settings.
+Remove each of these completely: no branch, field, setting, prompt or test left behind.
+
+- **Memory:** the memory store and `memories` table, buckets, strength, forgetting and bucket caps,
+  recall scoring and lexical similarity, tags, the duplicate window, working memory, the
+  first-visit memory and visited-places record, conversation summaries.
+- **Decision:** the `recall` action and `query` field, the `stepDone` field, the unknown-name
+  retry for `walk_to`, the prompt token target and memory trimming, and the sections "On your
+  mind", "Current conversation", "Memories", "People on your mind", "Places you know" and "Today's
+  plan" with their settings.
+- **Passes:** the morning, daytime, night and weekly reflections, the reflection hook and its sleep
+  callbacks, reflection schedules, and the `daily_plan` and `reflection` moments.
 - **Agent state:** plans, the daily plan, dossiers, goal `kind`.
 - **Impairment:** recall failure from needs and wounds (`recallFailureChance`, the rolls, both fog
   texts). Slowdown stays.
-- **Decision settings that only fed removed sections:** the prompt token target and memory
-  trimming, conversation line and linger limits, dossier settings.
-- **Client:** the Memory and Relations tabs are rebuilt for the new data.
+- **Client:** the Memory and Relations tabs, rebuilt for the new data.
 
-Leave no branch, field or setting behind for any of these.
+## Where things are today
+
+- **Filing:** `server/src/memory/filing.ts` words each perceived event for each perceiver. Keep
+  its wording; its output becomes stream entries.
+- **Two paths into one:** `sim/event-broadcast.ts` adds every filed memory to the store and also
+  pushes it to working memory. `rememberBriefly` in `sim/world-access.ts` pushes code-written
+  notes to working memory only. Both become "append to the stream".
+- **Speech log:** `memory/conversation.ts`. The new model uses `isTakingPart` only.
+- **Background LLM work:** `sim/background-work.ts` runs one piece per agent and applies results
+  in agent order on the tick after they return. `sim/conversation-summaries.ts` shows the whole
+  pattern: start what is due, apply on collect, retry after some ticks, and wait for every call
+  when `shouldCallLlmInBackground` is off (tests). Use one `BackgroundWork` for all summaries and
+  passes; decisions keep their own.
+- **Tick order:** `sim/tick-pipeline.ts`. The sight phase, `updateSight` in `sim/tick-phases.ts`,
+  is where seen places and first-sight person entries belong.
+- **Identity:** `reflection/weekly.ts` already applies trait changes with a clamp, rounding,
+  personality history and moments, and `server/prompts/weekly.txt` holds the rules for judging
+  oneself. Move both into the identity pass.
+- **Decision prompt:** the template is `server/prompts/decision.txt`, with `<<<cache>>>` lines as
+  cache breaks. The context is built in `sim/context-builder.ts` and rendered in
+  `decision/decision-prompt.ts` and `decision/sections.ts`. The reply schema is
+  `decision/reply-schema.ts`.
+
+Traps:
+
+1. The sim starts at 6 am (`clock.startHour`). Find midnight from the day number `toSimTime`
+   gives, not from the tick count.
+2. An indoor place's rectangle includes its walls, and `canSee` reports a wall as seen when it is
+   the tile looked at. This is why sight-blocking tiles do not count for seeing a place.
+3. Tiles outside every place belong to `config.map.defaultOutdoorPlace`, which is not in
+   `map.places` and is never a seen place.
+4. The decision reply's `target` is one field checked against one list of names for `walk_to`,
+   `give` and `interact`. Only `walk_to` takes any name. The JSON schema also lists the names
+   unless `isReplySchemaStable` is set.
+5. A job's result is applied ticks after the job started. Remove exactly the entries or episodes
+   that were sent, and write only the fields that job owns. An entry that has been sent takes no
+   further merges.
+6. Pass replies name people. Resolve them with `resolveName` and ignore names with no person
+   entry.
+7. The fake LLM client needs a default reply for every new call kind: the tick-0 short-term goals
+   pass runs in every sim test.
+8. Each new call kind needs an entry in `LlmCallKind` (shared) and `llm.maxReplyTokens`, and a
+   place in or out of `llm.reflectionKinds`, which routes kinds to `LLM_REFLECTION_MODEL`.
+9. Seen places are worked out for every agent on every tick. Stop at the first visible tile of
+   each place.
 
 ## Open choices
 
 Mine, not the owner's. Ask before changing them.
 
-- **Reply token ceilings** for the new calls. Derive them from the length limits, following the
-  config's note that JSON can cost about one token per character: roughly 520, 860, 1040 and 1730
-  for the four summaries. The passes need ceilings sized to their largest possible reply.
-- **Merging repeats** only joins an entry to the one directly before it. Alternating lines do not
-  merge.
-- **Trailing-number collapsing** for place entities.
-- **Place entity lists** leave out people, container contents and carried things.
-- **Profession** is changed by the identity pass; the owner only fixed when it changes.
-- **The cache layout** in [The decision prompt](#the-decision-prompt).
+- **Sight-blocking tiles do not count** for seeing a place.
+- **Place entity lists** hold placed objects and ground items only.
+- **Merging repeats** only joins an entry to the one directly before it.
+- **Profession** is changed by the identity pass.
+- **Seeded one-line people notes** move to `whatIThinkOfThem`.
+- **Moments:** goal moments are raised for long-term goals only.
 - **A day with no chronicles** keeps the old day summary.
+- **The cache layout** of the decision prompt, and memory-first order in the pass context.
+- **Model routing:** the four passes go in `llm.reflectionKinds`; the four summaries use the
+  default model.
+- **Reply token ceilings** for the new calls: derive them from the length limits, following the
+  config's note that JSON can cost about one token per character (roughly 520, 860, 1040 and 1730
+  for the four summaries), and size each pass's ceiling to its largest possible reply.
 
 ## Build order
 
-`make check` and `make test` pass at the end of every phase; one commit per phase.
+`make check` and `make test` pass at the end of every phase; one commit per phase. Each phase
+updates the client, the database and `AGENTS.md` for what it changes.
 
 1. **Places.** Seen places, the view-based updates, collapsing, the prompt section, `walk_to`
-   accepting any name, the seed field and the form's multi-select. Independent of the rest.
-2. **The stream, and the old model out.** One stream replaces the memory store and working memory.
-   Remove everything under [What is removed](#what-is-removed) and the prompt sections that went
-   with it. After this phase agents decide from identity, seeded goals, places and the stream.
-3. **Summaries.** Episodes, chronicles, the midnight roll-up, the per-agent job queue, the retry,
+   taking any name, the seed list and the form's multi-select.
+2. **The stream.** One stream replaces the memory store and working memory. Everything under
+   "Memory", "Decision", "Passes" and "Impairment" in [What is removed](#what-is-removed) goes,
+   along with plans and the daily plan. Dossiers, the "People on your mind" section and goals stay
+   as they are until phase 4, shown from their seeded values.
+3. **Summaries.** Episodes, chronicles, the midnight steps, the per-agent job queue, the retry,
    and the summary sections of the decision prompt with their cache breaks.
 4. **Passes.** The shared context, then people, short-term goals, identity and long-term goals;
-   the new seed format; the tick-0 short-term goals pass.
-5. **Client and measurement.** The rebuilt tabs, the glossary in `AGENTS.md`, and a soak run
-   compared against the old model's token use per agent per sim-day.
+   person entries replace dossiers and long-term goals replace goals, with the new seed format and
+   form; the tick-0 short-term goals pass.
+5. **Measurement.** A soak run compared against the old model's token use per agent per sim-day.
