@@ -133,9 +133,12 @@ form in a day.
 - Inputs are removed only when their summary comes back. Until then the agent still sees them. The
   stream may hold more than `streamMax` entries while a job runs.
 - A step with nothing to summarize is skipped: a stream of `streamKeep` entries or fewer makes no
-  episode, `episodesKeep` episodes or fewer make no chronicle, and a day with no chronicles keeps
-  the old day summary. On the first midnight there is no outgoing day summary, so step 5 is
-  skipped.
+  episode, and `episodesKeep` episodes or fewer make no chronicle. On the first midnight there is
+  no outgoing day summary, so step 5 is skipped.
+- The day summary is always about the day that just ended. On a day with no chronicles no new day
+  summary is made: the outgoing one still moves into the history (step 5), and the agent holds no
+  day summary until a day makes one. What little happened that day is still in its episodes and
+  stream, so nothing in the prompt is ever dated to the wrong day.
 - A call that fails all its attempts leaves everything in place and is tried again after
   `retryAfterTicks`.
 - Summaries are written in the first person and past tense. Each reply is one `summary` field,
@@ -217,8 +220,9 @@ every tick and would defeat the cache. "Now" gives the current time.
   the place that does not block sight is in view: from inside, or through an open door or a
   window. Seeing one such tile reveals the whole place: agents cannot steer tile by tile, and a
   place must not look empty because of where they stood.
-- A place whose inside the agent has not seen yet is listed by name and marked as not yet looked
-  into, so it does not read as empty.
+- A place whose inside the agent has not seen yet is listed by its name alone. A place seen
+  inside shows what it held and when ("as of Day 1, 6:10 am", or "in view now"), and "nothing"
+  when it was empty.
 - The list holds placed objects and items on the ground.
 - Entities are collapsed for display: unlabelled identical ones as today ("3 bread"), and labels
   that differ only by a trailing number together ("tree ×32", "square bench ×4").
@@ -309,19 +313,17 @@ Traps:
 
 Mine, not the owner's. Ask before changing them.
 
-- **A place not yet looked into** is listed by name with a mark saying so.
-- **Place entity lists** hold placed objects and ground items only.
-- **Merging repeats** only joins an entry to the one directly before it.
-- **Profession** is changed by the identity pass.
 - **Seeded one-line people notes** move to `whatIThinkOfThem`.
 - **Moments:** goal moments are raised for long-term goals only.
-- **A day with no chronicles** keeps the old day summary.
-- **The cache layout** of the decision prompt, and memory-first order in the pass context.
-- **Model routing:** the four passes go in `llm.reflectionKinds`; the four summaries use the
-  default model.
-- **Reply token ceilings** for the new calls: derive them from the length limits, following the
-  config's note that JSON can cost about one token per character (roughly 520, 860, 1040 and 1730
-  for the four summaries), and size each pass's ceiling to its largest possible reply.
+
+Decided by the owner (2026-11-14), no longer open: a place not yet looked into is listed by name
+with no mark; place entity lists hold placed objects and ground items only; merging repeats only
+joins an entry to the one directly before it; profession is changed by the identity pass; a day
+with no chronicles makes no day summary (see [The memory pipeline](#the-memory-pipeline)); the
+cache layout of the decision prompt and memory-first order in the pass context; the four passes
+go in `llm.reflectionKinds` and the four summaries use the default model; reply token ceilings
+are derived from the length limits (roughly 520, 860, 1040 and 1730 for the four summaries), with
+each pass's ceiling sized to its largest possible reply.
 
 ## Build order
 

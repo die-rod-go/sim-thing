@@ -486,14 +486,15 @@ describe("describeAroundYou", () => {
 });
 
 describe("places you have seen", () => {
-  it("lists each seen place with what it held and when, marking one not yet looked into", () => {
+  it("lists each seen place with what it held and when, and one not looked into by name alone", () => {
     const prompt = buildDecisionPrompt(buildContext());
     expect(prompt).toContain(
       [
         "## Places you have seen",
         "- bakery (in view now): oven, 2 bread",
         "- farm (as of Day 1, 6:10 am): nothing",
-        "- town square (not yet looked into)",
+        "- town square",
+        "",
       ].join("\n"),
     );
   });

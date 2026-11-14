@@ -54,7 +54,7 @@ describe("seen places", () => {
       firstSeenTick: 0,
       entities: null,
     });
-    expect(sim.records[0]?.prompt).toContain("- bakery (not yet looked into)");
+    expect(sim.records[0]?.prompt).toMatch(/^- bakery$/m);
     expect(sim.records[0]?.prompt).toContain("- town square (in view now): notice board, bench");
   });
 

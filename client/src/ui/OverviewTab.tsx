@@ -58,9 +58,7 @@ function SeenPlaceRow({ seenPlace }: { seenPlace: SeenPlace }) {
   return (
     <div className="goal">
       <div className="goal-text">{seenPlace.name}</div>
-      {entities === null ? (
-        <div className="goal-why">not yet looked into</div>
-      ) : (
+      {entities !== null && (
         <div className="goal-why" title={formatSimTime(entities.tick, state.timeSettings)}>
           {entities.names.length > 0 ? entities.names.join(", ") : "nothing there"}
         </div>

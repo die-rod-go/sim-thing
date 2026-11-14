@@ -465,7 +465,6 @@ export const config = {
     /** The lines of "Places you have seen". `{time}` is absolute, so the section stays cacheable. */
     promptTexts: {
       noneSeen: "None yet.",
-      notLookedInto: "{place} (not yet looked into)",
       inViewNow: "{place} (in view now): {entities}",
       seenEarlier: "{place} (as of {time}): {entities}",
       nothingThere: "nothing",
