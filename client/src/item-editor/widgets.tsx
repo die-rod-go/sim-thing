@@ -1,4 +1,4 @@
-import { useId, type ReactNode } from "react";
+import { useEffect, useId, useState, type ReactNode } from "react";
 import type { ItemProblem } from "@village/shared";
 
 export function ItemProblemList({
@@ -201,4 +201,48 @@ export function SideList({
 export function findWorstSeverity(problems: readonly ItemProblem[]): "error" | "warning" | null {
   if (problems.some((problem) => problem.severity === "error")) return "error";
   return problems.length > 0 ? "warning" : null;
+}
+
+/**
+ * A name that other entries refer to. Each keystroke renames at once, so the draft never lags
+ * behind what is shown; a name that is blank or taken is shown as a problem and never applied.
+ */
+export function RenameInput({
+  value,
+  isTaken,
+  onRename,
+}: {
+  value: string;
+  isTaken: (name: string) => boolean;
+  onRename: (name: string) => void;
+}) {
+  const [text, setText] = useState(value);
+  useEffect(() => setText(value), [value]);
+  const problem = describeRenameProblem(text, value, isTaken);
+  const changeText = (next: string) => {
+    setText(next);
+    if (next !== value && describeRenameProblem(next, value, isTaken) === null) onRename(next);
+  };
+  return (
+    <span className="rename-input">
+      <input
+        className={problem === null ? "editor-input" : "editor-input is-invalid"}
+        value={text}
+        onChange={(event) => changeText(event.target.value)}
+        onBlur={() => setText(value)}
+      />
+      {problem !== null && <span className="problem-error">{problem}, not renamed</span>}
+    </span>
+  );
+}
+
+function describeRenameProblem(
+  text: string,
+  value: string,
+  isTaken: (name: string) => boolean,
+): string | null {
+  if (text === value) return null;
+  if (text.trim() === "") return "Needs a name";
+  if (isTaken(text)) return `"${text}" is already used`;
+  return null;
 }

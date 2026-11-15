@@ -126,6 +126,7 @@ export function reduceEditorState(state: EditorState, action: EditorAction): Edi
         selectedIndexes: clampSelections(state.selectedIndexes, action.draft, action.selection),
         tab: action.selection?.tab ?? state.tab,
         saveStatus: state.saveStatus === "saving" ? "saving" : "idle",
+        serverProblems: state.saveStatus === "saving" ? state.serverProblems : [],
       };
     case "selected":
       return {

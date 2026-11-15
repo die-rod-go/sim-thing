@@ -28,7 +28,10 @@ const CONNECTION_LABELS: Record<ConnectionStatus, string> = {
 
 function describeSaveStatus(state: EditorState, isDirty: boolean, problems: ItemProblem[]): string {
   if (state.saveStatus === "saving") return "Savingâ€¦";
-  if (hasItemErrors(problems)) return "Fix the errors to save";
+  const errorCount = problems.filter((problem) => problem.severity === "error").length;
+  if (errorCount > 0) {
+    return `Fix ${errorCount} ${errorCount === 1 ? "error" : "errors"} to save (see All problems)`;
+  }
   if (isDirty) return "Unsaved changes";
   if (state.saveStatus === "saved") return "Saved to seeds/items.json";
   return "No changes";

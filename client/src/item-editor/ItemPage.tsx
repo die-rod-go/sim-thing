@@ -1,5 +1,5 @@
 import { type ItemDefinition, type ItemFile, type ItemProblem } from "@village/shared";
-import { CommittedTextInput, TextInput } from "../characters/fields";
+import { TextInput } from "../characters/fields";
 import { ComponentValues } from "./ComponentValues";
 import { updateDefinition } from "./definition-edits";
 import type { TabSelection } from "./editor-state";
@@ -8,7 +8,7 @@ import { describeItemPreview } from "./item-preview";
 import { ItemVerbs } from "./ItemVerbs";
 import { formatEntryPath, selectEntryProblems } from "./problems";
 import { renameDefinitionEverywhere } from "./rename-edits";
-import { InlineField, ItemProblemList } from "./widgets";
+import { InlineField, ItemProblemList, RenameInput } from "./widgets";
 
 /** One item definition: what it is, its components, the verbs it offers and how prompts show it. */
 export function ItemPage({
@@ -40,9 +40,10 @@ export function ItemPage({
       <section className="form-section">
         <div className="effect-fields">
           <InlineField label="id">
-            <CommittedTextInput
+            <RenameInput
               value={definition.id}
-              onCommit={(id) => onEdit(renameDefinitionEverywhere(file, definition.id, id))}
+              isTaken={(id) => file.definitions.some((other) => other.id === id)}
+              onRename={(id) => onEdit(renameDefinitionEverywhere(file, definition.id, id))}
             />
           </InlineField>
           <InlineField label="name">

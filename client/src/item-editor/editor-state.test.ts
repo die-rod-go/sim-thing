@@ -58,6 +58,19 @@ describe("item editor state", () => {
     expect(hasUnsavedChanges(refused)).toBe(true);
   });
 
+  it("clears the server's refusal once the draft is edited again", () => {
+    const loaded = loadState();
+    const problem = { severity: "error" as const, path: "file", message: "no" };
+    const refused = reduceEditorState(loaded, {
+      kind: "saved",
+      message: { type: "item_file_saved", isSaved: false, problems: [problem] },
+    });
+    const draft = removeDefinition(refused.draft ?? buildTestItemFile(), 0);
+    const edited = reduceEditorState(refused, { kind: "edited", draft });
+    expect(edited.serverProblems).toEqual([]);
+    expect(edited.saveStatus).toBe("idle");
+  });
+
   it("lists the tabs in order and counts the world as one entry", () => {
     expect(EDITOR_TABS).toEqual(["items", "components", "verbs", "rules", "world"]);
     expect(countTabEntries(buildTestItemFile(), "world")).toBe(1);

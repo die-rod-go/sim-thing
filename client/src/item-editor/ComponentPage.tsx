@@ -1,5 +1,5 @@
 import { FIELD_TYPES, type ItemFile, type ItemProblem } from "@village/shared";
-import { CommittedTextInput, TextInput } from "../characters/fields";
+import { TextInput } from "../characters/fields";
 import {
   addComponentField,
   removeComponentField,
@@ -15,7 +15,7 @@ import { DefaultOption, NumberOptions } from "./FieldOptions";
 import { selectProblemsUnder } from "./problems";
 import { renameComponentEverywhere, renameFieldEverywhere } from "./rename-edits";
 import { listComponentUses, type ComponentUse } from "./usage";
-import { Checkbox, Choice, InlineField, ItemProblemList } from "./widgets";
+import { Checkbox, Choice, InlineField, ItemProblemList, RenameInput } from "./widgets";
 
 const USE_GROUPS = [
   { kind: "item", tab: "items", title: "Items" },
@@ -70,9 +70,10 @@ function FieldRow({ file, name, fieldName, problems, onEdit }: PageProps & { fie
   return (
     <div className="component-field">
       <div className="effect-fields">
-        <CommittedTextInput
+        <RenameInput
           value={fieldName}
-          onCommit={(newField) => onEdit(renameFieldEverywhere(file, name, fieldName, newField))}
+          isTaken={(newField) => Object.hasOwn(declaration.fields, newField)}
+          onRename={(newField) => onEdit(renameFieldEverywhere(file, name, fieldName, newField))}
         />
         <Choice
           value={field.type}
@@ -131,9 +132,10 @@ export function ComponentPage({
         <ItemProblemList problems={pageProblems} />
         <div className="effect-fields">
           <InlineField label="name">
-            <CommittedTextInput
+            <RenameInput
               value={name}
-              onCommit={(newName) => onEdit(renameComponentEverywhere(file, name, newName))}
+              isTaken={(newName) => Object.hasOwn(file.components, newName)}
+              onRename={(newName) => onEdit(renameComponentEverywhere(file, name, newName))}
             />
           </InlineField>
           <InlineField label="description">
