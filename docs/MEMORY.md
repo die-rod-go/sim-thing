@@ -231,10 +231,14 @@ every tick and would defeat the cache. "Now" gives the current time.
 - Entities are collapsed for display: unlabelled identical ones as today ("3 bread"), and labels
   that differ only by a trailing number together ("tree ×32", "square bench ×4").
 - The section is titled "Places you have seen".
-- `walk_to` accepts any name. It resolves, as today, to a place on the map, a person in sight or a
-  thing here. A name that is none of these fails like any other action, with "no place with that
-  name exists", shown in "what just went wrong" and in the stream. An agent may walk to a place it
-  has only heard of.
+- `walk_to` accepts any name. It resolves, in order, to a place on the map, a person in sight, a
+  thing here, and then to the place, the map object anywhere (a well, a door, a fishing spot) or
+  the thing here whose name shares the most words with it (`places.walkNameMatch`): "north spot"
+  reaches the north fishing spot. Loose items and creatures elsewhere are never found this way,
+  since where they are is known only by sight. Ties go to things in places the agent has seen,
+  then to the nearest. A name like nothing at all fails like any other action, with "nothing in
+  the village goes by that name", shown in "what just went wrong" and in the stream. An agent may
+  walk to a place or object it has only heard of; it joins its seen places only once seen.
 
 ## Seeds and the character form
 

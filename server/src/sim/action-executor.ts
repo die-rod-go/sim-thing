@@ -1,8 +1,7 @@
 import { findDefinition, type Agent, type AgentThought, type DecisionReply } from "@village/shared";
 import { config } from "../config";
-import { normalizeDisplayName, resolveName } from "../decision/resolve-name";
+import { resolveName } from "../decision/resolve-name";
 import { computeChebyshevDistance, executeGive } from "../economy/give";
-import { describeEntityName } from "../items/entity-store";
 import { isDead } from "../status/health";
 import { WAIT_ACTION } from "./action-phrases";
 import { stopCurrentAction } from "./action-stopping";
@@ -11,7 +10,7 @@ import type { DecidedReply, DecisionPlan, PlannedAction, PlannedSpeech } from ".
 import { broadcastEvent } from "./event-broadcast";
 import { createEvent, createSpeechEvent } from "./event-factory";
 import { failAction } from "./failure";
-import { listHereEntities } from "./here-entities";
+import { findWalkDestination } from "./walk-target";
 import type { TickContext } from "./tick-context";
 import { startOrApproachVerb } from "./verb-approach";
 import { startWalk } from "./walk-start";
@@ -63,19 +62,29 @@ function speak(context: TickContext, agentId: string, speech: PlannedSpeech): vo
 function executeWalk(context: TickContext, agentId: string, targetName: string): void {
   const { state, result } = context;
   const agent = findAgent(state, agentId);
-  const wanted = normalizeDisplayName(targetName);
-  const place = state.map.places.find((area) => normalizeDisplayName(area.name) === wanted);
-  if (place) {
-    if (agent.place === place.name) {
-      failAction(state, result, agentId, `walk to the ${place.name}`, "I was already there");
-    } else {
-      startWalk(context, agentId, { kind: "place", placeName: place.name }, null);
-    }
+  const destination = findWalkDestination(state, agent, targetName);
+  if (destination === null) {
+    failAction(
+      state,
+      result,
+      agentId,
+      `walk to ${targetName}`,
+      config.places.unknownWalkTargetReason,
+    );
     return;
   }
-  const otherId = resolveName(targetName, listOthersAsSeen(state, agentId));
-  if (otherId) {
-    const other = findAgent(state, otherId);
+  if (destination.kind === "place" && agent.place === destination.placeName) {
+    failAction(
+      state,
+      result,
+      agentId,
+      `walk to the ${destination.placeName}`,
+      "I was already there",
+    );
+    return;
+  }
+  if (destination.kind === "agent") {
+    const other = findAgent(state, destination.agentId);
     if (computeChebyshevDistance(agent.pos, other.pos) <= config.economy.giveReachTiles) {
       failAction(
         state,
@@ -84,25 +93,10 @@ function executeWalk(context: TickContext, agentId: string, targetName: string):
         `walk over to ${describeAgentAsSeen(other)}`,
         "I was already right next to them",
       );
-    } else {
-      startWalk(context, agentId, { kind: "agent", agentId: otherId }, null);
+      return;
     }
-    return;
   }
-  const entity = listHereEntities(state, agent).find(
-    (candidate) => normalizeDisplayName(describeEntityName(state, candidate)) === wanted,
-  );
-  if (entity) {
-    startWalk(context, agentId, { kind: "entity", entityId: entity.id }, null);
-    return;
-  }
-  failAction(
-    state,
-    result,
-    agentId,
-    `walk to ${targetName}`,
-    config.places.unknownWalkTargetReason,
-  );
+  startWalk(context, agentId, destination, null);
 }
 
 function executeGiveAction(

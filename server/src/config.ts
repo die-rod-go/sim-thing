@@ -468,8 +468,17 @@ export const config = {
       lookedInto: "{place}: {entities}",
       nothingThere: "nothing",
     },
-    /** Why a `walk_to` fails when its target is no place, no one in sight and nothing here. */
-    unknownWalkTargetReason: "no place with that name exists",
+    /** Why a `walk_to` fails when nothing in the village goes by a name like its target. */
+    unknownWalkTargetReason: "nothing in the village goes by that name",
+    /**
+     * How a `walk_to` name with no exact match finds a place or map object by its words:
+     * "north spot" reaches the north fishing spot. A candidate's score is the words the two
+     * names share over all the words either has; the best at or above the minimum wins.
+     */
+    walkNameMatch: {
+      ignoredWords: ["the", "a", "an", "to", "at", "of", "by", "in", "on", "my", "your"],
+      minimumScore: 0.5,
+    },
   },
 
   walking: {

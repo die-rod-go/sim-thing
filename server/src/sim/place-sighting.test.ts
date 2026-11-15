@@ -91,7 +91,7 @@ describe("seen places", () => {
     );
     sim.placeAgent("mara", SQUARE);
     await sim.advance();
-    const failure = "I tried to walk to river but no place with that name exists";
+    const failure = "I tried to walk to river but nothing in the village goes by that name";
     expect(getAgentRuntime(sim.state, "mara").lastFailure).toBe(failure);
     expect(sim.streamTexts("mara").some((entry) => entry.endsWith(failure))).toBe(true);
     expect(sim.records).toHaveLength(1);
