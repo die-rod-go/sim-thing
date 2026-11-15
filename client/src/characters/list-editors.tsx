@@ -16,11 +16,11 @@ import {
 } from "./seed-edits";
 
 const PERSON_FIELD_LABELS: Record<keyof PersonEntry, string> = {
-  whatIThinkOfThem: "What they think of them",
-  whatTheyThinkOfMe: "What they believe this person thinks of them",
-  whatIWantFromThem: "What they want from them",
-  whatTheyWantFromMe: "What they believe this person wants from them",
-  misc: "Anything else they know or hold about this person",
+  whatIThinkOfThem: "What I think of them",
+  whatTheyThinkOfMe: "What they think of me",
+  whatIWantFromThem: "What I want from them",
+  whatTheyWantFromMe: "What they want from me",
+  misc: "Anything else I know about them",
 };
 
 interface AgentEditorProps {
