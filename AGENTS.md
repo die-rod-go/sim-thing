@@ -40,6 +40,8 @@ need one, ask first.
 Creatures are the one deliberate exception. They are animals, not agents, and are meant to be
 scripted: they act on instincts declared in `seeds/items.json` (flee, wander, do a verb), never
 through the LLM. Keep that behavior in the data, not in code, and never give agents instincts.
+Everything about a creature (how far it sees, how strong it is, what provoked it) is components
+on the entity: no creature settings in the config, and no creature state kept by the engine.
 
 ## Naming
 

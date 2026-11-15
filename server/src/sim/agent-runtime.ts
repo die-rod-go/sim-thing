@@ -112,18 +112,11 @@ const agentRuntimeSchema = z.object({
   pendingDecision: pendingDecisionSchema.nullable(),
 });
 
-const lastAttackSchema = z.object({
-  attackerId: z.string(),
-  tick: z.number().int(),
-});
-
-/** What a creature is in the middle of, and who last went for it. */
+/** The verb a creature is in the middle of. Everything else about it is in its components. */
 const creatureRuntimeSchema = z.object({
   verbRun: verbRunSchema.nullable(),
   /** The tick its verb's current `wait` runs out; null while it isn't waiting. */
   resumeAtTick: z.number().int().nullable(),
-  /** The last attack on it, hit or missed, for instincts that strike back. */
-  lastAttack: lastAttackSchema.nullable(),
 });
 
 const spokenLineSchema = z.object({
@@ -177,11 +170,11 @@ export function getAgentRuntime(state: WorldState, agentId: string): AgentRuntim
   return created;
 }
 
-/** The creature's runtime record, created the first time it acts or is attacked. */
+/** The creature's runtime record, created the first time it does a verb. */
 export function getCreatureRuntime(state: WorldState, entityId: string): CreatureRuntime {
   const existing = state.creatureRuntimes[entityId];
   if (existing) return existing;
-  const created: CreatureRuntime = { verbRun: null, resumeAtTick: null, lastAttack: null };
+  const created: CreatureRuntime = { verbRun: null, resumeAtTick: null };
   state.creatureRuntimes[entityId] = created;
   return created;
 }

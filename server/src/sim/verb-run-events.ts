@@ -11,7 +11,6 @@ import {
 } from "./action-phrases";
 import type { VerbRun } from "./agent-runtime";
 import { broadcastEvent } from "./event-broadcast";
-import { noteAttackOnCreature } from "./creatures/creature-attacks";
 import type { StepRun } from "./steps/step-run";
 import { addSlowFinish } from "./verb-slowdown";
 import { createUserEvent } from "./verb-user";
@@ -160,7 +159,6 @@ export function announceHitRoll(run: StepRun, verb: Verb, isHit: boolean): void 
   const { target } = verbRun;
   const sleepingTargetIds =
     target?.kind === "agent" && isAsleep(findAgent(state, target.agentId)) ? [target.agentId] : [];
-  noteAttackOnCreature(state, verbRun);
   const event = createUserEvent(state, verbRun.userId, {
     kind: isHit ? "attacked" : "missed",
     ...phrases,

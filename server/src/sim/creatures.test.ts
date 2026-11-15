@@ -2,6 +2,7 @@ import type { Position, WorldEvent } from "@village/shared";
 import { describe, expect, it } from "vitest";
 import { computeChebyshevDistance } from "../economy/give";
 import { findEntityIfPresent } from "../items/entity-store";
+import { readThingChanges } from "../items/things";
 
 import { config } from "../config";
 import { getAgentRuntime, simRuntimeSchema } from "./agent-runtime";
@@ -16,7 +17,9 @@ import {
   setField,
 } from "./combat-test-kit";
 import {
+  BOAR_SIGHT_TILES,
   FIELD_EDGE,
+  MIDDLING_STATS,
   WOLF_STATS,
   actForTicks,
   buildCreatureSim,
@@ -42,6 +45,13 @@ function nearestPersonDistance(sim: TestSim, pos: Position): number {
 
 function listEvents(results: readonly TickResult[], kind: WorldEvent["kind"]): WorldEvent[] {
   return results.flatMap((result) => result.events).filter((event) => event.kind === kind);
+}
+
+/** Mara lands a punch on the boar beside her; every roll after it comes up too. */
+function punchBoar(sim: TestSim): void {
+  fixRolls(sim, ALWAYS);
+  aim(sim, "mara", { verb: "punch", targetName: "boar" });
+  finish(sim, "mara");
 }
 
 describe("creature instincts", () => {
@@ -80,16 +90,34 @@ describe("creature instincts", () => {
     );
   });
 
-  it("strikes back only at whoever attacked it", () => {
+  it("strikes back only at whoever hurt it, who is the source of its provoked component", () => {
     const sim = buildCreatureSim(NEVER);
-    placeCreature(sim, "boar", { x: 19, y: 16 });
+    const boar = placeCreature(sim, "boar", { x: 19, y: 16 });
     expect(listEvents(actForTicks(sim, 3), "attacked")).toEqual([]);
-    aim(sim, "mara", { verb: "punch", targetName: "boar" });
-    finish(sim, "mara");
-    fixRolls(sim, ALWAYS);
+    punchBoar(sim);
+    expect(readThingChanges(sim.state, entityThing(boar))?.provoked?.sourceId).toBe("mara");
     const bites = listEvents(actForTicks(sim, 4), "attacked");
     expect(bites.length).toBeGreaterThan(0);
     expect(bites.every((bite) => bite.targetId === "mara")).toBe(true);
+  });
+
+  it("is not provoked by a blow that misses", () => {
+    const sim = buildCreatureSim(NEVER);
+    const boar = placeCreature(sim, "boar", { x: 19, y: 16 });
+    aim(sim, "mara", { verb: "punch", targetName: "boar" });
+    finish(sim, "mara");
+    expect(readThingChanges(sim.state, entityThing(boar))?.provoked).toBeUndefined();
+  });
+
+  it("loses whoever provoked it once they are beyond its own sight", () => {
+    const sim = buildCreatureSim(NEVER);
+    placeCreature(sim, "boar", { x: 19, y: 16 });
+    punchBoar(sim);
+    sim.placeAgent("mara", FIELD_EDGE);
+    expect(computeChebyshevDistance(FIELD_EDGE, { x: 19, y: 16 })).toBeGreaterThan(
+      BOAR_SIGHT_TILES,
+    );
+    expect(listEvents(actForTicks(sim, 4), "attacked")).toEqual([]);
   });
 
   it("grazes a crop once, then leaves it alone while sated", () => {
@@ -123,24 +151,23 @@ describe("creature instincts", () => {
     expect(sim.agent("mara").death?.cause).toBe("mauled to death by the wolf");
   });
 
-  it("keeps who attacked a creature in the save", () => {
-    const sim = buildCreatureSim(NEVER);
-    const boar = placeCreature(sim, "boar", { x: 19, y: 16 });
-    aim(sim, "mara", { verb: "punch", targetName: "boar" });
-    finish(sim, "mara");
+  it("keeps a creature's verb in progress in the save", () => {
+    const sim = buildCreatureSim(ALWAYS);
+    const wolf = placeCreature(sim, "wolf", { x: 18, y: 15 });
+    actForTicks(sim, 1);
     const saved = toSavedWorld(sim.state, createDefaultSettings());
     const runtime = simRuntimeSchema.parse(JSON.parse(JSON.stringify(saved.runtime)));
-    expect(runtime.creatureRuntimes[boar.id]?.lastAttack?.attackerId).toBe("mara");
+    expect(runtime.creatureRuntimes[wolf.id]?.verbRun?.verbName).toBe("bite");
   });
 });
 
 describe("creature stats", () => {
-  it("reads a creature's strength and agility from its fields, else the middling ones", () => {
+  it("reads each creature's strength and agility from its own fields", () => {
     const sim = buildCreatureSim(NEVER);
     const wolf = placeCreature(sim, "wolf", FIELD_EDGE);
     const deer = placeCreature(sim, "deer", { x: 24, y: 19 });
     expect(readUserStats(sim.state, wolf.id)).toEqual(WOLF_STATS);
-    expect(readUserStats(sim.state, deer.id)).toEqual(config.creatures.stats);
+    expect(readUserStats(sim.state, deer.id)).toEqual(MIDDLING_STATS);
   });
 
   it("lets an agile creature dodge a blow that lands on a middling one", () => {
@@ -148,8 +175,7 @@ describe("creature stats", () => {
     const { agilitySpread } = config.combat;
     const maraAgility = buildCreatureSim().agent("mara").body.agility;
     const againstWolf = punchChance + (maraAgility - WOLF_STATS.agility) * agilitySpread;
-    const againstDeer =
-      punchChance + (maraAgility - config.creatures.stats.agility) * agilitySpread;
+    const againstDeer = punchChance + (maraAgility - MIDDLING_STATS.agility) * agilitySpread;
     const roll = (againstWolf + againstDeer) / 2;
     const outcomes = ["wolf", "deer"].map((definitionId) => {
       const sim = buildCreatureSim(roll);

@@ -8,7 +8,7 @@ import { broadcastEvent } from "../event-broadcast";
 import { createEvent } from "../event-factory";
 import { stretchWaitMinutes } from "../verb-slowdown";
 import { isCreatureId } from "../creatures/creature-instincts";
-import { findUserAgent, readUserStats } from "../verb-user";
+import { readUserStats, requireUserAgent } from "../verb-user";
 
 import { findAgent, markAgentChanged, replaceAgent } from "../world-access";
 import { findRoleThing, requireVerbRun } from "./step-roles";
@@ -41,16 +41,14 @@ export const sleepStep: StepHandler<"sleep"> = {
   isVerbOnly: true,
   findRefusal(run, step) {
     const verbRun = requireVerbRun(run, "sleep");
-    const agent = findUserAgent(run.context.state, verbRun.userId);
-    if (agent === null) return config.creatures.cannotSleepReason;
+    const agent = requireUserAgent(run.context.state, verbRun.userId, "sleep");
     return findSleepBlocker(agent, resolveNapMinutes(run, step));
   },
   run(run, step): StepOutcome {
     const { context } = run;
     const { state, result } = context;
     const verbRun = requireVerbRun(run, "sleep");
-    const agent = findUserAgent(state, verbRun.userId);
-    if (agent === null) return { kind: "refused", reason: config.creatures.cannotSleepReason };
+    const agent = requireUserAgent(state, verbRun.userId, "sleep");
     const blocker = findSleepBlocker(agent, resolveNapMinutes(run, step));
     if (blocker !== null) return { kind: "refused", reason: blocker };
     const placeName = readThingName(scopeOf(run), "item");

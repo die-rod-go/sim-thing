@@ -6,10 +6,17 @@ import {
   type Instinct,
   type InstinctOfKind,
   type Matcher,
+  type NumberValue,
   type Verb,
 } from "@village/shared";
 import { describeEntityName, findEntityIfPresent } from "../../items/entity-store";
-import { isSameThing, viewThing, type ThingRef } from "../../items/things";
+import {
+  isSameThing,
+  readThingChanges,
+  refThingById,
+  viewThing,
+  type ThingRef,
+} from "../../items/things";
 import { resolveMatcherReads, resolveNumber, type ValueScope } from "../../items/values";
 import { normalizeVerbName } from "../../items/verb-offers";
 import type { PerceptionWorld } from "../../perception/types";
@@ -20,7 +27,6 @@ import { buildVerbRun, resumeRunningVerb, startVerbRun, type VerbStart } from ".
 import { describeTargetName } from "../verb-target";
 import { buildPerceptionWorld, buildWalkingGrid } from "../world-access";
 import type { WorldState } from "../world-state";
-import { findRecentAttacker } from "./creature-attacks";
 import {
   isCreature,
   listApplicableInstincts,
@@ -33,9 +39,29 @@ import { listSeenThings, type SeenThing } from "./creature-sight";
 /** What one creature works with this tick. */
 interface CreatureTurn {
   context: TickContext;
+  world: PerceptionWorld;
   grid: TileGrid;
   creature: Entity;
-  seen: SeenThing[];
+  /** What it sees, by range, so instincts that look equally far share one look. */
+  seenByRange: Map<number, SeenThing[]>;
+}
+
+function lookAround(turn: CreatureTurn, range: number): SeenThing[] {
+  const cached = turn.seenByRange.get(range);
+  if (cached !== undefined) return cached;
+  const seen = listSeenThings(turn.context.state, turn.world, turn.creature, range);
+  turn.seenByRange.set(range, seen);
+  return seen;
+}
+
+function refCreature(creature: Entity): ThingRef {
+  return { kind: "entity", entityId: creature.id };
+}
+
+/** An instinct's number, read from the creature's own components when it names one (`self.*`). */
+function resolveInstinctNumber(turn: CreatureTurn, value: NumberValue): number {
+  const { state } = turn.context;
+  return resolveNumber({ state, verbRun: null, self: refCreature(turn.creature) }, value);
 }
 
 /**
@@ -87,6 +113,16 @@ function matchesFromCreature(
   return view !== null && matchers.every((matcher) => matchesThing(matcher, view));
 }
 
+/** Whoever is behind the component on the creature (who provoked it); null when nobody is. */
+function findComponentSource(
+  state: WorldState,
+  creature: Entity,
+  component: string,
+): ThingRef | null {
+  const sourceId = readThingChanges(state, refCreature(creature))?.[component]?.sourceId ?? null;
+  return sourceId === null ? null : refThingById(sourceId);
+}
+
 /** What the instinct could go for, nearest first: fitting the verb's target and its own. */
 function listInstinctTargets(
   turn: CreatureTurn,
@@ -94,13 +130,18 @@ function listInstinctTargets(
   verbTarget: Matcher,
 ): SeenThing[] {
   const { state } = turn.context;
+  const { creature } = turn;
   const matchers = instinct.target === undefined ? [verbTarget] : [verbTarget, instinct.target];
-  const attacker = instinct.isRetaliation ? findRecentAttacker(state, turn.creature.id) : null;
-  if (instinct.isRetaliation && attacker === null) return [];
-  return turn.seen.filter(
+  const source =
+    instinct.sourceOf === undefined
+      ? null
+      : findComponentSource(state, creature, instinct.sourceOf);
+  if (instinct.sourceOf !== undefined && source === null) return [];
+  const range = resolveInstinctNumber(turn, instinct.range);
+  return lookAround(turn, range).filter(
     (seen) =>
-      (attacker === null || isSameThing(seen.thing, attacker)) &&
-      matchesFromCreature(state, turn.creature, seen.thing, matchers),
+      (source === null || isSameThing(seen.thing, source)) &&
+      matchesFromCreature(state, creature, seen.thing, matchers),
   );
 }
 
@@ -132,9 +173,10 @@ function followVerbInstinct(turn: CreatureTurn, instinct: InstinctOfKind<"verb">
 
 function followFleeInstinct(turn: CreatureTurn, instinct: InstinctOfKind<"flee">): boolean {
   const { state } = turn.context;
-  const threats = turn.seen.filter((seen) => {
+  const radius = resolveInstinctNumber(turn, instinct.radius);
+  const threats = lookAround(turn, radius).filter((seen) => {
     const view = viewThing(state, seen.thing);
-    return seen.distance <= instinct.radius && view !== null && matchesThing(instinct.from, view);
+    return view !== null && matchesThing(instinct.from, view);
   });
   if (threats.length === 0) return false;
   const threatTiles = threats.map((threat) => threat.pos);
@@ -146,19 +188,15 @@ function followFleeInstinct(turn: CreatureTurn, instinct: InstinctOfKind<"flee">
 function followInstinct(turn: CreatureTurn, instinct: Instinct): boolean {
   if (instinct.do === "verb") return followVerbInstinct(turn, instinct);
   if (instinct.do === "flee") return followFleeInstinct(turn, instinct);
-  if (turn.context.state.random.next() < instinct.chance) {
+  if (turn.context.state.random.next() < resolveInstinctNumber(turn, instinct.chance)) {
     stepAtRandom(turn.context, turn.grid, turn.creature);
   }
   return true;
 }
 
 /** A creature busy with a verb carries on with it; otherwise its first instinct that can act does. */
-function actCreature(
-  context: TickContext,
-  world: PerceptionWorld,
-  grid: TileGrid,
-  creature: Entity,
-): void {
+function actCreature(turn: CreatureTurn): void {
+  const { context, creature } = turn;
   const { state } = context;
   const runtime = state.creatureRuntimes[creature.id];
   if (runtime?.verbRun) {
@@ -166,12 +204,6 @@ function actCreature(
     if (isWaitOver) resumeRunningVerb(context, creature.id);
     return;
   }
-  const turn: CreatureTurn = {
-    context,
-    grid,
-    creature,
-    seen: listSeenThings(state, world, creature),
-  };
   for (const instinct of listApplicableInstincts(state, creature)) {
     if (followInstinct(turn, instinct)) return;
   }
@@ -196,6 +228,7 @@ export function actCreatures(context: TickContext): void {
   const grid = buildWalkingGrid(state);
   for (const { id } of creatures) {
     const creature = findEntityIfPresent(state, id);
-    if (creature && isCreature(state, creature)) actCreature(context, world, grid, creature);
+    if (!creature || !isCreature(state, creature)) continue;
+    actCreature({ context, world, grid, creature, seenByRange: new Map() });
   }
 }

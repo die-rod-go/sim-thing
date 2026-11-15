@@ -78,6 +78,7 @@ const instinctParts = {
  * How a creature acts, with no LLM. Each tick a creature follows the first instinct, in file
  * order, that applies to it and finds something to act on: `verb` walks to the nearest thing it
  * sees that fits and does the verb to it, `flee` steps away from what it fears, `wander` ambles.
+ * Its numbers are values, so each creature's own come from its components (`self.timid.radius`).
  */
 export const instinctSchema = z.discriminatedUnion("do", [
   z.strictObject({
@@ -87,8 +88,10 @@ export const instinctSchema = z.discriminatedUnion("do", [
     verb: z.string().trim().min(1),
     /** Narrows the verb's own `target` to what this instinct goes for. */
     target: matcherSchema.optional(),
-    /** Only goes for whoever attacked the creature lately. */
-    isRetaliation: z.boolean().default(false),
+    /** How many tiles away the creature notices something to go for. */
+    range: numberValueSchema,
+    /** Only goes for whoever is behind this component on the creature (who `provoked` it). */
+    sourceOf: identifierSchema.optional(),
   }),
   z.strictObject({
     do: z.literal("flee"),
@@ -96,13 +99,13 @@ export const instinctSchema = z.discriminatedUnion("do", [
     /** What it runs from. */
     from: matcherSchema,
     /** Tiles within which what it fears makes it run. */
-    radius: z.number().int().positive(),
+    radius: numberValueSchema,
   }),
   z.strictObject({
     do: z.literal("wander"),
     ...instinctParts,
     /** Chance each tick that it takes a step in a random direction. */
-    chance: z.number().min(0).max(1),
+    chance: numberValueSchema,
   }),
 ]);
 export type Instinct = z.infer<typeof instinctSchema>;

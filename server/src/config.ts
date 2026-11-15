@@ -403,17 +403,6 @@ export const config = {
     failedAttemptDescription: "tried to {attempt}, but {reason}",
   },
 
-  creatures: {
-    /** Strength and agility for a creature without the fields `world.creatureStrength` and `creatureAgility` name. */
-    stats: { strength: 0.5, agility: 0.5 },
-    /** How far a creature notices things its instincts look for. */
-    sightRangeTiles: 8,
-    /** How long a creature remembers who attacked it, for instincts that strike back. */
-    attackMemoryMinutes: 60,
-    /** Why a `sleep` step refuses a creature. */
-    cannotSleepReason: "only people sleep",
-  },
-
   verbs: {
     /**
      * Phrases for a verb that leaves some out of `items.json`. `{verb}` is the verb's name and

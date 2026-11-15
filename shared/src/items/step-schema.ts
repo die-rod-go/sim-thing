@@ -177,6 +177,13 @@ export const VERB_ONLY_STEPS: ReadonlySet<StepType> = new Set<StepType>([
   "inspect",
 ]);
 
+/** Steps only an agent can do, never a creature: they need a mind or a sleeper. */
+export const AGENT_ONLY_STEPS: ReadonlySet<StepType> = new Set<StepType>([
+  "sleep",
+  "read",
+  "inspect",
+]);
+
 /** The thing a step works on, if it takes `on`. */
 export function findStepOn(step: Step): string | undefined {
   return "on" in step ? step.on : undefined;

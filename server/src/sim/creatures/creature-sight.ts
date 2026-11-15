@@ -1,8 +1,7 @@
 import { isBodyInWorld, type Agent, type Entity, type Position } from "@village/shared";
 import { config } from "../../config";
 import { computeChebyshevDistance } from "../../economy/give";
-import { findEntityIfPresent } from "../../items/entity-store";
-import { listThingsWithin, locateThing, type ThingRef } from "../../items/things";
+import { locateThing, type ThingRef } from "../../items/things";
 import { canSee } from "../../perception/sight";
 import type { PerceptionWorld } from "../../perception/types";
 import { isAsleep } from "../../economy/sleep";
@@ -16,31 +15,34 @@ export interface SeenThing {
   distance: number;
 }
 
-/** Bodies and things on tiles; what is carried or put away can't be seen. */
-function isOutInTheOpen(state: WorldState, thing: ThingRef): boolean {
-  if (thing.kind === "agent") {
-    return state.agents.some((agent) => agent.id === thing.agentId && isBodyInWorld(agent));
-  }
-  return findEntityIfPresent(state, thing.entityId)?.location.kind === "tile";
+/** Bodies and things on tiles, each where it is; what is carried or put away can't be seen. */
+function listThingsInTheOpen(state: WorldState): { thing: ThingRef; pos: Position }[] {
+  const bodies = state.agents
+    .filter(isBodyInWorld)
+    .map((agent) => ({ thing: { kind: "agent", agentId: agent.id } as const, pos: agent.pos }));
+  const onTiles = state.entities.flatMap((entity) =>
+    entity.location.kind === "tile"
+      ? [{ thing: { kind: "entity", entityId: entity.id } as const, pos: entity.location.pos }]
+      : [],
+  );
+  return [...bodies, ...onTiles];
 }
 
-/** What the creature can see from where it stands, nearest first, not counting itself. */
+/** What the creature can see within `range` tiles of where it stands, nearest first, not counting itself. */
 export function listSeenThings(
   state: WorldState,
   world: PerceptionWorld,
   creature: Entity,
+  range: number,
 ): SeenThing[] {
   if (creature.location.kind !== "tile") return [];
-  const origin = { place: creature.location.place, pos: creature.location.pos };
-  const range = config.creatures.sightRangeTiles;
+  const origin = creature.location.pos;
   const seen: SeenThing[] = [];
-  for (const thing of listThingsWithin(state, origin, range)) {
+  for (const { thing, pos } of listThingsInTheOpen(state)) {
     if (thing.kind === "entity" && thing.entityId === creature.id) continue;
-    if (!isOutInTheOpen(state, thing)) continue;
-    const position = locateThing(state, thing);
-    if (position === null || !canSee(world, origin.pos, position.pos, range)) continue;
-    const distance = computeChebyshevDistance(origin.pos, position.pos);
-    seen.push({ thing, pos: position.pos, distance });
+    const distance = computeChebyshevDistance(origin, pos);
+    if (distance > range || !canSee(world, origin, pos, range)) continue;
+    seen.push({ thing, pos, distance });
   }
   return seen.sort((first, second) => first.distance - second.distance);
 }

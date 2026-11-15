@@ -6,7 +6,7 @@ import { canSeeInto } from "../../items/world-physics";
 import { describeItemCounts } from "../action-phrases";
 import { appendToStream } from "../world-access";
 import type { WorldState } from "../world-state";
-import { findUserAgent } from "../verb-user";
+import { requireUserAgent } from "../verb-user";
 import { findStepThings, requireVerbRun } from "./step-roles";
 import { DONE, type StepHandler } from "./step-run";
 
@@ -70,7 +70,7 @@ export const inspectStep: StepHandler<"inspect"> = {
   run(run, step) {
     const { state } = run.context;
     const inspectorId = requireVerbRun(run, "inspect").userId;
-    if (findUserAgent(state, inspectorId) === null) return DONE;
+    requireUserAgent(state, inspectorId, "inspect");
     for (const thing of findStepThings(run, step.on ?? "self")) {
       appendToStream(
         state,

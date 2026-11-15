@@ -877,21 +877,46 @@ A **creature** is an entity some **instinct** applies to: animals that walk arou
 no LLM. They aren't agents. They have no mind, memory or needs, only an entity's components, so
 health, bleeding, burning, `punch`, `attack` and every rule already work on them.
 
-`items.json` has an `instincts` list. Each instinct has an `appliesTo` matcher, checked against
-the creature itself (`where: self`), and is one of three kinds:
+Everything about a creature is in its components. There is no creature config: how far it sees,
+how skittish it is, how strong and nimble it is and how long it holds a grudge are fields on the
+entity, and its state (hungry, provoked) is components it gains and loses.
 
-| `do`     | Settings                                   | What the creature does                                                                     |
-| -------- | ------------------------------------------ | ------------------------------------------------------------------------------------------ |
-| `verb`   | `verb`, optional `target`, `isRetaliation` | Walks to the nearest thing it sees that fits the verb's `target` and this one, and does it |
-| `flee`   | `from` (a matcher), `radius`               | Steps away from what it fears within `radius` tiles                                        |
-| `wander` | `chance`                                   | Takes a random step with that chance each tick                                             |
+```jsonc
+"wolf": {
+  "creature":  { "sightTiles": 10, "wanderChance": 0.3 },
+  "predator":  { "fleeRadius": 6 },
+  "defensive": { "grudgeMinutes": 60 },
+  "stats":     { "strength": 0.6, "agility": 0.7 },
+  "jaws":      { "damage": { "min": 0.06, "max": 0.14 }, "hitChance": 0.65 },
+  "drops":     { "item": "raw_meat", "count": 1 }
+}
+```
+
+`items.json` has an `instincts` list. An instinct is to a creature what a rule is to `flammable`:
+the component is the state, the instinct gives it meaning. Each has an `appliesTo` matcher, checked
+against the creature itself (`where: self`), and is one of three kinds:
+
+| `do`     | Settings                                                | What the creature does                                                                            |
+| -------- | ------------------------------------------------------- | ------------------------------------------------------------------------------------------------- |
+| `verb`   | `verb`, `range`, optional `target`, optional `sourceOf` | Walks to the nearest thing within `range` that fits the verb's `target` and this one, and does it |
+| `flee`   | `from` (a matcher), `radius`                            | Steps away from what it fears within `radius` tiles                                               |
+| `wander` | `chance`                                                | Takes a random step with that chance each tick                                                    |
+
+`range`, `radius` and `chance` are number values. A read must be `self.component.field`, of a
+component the instinct's `appliesTo` requires, so the number is the creature's own:
+
+```jsonc
+{
+  "do": "flee",
+  "appliesTo": { "has": "timid" },
+  "from": { "definition": "person" },
+  "radius": { "from": "self.timid.radius" },
+}
+```
 
 Each tick (phase 2b, after agents' actions progress), a creature busy with a verb carries on with
 it. Otherwise it tries its instincts in file order and follows the first that finds something to
-do. Temperament is therefore data: which components a definition has decides which instincts
-apply. A `timid` deer flees people, a `defensive` boar bites only whoever attacked it lately
-(`isRetaliation`, within `creatures.attackMemoryMinutes`), and a hungry `predator` wolf hunts
-people.
+do. Instincts are a priority list, not effects that all run.
 
 Creatures act through ordinary verbs. A creature's verb uses its own body as the `item`: its
 `appliesTo` ends in `where: self` (`bite`: `{ "allOf": [{ "has": "jaws" }, { "where": "self" }] }`).
@@ -899,19 +924,26 @@ An agent never meets an entity as `self`, so agents are never offered these verb
 creature's fields as `item.*`, and `user` is the creature. Because they are verbs, their events
 are ordinary events: onlookers file "I saw that the wolf bit Mara", and the target files "The wolf
 bit me" and gets an urgent decision. The verb runner reaches its user only through
-`sim/verb-user.ts`, so it never branches on agent versus creature. Steps that only make sense for
-agents do nothing for a creature (`inspect`, `read`) or refuse it (`sleep`).
+`sim/verb-user.ts`, so it never branches on agent versus creature. Validation refuses an instinct
+whose verb has a step only an agent can do (`sleep`, `read`, `inspect`).
+
+Striking back uses the cause every run already carries. A hit sends a stimulus (`cut`, `impact`),
+and a rule adds a timed `provoked` component to a `defensive` creature. `add` stamps who is
+behind the run on the component, so the attacker is `provoked`'s source. An instinct with
+`"sourceOf": "provoked"` goes only for that source. The grudge ends when the component expires
+(`defensive.grudgeMinutes`); a blow that misses sends no stimulus and provokes nothing. The engine
+keeps nothing about a creature but its verb in progress.
 
 Each creature has its own strength and agility in the fields `world.creatureStrength` and
 `world.creatureAgility` name (the shipped `stats` component). Strength scales its
 `scaledByStrength` damage, and agility moves its hit rolls both ways, as an agent's does: an agile
-wolf lands bites more often and dodges more blows. A creature without those fields, or a file that
-leaves the settings out, gets the config's middling `creatures.stats`.
+wolf lands bites more often and dodges more blows. Validation requires both settings, and those
+components on every creature definition, once the file has creatures. There is no default.
 
-A creature sees `creatures.sightRangeTiles` around it (walls and closed doors block sight). It
-moves one tile a tick on the agents' walking grid, so walls and closed doors stop it too. An agent
-sees creatures as it sees people: one coming into view gives a non-urgent decision ("the wolf came
-into view"), under the same interrupt cooldown.
+A creature sees as far as the instinct's `range` (walls and closed doors block sight). It moves
+one tile a tick on the agents' walking grid, so walls and closed doors stop it too. An agent sees
+creatures as it sees people: one coming into view gives a non-urgent decision ("the wolf came into
+view"), under the same interrupt cooldown.
 
 Everything else is rules. Dying is a `becomes` rule on `health.current` that creates the `drops`
 item where the creature stood and then destroys it. Spawning is an `every` rule on a den with
@@ -951,8 +983,8 @@ in `items.json` answers. These are the only places the engine reaches into item 
 | `closedSupply`      | matcher        | Validation only: warns when a verb or rule could make or destroy a matching thing. Replaces `economy.currencyDefinitionId`                 |
 | `agentBody`         | definition id  | The definition of every agent's body                                                                                                       |
 | `agentHealth`       | component path | The number field that is an agent's health                                                                                                 |
-| `creatureStrength`  | component path | The number field that is a creature's strength; optional                                                                                   |
-| `creatureAgility`   | component path | The number field that is a creature's agility; optional                                                                                    |
+| `creatureStrength`  | component path | The number field that is a creature's strength; needed once the file has creatures                                                         |
+| `creatureAgility`   | component path | The number field that is a creature's agility; needed once the file has creatures                                                          |
 
 Only entities on tiles block sight, movement and sound; what is carried or contained never does.
 All matchers are optional (omitted: nothing matches); `agentBody` and `agentHealth` are required.

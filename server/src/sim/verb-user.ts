@@ -5,7 +5,6 @@ import {
   type StatName,
   type WorldEvent,
 } from "@village/shared";
-import { config } from "../config";
 import { createThingEvent, locateThing, readNumberField, refThingById } from "../items/things";
 import { isDead } from "../status/health";
 import { getAgentRuntime, getCreatureRuntime, type VerbRun } from "./agent-runtime";
@@ -54,6 +53,14 @@ export function getUserRuntime(state: WorldState, userId: string): { verbRun: Ve
   return isEntityId(userId) ? getCreatureRuntime(state, userId) : getAgentRuntime(state, userId);
 }
 
+/** The agent doing the step; a creature reaching an agent-only step is a bug validation prevents. */
+export function requireUserAgent(state: WorldState, userId: string, stepType: string): Agent {
+  const agent = findUserAgent(state, userId);
+  if (agent === null) throw new Error(`The ${stepType} step needs an agent, not "${userId}"`);
+  return agent;
+}
+
+/** Validation makes sure every creature has the fields the world settings name. */
 function readCreatureStat(state: WorldState, userId: string, stat: StatName): number {
   const componentPath =
     stat === "strength" ? state.items.world.creatureStrength : state.items.world.creatureAgility;
@@ -61,13 +68,11 @@ function readCreatureStat(state: WorldState, userId: string, stat: StatName): nu
     componentPath === undefined
       ? null
       : readNumberField(state, refThingById(userId), componentPath);
-  return value ?? config.creatures.stats[stat];
+  if (value === null) throw new Error(`The creature "${userId}" has no ${stat}`);
+  return value;
 }
 
-/**
- * An agent's own stats, or a creature's from the fields the world settings name; a creature
- * without them has the config's middling ones.
- */
+/** An agent's own stats, or a creature's from the fields the world settings name. */
 export function readUserStats(state: WorldState, userId: string): Record<StatName, number> {
   const agent = findUserAgent(state, userId);
   if (agent !== null) return agent.body;

@@ -1,7 +1,6 @@
 import { buildItemCatalog, parseItemFile, type Entity, type Position } from "@village/shared";
 import { createEntity } from "../items/entity-store";
 import { findPlaceAt } from "../world/map-loader";
-
 import {
   NEXT_TO_SQUARE,
   SQUARE,
@@ -17,30 +16,39 @@ import type { TickResult } from "./world-state";
 /** Open ground east of the square, clear of the bench, the board and the agents. */
 export const FIELD_EDGE = { x: 23, y: 19 };
 
-/** The wolf's own stats; deer and boars have none, so they are middling. */
+export const MIDDLING_STATS = { strength: 0.5, agility: 0.5 };
 export const WOLF_STATS = { strength: 0.9, agility: 1 };
+/** How close a person gets before the deer runs. */
+export const DEER_FLEE_RADIUS = 3;
+/** How far the deer and the wolf see; the boar sees less. */
+export const CREATURE_SIGHT_TILES = 8;
+export const BOAR_SIGHT_TILES = 2;
 
 const ownBody = (component: string) => ({ allOf: [{ has: component }, { where: "self" }] });
 const isDead = { field: "health.current", atMost: 0 };
+const number = { type: "number" };
 const animal = (extra: Record<string, unknown>) => ({
   alive: {},
   flesh: {},
-  creature: {},
+  creature: { sightTiles: CREATURE_SIGHT_TILES, wanderChance: 0.5 },
   health: { max: 0.5, current: 0.5 },
+  stats: MIDDLING_STATS,
   drops: { item: "meat", count: 2 },
   ...extra,
 });
+const JAWS = { damage: { min: 0.1, max: 0.1 }, hitChance: 1 };
 
 const CREATURE_COMPONENTS = {
-  creature: {},
-  timid: {},
-  defensive: {},
+  creature: { fields: { sightTiles: number, wanderChance: number } },
+  timid: { fields: { radius: number } },
+  defensive: { fields: { grudgeMinutes: number } },
+  provoked: {},
   predator: {},
   grazer: {},
   sated: {},
-  jaws: { fields: { damage: { type: "range" }, hitChance: { type: "number" } } },
-  stats: { fields: { strength: { type: "number" }, agility: { type: "number" } } },
-  drops: { fields: { item: { type: "item" }, count: { type: "number" } } },
+  jaws: { fields: { damage: { type: "range" }, hitChance: number } },
+  stats: { fields: { strength: number, agility: number } },
+  drops: { fields: { item: { type: "item" }, count: number } },
 };
 
 const CREATURE_DEFINITIONS = [
@@ -48,23 +56,23 @@ const CREATURE_DEFINITIONS = [
     id: "deer",
     name: "deer",
     glyph: { index: 100, color: "#c89a5a" },
-    components: animal({ timid: {}, grazer: {} }),
+    components: animal({ timid: { radius: DEER_FLEE_RADIUS }, grazer: {} }),
   },
   {
     id: "boar",
     name: "boar",
     glyph: { index: 98, color: "#8a6a4a" },
-    components: animal({ defensive: {}, jaws: { damage: { min: 0.1, max: 0.1 }, hitChance: 1 } }),
+    components: animal({
+      creature: { sightTiles: BOAR_SIGHT_TILES, wanderChance: 0.5 },
+      defensive: { grudgeMinutes: 30 },
+      jaws: JAWS,
+    }),
   },
   {
     id: "wolf",
     name: "wolf",
     glyph: { index: 119, color: "#a8a8b0" },
-    components: animal({
-      predator: {},
-      jaws: { damage: { min: 0.1, max: 0.1 }, hitChance: 1 },
-      stats: WOLF_STATS,
-    }),
+    components: animal({ predator: {}, jaws: JAWS, stats: WOLF_STATS }),
   },
 ];
 
@@ -110,7 +118,10 @@ const CREATURE_VERBS = [
   },
 ];
 
-/** Runs before the test items' own rules, so a dead creature drops its meat before it is gone. */
+/**
+ * Run before the test items' own rules, so a dead creature drops its meat before it is gone. Being
+ * hit provokes a defensive creature, with whoever hit it as the source.
+ */
 const CREATURE_RULES = [
   {
     trigger: "becomes",
@@ -129,21 +140,48 @@ const CREATURE_RULES = [
     if: { allOf: [{ has: "creature" }, isDead] },
     steps: [{ step: "announce", text: "died" }, { step: "destroy" }],
   },
+  {
+    trigger: "stimulus",
+    stimulus: "impact",
+    if: { has: "defensive" },
+    steps: [
+      { step: "add", component: "provoked", minutes: { from: "self.defensive.grudgeMinutes" } },
+    ],
+  },
 ];
 
 const PERSON = { definition: "person" };
+const SIGHT = { from: "self.creature.sightTiles" };
+const creature = (...parts: unknown[]) => ({ allOf: [{ has: "creature" }, ...parts] });
 
 const CREATURE_INSTINCTS = [
-  { do: "flee", appliesTo: { has: "timid" }, from: PERSON, radius: 3 },
-  { do: "verb", appliesTo: { has: "defensive" }, verb: "bite", isRetaliation: true },
+  { do: "flee", appliesTo: { has: "timid" }, from: PERSON, radius: { from: "self.timid.radius" } },
   {
     do: "verb",
-    appliesTo: { allOf: [{ has: "grazer" }, { not: { has: "sated" } }] },
+    appliesTo: creature({ has: "provoked" }),
+    verb: "bite",
+    range: SIGHT,
+    sourceOf: "provoked",
+  },
+  {
+    do: "verb",
+    appliesTo: creature({ has: "grazer" }, { not: { has: "sated" } }),
     verb: "graze",
     target: { field: "stock.amount", atLeast: 1 },
+    range: SIGHT,
   },
-  { do: "verb", appliesTo: { has: "predator" }, verb: "bite", target: PERSON },
-  { do: "wander", appliesTo: { has: "creature" }, chance: 0.5 },
+  {
+    do: "verb",
+    appliesTo: creature({ has: "predator" }),
+    verb: "bite",
+    target: PERSON,
+    range: SIGHT,
+  },
+  {
+    do: "wander",
+    appliesTo: { has: "creature" },
+    chance: { from: "self.creature.wanderChance" },
+  },
 ];
 
 /** Mara and Tobias side by side on the square, the test items plus deer, boars and wolves. */

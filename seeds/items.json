@@ -496,16 +496,50 @@
       "description": "Music to play, heard by everyone in earshot."
     },
     "creature": {
-      "description": "An animal that acts on its instincts, not a person."
+      "description": "An animal that acts on its instincts, not a person.",
+      "fields": {
+        "sightTiles": {
+          "type": "number",
+          "description": "How many tiles away it notices things.",
+          "min": 0
+        },
+        "wanderChance": {
+          "type": "number",
+          "description": "Chance each minute that it ambles a step.",
+          "min": 0,
+          "max": 1
+        }
+      }
     },
     "timid": {
-      "description": "Runs from people."
+      "description": "Runs from people.",
+      "fields": {
+        "radius": {
+          "type": "number",
+          "description": "How close a person gets before it runs.",
+          "min": 0
+        }
+      }
     },
     "defensive": {
-      "description": "Strikes back at whoever attacks it."
+      "description": "Strikes back at whoever attacks it.",
+      "fields": {
+        "grudgeMinutes": {
+          "type": "number",
+          "description": "How long it stays provoked after being hurt.",
+          "min": 0
+        }
+      }
     },
     "predator": {
-      "description": "Hunts people and eats raw meat when hungry."
+      "description": "Hunts people and eats raw meat when hungry.",
+      "fields": {
+        "fleeRadius": {
+          "type": "number",
+          "description": "How close a person gets before it runs, once badly hurt.",
+          "min": 0
+        }
+      }
     },
     "grazer": {
       "description": "Grazes on crops when hungry."
@@ -564,6 +598,9 @@
           "max": 1
         }
       }
+    },
+    "provoked": {
+      "description": "Hurt by someone lately, and out to get them. Whoever hurt it is its source."
     }
   },
   "definitions": [
@@ -1751,12 +1788,17 @@
       "components": {
         "alive": {},
         "flesh": {},
-        "creature": {},
+        "creature": {
+          "sightTiles": 8,
+          "wanderChance": 0.3
+        },
         "health": {
           "max": 0.4,
           "current": 0.4
         },
-        "timid": {},
+        "timid": {
+          "radius": 4
+        },
         "grazer": {},
         "drops": {
           "item": "raw_meat",
@@ -1779,12 +1821,17 @@
       "components": {
         "alive": {},
         "flesh": {},
-        "creature": {},
+        "creature": {
+          "sightTiles": 6,
+          "wanderChance": 0.2
+        },
         "health": {
           "max": 0.7,
           "current": 0.7
         },
-        "defensive": {},
+        "defensive": {
+          "grudgeMinutes": 60
+        },
         "grazer": {},
         "jaws": {
           "damage": {
@@ -1814,12 +1861,17 @@
       "components": {
         "alive": {},
         "flesh": {},
-        "creature": {},
+        "creature": {
+          "sightTiles": 10,
+          "wanderChance": 0.3
+        },
         "health": {
           "max": 0.6,
           "current": 0.6
         },
-        "predator": {},
+        "predator": {
+          "fleeRadius": 6
+        },
         "jaws": {
           "damage": {
             "min": 0.06,
@@ -1834,6 +1886,9 @@
         "stats": {
           "strength": 0.6,
           "agility": 0.7
+        },
+        "defensive": {
+          "grudgeMinutes": 60
         }
       }
     },
@@ -6003,6 +6058,38 @@
           "by": -1
         }
       ]
+    },
+    {
+      "trigger": "stimulus",
+      "stimulus": "cut",
+      "if": {
+        "has": "defensive"
+      },
+      "steps": [
+        {
+          "step": "add",
+          "component": "provoked",
+          "minutes": {
+            "from": "self.defensive.grudgeMinutes"
+          }
+        }
+      ]
+    },
+    {
+      "trigger": "stimulus",
+      "stimulus": "impact",
+      "if": {
+        "has": "defensive"
+      },
+      "steps": [
+        {
+          "step": "add",
+          "component": "provoked",
+          "minutes": {
+            "from": "self.defensive.grudgeMinutes"
+          }
+        }
+      ]
     }
   ],
   "instincts": [
@@ -6014,7 +6101,9 @@
       "from": {
         "definition": "person"
       },
-      "radius": 4
+      "radius": {
+        "from": "self.timid.radius"
+      }
     },
     {
       "do": "flee",
@@ -6032,28 +6121,35 @@
       "from": {
         "definition": "person"
       },
-      "radius": 6
-    },
-    {
-      "do": "verb",
-      "appliesTo": {
-        "has": "defensive"
-      },
-      "verb": "bite",
-      "isRetaliation": true
-    },
-    {
-      "do": "verb",
-      "appliesTo": {
-        "has": "predator"
-      },
-      "verb": "bite",
-      "isRetaliation": true
+      "radius": {
+        "from": "self.predator.fleeRadius"
+      }
     },
     {
       "do": "verb",
       "appliesTo": {
         "allOf": [
+          {
+            "has": "creature"
+          },
+          {
+            "has": "provoked"
+          }
+        ]
+      },
+      "verb": "bite",
+      "range": {
+        "from": "self.creature.sightTiles"
+      },
+      "sourceOf": "provoked"
+    },
+    {
+      "do": "verb",
+      "appliesTo": {
+        "allOf": [
+          {
+            "has": "creature"
+          },
           {
             "has": "grazer"
           },
@@ -6068,12 +6164,18 @@
       "target": {
         "field": "stock.amount",
         "atLeast": 1
+      },
+      "range": {
+        "from": "self.creature.sightTiles"
       }
     },
     {
       "do": "verb",
       "appliesTo": {
         "allOf": [
+          {
+            "has": "creature"
+          },
           {
             "has": "predator"
           },
@@ -6087,12 +6189,18 @@
       "verb": "devour",
       "target": {
         "has": "raw"
+      },
+      "range": {
+        "from": "self.creature.sightTiles"
       }
     },
     {
       "do": "verb",
       "appliesTo": {
         "allOf": [
+          {
+            "has": "creature"
+          },
           {
             "has": "predator"
           },
@@ -6106,6 +6214,9 @@
       "verb": "bite",
       "target": {
         "definition": "person"
+      },
+      "range": {
+        "from": "self.creature.sightTiles"
       }
     },
     {
@@ -6113,7 +6224,9 @@
       "appliesTo": {
         "has": "creature"
       },
-      "chance": 0.3
+      "chance": {
+        "from": "self.creature.wanderChance"
+      }
     }
   ]
 }
