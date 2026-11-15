@@ -10,6 +10,7 @@ import {
   type Matcher,
   type ThingWhere,
 } from "./matcher-schema";
+import { parseValuePath } from "./value-schema";
 
 /** What a matcher is checked against: an entity or a body, as it is right now. */
 export interface ThingView {
@@ -59,6 +60,27 @@ export function mapFieldTerms(matcher: Matcher, replace: (term: FieldMatcher) =>
     return { allOf: matcher.allOf.map((part) => mapFieldTerms(part, replace)) };
   if ("not" in matcher) return { not: mapFieldTerms(matcher.not, replace) };
   return "field" in matcher ? replace(matcher) : matcher;
+}
+
+const NEVER_MATCHES: Matcher = { anyOf: [] };
+
+/**
+ * The matcher with each `self.component.field` read replaced by the thing's own value, so it can
+ * match: how an instinct compares a creature with its own numbers ("health below my flee point").
+ * A read the thing can't answer never matches.
+ */
+export function resolveSelfReads(matcher: Matcher, view: ThingView): Matcher {
+  return mapFieldTerms(matcher, (term) => {
+    const compared = readFieldComparison(term);
+    if (compared === null || !isValueRead(compared.value)) return term;
+    const path = parseValuePath(compared.value.from);
+    if (path?.kind !== "field" || path.who !== "self") return NEVER_MATCHES;
+    const value = view.components[path.component]?.[path.field];
+    if (typeof value !== "number" && typeof value !== "string" && typeof value !== "boolean") {
+      return NEVER_MATCHES;
+    }
+    return { field: term.field, [compared.comparison]: value };
+  });
 }
 
 /** Every field term that compares with a value read, with the path it reads. */

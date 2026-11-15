@@ -1,6 +1,7 @@
 import {
   matchesThing,
   resolveEntityComponents,
+  resolveSelfReads,
   type Entity,
   type Instinct,
   type ItemCatalog,
@@ -26,7 +27,9 @@ export function viewCreatureAsSelf(state: WorldState, entity: Entity): ThingView
 /** Its instincts in `items.json` order, which is the order it tries them in. */
 export function listApplicableInstincts(state: WorldState, entity: Entity): Instinct[] {
   const view = viewCreatureAsSelf(state, entity);
-  return state.items.file.instincts.filter((instinct) => matchesThing(instinct.appliesTo, view));
+  return state.items.file.instincts.filter((instinct) =>
+    matchesThing(resolveSelfReads(instinct.appliesTo, view), view),
+  );
 }
 
 const untouchedAnswers = new WeakMap<ItemCatalog, Map<string, boolean>>();

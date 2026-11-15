@@ -18,6 +18,9 @@ export const FIELD_EDGE = { x: 23, y: 19 };
 
 export const MIDDLING_STATS = { strength: 0.5, agility: 0.5 };
 export const WOLF_STATS = { strength: 0.9, agility: 1 };
+/** How hurt the wolf gets before it runs from people. */
+export const WOLF_FLEE_BELOW_HEALTH = 0.2;
+
 /** How close a person gets before the deer runs. */
 export const DEER_FLEE_RADIUS = 3;
 /** How far the deer and the wolf see; the boar sees less. */
@@ -43,7 +46,7 @@ const CREATURE_COMPONENTS = {
   timid: { fields: { radius: number } },
   defensive: { fields: { grudgeMinutes: number } },
   provoked: {},
-  predator: {},
+  predator: { fields: { fleeBelowHealth: number } },
   grazer: {},
   sated: {},
   jaws: { fields: { damage: { type: "range" }, hitChance: number } },
@@ -72,7 +75,11 @@ const CREATURE_DEFINITIONS = [
     id: "wolf",
     name: "wolf",
     glyph: { index: 119, color: "#a8a8b0" },
-    components: animal({ predator: {}, jaws: JAWS, stats: WOLF_STATS }),
+    components: animal({
+      predator: { fleeBelowHealth: WOLF_FLEE_BELOW_HEALTH },
+      jaws: JAWS,
+      stats: WOLF_STATS,
+    }),
   },
 ];
 
@@ -156,6 +163,17 @@ const creature = (...parts: unknown[]) => ({ allOf: [{ has: "creature" }, ...par
 
 const CREATURE_INSTINCTS = [
   { do: "flee", appliesTo: { has: "timid" }, from: PERSON, radius: { from: "self.timid.radius" } },
+  {
+    do: "flee",
+    appliesTo: {
+      allOf: [
+        { has: "predator" },
+        { field: "health.current", below: { from: "self.predator.fleeBelowHealth" } },
+      ],
+    },
+    from: PERSON,
+    radius: SIGHT,
+  },
   {
     do: "verb",
     appliesTo: creature({ has: "provoked" }),

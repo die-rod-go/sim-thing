@@ -884,7 +884,7 @@ entity, and its state (hungry, provoked) is components it gains and loses.
 ```jsonc
 "wolf": {
   "creature":  { "sightTiles": 10, "wanderChance": 0.3 },
-  "predator":  { "fleeRadius": 6 },
+  "predator":  { "fleeRadius": 6, "fleeBelowHealth": 0.2 },
   "defensive": { "grudgeMinutes": 60 },
   "stats":     { "strength": 0.6, "agility": 0.7 },
   "jaws":      { "damage": { "min": 0.06, "max": 0.14 }, "hitChance": 0.65 },
@@ -913,6 +913,10 @@ component the instinct's `appliesTo` requires, so the number is the creature's o
   "radius": { "from": "self.timid.radius" },
 }
 ```
+
+A field comparison in an instinct's `appliesTo` can read the creature's own fields the same way,
+so even "when" is per creature: the wolf runs once `health.current` is below
+`self.predator.fleeBelowHealth`.
 
 Each tick (phase 2b, after agents' actions progress), a creature busy with a verb carries on with
 it. Otherwise it tries its instincts in file order and follows the first that finds something to

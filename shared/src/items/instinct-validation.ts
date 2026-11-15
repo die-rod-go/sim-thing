@@ -4,7 +4,8 @@ import { resolveComponents } from "./components";
 import type { Instinct, InstinctOfKind, ItemDefinition, Verb } from "./item-file";
 import type { ValidationContext } from "./item-problems";
 import { checkMatcher, couldMatchAnyView, listViewsAfterSteps } from "./matcher-validation";
-import { listGuaranteedComponents, requiresWhere } from "./matchers";
+import { listComparisonReads, listGuaranteedComponents, requiresWhere } from "./matchers";
+
 import { AGENT_ONLY_STEPS } from "./step-schema";
 import { parseValuePath, type NumberValue } from "./value-schema";
 
@@ -151,7 +152,13 @@ export function checkInstincts(context: ValidationContext): void {
     const path = describeInstinctPath(instinct, index);
     const guaranteed = listGuaranteedComponents(instinct.appliesTo, definitionsById);
     const check: InstinctCheck = { context, path, guaranteed };
-    checkMatcher(instinct.appliesTo, `${path}.appliesTo`, context, { isAppliesTo: true });
+    checkMatcher(instinct.appliesTo, `${path}.appliesTo`, context, {
+      isAppliesTo: true,
+      canReadValues: true,
+    });
+    for (const read of listComparisonReads(instinct.appliesTo)) {
+      checkSelfRead(read.from, `${path}.appliesTo`, check);
+    }
     checkAppliesToSomething(instinct, check);
     if (instinct.do === "verb") checkVerbInstinct(instinct, check);
     if (instinct.do === "flee") {

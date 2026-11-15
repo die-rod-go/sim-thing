@@ -15,7 +15,7 @@ export type MatcherCheck = ValidationContext;
 export interface MatcherOptions {
   isAppliesTo?: boolean;
   isTarget?: boolean;
-  /** A step's `rule` or `if`: a comparison may read a value of the run (checked with the step's reads). */
+  /** A step's `rule` or `if`, or an instinct's `appliesTo`: a comparison may read a value (checked by its owner). */
   canReadValues?: boolean;
 }
 

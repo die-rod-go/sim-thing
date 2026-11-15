@@ -107,6 +107,21 @@ describe("instinct validation", () => {
     ]);
   });
 
+  it("compares the creature with its own fields in appliesTo, if appliesTo requires them", () => {
+    const fleeWhenHurt = (field: string) => ({
+      do: "flee",
+      appliesTo: {
+        allOf: [{ has: "jaws" }, { field: "health.current", below: { from: field } }],
+      },
+      from: { definition: "person" },
+      radius: 3,
+    });
+    expect(messagesFor(withInstincts([hunting, fleeWhenHurt("self.jaws.sightTiles")]))).toEqual([]);
+    expect(messagesFor(withInstincts([hunting, fleeWhenHurt("self.stats.agility")]))).toEqual([
+      "error: instincts.1 (flee).appliesTo: Reads self.stats.agility, but appliesTo doesn't require the stats component.",
+    ]);
+  });
+
   it("warns about an instinct that applies to nothing", () => {
     const nothing = withInstincts([
       hunting,

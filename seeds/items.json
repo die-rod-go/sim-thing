@@ -538,6 +538,12 @@
           "type": "number",
           "description": "How close a person gets before it runs, once badly hurt.",
           "min": 0
+        },
+        "fleeBelowHealth": {
+          "type": "number",
+          "description": "How hurt it gets before it runs from people.",
+          "min": 0,
+          "max": 1
         }
       }
     },
@@ -1870,7 +1876,8 @@
           "current": 0.6
         },
         "predator": {
-          "fleeRadius": 6
+          "fleeRadius": 6,
+          "fleeBelowHealth": 0.2
         },
         "jaws": {
           "damage": {
@@ -6114,7 +6121,9 @@
           },
           {
             "field": "health.current",
-            "below": 0.2
+            "below": {
+              "from": "self.predator.fleeBelowHealth"
+            }
           }
         ]
       },

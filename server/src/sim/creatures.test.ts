@@ -20,6 +20,7 @@ import {
   BOAR_SIGHT_TILES,
   FIELD_EDGE,
   MIDDLING_STATS,
+  WOLF_FLEE_BELOW_HEALTH,
   WOLF_STATS,
   actForTicks,
   buildCreatureSim,
@@ -141,6 +142,20 @@ describe("creature instincts", () => {
         computeChebyshevDistance(entity.location.pos, FIELD_EDGE) === 0,
     );
     expect(meatHere).toHaveLength(2);
+  });
+
+  it("hunts people while healthy, and runs from them once hurt below its own flee point", () => {
+    const start = { x: 22, y: 15 };
+    const distanceAfterOneTick = (health: number) => {
+      const sim = buildCreatureSim(NEVER);
+      const wolf = placeCreature(sim, "wolf", start);
+      setField(sim, entityThing(wolf), "health.current", health);
+      actForTicks(sim, 1);
+      return nearestPersonDistance(sim, positionOf(sim, wolf.id));
+    };
+    const before = nearestPersonDistance(buildCreatureSim(), start);
+    expect(distanceAfterOneTick(WOLF_FLEE_BELOW_HEALTH + 0.1)).toBeLessThan(before);
+    expect(distanceAfterOneTick(WOLF_FLEE_BELOW_HEALTH - 0.1)).toBeGreaterThan(before);
   });
 
   it("names the creature in the cause of a death it caused", () => {

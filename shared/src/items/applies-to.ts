@@ -2,7 +2,7 @@ import { resolveComponents, type ResolvedComponents } from "./components";
 import type { ItemDefinition, ItemFile, Verb } from "./item-file";
 import type { Step } from "./step-schema";
 import type { ThingWhere } from "./matcher-schema";
-import { matchesThing, type ThingView } from "./matchers";
+import { matchesThing, resolveSelfReads, type ThingView } from "./matchers";
 
 /*
  * How a verb's `appliesTo` meets things. The verb's item is always an entity, met where it is
@@ -33,7 +33,9 @@ export function isLyingWhenOnTile(
 export function isCreatureDefinition(file: ItemFile, definition: ItemDefinition): boolean {
   const components = resolveComponents(file.components, definition, {});
   const view: ThingView = { definitionId: definition.id, components, where: "self" };
-  return file.instincts.some((instinct) => matchesThing(instinct.appliesTo, view));
+  return file.instincts.some((instinct) =>
+    matchesThing(resolveSelfReads(instinct.appliesTo, view), view),
+  );
 }
 
 /**
