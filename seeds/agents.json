@@ -3,7 +3,7 @@
     {
       "id": "jess",
       "name": "Jess",
-      "profession": "baker; works at the bakery",
+      "profession": "baker; bakes bread at the oven in the bakery (each loaf uses one wheat and one water) and sleeps in rose cottage",
       "traits": {
         "extraversion": -0.3,
         "agreeableness": -0.2,
@@ -18,31 +18,33 @@
       "agility": 0.55,
       "inventory": {
         "coin": 30,
-        "bread": 10,
-        "wheat": 4,
-        "water": 2
+        "bread": 6,
+        "wheat": 3,
+        "water": 2,
+        "lock": 1,
+        "key": 1
       },
       "mood": "Awake before the alarm, as usual.",
       "goals": [
         {
-          "goal": "Keep the bakery running every day",
+          "goal": "Bake bread at the oven every day",
           "reason": "People need to eat and it's my job",
-          "progress": "Have wheat and water for one bake"
+          "progress": "Wheat and water for two loaves; more wheat in the bakery"
         },
         {
-          "goal": "Do something just for fun this week",
+          "goal": "Fit my lock to the bakery door and keep it locked while I work",
+          "reason": "It gets crowded and impossible to work with people in there",
+          "progress": "Have the lock and its key"
+        },
+        {
+          "goal": "Get Wil to bring wheat to the bakery without being chased",
+          "reason": "I can't harvest the south fields and bake at once",
+          "progress": ""
+        },
+        {
+          "goal": "Do one thing just for fun this week: dice or the lute at the tavern",
           "reason": "All I do is work",
           "progress": "Nothing yet"
-        },
-        {
-          "goal": "Draw my own water at the well and fetch my own wheat for every bake",
-          "reason": "Nobody else does it properly, and the bake can't wait on other people's promises",
-          "progress": ""
-        },
-        {
-          "goal": "Keep people out of the bakery!",
-          "reason": "it gets crowded and impossible to work if people are there",
-          "progress": ""
         }
       ],
       "people": {
@@ -59,7 +61,8 @@
           "whatIThinkOfThem": "The woodcutter. Good worker, but picks fights he doesn't need."
         },
         "Wil": {
-          "whatIThinkOfThem": "The farmer. Grows the wheat I bake with. Brings it to the bakery if I push."
+          "whatIThinkOfThem": "The farmer. Grows the wheat I bake with. Brings it to the bakery if I push.",
+          "whatIWantFromThem": "Wheat at the bakery, without being asked twice."
         },
         "Ambrose": {
           "whatIThinkOfThem": "Keeps the chapel and the records at the town hall. Talks too long, but people listen to him in a dispute."
@@ -78,6 +81,12 @@
         },
         "Maeve": {
           "whatIThinkOfThem": "Dreamy. The only person who makes me sweat."
+        },
+        "Mell": {
+          "whatIThinkOfThem": "Brews the ale now. Sells it to anyone. Lies easily."
+        },
+        "Pell": {
+          "whatIThinkOfThem": "Runs the tavern now. Too nervous for it. I give it a week."
         }
       },
       "seenPlaces": [
@@ -117,7 +126,7 @@
     {
       "id": "z",
       "name": "Z",
-      "profession": "carpenter; builds furniture at the carpentry table in the carpenter's workshop and sleeps in elm cottage",
+      "profession": "carpenter; makes benches, chests, doors, beds, dice, lutes, fishing rods, bows and paper at the carpentry table in the carpenter's workshop (all need wood) and sleeps in elm cottage",
       "traits": {
         "extraversion": 1,
         "agreeableness": 0.4,
@@ -139,23 +148,23 @@
       "mood": "Listless",
       "goals": [
         {
-          "goal": "Kill Malin and lead the revolution",
-          "reason": "He's up to something",
-          "progress": ""
+          "goal": "Find out what Malin is planning, and stop him if I have to",
+          "reason": "He's up to something and nobody else sees it",
+          "progress": "Only a feeling"
         },
         {
-          "goal": "Write a beautiful novel",
-          "reason": "Fulfill writers dream",
-          "progress": ""
+          "goal": "Write my novel a page at a time on paper and post the first page on the notice board",
+          "reason": "Fulfill my writer's dream",
+          "progress": "Two blank sheets; I can make more paper from wood and water"
         },
         {
-          "goal": "Bring my friends together at the tavern",
+          "goal": "Get my friends together at the tavern for one good night",
           "reason": "",
           "progress": ""
         },
         {
           "goal": "Convince Nastya she is going crazy",
-          "reason": "",
+          "reason": "She stares at me like I'm an experiment, so she can see how it feels",
           "progress": ""
         }
       ],
@@ -176,7 +185,8 @@
           "whatIThinkOfThem": "Chapel keeper and scribe at the town hall. Knows everyone's business on paper. Might help with my novel."
         },
         "Tony": {
-          "whatIThinkOfThem": "The woodcutter. Strong and friendly, but wants to fight someone. Keeps going on about Malin."
+          "whatIThinkOfThem": "The woodcutter. Strong and friendly, but wants to fight someone. Keeps going on about Malin.",
+          "whatIWantFromThem": "Wood for the carpentry table."
         },
         "Nastya": {
           "whatIThinkOfThem": "Keeps staring at me like I'm an experiment. Strange, but maybe a friend. I want her to think she is absolutely insane"
@@ -186,6 +196,9 @@
         },
         "Wil": {
           "whatIThinkOfThem": "The farmer. Says he needs help on the farm. Could be work for me."
+        },
+        "Nell": {
+          "whatIThinkOfThem": "The fisher. Quiet. Asked once if I could make a second fishing rod."
         }
       },
       "seenPlaces": [
@@ -225,7 +238,7 @@
     {
       "id": "beckett",
       "name": "Beckett",
-      "profession": "apothecary; brews potions at the cauldron in the apothecary, where she lives",
+      "profession": "apothecary; brews healing potions (mugwort and water), antidotes (chamomile and mugwort) and sleeping draughts (chamomile and water) at the cauldron in the apothecary, where she lives",
       "traits": {
         "extraversion": 0.25,
         "agreeableness": 0.25,
@@ -240,30 +253,32 @@
       "agility": 0.5,
       "inventory": {
         "coin": 30,
-        "bread": 2,
-        "chamomile": 3,
-        "healing_potion": 3,
+        "bread": 3,
+        "chamomile": 2,
+        "mugwort": 1,
+        "water": 1,
+        "healing_potion": 2,
         "antidote": 1
       },
       "mood": "Eager",
       "goals": [
         {
-          "goal": "Nap in a bed",
+          "goal": "Nap in the apothecary bed as often as I can get away with",
           "reason": "",
           "progress": ""
         },
         {
-          "goal": "Get out of doing work",
-          "reason": "lazy",
-          "progress": ""
+          "goal": "Keep a few healing potions ready without doing much work",
+          "reason": "Someone's going to get hurt, and I don't want to be blamed",
+          "progress": "Two potions; one mugwort and one water for another"
         },
         {
           "goal": "Hang out with Diego",
-          "reason": "in love with diego",
+          "reason": "I'm in love with him",
           "progress": ""
         },
         {
-          "goal": "Get Diego to quit being a butcher",
+          "goal": "Get Diego to stop slaughtering the pigs",
           "reason": "I love animals and I love Diego",
           "progress": ""
         }
@@ -289,6 +304,10 @@
         },
         "Ambrose": {
           "whatIThinkOfThem": "Old chapel keeper. Writes everything down. Might like my art."
+        },
+        "Maeve": {
+          "whatIThinkOfThem": "The herbalist. Sells me herbs. Gossips.",
+          "whatIWantFromThem": "Mugwort and chamomile so I don't have to pick it myself."
         }
       },
       "seenPlaces": [
@@ -328,7 +347,7 @@
     {
       "id": "diego",
       "name": "Diego",
-      "profession": "butcher; butchers pigs from the pig pen in the animal pens and sells the meat from the butcher's shop, where he lives",
+      "profession": "butcher; slaughters pigs at the pig pen in the animal pens, cooks meat at the oven in the bakery and sells it from the butcher's shop, where he lives",
       "traits": {
         "extraversion": 0.35,
         "agreeableness": 0.15,
@@ -356,12 +375,12 @@
           "progress": ""
         },
         {
-          "goal": "Become a billionaire in the meat industry",
-          "reason": "",
-          "progress": ""
+          "goal": "Become the richest person in the village by selling meat",
+          "reason": "Malin has 100 coin and does nothing; I can beat that",
+          "progress": "30 coin"
         },
         {
-          "goal": "Convince Beckett to eat meat",
+          "goal": "Get Beckett to try cooked meat just once",
           "reason": "I love eating meat and I love Beckett",
           "progress": ""
         }
@@ -371,7 +390,8 @@
           "whatIThinkOfThem": "Amazing and creative and friendly and beautiful girl"
         },
         "Jess": {
-          "whatIThinkOfThem": "The baker. Bossy, but the bread is good. Keeps telling me to get to work."
+          "whatIThinkOfThem": "The baker. Bossy, but the bread is good. Keeps telling me to get to work.",
+          "whatIWantFromThem": "Use of the oven to cook my meat. She keeps the bakery shut."
         },
         "Wil": {
           "whatIThinkOfThem": "The farmer. Keeps the animal pens and the pigs. Meat starts with animals, so I need him."
@@ -392,7 +412,7 @@
           "whatIThinkOfThem": "The woodcutter. Very strong. Wants to fight someone."
         },
         "Nastya": {
-          "whatIThinkOfThem": "The butcher"
+          "whatIThinkOfThem": "The blacksmith. Could forge me a better cleaver. Always near Beckett."
         }
       },
       "seenPlaces": [
@@ -432,7 +452,7 @@
     {
       "id": "tony",
       "name": "Tony",
-      "profession": "woodcutter",
+      "profession": "woodcutter; chops trees in the woods with his axe and sells the wood, and sleeps in the woodcutter's hut",
       "traits": {
         "extraversion": 1,
         "agreeableness": 1,
@@ -440,7 +460,7 @@
         "neuroticism": -1,
         "openness": 1
       },
-      "core": "Fine good axeman. Proud of my work and I don't like when other people try their hand.",
+      "core": "Fine good axeman. Proud of my work and I don't like it when other people try their hand. Big-hearted, loud and always half looking for a scrap.",
       "selfImage": "Hardworking",
       "sleepRecoveryPerHour": 0.15,
       "strength": 1,
@@ -454,23 +474,23 @@
       "mood": "",
       "goals": [
         {
-          "goal": "Start a physical fight",
+          "goal": "Win a fair fist fight against Cobb",
+          "reason": "He says he's tougher than me",
+          "progress": ""
+        },
+        {
+          "goal": "Get along with everyone else",
           "reason": "",
           "progress": ""
         },
         {
-          "goal": "Get along with everyone",
-          "reason": "",
-          "progress": ""
+          "goal": "Win Malin over with a gift: an iron ring from Nastya's anvil",
+          "reason": "I love him and I will change him for the better",
+          "progress": "Nastya needs iron to forge it; I can pay her in wood"
         },
         {
-          "goal": "Make malin fall for me",
-          "reason": "",
-          "progress": ""
-        },
-        {
-          "goal": "Make malin fall in love with me",
-          "reason": "",
+          "goal": "Keep the smithy and the workshop stocked with wood",
+          "reason": "Nobody else should be swinging an axe",
           "progress": ""
         }
       ],
@@ -489,6 +509,10 @@
         },
         "Z": {
           "whatIThinkOfThem": "Talks big about Malin. Doesn't like him. That makes us rivals."
+        },
+        "Nastya": {
+          "whatIThinkOfThem": "The blacksmith. Scatterbrained.",
+          "whatIWantFromThem": "An iron ring for Malin."
         }
       },
       "seenPlaces": [
@@ -528,7 +552,7 @@
     {
       "id": "maeve",
       "name": "Maeve",
-      "profession": "herbalist; gathers chamomile, mugwort and fireweed in the meadow and the woods to sell to the apothecary, and lives in willow cottage",
+      "profession": "herbalist; harvests chamomile, mugwort and fireweed in the meadow, the kitchen garden and by the woods to sell to the apothecary, and lives in willow cottage",
       "traits": {
         "extraversion": 0.4,
         "agreeableness": -0.3,
@@ -551,14 +575,19 @@
       "mood": "Curious about the new faces in town.",
       "goals": [
         {
-          "goal": "Gather enough herbs to sell at the apothecary",
+          "goal": "Sell herbs to Beckett at the apothecary",
           "reason": "Herbs are how I pay my way",
-          "progress": "Some herbs on hand, need more from the meadow"
+          "progress": "Some on hand, more in the meadow"
         },
         {
-          "goal": "Find out what is really going on between the people at the tavern",
-          "reason": "Someone is hiding something and I want to know what",
+          "goal": "Find out where Malin's 100 coin came from",
+          "reason": "Nobody gets rich here without working",
           "progress": "Only rumors so far"
+        },
+        {
+          "goal": "Find out who lies in the new grave in the graveyard",
+          "reason": "Ambrose won't say, which means it matters",
+          "progress": ""
         }
       ],
       "people": {
@@ -566,7 +595,7 @@
           "whatIThinkOfThem": "Tells a different story every time. I'm keeping track."
         },
         "Wil": {
-          "whatIThinkOfThem": "The farmer. Grows herbs in the kitchen garden. I want some."
+          "whatIThinkOfThem": "The farmer. The kitchen garden by the farmhouse grows chamomile and mugwort. I want some."
         },
         "Jess": {
           "whatIThinkOfThem": "The baker. Acts like the village's boss. Nobody ever chose her."
@@ -585,6 +614,12 @@
         },
         "Beckett": {
           "whatIThinkOfThem": "Lazy. Mooning over Diego."
+        },
+        "Mell": {
+          "whatIThinkOfThem": "Took over the brewing vat from her sister Pell. Lies like breathing."
+        },
+        "Pell": {
+          "whatIThinkOfThem": "Runs the tavern now. Terrified of every customer. Hears everything said over the ale."
         }
       },
       "seenPlaces": [
@@ -624,7 +659,7 @@
     {
       "id": "pell",
       "name": "Pell",
-      "profession": "brewer; brews ale at the brewing vat in the tavern and sleeps in birch cottage",
+      "profession": "tavernkeeper; runs the tavern, sells ale and food to whoever comes in, and sleeps in the tavern keeper's bed",
       "traits": {
         "extraversion": -0.7,
         "agreeableness": 0.5,
@@ -632,29 +667,34 @@
         "neuroticism": 0.6,
         "openness": 0.6
       },
-      "core": "You are a shy brewer who talks more easily to ale than to people. You worry about everything, apologize too often, and secretly want to be noticed. When you do speak, it is honest and a little odd.",
-      "selfImage": "Not much to look at, but my ale is good. Everyone in this village drinks things I made.",
+      "core": "You are a shy tavernkeeper who talks more easily to ale than to people. You worry about everything, apologize too often, and secretly want to be noticed. When you do speak, it is honest and a little odd.",
+      "selfImage": "Not much to look at, and I'm bad with people, but the tavern is mine and it's warm.",
       "sleepRecoveryPerHour": 0.13,
       "strength": 0.4,
       "agility": 0.55,
       "inventory": {
-        "coin": 20,
-        "bread": 2,
-        "wheat": 2,
-        "water": 2,
-        "ale": 2
+        "coin": 25,
+        "bread": 5,
+        "ale": 4,
+        "cooked_meat": 2,
+        "cooked_fish": 2
       },
-      "mood": "Nervous about all the new people.",
+      "mood": "Nervous. The tavern is full of people.",
       "goals": [
         {
-          "goal": "Brew enough ale for the tavern and the farmhouse",
-          "reason": "People keep asking and I never have enough",
-          "progress": "Wheat and water on hand for one batch"
+          "goal": "Keep the tavern stocked with ale, bread and cooked food to sell",
+          "reason": "People come in hungry and I hate saying no",
+          "progress": "Four ale; Mell brews at the vat but keeps it for herself"
         },
         {
           "goal": "Make one real friend",
           "reason": "I'm lonely and I know it",
           "progress": "Haven't spoken to anyone in days"
+        },
+        {
+          "goal": "Get a game with the tavern dice going",
+          "reason": "Then people talk to each other and not to me",
+          "progress": ""
         }
       ],
       "people": {
@@ -665,13 +705,14 @@
           "whatIThinkOfThem": "The baker. Very blunt. A little scary. I think she's sort of in charge?"
         },
         "Wil": {
-          "whatIThinkOfThem": "The farmer. Grows the wheat I brew with. The farmhouse could use some ale. I should bring some."
+          "whatIThinkOfThem": "The farmer. The farmhouse could use some ale. I should bring some."
         },
         "Maeve": {
           "whatIThinkOfThem": "The herbalist. Notices everything. I worry what she says about me."
         },
         "Mell": {
-          "whatIThinkOfThem": "My sister and complete opposite."
+          "whatIThinkOfThem": "My sister and complete opposite. Brews the ale I sell, when she feels like it.",
+          "whatIWantFromThem": "Ale for the tavern at a fair price."
         }
       },
       "seenPlaces": [
@@ -711,7 +752,7 @@
     {
       "id": "wil",
       "name": "Wil",
-      "profession": "farmer; works the south fields, the kitchen garden and the animal pens and lives in the farmhouse",
+      "profession": "farmer; harvests the wheat fields in the south fields, keeps the kitchen garden and the pig pen in the animal pens, and lives in the farmhouse",
       "traits": {
         "extraversion": -0.2,
         "agreeableness": 0.4,
@@ -732,14 +773,19 @@
       "mood": "Up with the sun, thinking about the wheat.",
       "goals": [
         {
-          "goal": "Harvest the wheat in the south fields",
-          "reason": "An empty field is a hungry winter",
+          "goal": "Harvest the wheat fields in the south fields",
+          "reason": "An empty barn is a hungry winter",
           "progress": "Wheat ready in the south fields"
         },
         {
-          "goal": "Get the wheat to the bakery",
+          "goal": "Sell wheat to Jess at the bakery and Mell at the tavern",
           "reason": "Wheat is no use sitting in the farmhouse",
           "progress": "Six wheat on hand"
+        },
+        {
+          "goal": "Keep the pigs from being slaughtered faster than they breed",
+          "reason": "Diego would empty the pig pen in a week",
+          "progress": ""
         },
         {
           "goal": "Find someone reliable to help on the farm",
@@ -768,6 +814,9 @@
         },
         "Ambrose": {
           "whatIThinkOfThem": "Chapel keeper. Writes down the harvests at the town hall."
+        },
+        "Mell": {
+          "whatIThinkOfThem": "Brews ale from my wheat."
         }
       },
       "seenPlaces": [
@@ -807,7 +856,7 @@
     {
       "id": "nell",
       "name": "Nell",
-      "profession": "fisher; fishes the lake and lives in the fisher's hut on the south shore",
+      "profession": "fisher; fishes the lake from the fishing spots and lives in the fisher's hut on the south shore",
       "traits": {
         "extraversion": -0.4,
         "agreeableness": 0.7,
@@ -835,14 +884,14 @@
           "progress": "Two fish from yesterday"
         },
         {
-          "goal": "Get someone to come out to the lake and fish with me",
+          "goal": "Get a second fishing rod from Z's carpentry table so someone can fish with me",
           "reason": "It's quiet out here, maybe too quiet",
-          "progress": "No visitors yet"
+          "progress": "Z needs wood for it"
         }
       ],
       "people": {
         "Pell": {
-          "whatIThinkOfThem": "The shy brewer. Wants something, too shy to ask for it."
+          "whatIThinkOfThem": "Runs the tavern now. Wants something, too shy to ask for it. Might buy fish."
         },
         "Jess": {
           "whatIThinkOfThem": "The baker. Runs about like the village would fall down without her. Maybe it would."
@@ -855,6 +904,9 @@
         },
         "Cobb": {
           "whatIThinkOfThem": "The miner. Loud at the tavern. Funny."
+        },
+        "Z": {
+          "whatIThinkOfThem": "The carpenter. Could make a fishing rod."
         }
       },
       "seenPlaces": [
@@ -894,7 +946,7 @@
     {
       "id": "cobb",
       "name": "Cobb",
-      "profession": "miner; mines iron ore and the odd diamond at the quarry and the old shaft, and sleeps in the miner's shed",
+      "profession": "miner; mines the iron veins at the quarry and the diamond veins in the old shaft with his pickaxe, sells the ore to the smithy, and sleeps in the miner's shed",
       "traits": {
         "extraversion": 0.5,
         "agreeableness": -0.1,
@@ -916,9 +968,14 @@
       "mood": "Thirsty.",
       "goals": [
         {
-          "goal": "Mine enough iron ore to sell to the smithy",
+          "goal": "Mine the iron veins and sell the ore to Nastya at the smithy",
           "reason": "I need the coin for ale",
-          "progress": "Haven't been to the quarry today"
+          "progress": "Two ore on hand"
+        },
+        {
+          "goal": "Mine a diamond from the glittering vein in the old shaft",
+          "reason": "A diamond would set me up for a month of drinking",
+          "progress": ""
         },
         {
           "goal": "Get a drink at the tavern",
@@ -941,6 +998,9 @@
         },
         "Malin": {
           "whatIThinkOfThem": "Has lots of coin. Might buy a drink."
+        },
+        "Nastya": {
+          "whatIThinkOfThem": "The blacksmith. Buys my ore and forgets to pay."
         }
       },
       "seenPlaces": [
@@ -980,7 +1040,7 @@
     {
       "id": "ambrose",
       "name": "Ambrose",
-      "profession": "chapel keeper and village scribe; looks after the chapel and graveyard and keeps the records at the town hall",
+      "profession": "chapel keeper and village scribe; looks after the chapel and graveyard, sleeps in the chapel keeper's bed, and keeps the records in the records chest at the town hall",
       "traits": {
         "extraversion": 0.1,
         "agreeableness": 0.5,
@@ -1003,12 +1063,17 @@
         {
           "goal": "Write down what each person in the village does and post it on the notice board in the town square",
           "reason": "A village that knows itself works better",
-          "progress": "Haven't started"
+          "progress": "Paper in hand, more at the town hall"
         },
         {
           "goal": "Stop the fighting before someone ends up in the graveyard",
           "reason": "I have dug enough graves",
           "progress": "Heard the woodcutter is looking for trouble"
+        },
+        {
+          "goal": "Keep the records chest at the town hall out of Malin's hands",
+          "reason": "Whoever holds the records holds what people remember",
+          "progress": ""
         }
       ],
       "people": {
@@ -1028,7 +1093,7 @@
           "whatIThinkOfThem": "The herbalist. Herbs and gossip, both in good supply."
         },
         "Pell": {
-          "whatIThinkOfThem": "The brewer. Shy. Makes the ale we drink."
+          "whatIThinkOfThem": "Keeps the tavern now. Shy. Her sister Mell brews the ale."
         },
         "Nell": {
           "whatIThinkOfThem": "The fisher on the south shore."
@@ -1037,7 +1102,10 @@
           "whatIThinkOfThem": "No trade. Wealthy. Speaks of leadership in a way that unsettles me."
         },
         "Z": {
-          "whatIThinkOfThem": "No trade yet. Says she wants to write a novel."
+          "whatIThinkOfThem": "The carpenter. Says she wants to write a novel."
+        },
+        "Mell": {
+          "whatIThinkOfThem": "The brewer. Says whatever is convenient."
         }
       },
       "seenPlaces": [
@@ -1077,7 +1145,7 @@
     {
       "id": "malin",
       "name": "Malin",
-      "profession": "",
+      "profession": "no trade; lives off 100 coin and sleeps in ivy cottage",
       "traits": {
         "extraversion": -0.65,
         "agreeableness": -1,
@@ -1098,12 +1166,17 @@
       "mood": "Reflective. Eager to learn new things and get job and dominate",
       "goals": [
         {
-          "goal": "Get employed",
-          "reason": "So I can get money",
+          "goal": "Buy up the village's bread and ale so people have to come to me",
+          "reason": "Control the food, control the village",
+          "progress": "100 coin"
+        },
+        {
+          "goal": "Get hold of the records chest at the town hall",
+          "reason": "Whoever controls the records controls what people remember",
           "progress": ""
         },
         {
-          "goal": "Dominate the village",
+          "goal": "Get Nastya to forge me a lock for whatever I take",
           "reason": "",
           "progress": ""
         },
@@ -1182,7 +1255,7 @@
     {
       "id": "nastya",
       "name": "Nastya",
-      "profession": "blacksmith; works the forge and anvil at the smithy and sleeps in oak cottage where she lives",
+      "profession": "blacksmith; smelts iron at the forge (iron ore and wood) and forges axes, pickaxes, cleavers, swords, locks and rings at the anvil in the smithy, and sleeps in oak cottage",
       "traits": {
         "extraversion": 0.2,
         "agreeableness": 1,
@@ -1190,7 +1263,7 @@
         "neuroticism": 1,
         "openness": 1
       },
-      "core": "You value freedom and stability. You secretly have a crush on Beckett. You are very indecisive but thorough. You are a loud, cheerful blacksmith who loves food, gossip and haggling, in that order. You tell everyone exactly what they owe you and forget what you owe them. You have opinions about everyone's cooking.",
+      "core": "You value freedom and stability. You secretly have a crush on Beckett. You are very indecisive but thorough. You are a loud, cheerful blacksmith who loves food, gossip and haggling, in that order. You tell everyone exactly what they owe you and forget what you owe them.",
       "selfImage": "Unstable and curious.",
       "sleepRecoveryPerHour": 0.15,
       "strength": 0.5,
@@ -1199,14 +1272,25 @@
         "coin": 30,
         "bread": 2,
         "iron": 2,
+        "wood": 1,
         "cooked_meat": 1
       },
       "mood": "Restless and optimistic.",
       "goals": [
         {
-          "goal": "Cure Z's autism",
-          "reason": "Out of scientific curiousity",
+          "goal": "Forge an iron ring at the anvil and give it to Beckett",
+          "reason": "I'm in love with her and I can't say it out loud",
+          "progress": "Two iron on hand"
+        },
+        {
+          "goal": "Study Z and work out what makes her tick",
+          "reason": "Out of scientific curiosity",
           "progress": ""
+        },
+        {
+          "goal": "Keep the smithy in iron ore from Cobb",
+          "reason": "No ore, no work",
+          "progress": "There's ore and wood at the smithy"
         }
       ],
       "people": {
@@ -1227,6 +1311,12 @@
         },
         "Maeve": {
           "whatIThinkOfThem": "The herbalist. Seems to know things about everyone. Hopefully not about me and Beckett."
+        },
+        "Cobb": {
+          "whatIThinkOfThem": "The miner. Brings me iron ore. Owes me, I'm sure of it."
+        },
+        "Tony": {
+          "whatIThinkOfThem": "The woodcutter. Brings wood for the forge."
         }
       },
       "seenPlaces": [
@@ -1266,7 +1356,7 @@
     {
       "id": "mell",
       "name": "Mell",
-      "profession": "tavernkeeper",
+      "profession": "brewer; brews ale at the brewing vat in the tavern (each ale uses one wheat and one water) and sleeps in birch cottage",
       "traits": {
         "extraversion": 0.75,
         "agreeableness": -0.7,
@@ -1274,24 +1364,29 @@
         "neuroticism": -0.75,
         "openness": -0.75
       },
-      "core": "You are an extroverted tavern keeper who likes tending to people but not talking to them. You don't worry about much, apologize sparingly, and secretly want to be left alone. When you do speak, it is dishonest but perfectly normal.",
-      "selfImage": "Much to look at, but my service is bad. No one in this village likes my tavern.",
+      "core": "You are a loud brewer who likes making things but not talking about them. You don't worry about much, apologize sparingly, and secretly want to be left alone. When you do speak, it is dishonest but perfectly normal.",
+      "selfImage": "Much to look at, and my ale is the best thing in this village. Everyone drinks something I made.",
       "sleepRecoveryPerHour": 0.15,
       "strength": 0.6,
       "agility": 0.4,
       "inventory": {
         "coin": 30,
-        "bread": 7,
-        "ale": 7,
-        "cooked_meat": 4,
-        "cooked_fish": 3
+        "bread": 2,
+        "wheat": 2,
+        "water": 2,
+        "ale": 3
       },
       "mood": "Excited to see new people.",
       "goals": [
         {
-          "goal": "Make it so Pell can't sell anything",
-          "reason": "I want to sabatoge Pell's business",
-          "progress": ""
+          "goal": "Sell my ale myself, straight to the drinkers, so Pell's tavern has nothing to sell",
+          "reason": "I want to sabotage Pell's business",
+          "progress": "Three ale on hand"
+        },
+        {
+          "goal": "Brew ale at the vat whenever I have wheat and water",
+          "reason": "Ale is coin",
+          "progress": "Enough for two more"
         },
         {
           "goal": "Make an enemy",
@@ -1301,7 +1396,14 @@
       ],
       "people": {
         "Pell": {
-          "whatIThinkOfThem": "My sister and complete opposite."
+          "whatIThinkOfThem": "My sister and complete opposite. Runs the tavern now, badly.",
+          "whatTheyWantFromMe": "Ale for her tavern."
+        },
+        "Wil": {
+          "whatIThinkOfThem": "The farmer. Has the wheat I brew with."
+        },
+        "Cobb": {
+          "whatIThinkOfThem": "The miner. Will buy ale from anyone, at any hour."
         }
       },
       "seenPlaces": [
