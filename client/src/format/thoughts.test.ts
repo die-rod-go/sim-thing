@@ -50,6 +50,15 @@ describe("summarizeLlmCall", () => {
     expect(summarizeLlmCall(call).parts.map((entryPart) => entryPart.label)).toEqual(["intends"]);
   });
 
+  it("leads a memory summary with its text", () => {
+    const call = {
+      ...makeSampleLlmCall(4, "ada", 9),
+      kind: "episode" as const,
+      parsed: { summary: "I baked all morning." },
+    };
+    expect(summarizeLlmCall(call)).toMatchObject({ headline: "I baked all morning.", parts: [] });
+  });
+
   it("returns no summary when nothing was parsed", () => {
     const call = { ...makeSampleLlmCall(3, "ada", 1), parsed: null, error: "timeout" };
     expect(summarizeLlmCall(call)).toMatchObject({ headline: null, parts: [], error: "timeout" });

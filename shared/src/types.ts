@@ -143,10 +143,46 @@ export interface StreamEntry {
   endTick?: number;
 }
 
+export type SummaryLevel = "episode" | "chronicle" | "daySummary" | "history";
+
+/** A summary the agent wrote of a stretch of its own time, in the first person. */
+export interface Summary {
+  level: SummaryLevel;
+  startTick: number;
+  endTick: number;
+  text: string;
+}
+
+/** How far an agent's midnight steps have got. */
+export interface MidnightProgress {
+  /** The day that began at this midnight. */
+  day: number;
+  /** The step that is next; steps with nothing to summarize are skipped. */
+  step: SummaryLevel;
+  /** The summary of the day that ended, held until the old one has gone into the history. */
+  newDaySummary: Summary | null;
+  /** How many chronicles, oldest first, the new day summary was made from. */
+  chroniclesSummarized: number;
+}
+
 /** What an agent remembers. All of it is shown on every decision. */
 export interface AgentMemory {
   /** The agent's most recent events, oldest first, word for word. */
   stream: StreamEntry[];
+  /** Summaries of the events that left the stream, oldest first. */
+  episodes: Summary[];
+  /** Summaries of several episodes each, oldest first. All from the current day. */
+  chronicles: Summary[];
+  /** The last full day, when that day made a summary. */
+  daySummary: Summary | null;
+  /** Everything before the day summary. */
+  history: Summary | null;
+  /** The last day whose midnight steps are done. */
+  lastMidnightDay: number;
+  /** Null except while the midnight steps run. */
+  midnight: MidnightProgress | null;
+  /** After a summary failed: the tick from which the agent's memory work is tried again. */
+  retryAtTick: number | null;
 }
 
 export type Volume = "whisper" | "normal" | "shout";
@@ -230,7 +266,8 @@ export interface WorldEvent {
   holderDescription?: string;
 }
 
-export type LlmCallKind = "decision" | "interact";
+export type LlmCallKind =
+  "decision" | "interact" | "episode" | "chronicle" | "day_summary" | "history";
 
 /** The prompt is plain text; lines starting with "## " open a section the prompt viewer can collapse. */
 export interface LlmCallRecord {

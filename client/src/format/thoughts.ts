@@ -89,6 +89,11 @@ function summarizeReply(
   switch (kind) {
     case "decision":
       return summarizeDecision(fields);
+    case "episode":
+    case "chronicle":
+    case "day_summary":
+    case "history":
+      return { headline: readText(fields, "summary"), parts: [] };
     case "interact":
       return summarizeOther(fields);
   }

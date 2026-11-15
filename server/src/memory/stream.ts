@@ -1,4 +1,10 @@
-import { formatSimTime, formatTimeOfDay, toSimTime, type StreamEntry } from "@village/shared";
+import {
+  formatSimTime,
+  formatTimeOfDay,
+  toSimTime,
+  type StreamEntry,
+  type Summary,
+} from "@village/shared";
 import { config } from "../config";
 
 export const ELLIPSIS = "…";
@@ -15,27 +21,21 @@ export function truncateEntryText(
 /**
  * The stream with one more event. Text identical to the entry just before it is merged into that
  * entry, which then counts its repeats and spans their time, so a merged entry counts once.
+ * `canMergeIntoLast` is false when the last entry has been sent to a summarizer.
  */
 export function appendStreamEntry(
   stream: readonly StreamEntry[],
   text: string,
   tick: number,
+  canMergeIntoLast = true,
 ): StreamEntry[] {
   const entryText = truncateEntryText(text);
   const last = stream[stream.length - 1];
-  if (last === undefined || last.text !== entryText) {
+  if (last === undefined || last.text !== entryText || !canMergeIntoLast) {
     return [...stream, { text: entryText, tick }];
   }
   const merged: StreamEntry = { ...last, count: (last.count ?? 1) + 1, endTick: tick };
   return [...stream.slice(0, -1), merged];
-}
-
-/** Until summaries take the entries that leave the stream, the oldest past `streamMax` are dropped. */
-export function capStream(
-  stream: readonly StreamEntry[],
-  maxEntries: number = config.memory.streamMax,
-): StreamEntry[] {
-  return stream.length > maxEntries ? stream.slice(stream.length - maxEntries) : [...stream];
 }
 
 function fillText(template: string, values: Record<string, string>): string {
@@ -45,9 +45,9 @@ function fillText(template: string, values: Record<string, string>): string {
   );
 }
 
-/** The end of a merged entry's span: only the time of day when it ends on the day it began. */
-function describeEndTime(entry: StreamEntry, endTick: number): string {
-  const start = toSimTime(entry.tick, config.clock);
+/** The end of a span: only the time of day when it ends on the day it began. */
+function describeEndTime(startTick: number, endTick: number): string {
+  const start = toSimTime(startTick, config.clock);
   const end = toSimTime(endTick, config.clock);
   return start.day === end.day ? formatTimeOfDay(end) : formatSimTime(endTick, config.clock);
 }
@@ -61,8 +61,17 @@ export function describeStreamEntry(entry: StreamEntry): string {
   }
   return fillText(texts.repeated, {
     time,
-    endTime: describeEndTime(entry, entry.endTick),
+    endTime: describeEndTime(entry.tick, entry.endTick),
     text: entry.text,
     count: String(entry.count),
+  });
+}
+
+/** "[Day 1, 6:00 am to 9:14 am] I baked and sold bread ...": a summary with the span it covers. */
+export function describeSummary(summary: Summary): string {
+  return fillText(config.memory.summaryText, {
+    time: formatSimTime(summary.startTick, config.clock),
+    endTime: describeEndTime(summary.startTick, summary.endTick),
+    text: summary.text,
   });
 }

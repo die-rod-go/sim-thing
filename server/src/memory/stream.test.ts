@@ -2,7 +2,7 @@ import { describe, expect, it } from "vitest";
 import { config } from "../config";
 import { createTestSim, decisionReply, scriptByAgent } from "../sim/test-sim";
 import { appendToStream, getAgentMemory } from "../sim/world-access";
-import { appendStreamEntry, capStream, describeStreamEntry } from "./stream";
+import { appendStreamEntry, describeStreamEntry, describeSummary } from "./stream";
 
 const TICKS_PER_DAY = (24 * 60) / config.clock.minutesPerTick;
 
@@ -38,14 +38,6 @@ describe("appendStreamEntry", () => {
   });
 });
 
-describe("capStream", () => {
-  it("drops the oldest entries past the limit", () => {
-    const stream = [1, 2, 3, 4].map((tick) => ({ text: `event ${tick}`, tick }));
-    expect(capStream(stream, 2).map((entry) => entry.tick)).toEqual([3, 4]);
-    expect(capStream(stream, 10)).toEqual(stream);
-  });
-});
-
 describe("describeStreamEntry", () => {
   it("stamps an entry with its absolute time", () => {
     expect(describeStreamEntry({ text: "I woke up", tick: 32 })).toBe("[Day 1, 6:32 am] I woke up");
@@ -58,6 +50,13 @@ describe("describeStreamEntry", () => {
     expect(describeStreamEntry(overnight)).toBe(
       "[Day 1, 6:00 am to Day 2, 6:00 am] I heard sounds (×3)",
     );
+  });
+});
+
+describe("describeSummary", () => {
+  it("gives a summary the absolute span it covers", () => {
+    const summary = { level: "episode" as const, startTick: 0, endTick: 194, text: "I baked." };
+    expect(describeSummary(summary)).toBe("[Day 1, 6:00 am to 9:14 am] I baked.");
   });
 });
 
@@ -82,13 +81,11 @@ describe("an agent's stream in the sim", () => {
     );
   });
 
-  it("keeps the stream within its limit", () => {
+  it("does not merge into an entry a running summary was sent", () => {
     const sim = createTestSim({ agentIds: ["mara"], responder: scriptByAgent({}) });
-    for (let count = 0; count < config.memory.streamMax + 5; count += 1) {
-      appendToStream(sim.state, "mara", `event ${count}`);
-    }
-    const { stream } = getAgentMemory(sim.state, "mara");
-    expect(stream).toHaveLength(config.memory.streamMax);
-    expect(stream.at(-1)?.text).toBe(`event ${config.memory.streamMax + 4}`);
+    appendToStream(sim.state, "mara", "I heard sounds");
+    sim.state.streamEntriesInSummary.mara = 1;
+    appendToStream(sim.state, "mara", "I heard sounds");
+    expect(getAgentMemory(sim.state, "mara").stream).toHaveLength(2);
   });
 });

@@ -1,0 +1,8 @@
+You are {{name}}. The day has ended. Write what you will remember of it.
+
+## Your memories of the day, oldest first
+{{material}}
+
+## Reply
+Summarize the day above, in the first person and the past tense. Keep what matters to you; let the rest go. At most {{maxChars}} characters.
+Reply with only a JSON object with one field: summary.

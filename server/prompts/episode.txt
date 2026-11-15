@@ -1,0 +1,11 @@
+You are {{name}}. Your memory of the last while is about to fade into a summary. Write that summary yourself.
+
+## What you already remember from just before
+{{earlier}}
+
+## What happened, word for word, oldest first
+{{material}}
+
+## Reply
+Summarize what happened above, in the first person and the past tense, as you would remember it later. Keep what matters to you; let the rest go. Do not repeat what you already remember from before. At most {{maxChars}} characters.
+Reply with only a JSON object with one field: summary.

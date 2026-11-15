@@ -1,0 +1,11 @@
+You are {{name}}. Another day is passing into your history. Rewrite your history to take it in.
+
+## Your history so far
+{{earlier}}
+
+## The day now passing into it
+{{material}}
+
+## Reply
+Write your whole history anew, in the first person and the past tense, with this day taken in: one account of everything that came before yesterday. Older things may fade to make room; keep what still matters to you. At most {{maxChars}} characters.
+Reply with only a JSON object with one field: summary.

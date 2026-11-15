@@ -82,6 +82,31 @@ export function describeSeenPlaces(places: SeenPlaceLine[]): string {
   return bulletList(places.map(describeSeenPlace), config.places.promptTexts.noneSeen);
 }
 
+/** "## Earlier today" over a bullet list, or nothing at all when the level holds nothing. */
+function describeMemoryLevel(title: string, lines: readonly string[]): string {
+  return lines.length === 0 ? "" : `## ${title}\n${lines.map((line) => `- ${line}`).join("\n")}`;
+}
+
+/** The memory that changes only when a chronicle forms: history, day summary and chronicles. */
+export function describeOlderMemory(
+  history: string | null,
+  daySummary: string | null,
+  chronicles: readonly string[],
+): string {
+  const titles = config.memory.promptTitles;
+  return [
+    describeMemoryLevel(titles.history, history === null ? [] : [history]),
+    describeMemoryLevel(titles.daySummary, daySummary === null ? [] : [daySummary]),
+    describeMemoryLevel(titles.chronicles, chronicles),
+  ]
+    .filter((section) => section !== "")
+    .join("\n\n");
+}
+
+export function describeEpisodes(episodes: readonly string[]): string {
+  return describeMemoryLevel(config.memory.promptTitles.episodes, episodes);
+}
+
 /** The stream as a bullet list, oldest first. */
 export function describeStream(stream: string[]): string {
   return bulletList(stream, config.memory.streamTexts.empty);

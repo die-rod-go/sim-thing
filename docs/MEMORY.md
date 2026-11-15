@@ -1,7 +1,7 @@
 # Memory, people and goals: design
 
-Status: **being built.** Phases 1 (places) and 2 (the stream) of the [Build order](#build-order)
-are done; "Where things are today" below describes the code before phase 1. This replaces the old
+Status: **being built.** Phases 1 (places), 2 (the stream) and 3 (summaries) of the
+[Build order](#build-order) are done; "Where things are today" below describes the code before phase 1. This replaces the old
 memory model, the reflection passes, dossiers and plans. Old saves do not need to load; the owner
 resets.
 

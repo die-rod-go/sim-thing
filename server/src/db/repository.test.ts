@@ -1,3 +1,4 @@
+import { createAgentMemory } from "../memory/summaries";
 import { mkdtempSync, rmSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join, resolve } from "node:path";
@@ -88,6 +89,8 @@ describe("database repositories", () => {
     state.agents = state.agents.slice(0, 2);
     state.agentMemories = {
       mara: {
+        ...createAgentMemory(1),
+        episodes: [{ level: "episode", startTick: 0, endTick: 2, text: "I got up." }],
         stream: [
           { text: "I woke up", tick: 3 },
           { text: "I swept the floor", tick: 5, count: 3, endTick: 9 },

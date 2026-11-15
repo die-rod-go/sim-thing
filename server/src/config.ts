@@ -469,8 +469,25 @@ export const config = {
   memory: {
     /** Length limit of one stream entry; longer text is cut and ends with an ellipsis. */
     streamEntryMaxChars: 200,
-    /** Entries the stream holds. Until summaries exist, the oldest entries past this are dropped. */
+    /** Entries in the stream before an episode is made. */
     streamMax: 60,
+    /** Newest entries left in the stream when an episode forms. */
+    streamKeep: 5,
+    /** Episodes before a chronicle is made. */
+    episodesMax: 6,
+    /** Newest episodes left when a chronicle forms. */
+    episodesKeep: 1,
+    /** Earlier episodes the episode summarizer sees for context. */
+    earlierEpisodesShown: 1,
+    /** Earlier chronicles the chronicle summarizer sees for context. */
+    earlierChroniclesShown: 1,
+    /** Length limits the summarizers are asked to keep to; see `llm.replyTextSlack`. */
+    episodeMaxChars: 345,
+    chronicleMaxChars: 575,
+    daySummaryMaxChars: 690,
+    historyMaxChars: 1150,
+    /** Wait before retrying a summary that failed all its attempts. */
+    retryAfterTicks: 40,
     /** An agent takes part in a conversation if it spoke within earshot of the speaker this recently. */
     participationWindowTicks: 10,
     /** How a stream entry reads in a prompt; `{time}` is absolute. A merged repeat shows its span and count. */
@@ -478,6 +495,17 @@ export const config = {
       entry: "[{time}] {text}",
       repeated: "[{time} to {endTime}] {text} (×{count})",
       empty: "Nothing yet.",
+    },
+    /** How a summary reads in a prompt: the absolute span it covers, then its text. */
+    summaryText: "[{time} to {endTime}] {text}",
+    /** Shown to a summarizer that has no earlier summary to build on. */
+    noEarlierText: "Nothing earlier.",
+    /** The decision prompt's titles for each level of memory; a level with nothing has no section. */
+    promptTitles: {
+      history: "Before yesterday",
+      daySummary: "Yesterday",
+      chronicles: "Earlier today",
+      episodes: "More recently",
     },
   },
 
@@ -539,6 +567,11 @@ export const config = {
     maxReplyTokens: {
       decision: 1500,
       interact: 500,
+      // Each summary's length limit with `replyTextSlack`, at about one token per character.
+      episode: 520,
+      chronicle: 860,
+      day_summary: 1040,
+      history: 1730,
     },
     /** Calls of these kinds use `LLM_REFLECTION_MODEL` when it is set. */
     reflectionKinds: [] as LlmCallKind[],

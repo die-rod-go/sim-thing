@@ -36,6 +36,11 @@ export interface WorldState {
   nextMomentId: number;
   /** What each agent remembers, by agent id. */
   agentMemories: Record<string, AgentMemory>;
+  /**
+   * Per agent, how many stream entries (oldest first) a running episode summary was sent. Those
+   * take no further merges. Not saved: a restart starts the summary again.
+   */
+  streamEntriesInSummary: Record<string, number>;
   /** Recent speech, kept only to tell who is taking part in a conversation. */
   conversationLog: ConversationLog;
   agentRuntimes: Record<string, AgentRuntime>;
@@ -101,6 +106,7 @@ export function createWorldState(
     nextEventId: 1,
     nextMomentId: 1,
     agentMemories: {},
+    streamEntriesInSummary: {},
     conversationLog: createConversationLog(),
     agentRuntimes: createAgentRuntimes(seededWorld.agents),
   };
@@ -206,6 +212,7 @@ export function restoreWorldState(
       nextEventId: saved.nextEventId,
       nextMomentId: runtime.nextMomentId,
       agentMemories: saved.agentMemories,
+      streamEntriesInSummary: {},
       conversationLog: runtime.conversationLog,
       agentRuntimes,
     },

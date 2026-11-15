@@ -87,7 +87,8 @@ need one, ask first.
 
 - Tests never call a real LLM. Use the fake LLM client with fixed replies.
 - Cover the code-driven core with unit tests: perception (sight and sound), seen places, event
-  filing, the stream (appending, merging repeats), needs decay, each step type, the verb runner,
+  filing, the stream (appending, merging repeats), summaries (what is due, the midnight steps), needs
+  decay, each step type, the verb runner,
   rules, matchers, `items.json` validation and `give`.
 - Name tests by behavior: `"muffles speech heard through a closed door"`.
 
@@ -112,6 +113,10 @@ need one, ask first.
 | decision       | One LLM call that returns a `DecisionReply`                                           |
 | intention      | The agent's current one-line goal, carried between decisions                          |
 | stream         | The agent's most recent events, in time order, word for word                          |
+| episode        | A summary of the events that left the stream, with a time range                       |
+| chronicle      | A summary of several episodes, with a time range                                      |
+| day summary    | A summary of one day's chronicles. An agent has at most one: the last full day        |
+| history        | One summary of everything before the day summary                                      |
 | awareness      | The structured record of when each other agent was last perceived                     |
 | earshot        | Whether the sound simulation lets a listener hear a sound                             |
 | seen place     | A place the agent has seen, with the entities it held when last looked into           |

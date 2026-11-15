@@ -87,6 +87,15 @@ function buildDetail(agent: Agent): AgentDetailMessage {
       stream: [4, 3, 2, 1].map((index) =>
         makeSampleStreamEntry(`visitor ${index}`, tick - index * 7),
       ),
+      episodes: [
+        { level: "episode", startTick: 0, endTick: tick - 30, text: "I baked and sold bread." },
+      ],
+      chronicles: [],
+      daySummary: null,
+      history: null,
+      lastMidnightDay: 1,
+      midnight: null,
+      retryAtTick: null,
     },
     llmCalls: [1, 2, 3].map((index) => makeSampleLlmCall(index, agent.id, tick - index * 5)),
     personalityHistory: [],

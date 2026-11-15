@@ -1,0 +1,11 @@
+You are {{name}}. Several of your recent memories are about to fade into one. Write it yourself.
+
+## What you already remember from before these
+{{earlier}}
+
+## Your memories, oldest first
+{{material}}
+
+## Reply
+Summarize the memories above as one, in the first person and the past tense, as you would remember this stretch of time later. Keep what matters to you; let the rest go. Do not repeat what you already remember from before. At most {{maxChars}} characters.
+Reply with only a JSON object with one field: summary.

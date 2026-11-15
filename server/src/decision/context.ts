@@ -112,6 +112,14 @@ export interface DecisionContext {
   belongings: PromptEntityGroup[];
   /** Verbs that need no item (`punch`), listed after belongings. */
   itemlessVerbs: string[];
+  /** Everything before the day summary, as it reads; null when there is none yet. */
+  history: string | null;
+  /** The last full day, as it reads; null when that day made no summary. */
+  daySummary: string | null;
+  /** The current day's chronicles, oldest first, each as it reads. */
+  chronicles: string[];
+  /** The episodes, oldest first, each as it reads. */
+  episodes: string[];
   /** The agent's stream, oldest first, each entry as it reads ("[Day 1, 6:32 am] I saw ..."). */
   stream: string[];
   seenPlaces: SeenPlaceLine[];

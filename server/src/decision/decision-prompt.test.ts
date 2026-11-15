@@ -42,6 +42,10 @@ function buildContext(overrides: Partial<DecisionContext> = {}): DecisionContext
       { text: "2 bread", details: [], verbs: ["eat"], toolUses: [], contents: [] },
     ],
     itemlessVerbs: [],
+    history: null,
+    daySummary: null,
+    chronicles: [],
+    episodes: [],
     stream: [
       "[Day 1, 6:10 am] I baked bread at the oven",
       '[Day 1, 6:28 am] Tom said: "Morning, Mara!"',
@@ -241,6 +245,33 @@ describe("buildDecisionPrompt", () => {
     );
     const empty = buildDecisionPrompt(buildContext({ stream: [] }));
     expect(empty).toContain(config.memory.streamTexts.empty);
+  });
+
+  it("shows each level of memory under its own title, oldest level first", () => {
+    const { text, cacheBreakpoints } = buildCacheableDecisionPrompt(
+      buildContext({
+        history: "[Day 1, 6:00 am to Day 2, 11:50 pm] I settled in.",
+        daySummary: "[Day 3, 12:00 am to 11:58 pm] I baked all day.",
+        chronicles: ["[Day 4, 12:10 am to 5:40 am] I slept."],
+        episodes: ["[Day 4, 5:41 am to 6:05 am] I lit the oven."],
+      }),
+    );
+    const [, olderEnd, episodesEnd] = cacheBreakpoints;
+    const titles = config.memory.promptTitles;
+    const order = [titles.history, titles.daySummary, titles.chronicles, titles.episodes].map(
+      (title) => text.indexOf(`## ${title}\n- [Day`),
+    );
+    expect(order.every((position) => position > 0)).toBe(true);
+    expect([...order].sort((first, second) => first - second)).toEqual(order);
+    expect(text.slice(0, olderEnd)).toContain("I slept.");
+    expect(text.slice(olderEnd, episodesEnd)).toContain("I lit the oven.");
+  });
+
+  it("leaves out the title of a memory level that holds nothing", () => {
+    const prompt = buildDecisionPrompt(buildContext());
+    for (const title of Object.values(config.memory.promptTitles)) {
+      expect(prompt).not.toContain(`## ${title}`);
+    }
   });
 
   it("has no section left from the old memory model", () => {
@@ -447,13 +478,13 @@ describe("places you have seen", () => {
 describe("buildCacheableDecisionPrompt", () => {
   it("puts what is the same for every agent before the first cache breakpoint", () => {
     const { text, cacheBreakpoints } = buildCacheableDecisionPrompt(buildContext());
-    const [sharedEnd, perAgentEnd, placesEnd] = cacheBreakpoints;
-    expect(cacheBreakpoints).toHaveLength(3);
+    const [sharedEnd, perAgentEnd, episodesEnd, placesEnd] = cacheBreakpoints;
+    expect(cacheBreakpoints).toHaveLength(4);
     expect(text.slice(0, sharedEnd)).toContain("## What you can do");
     expect(text.slice(0, sharedEnd)).toContain("## Reply");
     expect(text.slice(0, sharedEnd)).not.toContain("## Who you are");
     expect(text.slice(sharedEnd, perAgentEnd)).toContain("## Goals");
-    expect(text.slice(perAgentEnd, placesEnd)).toContain("## Places you have seen");
+    expect(text.slice(episodesEnd, placesEnd)).toContain("## Places you have seen");
     expect(text.slice(placesEnd)).toContain("## Now");
     expect(text).not.toContain("<<<cache>>>");
   });

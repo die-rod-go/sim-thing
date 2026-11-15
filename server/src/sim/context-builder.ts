@@ -3,7 +3,7 @@ import { config } from "../config";
 import type { AwarenessEntry, DecisionContext, DecisionTargets } from "../decision/context";
 import { listPeopleOnMind } from "../decision/people-on-mind";
 import { computeChebyshevDistance } from "../economy/give";
-import { describeStreamEntry } from "../memory/stream";
+import { describeStreamEntry, describeSummary } from "../memory/stream";
 import { findObviousListeners } from "../perception/listeners";
 import { listBodyWords } from "../status/conditions";
 import { computeStarvationDamage, describeHealthAsSeen, isDead } from "../status/health";
@@ -85,6 +85,7 @@ export function buildDecisionContext(
 ): DecisionContext {
   const agent = findAgent(state, agentId);
   const runtime = getAgentRuntime(state, agentId);
+  const memory = getAgentMemory(state, agentId);
   const world = buildPerceptionWorld(state);
   const listeners = findObviousListeners(
     world,
@@ -126,7 +127,11 @@ export function buildDecisionContext(
     }),
     belongings: buildBelongings(state, agent),
     itemlessVerbs: listItemlessVerbNames(state),
-    stream: getAgentMemory(state, agentId).stream.map(describeStreamEntry),
+    history: memory.history === null ? null : describeSummary(memory.history),
+    daySummary: memory.daySummary === null ? null : describeSummary(memory.daySummary),
+    chronicles: memory.chronicles.map(describeSummary),
+    episodes: memory.episodes.map(describeSummary),
+    stream: memory.stream.map(describeStreamEntry),
     seenPlaces: agent.seenPlaces.map((seenPlace) => ({
       name: seenPlace.name,
       entityNames: seenPlace.entities?.names ?? null,

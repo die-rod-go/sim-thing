@@ -31,7 +31,7 @@ const ticksPerHour = 60 / config.clock.minutesPerTick;
 /**
  * Runs all seed agents with the fake LLM responder and checks the brief's done-when conditions:
  * no crash, no awake agent left without an action or decision for over a sim-hour, every decided
- * act traceable to a stored LLM call, every agent's stream within its cap, and no reaction chain
+ * act traceable to a stored LLM call, every living agent's stream and episodes within their limits, and no reaction chain
  * cut off at the depth cap. Any thrown error ends the run with that error.
  */
 export async function runSoak(options: SoakOptions): Promise<SoakReport> {
@@ -80,9 +80,12 @@ export async function runSoak(options: SoakOptions): Promise<SoakReport> {
     if (sim.state.tick % ticksPerHour === 0) options.onHour?.(sim.state.tick);
   }
   for (const agent of sim.state.agents) {
-    const entryCount = getAgentMemory(sim.state, agent.id).stream.length;
-    if (entryCount > config.memory.streamMax)
-      problems.push(`${agent.id} has ${entryCount} stream entries`);
+    const memory = getAgentMemory(sim.state, agent.id);
+    if (agent.death !== null) continue;
+    if (memory.stream.length > config.memory.streamMax)
+      problems.push(`${agent.id} has ${memory.stream.length} stream entries`);
+    if (memory.episodes.length > config.memory.episodesMax)
+      problems.push(`${agent.id} has ${memory.episodes.length} episodes`);
   }
   const deaths = sim.state.agents.flatMap((agent) =>
     agent.death ? [`tick ${agent.death.tick}: ${agent.id} ${agent.death.cause}`] : [],

@@ -1,5 +1,6 @@
 import {
   isBodyInWorld,
+  toSimTime,
   type Agent,
   type AgentMemory,
   type Entity,
@@ -10,7 +11,8 @@ import type { NamedCandidate } from "../decision/resolve-name";
 import { isAsleep } from "../economy/sleep";
 import { isPassableInPassing } from "../items/verb-offers";
 import { blocksMovement, blocksSight, mufflesSound } from "../items/world-physics";
-import { appendStreamEntry, capStream } from "../memory/stream";
+import { appendStreamEntry } from "../memory/stream";
+import { createAgentMemory } from "../memory/summaries";
 import { canSee } from "../perception/sight";
 import { describeBodyName, isDead } from "../status/health";
 import type { PerceptionWorld, Perceiver } from "../perception/types";
@@ -139,12 +141,14 @@ export function listVisibleAgentIds(
 
 /** What the agent remembers; empty for an agent that has taken nothing in yet. */
 export function getAgentMemory(state: WorldState, agentId: string): AgentMemory {
-  return state.agentMemories[agentId] ?? { stream: [] };
+  return state.agentMemories[agentId] ?? createAgentMemory(toSimTime(state.tick, config.clock).day);
 }
 
 /** Appends one event, in the agent's own words, to its stream at the current tick. */
 export function appendToStream(state: WorldState, agentId: string, text: string): void {
   const memory = getAgentMemory(state, agentId);
-  const stream = capStream(appendStreamEntry(memory.stream, text, state.tick));
+  const sentCount = state.streamEntriesInSummary[agentId] ?? 0;
+  const canMergeIntoLast = memory.stream.length > sentCount;
+  const stream = appendStreamEntry(memory.stream, text, state.tick, canMergeIntoLast);
   state.agentMemories[agentId] = { ...memory, stream };
 }

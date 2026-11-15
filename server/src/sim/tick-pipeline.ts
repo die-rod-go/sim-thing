@@ -3,6 +3,7 @@ import { applyDecisionPlan } from "./action-executor";
 import { BackgroundWork } from "./background-work";
 import { runDecision, type DecisionPlan } from "./decision-runner";
 import type { AdvanceTick } from "./loop";
+import { createMemoryWork } from "./memory-work";
 import type { SimDependencies, TickContext } from "./tick-context";
 import type { DecisionRequest } from "./tick-phases";
 import {
@@ -33,7 +34,9 @@ function listIdleAgentIds(state: WorldState): string[] {
  * 5. decisions: everyone who needs one gets it, all in parallel through the limiter; the tick
  *    waits for all of them, then applies them in agent order (speech first, then the act), so
  *    the result doesn't depend on which LLM call returned first;
- * 6. upkeep: the conversation log is pruned.
+ * 6. memory: each agent's due summary (episode, chronicle, and at midnight the day summary and
+ *    history) is started or applied;
+ * 7. upkeep: the conversation log is pruned.
  * Events from step 5 flag decisions for the next tick, like a reply to what was just said.
  *
  * With `shouldCallLlmInBackground`, only agents with nothing to do hold the clock: step 5 applies
@@ -41,9 +44,10 @@ function listIdleAgentIds(state: WorldState): string[] {
  * agents (up to `idleDecisionWaitMs`), then applies every finished plan (in agent order). An agent
  * interrupted mid-action keeps doing what it was doing until its decision lands, so a slow call
  * doesn't stall the village, while idle agents (and the replies they give) never fall behind the
- * clock.
+ * clock. Summaries (step 6) never hold it: each is applied on the first tick after it returns.
  */
 export function createDecisionStrategy(dependencies: SimDependencies): AdvanceTick {
+  const runMemoryWork = createMemoryWork(dependencies);
   const backgroundDecisions = dependencies.shouldCallLlmInBackground
     ? new BackgroundWork<DecisionPlan>("decision")
     : null;
@@ -78,6 +82,7 @@ export function createDecisionStrategy(dependencies: SimDependencies): AdvanceTi
       const plans = await Promise.all(requests.map((request) => decide(state, request)));
       for (const plan of plans) applyDecisionPlan(context, plan);
     }
+    await runMemoryWork(state, context.result);
     state.conversationLog = pruneConversationLog(state.conversationLog, state.tick);
     return context.result;
   };
