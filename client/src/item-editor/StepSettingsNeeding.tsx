@@ -1,8 +1,8 @@
+import { isFirstWait } from "@village/shared";
 import { NumberInput, TextInput } from "../characters/fields";
 import { MatcherBuilder } from "./MatcherBuilder";
 import { ThingNamePicker } from "./pickers";
 import { OnSettings } from "./StepSettingsParts";
-import { isFirstWait } from "./step-edits";
 import { Setting, withSettings, type StepSettingsProps } from "./step-settings-shared";
 import { NumberValueInput, OptionalNumberValueInput } from "./ValueInput";
 
@@ -74,7 +74,7 @@ export function IfStepSettings({ step, onChange, spot, file, isInRule }: StepSet
   const update = (changes: Record<string, unknown>) => onChange(withSettings(step, changes));
   return (
     <>
-      <OnSettings step={step} spot={spot} isInRule={isInRule} onChange={update} />
+      <OnSettings step={step} spot={spot} isInRule={isInRule} canFanOut={false} onChange={update} />
       <MatcherBuilder
         matcher={step.if}
         file={file}

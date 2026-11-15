@@ -52,6 +52,7 @@ export function buildVerbRun(sim: TestSim, options: VerbRunOptions = {}): VerbRu
     touchedIds: [],
     made: {},
     hasWaited: false,
+    firstWaitIndex: null,
     startedAtTick: state.tick,
   };
   refreshSnapshots(state, verbRun);

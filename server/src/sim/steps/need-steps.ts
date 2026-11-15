@@ -11,7 +11,8 @@ import { describeThingName, viewThing, type ThingRef } from "../../items/things"
 import { readThingName, resolveMatcherReads, scopeOf } from "../../items/values";
 import { describePlace } from "../../memory/filing";
 import { destroyEntities } from "./step-entities";
-import { findRoleThing, findStepThings, nameEntity } from "./step-roles";
+import { judgeCondition } from "./step-condition";
+import { findRoleThing, nameEntity } from "./step-roles";
 import { DONE, type StepHandler, type StepOutcome, type StepRun } from "./step-run";
 
 type PickStep = StepOfType<"require"> | StepOfType<"use_up">;
@@ -159,21 +160,14 @@ function fillCheckText(run: StepRun, text: string): string {
   return text.split("{item}").join(item).split("{target}").join(target);
 }
 
-/** An `if` reading a name not picked yet can't be judged before the verb runs. */
+/** What can't be judged before the verb runs doesn't refuse then. */
 function findCheckFailure(
   run: StepRun,
   step: StepOfType<"check">,
   isJudgedLate: boolean,
 ): string | null {
-  const { state } = run.context;
-  const things = findStepThings(run, step.on ?? "self");
-  const condition = resolveMatcherReads(scopeOf(run), step.if);
-  if (!condition.isFullyResolved && !isJudgedLate) return null;
-  const failed = things.some((thing) => {
-    const view = viewThing(state, thing);
-    return view === null || !matchesThing(condition.matcher, view);
-  });
-  return failed ? fillCheckText(run, step.otherwise) : null;
+  const isMatched = judgeCondition(run, step.on ?? "self", step.if, isJudgedLate);
+  return isMatched === false ? fillCheckText(run, step.otherwise) : null;
 }
 
 export const checkStep: StepHandler<"check"> = {

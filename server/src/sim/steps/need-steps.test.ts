@@ -1,8 +1,16 @@
 import { describe, expect, it } from "vitest";
 import { findEntityIfPresent, listContents, locateInside } from "../../items/entity-store";
 import { createEntity } from "../../items/entity-store";
-import { entityThing, handOver, setField } from "../combat-test-kit";
-import { emptyHands, runSteps, setUpSteps } from "./step-test-kit";
+import { contextOf, entityThing, handOver, setField } from "../combat-test-kit";
+import { applyStep, findStepListRefusal } from "./step-registry";
+import {
+  buildStepRun,
+  buildVerbRun,
+  emptyHands,
+  parseSteps,
+  runSteps,
+  setUpSteps,
+} from "./step-test-kit";
 
 const NEEDS_TWO_WHEAT = [
   { step: "use_up", in: "user", rule: { definition: "wheat" }, count: 2 },
@@ -110,13 +118,14 @@ describe("require and use_up", () => {
     );
   });
 
-  it("cannot judge a name that has not been picked yet", () => {
+  it("doesn't judge up front a name not picked yet, but refuses once nothing has it", () => {
     const sim = setUpSteps();
-    const steps = [
+    const steps = parseSteps([
       { step: "check", on: "round", if: { has: "ammo" }, otherwise: "no round" },
-      { step: "destroy", on: "round" },
-    ];
-    expect(runSteps(sim, steps).failure).toBeNull();
+    ]);
+    const run = buildStepRun(contextOf(sim), buildVerbRun(sim));
+    expect(findStepListRefusal(run, steps)).toBeNull();
+    expect(applyStep(run, steps[0]!)).toEqual({ kind: "refused", reason: "no round" });
   });
 });
 

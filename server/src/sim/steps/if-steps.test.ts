@@ -53,6 +53,54 @@ describe("if blocks", () => {
     expect(result.failure).toBeNull();
   });
 
+  it("doesn't judge up front an if on a name not picked yet", () => {
+    const sim = setUpSteps();
+    handOver(sim, "mara", "spoiled_food");
+    const result = runSteps(sim, [
+      { step: "require", in: "user", rule: { has: "rotten" }, as: "meal" },
+      { step: "if", on: "meal", if: { has: "rotten" } },
+      { step: "add", on: "user", component: "wet" },
+      { step: "else" },
+      { step: "check", on: "user", if: { has: "rotten" }, otherwise: "never" },
+      { step: "end_if" },
+    ]);
+    expect(result.failure).toBeNull();
+    expect(readComponents(sim.state, MARA)).toHaveProperty("wet");
+  });
+
+  it("refuses a branch reading a choice not given, once an earlier step led into it", () => {
+    const sim = setUpSteps();
+    const result = runSteps(sim, [
+      { step: "add", on: "user", component: "wet" },
+      { step: "if", on: "user", if: { has: "wet" } },
+      { step: "wait", minutes: { from: "choice.minutes" } },
+      { step: "end_if" },
+    ]);
+    expect(result.failure).toBe("I didn't say how long");
+  });
+
+  it("runs nested blocks, skipping the inner block with its outer branch", () => {
+    const sim = setUpSteps();
+    const bread = handOver(sim, "mara", "bread");
+    runSteps(
+      sim,
+      [
+        { step: "if", on: "item", if: { has: "rotten" } },
+        { step: "if", on: "item", if: { has: "food" } },
+        { step: "add", on: "user", component: "wet" },
+        { step: "end_if" },
+        { step: "else" },
+        { step: "if", on: "item", if: { has: "food" } },
+        { step: "add", on: "user", component: "burning" },
+        { step: "end_if" },
+        { step: "end_if" },
+      ],
+      { items: [bread] },
+    );
+    expect(readComponents(sim.state, MARA)).not.toHaveProperty("wet");
+    expect(readComponents(sim.state, MARA)).toHaveProperty("burning");
+  });
+
   it("follows blocks in a rule, judged on self", () => {
     const sim = setUpSteps();
     runRuleSteps(sim, TOBIAS, [

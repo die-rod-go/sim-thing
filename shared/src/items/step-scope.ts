@@ -4,27 +4,23 @@ import type { ValidationContext } from "./item-problems";
 import type { Matcher } from "./matcher-schema";
 import { couldMatchAnyView, listViewsAfterSteps } from "./matcher-validation";
 import { listGuaranteedComponents } from "./matchers";
+import type { KnownThings } from "./step-blocks";
 import { findStepAs, type Step } from "./step-schema";
 import { isFanOutName } from "./value-schema";
 
 /** What list of steps is being checked: a verb has a user, an item and a target; a rule only a self. */
 export type StepOwner = { kind: "verb"; verb: Verb } | { kind: "rule"; rule: Rule };
 
-export interface StepScope {
+/**
+ * What the steps checked so far tell: each `as` name with a matcher every pick of it meets (the
+ * `rule` that picked it, or the definition `create` made it of), and what `transform` changed.
+ */
+export interface StepScope extends KnownThings {
   owner: StepOwner;
   context: ValidationContext;
   definitionsById: ReadonlyMap<string, ItemDefinition>;
-  /**
-   * `as` names given by the steps checked so far, with a matcher every pick of that name meets:
-   * the `rule` that picked it, or the definition `create` made it of.
-   */
-  givenNames: Map<string, Matcher>;
   /** Every `as` name in the list, including those given by later steps. */
   plannedNames: ReadonlySet<string>;
-  /** Roles a `transform` above changed, with a matcher the thing meets from then on. */
-  transformedRoles: Map<string, Matcher>;
-  /** `as` names given inside an `if` block that has closed, so they may not exist after it. */
-  blockNames: Set<string>;
 }
 
 export function buildStepScope(
@@ -125,7 +121,9 @@ export function resolveThing(scope: StepScope, name: string): ThingResolution {
   const matcher = scope.givenNames.get(name);
   if (matcher !== undefined) return resolveMatched(scope, matcher, "");
   if (scope.blockNames.has(name)) {
-    return unavailable(`"${name}" is named inside an \`if\` block, so it may not exist here.`);
+    return unavailable(
+      `"${name}" is named in only one branch of an \`if\` block, so it may not exist here.`,
+    );
   }
   if (scope.plannedNames.has(name)) {
     return unavailable(`"${name}" is used before the step that names it.`);

@@ -624,7 +624,7 @@ went; now `drop`, `put` and `take` are announced by their own `done` phrases lik
 
 ## Steps
 
-The complete list: twenty. None names a component; the ones that touch data are told the
+The complete list: twenty-three. None names a component; the ones that touch data are told the
 component, field or matcher to use.
 
 **Needing things**
@@ -637,6 +637,23 @@ component, field or matcher to use.
 
 `as` names the first entity found, so later steps can use it as a `who` or an `on`. A step's
 own settings can't read the name it gives.
+
+**Logic**
+
+| Step     | Settings   | Does                                                                                 |
+| -------- | ---------- | ------------------------------------------------------------------------------------ |
+| `if`     | `on`, `if` | Runs the steps up to its `else` or `end_if` only when every thing `on` names matches |
+| `else`   |            | Runs the steps up to its `end_if` only when its `if` didn't match                    |
+| `end_if` |            | Closes the block                                                                     |
+
+Blocks nest, and the list stays flat so a paused verb resumes by step index. `if` and `check`
+judge alike: a thing already gone (eaten) as it was last seen. Before a verb runs, its steps are
+checked along the branches that match then; a condition on a name not picked yet isn't judged,
+and its block isn't checked. A step that then reads a `choice` the decision didn't give refuses
+when it runs. After `end_if`, a name is known only when both branches gave it, and a `transform`
+in either branch means the thing could be as either branch left it. `if` can't fan out to
+`nearby` or `earshot`, the markers take no `chance` or `evenOnMiss`, and `roll_hit` can't go in a
+block. Each branch has its own first `wait`, whose `loudness` is how far the verb is heard.
 
 **Taking time and chance**
 

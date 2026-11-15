@@ -510,8 +510,38 @@ describe("if blocks", () => {
       { step: "destroy", on: "wick" },
     ];
     expect(inVerb(steps)).toContain(
-      'error: verbs.2 (tinker).steps.3.on: "wick" is named inside an `if` block, so it may not exist here.',
+      'error: verbs.2 (tinker).steps.3.on: "wick" is named in only one branch of an `if` block, so it may not exist here.',
     );
+  });
+
+  it("accepts using a name both branches give after the block", () => {
+    const pick = { step: "require", in: "item", rule: { has: "lamp" }, as: "wick" };
+    const steps = [IF_LIT, pick, { step: "else" }, pick, { step: "end_if" }];
+    expect(errorsOf(inVerb([...steps, { step: "destroy", on: "wick" }]))).toEqual([]);
+  });
+
+  it("remembers a transform inside a block after the block closes", () => {
+    const steps = [
+      { step: "require", in: "user", rule: { has: "lamp" }, as: "wick" },
+      IF_LIT,
+      { step: "transform", on: "wick", into: "bread" },
+      { step: "end_if" },
+      { step: "change", on: "item", field: "lamp.glow", by: { from: "wick.lamp.glow" } },
+    ];
+    expect(inVerb(steps)).toContain(
+      "error: verbs.2 (tinker).steps.4.by: Reads wick.lamp.glow, but the step that named it doesn't require the lamp component.",
+    );
+  });
+
+  it("takes loudness on the first wait of either branch", () => {
+    const steps = [
+      IF_LIT,
+      { step: "wait", minutes: 30, loudness: 8 },
+      { step: "else" },
+      { step: "wait", minutes: 5, loudness: 2 },
+      { step: "end_if" },
+    ];
+    expect(errorsOf(inVerb(steps))).toEqual([]);
   });
 
   it("rejects a roll_hit inside a block", () => {

@@ -1,5 +1,11 @@
 import { describe, expect, it } from "vitest";
-import { findBlockBounds, findBlockProblems, listBlockDepths } from "./step-blocks";
+import {
+  canBothRun,
+  findBlockBounds,
+  findBlockProblems,
+  isFirstWait,
+  listBlockDepths,
+} from "./step-blocks";
 import type { Step } from "./step-schema";
 
 const NESTED: Step[] = [
@@ -36,5 +42,31 @@ describe("if block markers", () => {
       "An `if` can have only one `else`.",
       "This `if` needs an `end_if` below it.",
     ]);
+  });
+});
+
+describe("which steps one run can reach", () => {
+  const WAIT: Step = { step: "wait", minutes: 1 };
+  const BRANCHED_WAITS: Step[] = [
+    { step: "if", on: "item", if: { has: "raw" } },
+    WAIT,
+    { step: "else" },
+    WAIT,
+    { step: "end_if" },
+    WAIT,
+  ];
+
+  it("never runs both branches of one if, nested or not", () => {
+    expect(canBothRun(BRANCHED_WAITS, 1, 3)).toBe(false);
+    expect(canBothRun(BRANCHED_WAITS, 1, 5)).toBe(true);
+    expect(canBothRun(NESTED, 2, 5)).toBe(false);
+  });
+
+  it("takes the first wait of each branch as a first wait", () => {
+    expect(isFirstWait(BRANCHED_WAITS, 1)).toBe(true);
+    expect(isFirstWait(BRANCHED_WAITS, 3)).toBe(true);
+    expect(isFirstWait(BRANCHED_WAITS, 5)).toBe(false);
+    expect(isFirstWait([WAIT, WAIT], 1)).toBe(false);
+    expect(isFirstWait([WAIT], 5)).toBe(false);
   });
 });

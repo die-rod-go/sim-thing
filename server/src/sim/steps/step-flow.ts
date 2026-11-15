@@ -1,13 +1,5 @@
-import {
-  findBlockBounds,
-  matchesThing,
-  type Step,
-  type StepOfType,
-  type ThingView,
-} from "@village/shared";
-import { viewThing } from "../../items/things";
-import { resolveMatcherReads, scopeOf } from "../../items/values";
-import { findStepThings } from "./step-roles";
+import { findBlockBounds, type Step } from "@village/shared";
+import { judgeCondition } from "./step-condition";
 import { DONE, type StepHandler, type StepRun } from "./step-run";
 
 /** The markers do nothing themselves: the list runner reads them to choose the next step. */
@@ -15,30 +7,6 @@ const markerStep = { isVerbOnly: false, run: () => DONE };
 export const ifStep: StepHandler<"if"> = markerStep;
 export const elseStep: StepHandler<"else"> = markerStep;
 export const endIfStep: StepHandler<"end_if"> = markerStep;
-
-/** The live things `on` names; an item already gone (eaten) is judged as it was last seen. */
-function listConditionViews(run: StepRun, on: string): ThingView[] {
-  const { state } = run.context;
-  const live = findStepThings(run, on).flatMap((thing) => viewThing(state, thing) ?? []);
-  if (live.length > 0) return live;
-  const snapshot = run.verbRun?.snapshots[on];
-  return snapshot === undefined ? [] : [snapshot];
-}
-
-/**
- * Whether every thing `on` names matches the `if`; false when it names nothing. Null when the
- * matcher reads a name not picked yet, so it can't be judged before the verb runs.
- */
-export function judgeCondition(
-  run: StepRun,
-  step: StepOfType<"if">,
-  isJudgedLate: boolean,
-): boolean | null {
-  const condition = resolveMatcherReads(scopeOf(run), step.if);
-  if (!condition.isFullyResolved && !isJudgedLate) return null;
-  const views = listConditionViews(run, step.on ?? "self");
-  return views.length > 0 && views.every((view) => matchesThing(condition.matcher, view));
-}
 
 function requireBounds(steps: readonly Step[], index: number) {
   const bounds = findBlockBounds(steps, index);
@@ -79,6 +47,7 @@ export function advanceStepIndex(
   isJudgedLate: boolean,
 ): number {
   const step = steps[index];
-  const isMatched = step?.step === "if" ? judgeCondition(run, step, isJudgedLate) : null;
+  const isMatched =
+    step?.step === "if" ? judgeCondition(run, step.on ?? "self", step.if, isJudgedLate) : null;
   return findNextStepIndex(steps, index, isMatched);
 }

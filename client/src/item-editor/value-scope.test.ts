@@ -57,6 +57,24 @@ describe("value scope", () => {
     expect(listReadablePaths(spotOf(verb, 1), "number")).toContain("snack.food.hunger");
   });
 
+  it("offers an as name only where its if branch can have given it", () => {
+    const pick = { step: "require", in: "user", rule: { has: "food" }, as: "snack" };
+    const verb = buildVerb({
+      appliesTo: undefined,
+      steps: [
+        { step: "if", on: "user", if: { has: "food" } },
+        pick,
+        { step: "else" },
+        { step: "destroy", on: "user" },
+        { step: "end_if" },
+        { step: "destroy", on: "user" },
+      ],
+    });
+    expect(listThingNames(spotOf(verb, 2))).toEqual(["user", "snack"]);
+    expect(listThingNames(spotOf(verb, 3))).toEqual(["user"]);
+    expect(listThingNames(spotOf(verb, 5))).toEqual(["user"]);
+  });
+
   it("offers self in a rule and no choice", () => {
     const rule = {
       trigger: "every" as const,

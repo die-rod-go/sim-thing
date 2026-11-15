@@ -85,6 +85,7 @@ export function buildVerbRun(state: WorldState, userId: string, start: VerbStart
     touchedIds: [],
     made: {},
     hasWaited: false,
+    firstWaitIndex: null,
     startedAtTick: state.tick,
   };
   refreshSnapshots(state, verbRun);
@@ -202,6 +203,7 @@ function executeSteps(run: StepRun, verb: Verb): Progress {
   const { state } = run.context;
   while (verbRun.stepIndex < verb.steps.length) {
     const step = verb.steps[verbRun.stepIndex]!;
+    if (step.step === "wait") verbRun.firstWaitIndex ??= verbRun.stepIndex;
     const outcome = applyStep(run, step);
     if (outcome.kind === "refused") return { kind: "refused", reason: outcome.reason };
     verbRun.stepIndex = advanceStepIndex(run, verb.steps, verbRun.stepIndex, true);

@@ -138,9 +138,15 @@ export function runStepList(
   return refusals;
 }
 
+/**
+ * A `choice` the decision didn't give refuses here too: the check before the verb only saw the
+ * branches that matched then, and an earlier step can change which one runs.
+ */
 function applyOnce(run: StepRun, step: Step): StepOutcome {
   const chance = step.step === "roll_hit" ? undefined : step.chance;
   if (chance !== undefined && run.context.state.random.next() >= chance) return DONE;
+  const missing = findMissingChoice(scopeOf(run), step);
+  if (missing !== null) return { kind: "refused", reason: missing };
   return findHandler(step).run(run, step as StepOfType<StepType>);
 }
 

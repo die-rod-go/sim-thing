@@ -13,7 +13,8 @@ import {
   type Step,
   type StepType,
 } from "./step-schema";
-import { BlockTracker, checkBlockSteps } from "./step-block-validation";
+import { checkBlockSteps } from "./step-block-validation";
+import { BlockTracker, isFirstWait } from "./step-blocks";
 import {
   buildStepScope,
   couldReachBody,
@@ -185,11 +186,7 @@ function checkVerbSequence(
       problems.error(path, "`roll_hit` needs a verb with a `target`.");
     }
   }
-  if (
-    step.step === "wait" &&
-    step.loudness !== undefined &&
-    earlier.some((other) => other.step === "wait")
-  ) {
+  if (step.step === "wait" && step.loudness !== undefined && !isFirstWait(steps, index)) {
     problems.error(path, "`loudness` only works on a verb's first `wait`.");
   }
 }
@@ -243,7 +240,10 @@ export function checkSteps(
     for (const read of listReachReads(owner.verb)) checkStepRead(read, path, scope);
   }
   checkBlockSteps(steps, path, scope);
-  const blocks = new BlockTracker(scope);
+  const blocks = new BlockTracker(scope, (role) => {
+    const thing = resolveThing(scope, role);
+    return thing.ok ? thing.matcher : null;
+  });
   steps.forEach((step, index) => {
     checkStep(step, steps, index, path, scope);
     blocks.noteStep(step);
