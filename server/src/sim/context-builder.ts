@@ -8,6 +8,7 @@ import { computeStarvationDamage, describeHealthAsSeen, isDead } from "../status
 import { describeDoing } from "./action-phrases";
 import { getAgentRuntime } from "./agent-runtime";
 import { buildHeldKnowledge } from "./held-knowledge";
+import { describeBodyHolding } from "./prompt-lines";
 import {
   buildBelongings,
   buildHere,
@@ -49,6 +50,7 @@ function buildAwarenessEntries(state: WorldState, agent: Agent): AwarenessEntry[
         minutesAgo: minutesSince(entry.tick, state.tick),
         isInSight,
         isDead: isInSight && isDead(other),
+        holding: isInSight && isDead(other) ? describeBodyHolding(state, agent.id, other) : null,
         distanceTiles: isInSight ? computeChebyshevDistance(agent.pos, other.pos) : null,
         healthAsSeen:
           isInSight && !isDead(other)

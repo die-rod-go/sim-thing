@@ -853,7 +853,7 @@ the core sim recognizable, and existing tests that pin old behavior are rewritte
 11. Nobody can take from a living agent; `take` works only on containers and dead agents.
 12. Others see an agent's health as words once it drops below a threshold.
 13. No damage resistance by property and no armor; only `toughness` reduces damage.
-14. Bodies stay where they fell for good; no carrying, burying or decay for now.
+14. Bodies can be carried and buried; no decay for now.
 15. Which items exist beyond the examples, and where knives, bandages and the like come from, is
     left to the user's own item design.
 16. There is one kind of verb: each is defined once with an `appliesTo` rule. Verbs don't belong

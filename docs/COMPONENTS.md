@@ -690,8 +690,11 @@ field with no `health` does no damage, and the rock still lands.
 may directly hold after the step. `at: "target"` after a missed `roll_hit` is a random free tile
 next to the target, as today.
 
-`move` and `destroy` do nothing to a body: bodies stay where they fell. `as` on `create` works
-only in verbs; a rule keeps no names.
+`destroy` does nothing to a body. `move` moves a dead agent's body like an entity: `into` puts it
+inside a thing (`Agent.bodyHolderId`), where the body is wherever that holder is, and `at` lays it
+on a tile. A living body is left where it stands, and a body whose holder is gone is let go of
+where it last was. Seen by others, a held body is "carried by Tobias". `as` on `create` works only
+in verbs; a rule keeps no names.
 
 **Burial.** `transform` on a dead agent's body makes an entity of `into` on the body's tile, drops
 everything directly inside the body onto that tile (as `move at` would), and takes the body out of

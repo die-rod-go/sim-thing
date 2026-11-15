@@ -43,6 +43,7 @@ const agent = {
   starvingSinceTick: null,
   death: null,
   bodyReplacedById: null,
+  bodyHolderId: null,
   mood: "",
   longTermGoals: [],
   shortTermGoals: [],

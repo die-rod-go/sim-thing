@@ -24,6 +24,7 @@ export function makeAgent(overrides: Partial<Agent> = {}): Agent {
     starvingSinceTick: null,
     death: null,
     bodyReplacedById: null,
+    bodyHolderId: null,
     mood: "calm",
     longTermGoals: [],
     shortTermGoals: [],

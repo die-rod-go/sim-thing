@@ -1,5 +1,6 @@
 import {
   isBodyInWorld,
+  type Agent,
   isEntityId,
   parseComponentPath,
   resolveThingComponents,
@@ -104,14 +105,47 @@ export function viewThing(world: EntityWorld, thing: ThingRef): ThingView | null
   return components === null || definitionId === null ? null : { definitionId, components };
 }
 
-/** Where the thing is; a carried or contained entity is where its outermost holder is. */
+/** A carried body is where its holder is; on its own tile when nothing holds it any more. */
+function locateBody(world: EntityWorld, agent: Agent, visitedIds: Set<string>): EntityPosition {
+  const ownTile = { place: agent.place, pos: agent.pos };
+  const holderId = agent.bodyHolderId;
+  if (holderId === null || visitedIds.has(holderId)) return ownTile;
+  visitedIds.add(agent.id);
+  if (isEntityId(holderId)) {
+    const holder = findEntityIfPresent(world, holderId);
+    return (holder && resolveEntityPosition(world, holder)) ?? ownTile;
+  }
+  const holder = findAgentIfPresent(world, holderId);
+  return holder ? locateBody(world, holder, visitedIds) : ownTile;
+}
+
+/** Where the thing is; a carried or contained thing is where its outermost holder is. */
 export function locateThing(world: EntityWorld, thing: ThingRef): EntityPosition | null {
   if (thing.kind === "agent") {
     const agent = findAgentIfPresent(world, thing.agentId);
-    return agent ? { place: agent.place, pos: agent.pos } : null;
+    return agent ? locateBody(world, agent, new Set()) : null;
   }
   const entity = findEntityIfPresent(world, thing.entityId);
   return entity ? resolveEntityPosition(world, entity) : null;
+}
+
+/** What the thing is directly inside; null for one on a tile, or gone. */
+export function findThingHolderId(world: EntityWorld, thing: ThingRef): ThingId | null {
+  if (thing.kind === "agent") return findAgentIfPresent(world, thing.agentId)?.bodyHolderId ?? null;
+  const location = findEntityIfPresent(world, thing.entityId)?.location;
+  return location?.kind === "inside" ? location.holderId : null;
+}
+
+/** Whether the thing is the holder, or inside it through any number of holders. */
+export function isThingWithin(world: EntityWorld, thing: ThingRef, holderId: ThingId): boolean {
+  const visitedIds = new Set<string>();
+  let currentId: ThingId | null = readThingId(thing);
+  while (currentId !== null && !visitedIds.has(currentId)) {
+    if (currentId === holderId) return true;
+    visitedIds.add(currentId);
+    currentId = findThingHolderId(world, refThingById(currentId));
+  }
+  return false;
 }
 
 export function isSameThing(first: ThingRef, second: ThingRef): boolean {

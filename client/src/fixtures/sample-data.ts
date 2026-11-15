@@ -37,6 +37,7 @@ export function makeSampleAgent(id: string, name: string, x: number, y: number):
     bodyChanges: {},
     death: null,
     bodyReplacedById: null,
+    bodyHolderId: null,
     mood: "content",
     longTermGoals: [
       { goal: "Sell more bread", reason: "Coins buy ale", progress: "Sold two loaves" },

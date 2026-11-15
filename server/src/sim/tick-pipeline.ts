@@ -1,6 +1,7 @@
 import { pruneConversationLog } from "../memory/conversation";
 import { applyDecisionPlan } from "./action-executor";
 import { BackgroundWork } from "./background-work";
+import { carryBodiesAlong } from "./carried-bodies";
 import { runDecision, type DecisionPlan } from "./decision-runner";
 import type { AdvanceTick } from "./loop";
 import { actCreatures } from "./creatures/creature-phase";
@@ -31,6 +32,7 @@ function listIdleAgentIds(state: WorldState): string[] {
  *    as it happens;
  * 2b. creatures: each carries on with its verb or follows its first instinct that can act (no
  *    LLM); their events are broadcast the same way;
+ * 2c. carried bodies move to where whoever carries them now is;
  * 3. sight: awareness of everyone in view and seen places are refreshed; someone newly in view
  *    flags a decision;
  * 4. needs that crossed the decision threshold flag a decision;
@@ -61,6 +63,7 @@ export function createDecisionStrategy(dependencies: SimDependencies): AdvanceTi
     const needsBefore = applyMechanics(context);
     progressActions(context);
     actCreatures(context);
+    carryBodiesAlong(context);
     updateSight(context);
     flagCrossedNeeds(context, needsBefore);
     if (backgroundDecisions) {

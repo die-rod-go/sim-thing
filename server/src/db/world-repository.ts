@@ -41,6 +41,7 @@ type SavedMeta = z.infer<typeof metaSchema>;
 const currentAgentFieldsSchema = z.object({
   bodyChanges: z.record(z.string(), z.unknown()),
   bodyReplacedById: z.string().nullable(),
+  bodyHolderId: z.string().nullable(),
   seenPlaces: z.array(z.unknown()),
 });
 

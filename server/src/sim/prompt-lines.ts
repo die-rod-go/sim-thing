@@ -9,7 +9,7 @@ import {
 import { config } from "../config";
 import type { PromptEntityGroup } from "../decision/context";
 import { getDefinition } from "../items/entity-store";
-import type { ThingRef } from "../items/things";
+import { describeThingName, refThingById, type ThingRef } from "../items/things";
 import { isLyingWhenOnTile } from "../items/world-physics";
 import { listVerbsForEntity } from "../items/verb-offers";
 import { listToolUses } from "./tool-uses";
@@ -116,6 +116,25 @@ export function groupEntitiesForPrompt(
 }
 
 /** A dead body in sight: how it reads, and what it carries when the agent can see in. */
+/**
+ * How the body is held, as the viewer sees it: "carried by Tobias", "carried by you", "in the
+ * cart"; null for a body that lies on its own.
+ */
+export function describeBodyHolding(
+  state: WorldState,
+  viewerId: string,
+  body: Agent,
+): string | null {
+  const holderId = body.bodyHolderId;
+  if (holderId === null) return null;
+  const holder = refThingById(holderId);
+  const words = config.death;
+  const template = holder.kind === "agent" ? words.carriedBy : words.inside;
+  const holderName =
+    holderId === viewerId ? words.viewerAsHolder : describeThingName(state, holder);
+  return template.split("{holder}").join(holderName);
+}
+
 export function describeBodyForPrompt(
   state: WorldState,
   agentId: string,
@@ -125,6 +144,7 @@ export function describeBodyForPrompt(
   return {
     text: describeAgentAsSeen(body),
     details: [
+      ...[describeBodyHolding(state, agentId, body) ?? []].flat(),
       ...listBodyWords(state.items, body, true),
       ...listHoldingWords(state, contentEntities),
     ],

@@ -24,12 +24,13 @@ export function describeDistance(distanceTiles: number): string {
 
 /**
  * "Tobias, next to you, looks in poor shape, carrying a knife (chopping wood)", or "Mara's body, a few
- * steps away" for someone lying dead in sight ("Mara's body, next to you, on fire").
+ * steps away" for someone lying dead in sight ("Mara's body, next to you, carried by Tobias, on
+ * fire").
  */
 function describeInSight(entry: AwarenessEntry): string {
   const distance = entry.distanceTiles === null ? null : describeDistance(entry.distanceTiles);
   if (entry.isDead) {
-    return [describeBodyName(entry.name), distance, ...entry.visibleConditions]
+    return [describeBodyName(entry.name), distance, entry.holding, ...entry.visibleConditions]
       .filter(Boolean)
       .join(", ");
   }

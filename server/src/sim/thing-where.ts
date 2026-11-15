@@ -15,9 +15,9 @@ import type { WorldState } from "./world-state";
  */
 
 /**
- * `held` (directly inside the user), `here` (on a tile, or another agent's body), `inside`
- * (inside something other than the user), `self` (the user's own body, or the creature itself);
- * null when gone.
+ * `held` (directly inside the user), `here` (on a tile, or another agent's body that nothing
+ * holds), `inside` (inside something other than the user), `self` (the user's own body, or the
+ * creature itself); null when gone.
  */
 export function findThingWhere(
   state: WorldState,
@@ -25,10 +25,11 @@ export function findThingWhere(
   thing: ThingRef,
 ): ThingWhere | null {
   if (thing.kind === "agent") {
-    if (!state.agents.some((agent) => agent.id === thing.agentId && isBodyInWorld(agent))) {
-      return null;
-    }
-    return thing.agentId === userId ? "self" : "here";
+    const agent = state.agents.find((candidate) => candidate.id === thing.agentId);
+    if (!agent || !isBodyInWorld(agent)) return null;
+    if (agent.id === userId) return "self";
+    if (agent.bodyHolderId === null) return "here";
+    return agent.bodyHolderId === userId ? "held" : "inside";
   }
   const entity = findEntityIfPresent(state, thing.entityId);
   if (!entity) return null;

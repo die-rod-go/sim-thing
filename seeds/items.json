@@ -4587,6 +4587,65 @@
       }
     },
     {
+      "name": "carry",
+      "target": {
+        "allOf": [
+          {
+            "definition": "person"
+          },
+          {
+            "not": {
+              "has": "alive"
+            }
+          },
+          {
+            "where": "here"
+          }
+        ]
+      },
+      "steps": [
+        {
+          "step": "wait",
+          "minutes": 2
+        },
+        {
+          "step": "move",
+          "on": "target",
+          "into": "user"
+        }
+      ],
+      "phrases": {
+        "ongoing": "lifting {target}",
+        "done": "picked up {target}",
+        "attempt": "pick up {target}"
+      }
+    },
+    {
+      "name": "lay down",
+      "target": {
+        "allOf": [
+          {
+            "definition": "person"
+          },
+          {
+            "where": "held"
+          }
+        ]
+      },
+      "steps": [
+        {
+          "step": "move",
+          "on": "target",
+          "at": "user"
+        }
+      ],
+      "phrases": {
+        "ongoing": "laying down {target}",
+        "done": "laid down {target}",
+        "attempt": "lay down {target}"
+      }
+    },
+    {
       "name": "roll",
       "appliesTo": {
         "has": "dice"

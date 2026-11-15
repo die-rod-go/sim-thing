@@ -127,6 +127,7 @@ function buildAgent(
     starvingSinceTick: null,
     death: null,
     bodyReplacedById: null,
+    bodyHolderId: null,
     mood: seed.mood,
     longTermGoals: seed.goals.map((goal) => ({ ...goal })),
     shortTermGoals: [],

@@ -125,7 +125,7 @@ function moveAgent(context: TickContext, agentId: string, pos: Position): string
     { unperceivedBy: [agentId] },
   );
   const place = findPlaceAt(state.map, pos);
-  replaceAgent(state, { ...findAgent(state, agentId), pos: { ...pos }, place });
+  replaceAgent(state, { ...findAgent(state, agentId), pos: { ...pos }, place, bodyHolderId: null });
   result.moves.push({ agentId, pos: { ...pos }, place });
   markAgentChanged(result, agentId);
   announce(context, thing, {

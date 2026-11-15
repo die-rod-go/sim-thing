@@ -5,7 +5,7 @@ import {
   listContents,
   locateInside,
 } from "../../items/entity-store";
-import { locateThing, viewThing, type ThingRef } from "../../items/things";
+import { isThingWithin, locateThing, viewThing, type ThingRef } from "../../items/things";
 import { readThingName, resolveNumber, scopeOf } from "../../items/values";
 import { describePlace } from "../../memory/filing";
 import { findPlaceAt } from "../../world/map-loader";
@@ -74,6 +74,22 @@ export function findDestination(run: StepRun, settings: DestinationSettings): De
   if (settings.into === undefined) return locateOnTile(state, thing, name, run);
   if (viewThing(state, thing) === null) return null;
   return { location: locateInside(toHolderId(thing)), holder: thing };
+}
+
+/** Why the dead agents' bodies can't go into the holder: it is one of them, or inside one. */
+export function findBodyPlacementRefusal(
+  run: StepRun,
+  settings: DestinationSettings,
+  destination: Destination,
+  bodyIds: readonly string[],
+): string | null {
+  const { holder } = destination;
+  if (holder === null) return null;
+  const { state } = run.context;
+  const isSelfNesting = bodyIds.some((bodyId) => isThingWithin(state, holder, bodyId));
+  if (!isSelfNesting) return null;
+  const name = describePlace(readThingName(scopeOf(run), settings.into ?? "self"));
+  return `${name} can't go inside itself`;
 }
 
 /** Why the entities can't go into the holder: it is one of them, inside one of them, or over `limit`. */

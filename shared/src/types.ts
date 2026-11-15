@@ -119,6 +119,11 @@ export interface Agent {
    * world, though the agent and its death stay. Null while the body is in the world.
    */
   bodyReplacedById: string | null;
+  /**
+   * The thing a dead agent's body is inside (whoever carries it): the body is where that holder
+   * is. Null while the body lies on its own tile, and always for the living.
+   */
+  bodyHolderId: string | null;
   mood: string;
   longTermGoals: LongTermGoal[];
   shortTermGoals: ShortTermGoal[];

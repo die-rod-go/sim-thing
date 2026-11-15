@@ -300,6 +300,12 @@ export const config = {
     foundBodyEntry: "I found {body} in {place}",
     /** Why finding a body gives an urgent decision; `{bodies}` lists the bodies found. */
     foundBodyReason: "I found {bodies}",
+    /** How a body someone carries is described; `{holder}` is the carrier as seen. */
+    carriedBy: "carried by {holder}",
+    /** `{holder}` when the one looking is the carrier. */
+    viewerAsHolder: "you",
+    /** How a body inside a thing is described ("in the cart"). */
+    inside: "in {holder}",
     /** Fills `{actor}` in a killed phrase when no agent did the damage. */
     unknownSource: "someone",
   },
