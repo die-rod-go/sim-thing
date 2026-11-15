@@ -60,14 +60,6 @@ export function TraitRow({ traitName, value }: { traitName: TraitName; value: nu
   );
 }
 
-export function StrengthBar({ strength }: { strength: number }) {
-  return (
-    <span className="strength" title={`strength ${strength.toFixed(2)}`}>
-      <span className="strength-fill" style={{ height: `${strength * PERCENT}%` }} />
-    </span>
-  );
-}
-
 /** An agent's name in their map color; clicking it opens their character sheet. */
 export function AgentName({ agentId, name }: { agentId: string; name: string }) {
   const { agentColors, selectAgent } = usePanelContext();
