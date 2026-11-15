@@ -9,4 +9,4 @@ You were: {{intention}}
 
 ## Reply
 Reply with only a JSON object, fields in this order:
-verb (one of the names above), text (the words, only for a verb that takes words, like posting a note; otherwise null), minutes (how long, only for a nap; otherwise null).
+verb (one of the names above), text (only for a verb that takes words: the exact words written, word for word as a reader will see them, never a description of you or of your writing; otherwise null), minutes (how long, only for a nap; otherwise null).

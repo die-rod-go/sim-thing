@@ -5285,7 +5285,14 @@
       "appliesTo": {
         "allOf": [
           {
-            "has": "writing"
+            "anyOf": [
+              {
+                "has": "writing"
+              },
+              {
+                "has": "blank"
+              }
+            ]
           },
           {
             "has": "holdable"
