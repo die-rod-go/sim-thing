@@ -484,7 +484,7 @@ export const config = {
     /** Length limit of one stream entry; longer text is cut and ends with an ellipsis. */
     streamEntryMaxChars: 200,
     /** Entries in the stream before an episode is made. */
-    streamMax: 40,
+    streamMax: 20,
     /** Newest entries left in the stream when an episode forms. */
     streamKeep: 5,
     /** Episodes before a chronicle is made. */
