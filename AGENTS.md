@@ -118,7 +118,7 @@ need one, ask first.
 | day summary     | A summary of one day's chronicles. An agent has at most one: the last full day        |
 | history         | One summary of everything before the day summary                                      |
 | pass            | An LLM call that rewrites part of what the agent holds (people, goals, identity)      |
-| person entry    | What the agent holds about one person it knows: four written fields                   |
+| person entry    | What the agent holds about one person it knows: five written fields                   |
 | long-term goal  | A goal with a reason and progress, rewritten when a chronicle forms                   |
 | short-term goal | A goal with a reason, steps and progress, rewritten every few episodes                |
 | awareness       | The structured record of when each other agent was last perceived                     |

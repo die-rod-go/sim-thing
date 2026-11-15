@@ -92,6 +92,7 @@ const PERSON_FIELD_WORDS: Record<string, string> = {
   whatTheyThinkOfMe: "they think",
   whatIWantFromThem: "wants",
   whatTheyWantFromMe: "they want",
+  misc: "notes",
 };
 
 function summarizePeople(fields: ReplyFields): Pick<ThoughtEntry, "headline" | "parts"> {

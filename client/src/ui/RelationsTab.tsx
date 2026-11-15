@@ -39,6 +39,7 @@ const ENTRY_LABELS: Record<keyof PersonEntry, string> = {
   whatTheyThinkOfMe: "Believes they think",
   whatIWantFromThem: "Wants from them",
   whatTheyWantFromMe: "Believes they want",
+  misc: "Misc",
 };
 
 /** The fields of a person entry that hold something. */

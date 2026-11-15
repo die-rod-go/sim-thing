@@ -5,5 +5,6 @@ Write only what you have reason to believe from what you saw, heard and were tol
 The people you may write about: {{personNames}}
 
 ## Reply
-Reply with only a JSON object with one field, people: a list of {"person", "whatIThinkOfThem", "whatTheyThinkOfMe", "whatIWantFromThem", "whatTheyWantFromMe"}.
-person is one of the names above. Each of the other four is at most {{maxChars}} characters, or null to keep that part as it is. Use an empty list if nothing changed.
+Reply with only a JSON object with one field, people: a list of {"person", "whatIThinkOfThem", "whatTheyThinkOfMe", "whatIWantFromThem", "whatTheyWantFromMe", "misc"}.
+person is one of the names above. Each of the other five is at most {{maxChars}} characters, or null to keep that part as it is. Use an empty list if nothing changed.
+misc is anything else you hold about them that fits none of the other four: facts, history, habits, things they told you.

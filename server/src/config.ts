@@ -524,7 +524,7 @@ export const config = {
   people: {
     /** New episodes between runs of the people pass. */
     everyEpisodes: 2,
-    /** Length limit of each of a person entry's four fields; see `llm.replyTextSlack`. */
+    /** Length limit of each of a person entry's fields; see `llm.replyTextSlack`. */
     fieldMaxChars: 200,
     /** How each field of a person entry is labelled in prompts. */
     fieldLabels: {
@@ -532,6 +532,7 @@ export const config = {
       whatTheyThinkOfMe: "What they think of me",
       whatIWantFromThem: "What I want from them",
       whatTheyWantFromMe: "What they want from me",
+      misc: "Other things about them",
     } satisfies Record<keyof PersonEntry, string>,
     /** Shown beside a person the agent holds nothing about yet. */
     emptyEntryText: "nothing yet beyond what you see.",

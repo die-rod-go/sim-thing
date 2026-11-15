@@ -131,6 +131,7 @@ describe("database repositories", () => {
           whatTheyThinkOfMe: "",
           whatIWantFromThem: "",
           whatTheyWantFromMe: "",
+          misc: "",
         },
       },
     };

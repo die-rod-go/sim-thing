@@ -20,6 +20,7 @@ const PERSON_FIELD_LABELS: Record<keyof PersonEntry, string> = {
   whatTheyThinkOfMe: "What they believe this person thinks of them",
   whatIWantFromThem: "What they want from them",
   whatTheyWantFromMe: "What they believe this person wants from them",
+  misc: "Anything else they know or hold about this person",
 };
 
 interface AgentEditorProps {

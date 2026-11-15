@@ -144,6 +144,7 @@ describe("seeds", () => {
         whatTheyThinkOfMe: "",
         whatIWantFromThem: "A stall.",
         whatTheyWantFromMe: "",
+        misc: "",
       },
     });
     expect(world.agents.find((agent) => agent.id === "ilsa")?.people).toEqual({});

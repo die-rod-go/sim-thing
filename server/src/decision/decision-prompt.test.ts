@@ -43,6 +43,7 @@ function buildContext(overrides: Partial<DecisionContext> = {}): DecisionContext
           whatTheyThinkOfMe: "",
           whatIWantFromThem: "The 3 coins he owes me.",
           whatTheyWantFromMe: "",
+          misc: "",
         },
       },
       {
@@ -52,6 +53,7 @@ function buildContext(overrides: Partial<DecisionContext> = {}): DecisionContext
           whatTheyThinkOfMe: "",
           whatIWantFromThem: "",
           whatTheyWantFromMe: "",
+          misc: "",
         },
       },
     ],

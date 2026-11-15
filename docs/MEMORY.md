@@ -34,7 +34,7 @@ Choices that are mine rather than the project owner's are listed under
 | day summary     | A summary of one day's chronicles. An agent has at most one: the last full day   |
 | history         | One summary of everything before the day summary                                 |
 | pass            | An LLM call that rewrites part of what the agent holds (people, goals, identity) |
-| person entry    | What the agent holds about one person it knows: four written fields              |
+| person entry    | What the agent holds about one person it knows: five written fields              |
 | long-term goal  | A goal with a reason and progress, rewritten when a chronicle forms              |
 | short-term goal | A goal with a reason, steps and progress, rewritten every few episodes           |
 | seen place      | A place the agent has seen, with the entities it holds                           |
@@ -60,7 +60,7 @@ Every value lives in the config file, in the block named in the table. None is h
 | `memory.historyMaxChars`        | 1150  | owner     | Length limit of the history                              |
 | `memory.retryAfterTicks`        | 40    | owner     | Wait before retrying a summary or pass that failed       |
 | `people.everyEpisodes`          | 2     | owner     | New episodes between runs of the people pass             |
-| `people.fieldMaxChars`          | 200   | owner     | Length limit of each of a person entry's four fields     |
+| `people.fieldMaxChars`          | 200   | owner     | Length limit of each of a person entry's five fields     |
 | `goals.shortTermEveryEpisodes`  | 2     | owner     | New episodes between runs of the short-term goals pass   |
 | `goals.maxShortTerm`            | 3     | owner     | Most short-term goals                                    |
 | `goals.maxSteps`                | 5     | owner     | Most steps per short-term goal                           |
@@ -83,7 +83,7 @@ counting the ones made at midnight.
 - **Summary:** level (`episode`, `chronicle`, `daySummary`, `history`), start tick, end tick, text.
   An agent has any number of episodes and chronicles and at most one day summary and one history.
 - **Person entry**, per known person: `whatIThinkOfThem`, `whatTheyThinkOfMe`, `whatIWantFromThem`,
-  `whatTheyWantFromMe`.
+  `whatTheyWantFromMe`, `misc`.
 - **Long-term goal:** `goal`, `reason`, `progress`.
 - **Short-term goal:** `goal`, `reason`, `steps` (a list), `progress`.
 - **Seen place:** name, first-seen tick, and the entities there as last seen with the tick they
@@ -203,7 +203,7 @@ provider allows four).
 1. **Same for everyone:** the instructions, "What you can do" and "Reply".
 2. **Changes when a chronicle forms:** who you are (profession, traits, core, self-image),
    long-term goals, history, day summary, chronicles.
-3. **Changes when an episode forms:** people you know (every person entry, four fields each),
+3. **Changes when an episode forms:** people you know (every person entry, five fields each),
    short-term goals with their steps, episodes.
 4. **Places you have seen.**
 5. **Changes every decision:** actions offered, how you feel, now (time, status, "You were",
@@ -237,7 +237,7 @@ every tick and would defeat the cache. "Now" gives the current time.
 ## Seeds and the character form
 
 - `goals` in `agents.json` become the long-term goals: `goal`, `reason`, `progress`.
-- `peopleNotes` becomes person entries: the four fields per person, each optional. Today's
+- `peopleNotes` becomes person entries: the five fields per person, each optional. Today's
   one-line notes move to `whatIThinkOfThem`.
 - A new per-character list of seen places, validated against the map's place names. A seeded place
   starts with the entity list that is really there at tick 0.

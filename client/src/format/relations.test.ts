@@ -15,6 +15,7 @@ const bobEntry = {
   whatTheyThinkOfMe: "",
   whatIWantFromThem: "My two coins.",
   whatTheyWantFromMe: "",
+  misc: "",
 };
 ada.people = { bob: bobEntry };
 const threads = groupConversations(

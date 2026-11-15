@@ -154,6 +154,7 @@ function buildPeople(seed: SeedAgent, seedFile: SeedFile): Record<string, Person
       whatTheyThinkOfMe: seeded.whatTheyThinkOfMe?.trim() ?? "",
       whatIWantFromThem: seeded.whatIWantFromThem?.trim() ?? "",
       whatTheyWantFromMe: seeded.whatTheyWantFromMe?.trim() ?? "",
+      misc: seeded.misc?.trim() ?? "",
     };
   }
   return people;

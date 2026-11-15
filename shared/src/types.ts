@@ -50,6 +50,7 @@ export interface PersonEntry {
   whatTheyThinkOfMe: string;
   whatIWantFromThem: string;
   whatTheyWantFromMe: string;
+  misc: string;
 }
 
 export const PERSON_ENTRY_FIELDS: readonly (keyof PersonEntry)[] = [
@@ -57,6 +58,7 @@ export const PERSON_ENTRY_FIELDS: readonly (keyof PersonEntry)[] = [
   "whatTheyThinkOfMe",
   "whatIWantFromThem",
   "whatTheyWantFromMe",
+  "misc",
 ];
 
 export interface CurrentAction {

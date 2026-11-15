@@ -33,6 +33,7 @@ export const seedAgentSchema = z.object({
       whatTheyThinkOfMe: z.string().optional(),
       whatIWantFromThem: z.string().optional(),
       whatTheyWantFromMe: z.string().optional(),
+      misc: z.string().optional(),
     }),
   ),
   /** Names of the map's places the character has already seen when the sim starts. */

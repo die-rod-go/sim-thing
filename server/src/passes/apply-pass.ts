@@ -25,6 +25,7 @@ export const EMPTY_PERSON_ENTRY: PersonEntry = {
   whatTheyThinkOfMe: "",
   whatIWantFromThem: "",
   whatTheyWantFromMe: "",
+  misc: "",
 };
 
 /**
