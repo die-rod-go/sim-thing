@@ -484,7 +484,7 @@ export const config = {
     /** Length limit of one stream entry; longer text is cut and ends with an ellipsis. */
     streamEntryMaxChars: 200,
     /** Entries in the stream before an episode is made. */
-    streamMax: 20,
+    streamMax: 30,
     /** Newest entries left in the stream when an episode forms. */
     streamKeep: 5,
     /** Episodes before a chronicle is made. */
@@ -525,7 +525,7 @@ export const config = {
 
   people: {
     /** New episodes between runs of the people pass. */
-    everyEpisodes: 2,
+    everyEpisodes: 3,
     /** Length limit of each of a person entry's fields; see `llm.replyTextSlack`. */
     fieldMaxChars: 200,
     /** How each field of a person entry is labelled in prompts. */
@@ -544,7 +544,7 @@ export const config = {
 
   goals: {
     /** New episodes between runs of the short-term goals pass. */
-    shortTermEveryEpisodes: 2,
+    shortTermEveryEpisodes: 3,
     maxShortTerm: 3,
     /** Most steps per short-term goal. */
     maxSteps: 5,
@@ -567,7 +567,7 @@ export const config = {
      * Longest an idle agent's decision holds the clock in real time; past it the tick goes on and
      * the plan lands on a later tick, so one slow call can't stall the village.
      */
-    idleDecisionWaitMs: 1000,
+    idleDecisionWaitMs: 2000,
     /**
      * What an agent remembers when a reply named something that isn't there (the reply was rejected
      * and asked again). `{name}` is the name as the reply wrote it.
