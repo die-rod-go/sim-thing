@@ -661,3 +661,93 @@
   -webkit-box-orient: vertical;
   -webkit-line-clamp: 2;
 }
+
+.village-view.is-god-editing .village-canvas {
+  cursor: crosshair;
+}
+
+.god-panel {
+  position: absolute;
+  top: 12px;
+  left: 12px;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  width: 240px;
+  max-height: calc(100% - 80px);
+  padding: 10px;
+  background: rgb(23 26 33 / 92%);
+  border: 1px solid var(--accent);
+  border-radius: 6px;
+  box-shadow: 0 2px 8px rgb(0 0 0 / 40%);
+}
+
+.god-panel-title {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.god-panel-close {
+  min-width: 24px;
+  border-color: transparent;
+  background: transparent;
+}
+
+.god-tools {
+  display: flex;
+  gap: 4px;
+}
+
+.god-tools button {
+  flex: 1;
+}
+
+.god-tools button.is-active,
+.god-picker-list button.is-active {
+  background: var(--accent-soft);
+  border-color: var(--accent);
+}
+
+.god-hint,
+.god-refusal {
+  margin: 0;
+  line-height: 1.35;
+}
+
+.god-refusal {
+  color: var(--danger);
+}
+
+.god-paused-notice {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+}
+
+.god-picker {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  min-height: 0;
+}
+
+.god-picker-list {
+  margin: 0;
+  padding: 0;
+  overflow-y: auto;
+  max-height: 260px;
+  list-style: none;
+}
+
+.god-picker-list button {
+  width: 100%;
+  text-align: left;
+  border-color: transparent;
+  background: transparent;
+}
+
+.god-muted {
+  color: var(--text-muted);
+}

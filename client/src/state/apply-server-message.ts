@@ -114,6 +114,8 @@ export function applyServerMessage(state: ClientState, message: ServerMessage): 
       const isInspected = message.agentId === state.inspectedAgentId;
       return { ...state, agents, agentDetail: isInspected ? message : state.agentDetail };
     }
+    case "god_action_result":
+      return { ...state, godRefusal: message.refusal };
     case "seed_file":
     case "seed_file_saved":
     case "item_file":

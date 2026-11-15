@@ -44,6 +44,8 @@ export interface ClientState {
   pausedReason: string | null;
   inspectedAgentId: string | null;
   agentDetail: AgentDetailMessage | null;
+  /** Why the server turned down the last god mode action; null once one went through. */
+  godRefusal: string | null;
 }
 
 const DEFAULT_MINUTES_PER_TICK = 1;
@@ -66,6 +68,7 @@ export const initialClientState: ClientState = {
   pausedReason: null,
   inspectedAgentId: null,
   agentDetail: null,
+  godRefusal: null,
 };
 
 export function findAgent(state: ClientState, agentId: string | null): Agent | null {

@@ -17,12 +17,15 @@ import { computeVisibleTiles } from "../perception/sight";
 import { getAgentMemory } from "../sim/world-access";
 import { computeSpeechReachTiles } from "../perception/sound";
 import type { SimLoop } from "../sim/loop";
+import type { SimDependencies } from "../sim/tick-context";
 import { buildPerceptionWorld } from "../sim/world-access";
 import type { SimSettings, WorldState } from "../sim/world-state";
 
 /** What the WebSocket layer reads to describe the sim. */
 export interface SimServerContext {
   loop: SimLoop;
+  /** What the sim strategy runs with, for changes made to the world between ticks. */
+  simDependencies: SimDependencies;
   database: Database;
   settings: SimSettings;
   /** Live LLM calls in flight, from the concurrency limiter. */

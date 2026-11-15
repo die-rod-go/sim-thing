@@ -110,7 +110,10 @@ function flagDecisions(state: WorldState, event: WorldEvent, perceptions: EventP
 }
 
 export interface BroadcastOptions {
-  /** Agents who take in nothing of it: a sleeper doesn't perceive the attack that wakes them. */
+  /**
+   * Agents who take in nothing of it, even as its actor: a sleeper doesn't perceive the attack that
+   * wakes them, and a person the viewer moves doesn't see themselves vanish.
+   */
   unperceivedBy?: readonly string[];
 }
 
@@ -138,7 +141,7 @@ export function broadcastEvent(
   mergeHeardAwareness(state, event, perceptions, result);
   if (event.kind === "said") state.conversationLog = recordSpeech(state.conversationLog, perceived);
   for (const filed of fileEvent(perceived, buildFilingContext(state))) {
-    appendToStream(state, filed.agentId, filed.text);
+    if (!unperceivedBy.includes(filed.agentId)) appendToStream(state, filed.agentId, filed.text);
   }
   if (event.kind === "said") applyConversationSocial(state, event, perceptions, result);
   flagDecisions(state, event, perceptions);

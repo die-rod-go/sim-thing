@@ -1,4 +1,5 @@
 import { useEffect, useLayoutEffect, useMemo, useRef, useState, type RefObject } from "react";
+import type { ClientMessage } from "@village/shared";
 import "../styles/village.css";
 import { clientConfig } from "../client-config";
 import { groupConversations } from "../format/conversations";
@@ -8,6 +9,7 @@ import { useStoredState } from "../ui/use-stored-state";
 import type { Size } from "./camera";
 import { CameraControls } from "./CameraControls";
 import { computeDaylightTint, computeHourOfDay } from "./daylight";
+import { GodPanel } from "./GodPanel";
 import { parseThoughtMode, selectVisibleThoughts, type ThoughtMode } from "./thought-bubbles";
 import { useCameraInput } from "./use-camera-input";
 import { useCameraRig } from "./use-camera-rig";
@@ -18,6 +20,7 @@ import {
   type MutedSpeakers,
 } from "./muted-speakers";
 import { useDirector } from "./use-director";
+import { useGodMode } from "./use-god-mode";
 import { useVillageMap } from "./use-village-map";
 import { VillageWorld } from "./VillageWorld";
 
@@ -31,6 +34,7 @@ interface VillageViewProps {
   state: ClientState;
   isDebugOverlayOn: boolean;
   onSelectAgent: (agentId: string) => void;
+  sendControl: (message: ClientMessage) => void;
   cameraFocus?: CameraFocus | null;
   highlightedAgentIds?: readonly string[];
 }
@@ -90,6 +94,7 @@ export function VillageView({
   state,
   isDebugOverlayOn,
   onSelectAgent,
+  sendControl,
   cameraFocus = null,
   highlightedAgentIds = NO_HIGHLIGHTS,
 }: VillageViewProps) {
@@ -112,6 +117,15 @@ export function VillageView({
   const toggleMute = (agentId: string) =>
     setMutedSpeakers(toggleMutedSpeaker(mutedSpeakers, agentId));
   const canFollow = state.inspectedAgentId !== null;
+  const godMode = useGodMode(state, sendControl);
+  const heldAgentId =
+    godMode.tool.kind === "holding" && godMode.tool.held.kind === "agent"
+      ? godMode.tool.held.agentId
+      : null;
+  const shownHighlights = useMemo(
+    () => (heldAgentId === null ? highlightedAgentIds : [...highlightedAgentIds, heldAgentId]),
+    [highlightedAgentIds, heldAgentId],
+  );
   useCameraInput(containerRef, controls, canFollow);
   const threads = useConversationThreads(state);
   const thoughtsByAgent = useVisibleThoughts(state, thoughtMode);
@@ -147,7 +161,7 @@ export function VillageView({
   );
 
   return (
-    <div className="village-view">
+    <div className={godMode.click ? "village-view is-god-editing" : "village-view"}>
       <div className="village-canvas" ref={containerRef}>
         {mapStatus.kind === "ready" && (
           <VillageWorld
@@ -161,7 +175,7 @@ export function VillageView({
             timeSettings={state.timeSettings}
             currentTick={state.clock.tick}
             inspectedAgentId={state.inspectedAgentId}
-            highlightedAgentIds={highlightedAgentIds}
+            highlightedAgentIds={shownHighlights}
             perceptionView={selectPerceptionView(state, isDebugOverlayOn)}
             daylightTint={daylightTint}
             isPlaceLabelsOn={isPlaceLabelsOn}
@@ -170,6 +184,7 @@ export function VillageView({
             mutedSpeakers={mutedSpeakers}
             onSelectAgent={onSelectAgent}
             onToggleMute={toggleMute}
+            godClick={godMode.click}
           />
         )}
       </div>
@@ -184,6 +199,17 @@ export function VillageView({
           onThoughtModeChange={setThoughtMode}
           isDirectorOn={director.isDirectorOn}
           onDirectorChange={director.setDirectorOn}
+          isGodModeOn={godMode.isOn}
+          onGodModeChange={godMode.setOn}
+        />
+      )}
+      {mapStatus.kind === "ready" && godMode.isOn && (
+        <GodPanel
+          godMode={godMode}
+          itemDefinitions={state.itemDefinitions}
+          agentBodyId={state.catalog.world.agentBody}
+          refusal={state.godRefusal}
+          onPause={() => sendControl({ type: "pause" })}
         />
       )}
       {mapStatus.kind === "loading" && <div className="village-notice">Loading map…</div>}

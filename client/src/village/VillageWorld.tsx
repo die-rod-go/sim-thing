@@ -25,8 +25,9 @@ import type { GlyphPainter } from "./glyph-painter";
 import { TileCanvas } from "./TileCanvas";
 import { TileCard, TileHighlight } from "./TileCard";
 import type { TiledMap } from "./tiled-map";
+import type { GodClickTarget } from "./god-mode";
 import { useHoveredAgent } from "./use-hovered-agent";
-import { useInspectedTile } from "./use-inspected-tile";
+import { findPointedTile, useInspectedTile, type MapPointerHandlers } from "./use-inspected-tile";
 import type { CameraControls } from "./use-camera-rig";
 import { tileCenter } from "./village-geometry";
 import {
@@ -58,9 +59,27 @@ interface VillageWorldProps {
   mutedSpeakers: MutedSpeakers;
   onSelectAgent: (agentId: string) => void;
   onToggleMute: (agentId: string) => void;
+  /** While god mode edits, takes clicks on tiles and agents instead of pinning and selecting. */
+  godClick: ((target: GodClickTarget) => void) | null;
 }
 
 const NO_BUBBLES: readonly SpeechBubble[] = [];
+
+function withGodClicks(
+  handlers: MapPointerHandlers,
+  map: TiledMap,
+  godClick: ((target: GodClickTarget) => void) | null,
+): MapPointerHandlers {
+  if (godClick === null) return handlers;
+  return {
+    ...handlers,
+    onClick: (event) => {
+      const pointer = { x: event.clientX, y: event.clientY };
+      const tile = findPointedTile(pointer, event.currentTarget.getBoundingClientRect(), map);
+      if (tile) godClick({ kind: "tile", pos: tile });
+    },
+  };
+}
 
 function useBubbleKeys(): (bubble: SpeechBubble) => number {
   const [keyer] = useState(() => {
@@ -159,6 +178,14 @@ export function VillageWorld(props: VillageWorldProps) {
     catalog: props.catalog,
   });
   const { shownTile } = tileInspector;
+  const { godClick } = props;
+  const mapPointerHandlers = useMemo(
+    () => withGodClicks(tileInspector.mapPointerHandlers, map, godClick),
+    [tileInspector.mapPointerHandlers, map, godClick],
+  );
+  const selectAgent = godClick
+    ? (agentId: string) => godClick({ kind: "agent", agentId })
+    : props.onSelectAgent;
   const setTileCardElement = useCallback(
     (element: HTMLElement | null) => {
       world.tileCard.current = element;
@@ -213,7 +240,7 @@ export function VillageWorld(props: VillageWorldProps) {
         className="village-world"
         ref={world.mapLayer}
         style={{ width: mapPixelWidth, height: mapPixelHeight }}
-        {...tileInspector.mapPointerHandlers}
+        {...mapPointerHandlers}
       >
         <TileCanvas map={map} glyphPainter={props.glyphPainter} />
         <EntityGlyphs
@@ -259,7 +286,7 @@ export function VillageWorld(props: VillageWorldProps) {
             visibleConditions={listVisibleBodyComponents(props.catalog, agent)}
             activityCue={pickActivityCue(agent.currentAction, activity)}
             markerRef={world.markers.register(agent.id)}
-            onSelect={props.onSelectAgent}
+            onSelect={selectAgent}
             onZoomTo={(agentId) => camera.focus({ kind: "agent", agentId })}
             onToggleMute={props.onToggleMute}
             onHoverStart={startHover}

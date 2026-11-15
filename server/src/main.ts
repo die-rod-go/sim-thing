@@ -37,6 +37,7 @@ import {
 import { loadWorldMap } from "./world/map-loader";
 import type { WorldMap } from "./world/types";
 import { startSimServer } from "./ws/sim-server";
+import type { SimDependencies } from "./sim/tick-context";
 
 const logger = createLogger("main");
 const repositoryRoot = fileURLToPath(new URL("../../", import.meta.url));
@@ -144,17 +145,18 @@ async function run(): Promise<void> {
   );
   const findPauseReason = () => describeBudgetPause(llm.budget);
 
+  const simDependencies: SimDependencies = {
+    callStructured: llm.callStructured,
+    isReplySchemaStable: environment.LLM_PROVIDER === "anthropic",
+    shouldCallLlmInBackground: config.decision.shouldCallLlmInBackground,
+    idleDecisionWaitMs: config.decision.idleDecisionWaitMs,
+    recordPersonalityChange: (change) => {
+      appendPersonalityChange(database, change);
+    },
+  };
   const loop = new SimLoop({
     state: initialState,
-    advanceTick: createDecisionStrategy({
-      callStructured: llm.callStructured,
-      isReplySchemaStable: environment.LLM_PROVIDER === "anthropic",
-      shouldCallLlmInBackground: config.decision.shouldCallLlmInBackground,
-      idleDecisionWaitMs: config.decision.idleDecisionWaitMs,
-      recordPersonalityChange: (change) => {
-        appendPersonalityChange(database, change);
-      },
-    }),
+    advanceTick: createDecisionStrategy(simDependencies),
     scheduler: createRealScheduler(),
     speed: settings.speed,
   });
@@ -169,6 +171,7 @@ async function run(): Promise<void> {
   const server = await startSimServer({
     port: environment.SIM_PORT,
     loop,
+    simDependencies,
     database,
     settings,
     countInFlightLlmCalls: () => llm.limiter.inFlightCount,

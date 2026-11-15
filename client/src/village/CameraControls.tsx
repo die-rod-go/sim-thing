@@ -12,6 +12,8 @@ interface CameraControlsProps {
   onThoughtModeChange: (mode: ThoughtMode) => void;
   isDirectorOn: boolean;
   onDirectorChange: (isOn: boolean) => void;
+  isGodModeOn: boolean;
+  onGodModeChange: (isOn: boolean) => void;
 }
 
 const THOUGHT_BUTTON_TEXT: Record<ThoughtMode, string> = {
@@ -20,7 +22,7 @@ const THOUGHT_BUTTON_TEXT: Record<ThoughtMode, string> = {
   off: "💭 off",
 };
 
-/** The floating cluster of map buttons: zoom, fit, follow, director, place labels, thoughts. */
+/** The floating cluster of map buttons: zoom, fit, follow, director, place labels, thoughts, god mode. */
 export function CameraControls({
   mode,
   controls,
@@ -31,6 +33,8 @@ export function CameraControls({
   onThoughtModeChange,
   isDirectorOn,
   onDirectorChange,
+  isGodModeOn,
+  onGodModeChange,
 }: CameraControlsProps) {
   return (
     <div className="camera-controls" role="toolbar" aria-label="Map view">
@@ -82,6 +86,14 @@ export function CameraControls({
         onClick={() => onThoughtModeChange(nextThoughtMode(thoughtMode))}
       >
         {THOUGHT_BUTTON_TEXT[thoughtMode]}
+      </button>
+      <button
+        type="button"
+        className={isGodModeOn ? "is-active" : undefined}
+        title="God mode: move people and things, place and delete them while paused (G)"
+        onClick={() => onGodModeChange(!isGodModeOn)}
+      >
+        God
       </button>
     </div>
   );

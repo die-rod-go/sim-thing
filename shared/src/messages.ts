@@ -25,6 +25,34 @@ import {
 } from "./seed-file";
 import type { SimTimeSettings } from "./time";
 
+const tilePositionSchema = z.object({ x: z.number().int(), y: z.number().int() });
+
+/** Where god mode puts an entity: on a map tile, or into an agent's hands. */
+const godDestinationSchema = z.discriminatedUnion("kind", [
+  z.object({ kind: z.literal("tile"), pos: tilePositionSchema }),
+  z.object({ kind: z.literal("agent"), agentId: z.string() }),
+]);
+
+export type GodDestination = z.infer<typeof godDestinationSchema>;
+
+/** A change the viewer makes to the paused world by hand. */
+export const godActionSchema = z.discriminatedUnion("kind", [
+  z.object({ kind: z.literal("move_agent"), agentId: z.string(), pos: tilePositionSchema }),
+  z.object({
+    kind: z.literal("place_entity"),
+    definitionId: z.string(),
+    destination: godDestinationSchema,
+  }),
+  z.object({
+    kind: z.literal("move_entity"),
+    entityId: z.string(),
+    destination: godDestinationSchema,
+  }),
+  z.object({ kind: z.literal("delete_entity"), entityId: z.string() }),
+]);
+
+export type GodAction = z.infer<typeof godActionSchema>;
+
 export const clientMessageSchema = z.discriminatedUnion("type", [
   z.object({ type: z.literal("pause") }),
   z.object({ type: z.literal("resume") }),
@@ -52,6 +80,7 @@ export const clientMessageSchema = z.discriminatedUnion("type", [
     mapFile: z.unknown(),
     shouldResetWorld: z.boolean(),
   }),
+  z.object({ type: z.literal("god_action"), action: godActionSchema }),
 ]);
 
 export type ClientMessage = z.infer<typeof clientMessageSchema>;
@@ -206,6 +235,13 @@ export interface MapFileSavedMessage {
   problems: MapProblem[];
 }
 
+/** Sent in reply to god_action. The change itself arrives as the usual world messages. */
+export interface GodActionResultMessage {
+  type: "god_action_result";
+  /** Why nothing was changed, or null when the action was applied. */
+  refusal: string | null;
+}
+
 export type ServerMessage =
   | SnapshotMessage
   | TickMessage
@@ -224,7 +260,8 @@ export type ServerMessage =
   | ItemFileMessage
   | ItemFileSavedMessage
   | MapFileMessage
-  | MapFileSavedMessage;
+  | MapFileSavedMessage
+  | GodActionResultMessage;
 
 export const SERVER_MESSAGE_TYPES = [
   "snapshot",
@@ -245,6 +282,7 @@ export const SERVER_MESSAGE_TYPES = [
   "item_file_saved",
   "map_file",
   "map_file_saved",
+  "god_action_result",
 ] as const satisfies readonly ServerMessage["type"][];
 
 const serverEnvelopeSchema = z.looseObject({ type: z.enum(SERVER_MESSAGE_TYPES) });

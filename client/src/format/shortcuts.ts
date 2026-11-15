@@ -20,6 +20,7 @@ export const SHORTCUT_HELP: readonly ShortcutHelpEntry[] = [
   { keys: "Esc", does: "Close menus, then deselect" },
   { keys: "?", does: "Show these shortcuts" },
   { keys: "F  0  +  −", does: "Map: follow, fit, zoom" },
+  { keys: "G", does: "Map: god mode (edits while paused)" },
 ];
 
 const DIGIT_PATTERN = /^[1-9]$/;

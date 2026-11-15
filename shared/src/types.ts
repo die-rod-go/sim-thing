@@ -262,7 +262,9 @@ export type WorldEventKind =
   | "missed"
   | "hurt"
   | "announced"
-  | "sound";
+  | "sound"
+  | "vanished"
+  | "appeared";
 
 /**
  * One thing that happened in the world. `description` is a past-tense verb phrase whose subject is

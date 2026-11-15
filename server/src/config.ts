@@ -300,6 +300,17 @@ export const config = {
     unknownSource: "someone",
   },
 
+  godMode: {
+    /** What onlookers see when the viewer takes a person or thing away; its subject is what went. */
+    vanishedDescription: "vanished into thin air",
+    /** What onlookers see when the viewer puts a person or thing down; its subject is what came. */
+    appearedDescription: "appeared out of thin air",
+    /** How a person the viewer moved files arriving; `{place}` is where they now are. */
+    movedOwnDescription: "suddenly found myself in {place}",
+    /** Why the moved person gets a decision straight away. */
+    movedDecisionReason: "I suddenly found myself somewhere else",
+  },
+
   conditions: {
     /** Added to a rule's killed phrase when an agent is behind it. */
     causedBySuffix: " after being hurt by {actor}",

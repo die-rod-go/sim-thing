@@ -101,6 +101,7 @@ export function App() {
             state={state}
             isDebugOverlayOn={simClient.isDebugOverlayOn}
             onSelectAgent={selectAgent}
+            sendControl={simClient.sendControl}
             cameraFocus={cameraFocus}
             highlightedAgentIds={highlightedAgentIds}
           />

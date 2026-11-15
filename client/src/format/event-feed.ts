@@ -32,6 +32,8 @@ const CATEGORY_BY_KIND: Record<WorldEventKind, EventCategory> = {
   hurt: "action",
   announced: "action",
   sound: "action",
+  vanished: "movement",
+  appeared: "movement",
 };
 
 /** The viewer sees everything, so a failed action reads with the actor's real reason. */

@@ -1,8 +1,11 @@
-import type { ClientMessage, ServerMessage } from "@village/shared";
+import type { ClientMessage, GodAction, ServerMessage } from "@village/shared";
 import { createLogger } from "../logger";
 import type { ItemEditor } from "../item-editor";
 import type { MapEditor } from "../map-editor";
 import type { SeedEditor } from "../seed-editor";
+import { applyGodAction } from "../sim/god-actions";
+import type { TickContext } from "../sim/tick-context";
+import { createEmptyTickResult } from "../sim/world-state";
 import { buildAgentDetail, buildSettingsMessage, type SimServerContext } from "./message-builders";
 
 const logger = createLogger("ws");
@@ -35,6 +38,23 @@ export function sendAgentDetail(session: ConnectionSession, context: SimServerCo
   const detail = buildAgentDetail(context, session.inspectedAgentId);
   if (detail) session.send(detail);
   else logger.warn(`inspect_agent for unknown agent "${session.inspectedAgentId}"`);
+}
+
+/** Applies the action if the sim is paused; returns why nothing changed, or null. */
+async function applyGodActionWhilePaused(
+  context: SimServerContext,
+  action: GodAction,
+): Promise<string | null> {
+  if (!context.loop.isPaused()) return "Pause the sim to use god mode";
+  return context.loop.editWhilePaused((state) => {
+    const tickContext: TickContext = {
+      state,
+      result: createEmptyTickResult(state.tick),
+      dependencies: context.simDependencies,
+    };
+    const refusal = applyGodAction(tickContext, action);
+    return { result: tickContext.result, answer: refusal };
+  });
 }
 
 async function resetAndAnnounce(dependencies: ControlDependencies): Promise<void> {
@@ -106,6 +126,11 @@ export async function handleClientMessage(
     case "load_map_file":
       session.send(dependencies.mapEditor.describeMapFile());
       return;
+    case "god_action": {
+      const refusal = await applyGodActionWhilePaused(context, message.action);
+      session.send({ type: "god_action_result", refusal });
+      return;
+    }
     case "save_map_file": {
       const result = dependencies.mapEditor.saveMapFile(message.mapFile);
       const shouldResetWorld = result.isSaved && message.shouldResetWorld;

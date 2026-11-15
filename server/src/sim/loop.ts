@@ -136,6 +136,22 @@ export class SimLoop {
     return result;
   }
 
+  /**
+   * Changes the paused world by hand without advancing the clock. What the edit produced reaches
+   * the tick listeners like a tick's result, so it is logged and broadcast the same way. Resolves
+   * to the edit's own answer; throws when the sim is running.
+   */
+  editWhilePaused<Answer>(
+    edit: (state: WorldState) => { result: TickResult; answer: Answer },
+  ): Promise<Answer> {
+    return this.runBetweenTicks(() => {
+      if (!this.isPausedFlag) throw new Error("The world can only be edited while paused");
+      const { result, answer } = edit(this.state);
+      for (const listener of this.tickListeners) listener(result, this.state);
+      return answer;
+    });
+  }
+
   /** Replaces the world, e.g. after a reset. Call inside `runBetweenTicks`. */
   replaceState(state: WorldState): void {
     if (this.runningTick !== null) throw new Error("Cannot replace the world while a tick runs");

@@ -167,6 +167,9 @@ describe("sim WebSocket server", () => {
     server = await startSimServer({
       port: 0,
       loop,
+      simDependencies: {
+        callStructured: () => Promise.reject(new Error("No LLM in the server tests")),
+      },
       database,
       settings,
       countInFlightLlmCalls: () => 0,
@@ -215,6 +218,33 @@ describe("sim WebSocket server", () => {
       pos: { x: 1, y: 0 },
     });
     expect((await client.waitFor("tick")).tick).toBe(1);
+  });
+
+  it("moves a person by hand while paused and streams the move", async () => {
+    const client = await connect();
+    await client.waitFor("snapshot");
+    client.send({
+      type: "god_action",
+      action: { kind: "move_agent", agentId: "mara", pos: { x: 1, y: 0 } },
+    });
+    expect(await client.waitFor("god_action_result")).toEqual({
+      type: "god_action_result",
+      refusal: null,
+    });
+    expect(await client.waitFor("agent_moved")).toMatchObject({
+      agentId: "mara",
+      pos: { x: 1, y: 0 },
+    });
+    expect(loop.getState().tick).toBe(0);
+  });
+
+  it("refuses god actions while the sim runs", async () => {
+    const client = await connect();
+    await client.waitFor("snapshot");
+    client.send({ type: "resume" });
+    await client.waitFor("paused");
+    client.send({ type: "god_action", action: { kind: "delete_entity", entityId: "entity-1" } });
+    expect((await client.waitFor("god_action_result")).refusal).toMatch(/pause/i);
   });
 
   it("broadcasts pause changes and settings to every client", async () => {
