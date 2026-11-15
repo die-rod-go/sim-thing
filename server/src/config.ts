@@ -459,11 +459,13 @@ export const config = {
   places: {
     /** How labelled things that differ only by a trailing number read together: "tree ×32". */
     numberedLabelsText: "{label} ×{count}",
-    /** The lines of "Places you have seen". `{time}` is absolute, so the section stays cacheable. */
+    /**
+     * The lines of "Places you have seen". A line changes only when what the place holds changes,
+     * so the section stays in the provider's cache while the agent walks about.
+     */
     promptTexts: {
       noneSeen: "None yet.",
-      inViewNow: "{place} (in view now): {entities}",
-      seenEarlier: "{place} (as of {time}): {entities}",
+      lookedInto: "{place}: {entities}",
       nothingThere: "nothing",
     },
     /** Why a `walk_to` fails when its target is no place, no one in sight and nothing here. */

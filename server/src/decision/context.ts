@@ -83,8 +83,6 @@ export interface SeenPlaceLine {
   name: string;
   /** What was there when last seen; null when the agent has not looked into the place yet. */
   entityNames: string[] | null;
-  /** When the inside was last seen ("Day 1, 6:30 am"); null while it is in view now. */
-  seenAt: string | null;
 }
 
 export interface CurrentActionSummary {

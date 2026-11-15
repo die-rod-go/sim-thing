@@ -78,12 +78,9 @@ export function describeBelongings(groups: PromptEntityGroup[], itemlessVerbs: s
 function describeSeenPlace(place: SeenPlaceLine): string {
   const texts = config.places.promptTexts;
   if (place.entityNames === null) return place.name;
-  const template = place.seenAt === null ? texts.inViewNow : texts.seenEarlier;
-  return template
+  return texts.lookedInto
     .split("{place}")
     .join(place.name)
-    .split("{time}")
-    .join(place.seenAt ?? "")
     .split("{entities}")
     .join(place.entityNames.length > 0 ? place.entityNames.join(", ") : texts.nothingThere);
 }

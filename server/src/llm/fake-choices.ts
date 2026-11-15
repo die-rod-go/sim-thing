@@ -77,7 +77,7 @@ export function parseThingList(prompt: string, header: string, itemNames: string
   return things;
 }
 
-/** The names opening each bullet under `header`: "- bakery (in view now): oven" → "bakery". */
+/** The names opening each bullet under `header`: "- bakery: oven" → "bakery". */
 function readBulletNames(prompt: string, header: string): string[] {
   const lines = prompt.split("\n");
   const start = lines.findIndex((candidate) => candidate.startsWith(header));
@@ -86,7 +86,7 @@ function readBulletNames(prompt: string, header: string): string[] {
   for (const line of lines.slice(start + 1)) {
     const text = line.match(BULLET_PATTERN)?.[2];
     if (text === undefined) break;
-    names.push((text.split(" (")[0] ?? "").trim());
+    names.push((text.split(":")[0] ?? "").trim());
   }
   return names;
 }

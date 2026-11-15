@@ -78,9 +78,9 @@ function buildContext(overrides: Partial<DecisionContext> = {}): DecisionContext
       '[Day 1, 6:28 am] Tom said: "Morning, Mara!"',
     ],
     seenPlaces: [
-      { name: "bakery", entityNames: ["oven", "2 bread"], seenAt: null },
-      { name: "farm", entityNames: [], seenAt: "Day 1, 6:10 am" },
-      { name: "town square", entityNames: null, seenAt: null },
+      { name: "bakery", entityNames: ["oven", "2 bread"] },
+      { name: "farm", entityNames: [] },
+      { name: "town square", entityNames: null },
     ],
     currentAction: null,
     isMidActionInterrupt: false,
@@ -508,13 +508,13 @@ describe("describeAroundYou", () => {
 });
 
 describe("places you have seen", () => {
-  it("lists each seen place with what it held and when, and one not looked into by name alone", () => {
+  it("lists each seen place with what it held, and one not looked into by name alone", () => {
     const prompt = buildDecisionPrompt(buildContext());
     expect(prompt).toContain(
       [
         "## Places you have seen",
-        "- bakery (in view now): oven, 2 bread",
-        "- farm (as of Day 1, 6:10 am): nothing",
+        "- bakery: oven, 2 bread",
+        "- farm: nothing",
         "- town square",
         "",
       ].join("\n"),

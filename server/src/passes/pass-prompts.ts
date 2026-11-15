@@ -2,7 +2,6 @@ import { TRAIT_NAMES, type Agent, type LlmCallKind, type TraitName } from "@vill
 import { z } from "zod";
 import { config } from "../config";
 import type { HeldKnowledge } from "../decision/context";
-import { extractCacheBreakpoints, type DecisionPrompt } from "../decision/decision-prompt";
 import type { ReplySchemas } from "../decision/reply-schema";
 import {
   dropEmptyFields,
@@ -61,8 +60,8 @@ function describeTraitValues(traits: Record<TraitName, number>): string {
 }
 
 /**
- * What every pass reads, the same text for each: memory first, since no pass changes it, so
- * passes run back to back read it from the provider's cache.
+ * What every pass reads, the same text for each. Passes are not cached: each sends its own reply
+ * schema and the stream moves on between them, so no pass could read another's cached prompt.
  */
 function buildPassContext(agent: Agent, held: HeldKnowledge, promptsDirectory?: string): string {
   return renderTemplate(
@@ -117,8 +116,8 @@ export function buildPassPrompt(
   agent: Agent,
   held: HeldKnowledge,
   promptsDirectory?: string,
-): DecisionPrompt {
-  const filled = renderTemplate(
+): string {
+  return renderTemplate(
     PASS_SETTINGS[pass].templateName,
     {
       context: buildPassContext(agent, held, promptsDirectory),
@@ -126,7 +125,6 @@ export function buildPassPrompt(
     },
     promptsDirectory,
   );
-  return extractCacheBreakpoints(filled);
 }
 
 const TRAIT_ENUM = TRAIT_NAMES as readonly [TraitName, ...TraitName[]];

@@ -55,7 +55,7 @@ describe("seen places", () => {
       entities: null,
     });
     expect(sim.records[0]?.prompt).toMatch(/^- bakery$/m);
-    expect(sim.records[0]?.prompt).toContain("- town square (in view now): notice board, bench");
+    expect(sim.records[0]?.prompt).toContain("- town square: notice board, bench");
   });
 
   it("replaces a place's list while it is in view and keeps the last one after leaving", async () => {

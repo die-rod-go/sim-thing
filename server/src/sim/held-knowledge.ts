@@ -1,5 +1,4 @@
-import { formatSimTime, type Agent } from "@village/shared";
-import { config } from "../config";
+import type { Agent } from "@village/shared";
 import type { HeldKnowledge } from "../decision/context";
 import { describeStreamEntry, describeSummary } from "../memory/stream";
 import { getAgentMemory } from "./world-access";
@@ -20,10 +19,6 @@ export function buildHeldKnowledge(state: WorldState, agent: Agent): HeldKnowled
     seenPlaces: agent.seenPlaces.map((seenPlace) => ({
       name: seenPlace.name,
       entityNames: seenPlace.entities?.names ?? null,
-      seenAt:
-        seenPlace.entities === null || seenPlace.entities.tick === state.tick
-          ? null
-          : formatSimTime(seenPlace.entities.tick, config.clock),
     })),
     longTermGoals: agent.longTermGoals,
     shortTermGoals: agent.shortTermGoals,

@@ -8,7 +8,6 @@ You are {{name}}. Below is everything you remember and hold, and after it a ques
 The latest things you did, saw and heard, word for word, oldest first.
 {{stream}}
 
-<<<cache>>>
 ## Places you have seen
 {{seenPlaces}}
 
@@ -27,5 +26,3 @@ Your traits, each from -1 to 1:
 
 ## People you know
 {{people}}
-
-<<<cache>>>

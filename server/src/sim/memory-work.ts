@@ -146,7 +146,7 @@ export function createMemoryWork(dependencies: SimDependencies): RunMemoryWork {
     pass: Pass,
   ): Promise<JobOutcome> {
     const agent = findAgent(state, agentId);
-    const { text: prompt, cacheBreakpoints } = buildPassPrompt(
+    const prompt = buildPassPrompt(
       pass,
       agent,
       buildHeldKnowledge(state, agent),
@@ -157,7 +157,6 @@ export function createMemoryWork(dependencies: SimDependencies): RunMemoryWork {
       agentId,
       tick: state.tick,
       prompt,
-      cacheBreakpoints,
       ...buildPassReplySchema(pass),
     });
     return {
