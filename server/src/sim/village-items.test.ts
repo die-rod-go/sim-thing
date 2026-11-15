@@ -99,19 +99,20 @@ describe("gathering", () => {
     expect(lastFailure(sim, "mara")).toMatch(/isn't enough left/);
   });
 
-  it("slaughters a pig at the pen with a cleaver for two raw meat", () => {
+  it("slaughters a pig with a cleaver for two raw meat", () => {
     const sim = setUpVillage();
-    const pen = placeThing(sim, "pig_pen", SQUARE);
+    const pig = placeThing(sim, "pig", SQUARE);
+    if (pig.kind !== "entity") throw new Error("expected the pig to be an entity");
     handOver(sim, "mara", "cleaver");
-    doVerb(sim, "mara", "slaughter a pig", "pig pen");
+    doVerb(sim, "mara", "slaughter", "pig");
     expect(countHeld(sim.state, "mara", "raw_meat")).toBe(2);
-    expect(numberAt(sim, pen, "stock.amount")).toBe(2);
+    expect(findEntityIfPresent(sim.state, pig.entityId)).toBeUndefined();
   });
 
   it("refuses to slaughter without a cleaver", () => {
     const sim = setUpVillage();
-    placeThing(sim, "pig_pen", SQUARE);
-    doVerb(sim, "mara", "slaughter a pig", "pig pen");
+    placeThing(sim, "pig", SQUARE);
+    doVerb(sim, "mara", "slaughter", "pig");
     expect(countHeld(sim.state, "mara", "raw_meat")).toBe(0);
   });
 

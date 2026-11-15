@@ -347,7 +347,7 @@
     {
       "id": "diego",
       "name": "Diego",
-      "profession": "butcher; slaughters pigs at the pig pen in the animal pens, cooks meat at the oven in the bakery and sells it from the butcher's shop, where he lives",
+      "profession": "butcher; slaughters pigs from the pig nest in the animal pens, cooks meat at the oven in the bakery and sells it from the butcher's shop, where he lives",
       "traits": {
         "extraversion": 0.35,
         "agreeableness": 0.15,
@@ -752,7 +752,7 @@
     {
       "id": "wil",
       "name": "Wil",
-      "profession": "farmer; harvests the wheat fields in the south fields, keeps the kitchen garden and the pig pen in the animal pens, and lives in the farmhouse",
+      "profession": "farmer; harvests the wheat fields in the south fields, keeps the kitchen garden and the pig nest in the animal pens, and lives in the farmhouse",
       "traits": {
         "extraversion": -0.2,
         "agreeableness": 0.4,
@@ -784,7 +784,7 @@
         },
         {
           "goal": "Keep the pigs from being slaughtered faster than they breed",
-          "reason": "Diego would empty the pig pen in a week",
+          "reason": "Diego would slaughter every pig in a week",
           "progress": ""
         },
         {

@@ -285,7 +285,7 @@
       }
     },
     "livestock": {
-      "description": "Animals slaughtered with a cleaver.",
+      "description": "An animal slaughtered with a cleaver.",
       "fields": {
         "item": {
           "type": "item",
@@ -1491,30 +1491,6 @@
       "components": {}
     },
     {
-      "id": "pig_pen",
-      "name": "pig pen",
-      "plural": "pig pens",
-      "glyph": {
-        "index": 227,
-        "color": "#e8a0a0",
-        "background": "#4a3a24"
-      },
-      "components": {
-        "flammable": {},
-        "stock": {
-          "capacity": 4,
-          "amount": 4
-        },
-        "regrows": {
-          "perHour": 0.05
-        },
-        "livestock": {
-          "item": "raw_meat",
-          "count": 2
-        }
-      }
-    },
-    {
       "id": "lake",
       "name": "lake",
       "plural": "lakes",
@@ -1940,6 +1916,63 @@
         },
         "spawns": {
           "item": "deer"
+        }
+      }
+    },
+    {
+      "id": "pig",
+      "name": "pig",
+      "plural": "pigs",
+      "glyph": {
+        "index": 112,
+        "color": "#e8a0a0"
+      },
+      "components": {
+        "alive": {},
+        "flesh": {},
+        "creature": {
+          "sightTiles": 6,
+          "wanderChance": 0.2
+        },
+        "health": {
+          "max": 0.5,
+          "current": 0.5
+        },
+        "grazer": {},
+        "livestock": {
+          "item": "raw_meat",
+          "count": 2
+        },
+        "drops": {
+          "item": "raw_meat",
+          "count": 2
+        },
+        "stats": {
+          "strength": 0.4,
+          "agility": 0.3
+        }
+      }
+    },
+    {
+      "id": "pig_nest",
+      "name": "pig nest",
+      "plural": "pig nests",
+      "glyph": {
+        "index": 227,
+        "color": "#e8a0a0",
+        "background": "#4a3a24"
+      },
+      "components": {
+        "flammable": {},
+        "stock": {
+          "capacity": 3,
+          "amount": 3
+        },
+        "regrows": {
+          "perHour": 0.05
+        },
+        "spawns": {
+          "item": "pig"
         }
       }
     }
@@ -2986,16 +3019,9 @@
       }
     },
     {
-      "name": "slaughter a pig",
+      "name": "slaughter",
       "appliesTo": {
-        "allOf": [
-          {
-            "has": "livestock"
-          },
-          {
-            "has": "stock"
-          }
-        ]
+        "has": "livestock"
       },
       "steps": [
         {
@@ -3005,17 +3031,6 @@
             "has": "butchers"
           },
           "as": "tool"
-        },
-        {
-          "step": "check",
-          "on": "item",
-          "if": {
-            "field": "stock.amount",
-            "atLeast": {
-              "from": "item.livestock.count"
-            }
-          },
-          "otherwise": "there are no pigs ready in the {item}"
         },
         {
           "step": "wait",
@@ -3033,13 +3048,8 @@
           "into": "user"
         },
         {
-          "step": "change",
-          "on": "item",
-          "field": "stock.amount",
-          "by": {
-            "from": "item.livestock.count",
-            "times": -1
-          }
+          "step": "destroy",
+          "on": "item"
         },
         {
           "step": "damage",
@@ -3055,9 +3065,9 @@
         }
       ],
       "phrases": {
-        "ongoing": "slaughtering a pig at the {item}",
-        "done": "slaughtered a pig",
-        "attempt": "slaughter a pig at the {item}"
+        "ongoing": "slaughtering the {item}",
+        "done": "slaughtered the {item}",
+        "attempt": "slaughter the {item}"
       }
     },
     {
