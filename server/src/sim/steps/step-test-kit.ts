@@ -7,7 +7,8 @@ import { setUpRules } from "../rule-test-kit";
 import { sendStimulus } from "../rule-engine";
 import type { TestSim } from "../test-sim";
 import type { TickContext } from "../tick-context";
-import { applyStep, findStepListRefusal } from "./step-registry";
+import { advanceStepIndex } from "./step-flow";
+import { applyStep, findStepListRefusal, runStepList } from "./step-registry";
 import { refreshSnapshots } from "./step-roles";
 import type { StepRun } from "./step-run";
 
@@ -103,14 +104,16 @@ export function runSteps(
   const result: StepsResult = { context, run, failure: null, made: null, pauseCount: 0 };
   result.failure = findStepListRefusal(run, parsed);
   if (result.failure !== null) return result;
-  for (const step of parsed) {
-    const outcome = applyStep(run, step);
+  let index = 0;
+  while (index < parsed.length) {
+    const outcome = applyStep(run, parsed[index]!);
     if (outcome.kind === "refused") {
       result.failure = outcome.reason;
       return result;
     }
     if (outcome.kind === "pause") result.pauseCount += 1;
     if (outcome.kind === "done" && outcome.made) result.made = outcome.made;
+    index = advanceStepIndex(run, parsed, index, true);
     refreshSnapshots(sim.state, verbRun);
   }
   return result;
@@ -132,7 +135,7 @@ export function runRuleSteps(
 ): TickContext {
   const context = contextOf(sim);
   const run = buildStepRun(context, null, { self, sourceId });
-  for (const step of parseSteps(steps)) applyStep(run, step);
+  runStepList(run, parseSteps(steps));
   return context;
 }
 

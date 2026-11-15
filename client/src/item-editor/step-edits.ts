@@ -1,9 +1,21 @@
-import { listMentionedComponents, type Step } from "@village/shared";
+import { listMentionedComponents, type Step, type StepType } from "@village/shared";
 import { moveWithin, removeAt, replaceAt } from "./list-edits";
+import { buildNewStep } from "./step-catalog";
+import type { ValueSpot } from "./step-owner";
 
 export function insertStep(steps: readonly Step[], index: number, step: Step): Step[] {
   const position = Math.min(Math.max(index, 0), steps.length);
   return [...steps.slice(0, position), step, ...steps.slice(position)];
+}
+
+/** Adds a palette step at the end; a new `if` comes with its `end_if`. */
+export function appendNewStep(
+  steps: readonly Step[],
+  type: StepType,
+  where: Omit<ValueSpot, "stepIndex">,
+): Step[] {
+  const added = buildNewStep(type, { ...where, stepIndex: steps.length });
+  return type === "if" ? [...steps, added, { step: "end_if" }] : [...steps, added];
 }
 
 export function removeStep(steps: readonly Step[], index: number): Step[] {

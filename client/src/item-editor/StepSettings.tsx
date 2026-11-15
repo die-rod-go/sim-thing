@@ -1,6 +1,7 @@
 import type { Step } from "@village/shared";
 import {
   CheckStepSettings,
+  IfStepSettings,
   PickStepSettings,
   RollHitStepSettings,
   SleepStepSettings,
@@ -41,6 +42,11 @@ export function StepSettings({ step, onChange, spot, file, isInRule }: AnyStepSe
       return <PickStepSettings step={step} onChange={onChange} {...shared} />;
     case "check":
       return <CheckStepSettings step={step} onChange={onChange} {...shared} />;
+    case "if":
+      return <IfStepSettings step={step} onChange={onChange} {...shared} />;
+    case "else":
+    case "end_if":
+      return null;
     case "wait":
       return <WaitStepSettings step={step} onChange={onChange} {...shared} />;
     case "sleep":

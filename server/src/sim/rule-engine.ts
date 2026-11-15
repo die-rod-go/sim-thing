@@ -9,7 +9,7 @@ import {
   type ThingRef,
 } from "../items/things";
 import type { RuleCause } from "./rule-cause";
-import { applyStep } from "./steps/step-registry";
+import { runStepList } from "./steps/step-registry";
 import { describeRunCause } from "./steps/step-roles";
 import type { StepRun } from "./steps/step-run";
 import type { TickContext } from "./tick-context";
@@ -76,11 +76,8 @@ export function runRule(context: TickContext, thing: ThingRef, rule: Rule, cause
     depth: cause.depth,
     isInPassing: false,
   };
-  for (const step of rule.steps) {
-    const outcome = applyStep(run, step);
-    if (outcome.kind === "refused") {
-      logger.warn(`a ${rule.trigger} rule's ${step.step} step was refused: ${outcome.reason}`);
-    }
+  for (const { step, reason } of runStepList(run, rule.steps)) {
+    logger.warn(`a ${rule.trigger} rule's ${step.step} step was refused: ${reason}`);
   }
 }
 

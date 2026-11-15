@@ -13,6 +13,7 @@ import {
   type Step,
   type StepType,
 } from "./step-schema";
+import { BlockTracker, checkBlockSteps } from "./step-block-validation";
 import {
   buildStepScope,
   couldReachBody,
@@ -24,6 +25,7 @@ import { isFanOutName, type FanOutName } from "./value-schema";
 
 /** Steps that work on a thing named by `on`. */
 const ON_STEPS: ReadonlySet<StepType> = new Set<StepType>([
+  "if",
   "check",
   "change",
   "damage",
@@ -201,7 +203,7 @@ function checkStep(
 ) {
   const path = `${ownerPath}.steps.${index}`;
   checkOn(step, path, scope);
-  if (step.step === "check") {
+  if (step.step === "check" || step.step === "if") {
     checkMatcher(step.if, `${path}.if`, scope.context, { canReadValues: true });
   }
   checkDestination(step, path, scope);
@@ -240,6 +242,11 @@ export function checkSteps(
   if (owner.kind === "verb") {
     for (const read of listReachReads(owner.verb)) checkStepRead(read, path, scope);
   }
-  steps.forEach((step, index) => checkStep(step, steps, index, path, scope));
+  checkBlockSteps(steps, path, scope);
+  const blocks = new BlockTracker(scope);
+  steps.forEach((step, index) => {
+    checkStep(step, steps, index, path, scope);
+    blocks.noteStep(step);
+  });
   return scope;
 }

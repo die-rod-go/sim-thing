@@ -70,6 +70,21 @@ export function CheckStepSettings({
   );
 }
 
+export function IfStepSettings({ step, onChange, spot, file, isInRule }: StepSettingsProps<"if">) {
+  const update = (changes: Record<string, unknown>) => onChange(withSettings(step, changes));
+  return (
+    <>
+      <OnSettings step={step} spot={spot} isInRule={isInRule} onChange={update} />
+      <MatcherBuilder
+        matcher={step.if}
+        file={file}
+        allowsWhere={false}
+        onChange={(matcher) => update({ if: matcher })}
+      />
+    </>
+  );
+}
+
 export function WaitStepSettings({ step, onChange, spot }: StepSettingsProps<"wait">) {
   const update = (changes: Record<string, unknown>) => onChange(withSettings(step, changes));
   const steps = spot.owner.kind === "verb" ? spot.owner.verb.steps : [];

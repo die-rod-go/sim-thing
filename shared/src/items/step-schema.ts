@@ -69,6 +69,16 @@ export const stepSchema = z.discriminatedUnion("step", [
     /** The refusal when it doesn't match; `{item}` and `{target}` are filled in. */
     otherwise: z.string().trim().min(1),
   }),
+  /** Runs the steps up to its `else` or `end_if` only when `on` matches `if`. */
+  z.strictObject({
+    step: z.literal("if"),
+    ...commonSettings,
+    on: thingNameSchema.optional(),
+    if: matcherSchema,
+  }),
+  /** Runs the steps up to its `end_if` only when its `if` didn't match. */
+  z.strictObject({ step: z.literal("else"), ...commonSettings }),
+  z.strictObject({ step: z.literal("end_if"), ...commonSettings }),
   z.strictObject({
     step: z.literal("wait"),
     ...commonSettings,

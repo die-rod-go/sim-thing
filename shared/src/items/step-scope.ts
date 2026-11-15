@@ -23,6 +23,8 @@ export interface StepScope {
   plannedNames: ReadonlySet<string>;
   /** Roles a `transform` above changed, with a matcher the thing meets from then on. */
   transformedRoles: Map<string, Matcher>;
+  /** `as` names given inside an `if` block that has closed, so they may not exist after it. */
+  blockNames: Set<string>;
 }
 
 export function buildStepScope(
@@ -43,6 +45,7 @@ export function buildStepScope(
     givenNames: new Map(),
     plannedNames,
     transformedRoles: new Map(),
+    blockNames: new Set(),
   };
 }
 
@@ -121,6 +124,9 @@ export function resolveThing(scope: StepScope, name: string): ThingResolution {
   }
   const matcher = scope.givenNames.get(name);
   if (matcher !== undefined) return resolveMatched(scope, matcher, "");
+  if (scope.blockNames.has(name)) {
+    return unavailable(`"${name}" is named inside an \`if\` block, so it may not exist here.`);
+  }
   if (scope.plannedNames.has(name)) {
     return unavailable(`"${name}" is used before the step that names it.`);
   }
