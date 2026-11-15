@@ -32,6 +32,18 @@ function readNumber(fields: ReplyFields, key: string): number | null {
   return typeof value === "number" ? value : null;
 }
 
+function readRecords(fields: ReplyFields, key: string): ReplyFields[] {
+  const value = fields[key];
+  return Array.isArray(value) ? value.filter(isRecord) : [];
+}
+
+function readTexts(fields: ReplyFields, key: string): string[] {
+  const value = fields[key];
+  return Array.isArray(value)
+    ? value.filter((item): item is string => typeof item === "string")
+    : [];
+}
+
 function part(label: string, text: string | null): ThoughtPart[] {
   return text === null ? [] : [{ label, text }];
 }
@@ -75,6 +87,54 @@ function summarizeDecision(fields: ReplyFields): Pick<ThoughtEntry, "headline" |
   };
 }
 
+const PERSON_FIELD_WORDS: Record<string, string> = {
+  whatIThinkOfThem: "thinks",
+  whatTheyThinkOfMe: "they think",
+  whatIWantFromThem: "wants",
+  whatTheyWantFromMe: "they want",
+};
+
+function summarizePeople(fields: ReplyFields): Pick<ThoughtEntry, "headline" | "parts"> {
+  const parts = readRecords(fields, "people").flatMap((person) => {
+    const name = readText(person, "person") ?? "someone";
+    return Object.entries(PERSON_FIELD_WORDS).flatMap(([field, words]) =>
+      part(`${name}: ${words}`, readText(person, field)),
+    );
+  });
+  return { headline: null, parts };
+}
+
+function describeGoal(goal: ReplyFields): string | null {
+  const text = readText(goal, "goal");
+  if (text === null) return null;
+  const steps = readTexts(goal, "steps");
+  return steps.length === 0 ? text : `${text}: ${steps.join("; ")}`;
+}
+
+function summarizeGoals(fields: ReplyFields): Pick<ThoughtEntry, "headline" | "parts"> {
+  return {
+    headline: null,
+    parts: readRecords(fields, "goals").flatMap((goal) => part("goal", describeGoal(goal))),
+  };
+}
+
+function summarizeIdentity(fields: ReplyFields): Pick<ThoughtEntry, "headline" | "parts"> {
+  const traitChanges = readRecords(fields, "traitChanges").flatMap((change) => {
+    const delta = readNumber(change, "delta");
+    const sign = delta !== null && delta >= 0 ? "+" : "";
+    const amount = delta === null ? "" : ` ${sign}${delta.toFixed(3)}`;
+    return part(`${readText(change, "trait") ?? "trait"}${amount}`, readText(change, "reason"));
+  });
+  return {
+    headline: readText(fields, "selfImage") ?? readText(fields, "core"),
+    parts: [
+      ...part("work", readText(fields, "profession")),
+      ...part("core", readText(fields, "core")),
+      ...traitChanges,
+    ],
+  };
+}
+
 function summarizeOther(fields: ReplyFields): Pick<ThoughtEntry, "headline" | "parts"> {
   const textParts = Object.entries(fields).flatMap(([key, value]) =>
     typeof value === "string" && value.trim().length > 0 ? [{ label: key, text: value }] : [],
@@ -94,6 +154,13 @@ function summarizeReply(
     case "day_summary":
     case "history":
       return { headline: readText(fields, "summary"), parts: [] };
+    case "people":
+      return summarizePeople(fields);
+    case "short_term_goals":
+    case "long_term_goals":
+      return summarizeGoals(fields);
+    case "identity":
+      return summarizeIdentity(fields);
     case "interact":
       return summarizeOther(fields);
   }

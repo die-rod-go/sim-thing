@@ -10,7 +10,13 @@ const clara = makeSampleAgent("clara", "Clara", 2, 2);
 ada.awareness = {
   clara: { agentId: "clara", tick: 40, via: "saw", place: "square", doing: "selling" },
 };
-ada.dossiers = { bob: { text: "Owes me two coins.", updatedTick: 20 } };
+const bobEntry = {
+  whatIThinkOfThem: "Owes me two coins.",
+  whatTheyThinkOfMe: "",
+  whatIWantFromThem: "My two coins.",
+  whatTheyWantFromMe: "",
+};
+ada.people = { bob: bobEntry };
 const threads = groupConversations(
   [makeSampleEvent(1, ada, 1), makeSampleEvent(2, bob, 2)],
   MAX_GAP_TICKS,
@@ -24,11 +30,11 @@ describe("buildRelations", () => {
     expect(relations[1]?.minutesSincePerceived).toBeNull();
   });
 
-  it("collects the dossier and shared conversations per person", () => {
+  it("collects the person entry and shared conversations per person", () => {
     const bobRelation = buildRelations(ada, [ada, bob, clara], threads, 50, 2).find(
       (relation) => relation.agentId === "bob",
     );
-    expect(bobRelation?.dossier).toEqual({ text: "Owes me two coins.", minutesAgo: 60 });
+    expect(bobRelation?.entry).toEqual(bobEntry);
     expect(bobRelation?.sharedThreadCount).toBe(1);
   });
 });

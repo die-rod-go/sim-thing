@@ -1,5 +1,10 @@
 import { useMemo } from "react";
-import type { AgentDetailMessage, AwarenessVia } from "@village/shared";
+import {
+  PERSON_ENTRY_FIELDS,
+  type AgentDetailMessage,
+  type AwarenessVia,
+  type PersonEntry,
+} from "@village/shared";
 import { formatMinutesAgo } from "../format/formatters";
 import { buildRelations, type Relation } from "../format/relations";
 import { usePanelContext } from "./panel-context";
@@ -29,6 +34,29 @@ function LastPerceived({ relation }: { relation: Relation }) {
   );
 }
 
+const ENTRY_LABELS: Record<keyof PersonEntry, string> = {
+  whatIThinkOfThem: "Thinks of them",
+  whatTheyThinkOfMe: "Believes they think",
+  whatIWantFromThem: "Wants from them",
+  whatTheyWantFromMe: "Believes they want",
+};
+
+/** The fields of a person entry that hold something. */
+function PersonEntryLines({ entry }: { entry: PersonEntry }) {
+  const filled = PERSON_ENTRY_FIELDS.filter((field) => entry[field].trim() !== "");
+  if (filled.length === 0) return <p className="relation-notes muted">Nothing held yet.</p>;
+  return (
+    <dl className="relation-notes">
+      {filled.map((field) => (
+        <div key={field}>
+          <dt className="muted">{ENTRY_LABELS[field]}</dt>
+          <dd>{entry[field]}</dd>
+        </div>
+      ))}
+    </dl>
+  );
+}
+
 function RelationCard({ relation }: { relation: Relation }) {
   return (
     <article className="relation">
@@ -41,17 +69,12 @@ function RelationCard({ relation }: { relation: Relation }) {
         </span>
       </header>
       <LastPerceived relation={relation} />
-      {relation.dossier !== null && (
-        <p className="relation-notes">
-          {relation.dossier.text}{" "}
-          <span className="muted">· written {formatMinutesAgo(relation.dossier.minutesAgo)}</span>
-        </p>
-      )}
+      {relation.entry !== null && <PersonEntryLines entry={relation.entry} />}
     </article>
   );
 }
 
-/** Everyone else from this agent's side: what it last perceived of them and what it noted. */
+/** Everyone else from this agent's side: what it last perceived of them and what it holds. */
 export function RelationsTab({ detail }: { detail: AgentDetailMessage }) {
   const { state, threads } = usePanelContext();
   const relations = useMemo(

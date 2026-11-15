@@ -1,10 +1,10 @@
-import type { Goal } from "@village/shared";
+import { PERSON_ENTRY_FIELDS, type LongTermGoal, type ShortTermGoal } from "@village/shared";
 import { config } from "../config";
 import { fillStatusWords } from "../status/impairment";
 import type {
   CurrentActionSummary,
   DecisionTargets,
-  PersonOnMind,
+  KnownPerson,
   PromptEntityGroup,
   SeenPlaceLine,
 } from "./context";
@@ -15,11 +15,22 @@ function bulletList(lines: string[], emptyText: string): string {
   return lines.length > 0 ? lines.map((line) => `- ${line}`).join("\n") : emptyText;
 }
 
-export function describeGoals(goals: Goal[]): string {
+export function describeLongTermGoals(goals: readonly LongTermGoal[]): string {
   return bulletList(
-    goals.map((goal) => `${goal.text} (why: ${goal.why}; so far: ${goal.progress})`),
-    "No particular goals right now.",
+    goals.map((goal) => `${goal.goal} (why: ${goal.reason}; so far: ${goal.progress})`),
+    config.goals.noLongTermText,
   );
+}
+
+/** Each short-term goal with its reason and progress, then its steps as a numbered plan. */
+export function describeShortTermGoals(goals: readonly ShortTermGoal[]): string {
+  if (goals.length === 0) return config.goals.noShortTermText;
+  return goals
+    .flatMap((goal) => [
+      `- ${goal.goal} (why: ${goal.reason}; so far: ${goal.progress})`,
+      ...goal.steps.map((step, stepIndex) => `${NESTED_INDENT}${stepIndex + 1}. ${step}`),
+    ])
+    .join("\n");
 }
 
 const NESTED_INDENT = "  ";
@@ -112,11 +123,19 @@ export function describeStream(stream: string[]): string {
   return bulletList(stream, config.memory.streamTexts.empty);
 }
 
-export function describePeopleOnMind(people: PersonOnMind[]): string {
-  return bulletList(
-    people.map((person) => `${person.name}: ${person.text}`),
-    config.dossier.nobodyOnMindText,
+function describePerson(person: KnownPerson): string[] {
+  const lines = PERSON_ENTRY_FIELDS.filter((field) => person.entry[field].trim() !== "").map(
+    (field) => `${NESTED_INDENT}${config.people.fieldLabels[field]}: ${person.entry[field]}`,
   );
+  if (lines.length === 0) return [`- ${person.name}: ${config.people.emptyEntryText}`];
+  return [`- ${person.name}`, ...lines];
+}
+
+/** Everyone the agent knows, each with the fields of their entry that hold something. */
+export function describePeople(people: readonly KnownPerson[]): string {
+  return people.length > 0
+    ? people.flatMap(describePerson).join("\n")
+    : config.people.nobodyKnownText;
 }
 
 export function describeCurrentAction(

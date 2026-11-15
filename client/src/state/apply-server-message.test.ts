@@ -32,6 +32,13 @@ function makeDetail(agentId: string): AgentDetailMessage {
       lastMidnightDay: 1,
       midnight: null,
       retryAtTick: null,
+      passes: {
+        episodesSincePeople: 0,
+        episodesSinceShortTermGoals: 0,
+        isFirstShortTermGoalsOwed: false,
+        isIdentityOwed: false,
+        isLongTermGoalsOwed: false,
+      },
     },
     llmCalls: [],
     personalityHistory: [],

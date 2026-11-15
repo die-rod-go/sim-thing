@@ -28,14 +28,36 @@ export interface Personality {
   selfImage: string;
 }
 
-export type GoalKind = "world" | "social" | "self";
-
-export interface Goal {
-  text: string;
-  why: string;
+/** A goal the agent holds over days; rewritten when a chronicle forms. */
+export interface LongTermGoal {
+  goal: string;
+  reason: string;
   progress: string;
-  kind: GoalKind;
 }
+
+/** A goal for the coming hours, with the plan to reach it; rewritten every few episodes. */
+export interface ShortTermGoal {
+  goal: string;
+  reason: string;
+  /** The plan, in order. */
+  steps: string[];
+  progress: string;
+}
+
+/** What the agent holds about one person it knows. Each field is the agent's own reading. */
+export interface PersonEntry {
+  whatIThinkOfThem: string;
+  whatTheyThinkOfMe: string;
+  whatIWantFromThem: string;
+  whatTheyWantFromMe: string;
+}
+
+export const PERSON_ENTRY_FIELDS: readonly (keyof PersonEntry)[] = [
+  "whatIThinkOfThem",
+  "whatTheyThinkOfMe",
+  "whatIWantFromThem",
+  "whatTheyWantFromMe",
+];
 
 export interface CurrentAction {
   kind: string;
@@ -96,12 +118,13 @@ export interface Agent {
    */
   bodyReplacedById: string | null;
   mood: string;
-  goals: Goal[];
+  longTermGoals: LongTermGoal[];
+  shortTermGoals: ShortTermGoal[];
   intention: string;
   currentAction: CurrentAction | null;
   awareness: Record<string, Awareness>;
-  /** What the agent holds about each other person, keyed by their agent id; rewritten whole. */
-  dossiers: Record<string, Dossier>;
+  /** What the agent holds about each person it knows, keyed by their agent id. */
+  people: Record<string, PersonEntry>;
   /** The places the agent has seen, in the order it first saw them. */
   seenPlaces: SeenPlace[];
   /** The `thought` from the agent's latest decision, for the viewer; never shown to agents. */
@@ -122,11 +145,6 @@ export interface SeenPlace {
   firstSeenTick: number;
   /** Null while the agent has only seen the place from outside. */
   entities: SeenPlaceEntities | null;
-}
-
-export interface Dossier {
-  text: string;
-  updatedTick: number;
 }
 
 export interface AgentThought {
@@ -181,8 +199,21 @@ export interface AgentMemory {
   lastMidnightDay: number;
   /** Null except while the midnight steps run. */
   midnight: MidnightProgress | null;
-  /** After a summary failed: the tick from which the agent's memory work is tried again. */
+  /** After a summary or pass failed: the tick from which the agent's memory work is tried again. */
   retryAtTick: number | null;
+  passes: PassProgress;
+}
+
+/** Which passes an agent owes, counted from the episodes and chronicles that have formed. */
+export interface PassProgress {
+  episodesSincePeople: number;
+  episodesSinceShortTermGoals: number;
+  /** True until the first short-term goals pass has run. */
+  isFirstShortTermGoalsOwed: boolean;
+  /** A chronicle has formed since the identity pass last ran. */
+  isIdentityOwed: boolean;
+  /** A chronicle has formed since the long-term goals pass last ran. */
+  isLongTermGoalsOwed: boolean;
 }
 
 export type Volume = "whisper" | "normal" | "shout";
@@ -267,7 +298,16 @@ export interface WorldEvent {
 }
 
 export type LlmCallKind =
-  "decision" | "interact" | "episode" | "chronicle" | "day_summary" | "history";
+  | "decision"
+  | "interact"
+  | "episode"
+  | "chronicle"
+  | "day_summary"
+  | "history"
+  | "people"
+  | "short_term_goals"
+  | "identity"
+  | "long_term_goals";
 
 /** The prompt is plain text; lines starting with "## " open a section the prompt viewer can collapse. */
 export interface LlmCallRecord {
@@ -320,9 +360,9 @@ export type MomentDetail =
       newValue: string;
       reason: string;
     }
-  | { kind: "goal_added"; goal: Goal }
-  | { kind: "goal_removed"; goal: Goal }
-  | { kind: "goal_progressed"; goal: Goal; previousProgress: string }
+  | { kind: "goal_added"; goal: LongTermGoal }
+  | { kind: "goal_removed"; goal: LongTermGoal }
+  | { kind: "goal_progressed"; goal: LongTermGoal; previousProgress: string }
   | { kind: "action_failed"; eventId: number; description: string }
   | { kind: "died"; cause: string };
 

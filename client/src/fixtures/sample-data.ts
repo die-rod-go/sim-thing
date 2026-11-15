@@ -38,18 +38,21 @@ export function makeSampleAgent(id: string, name: string, x: number, y: number):
     death: null,
     bodyReplacedById: null,
     mood: "content",
-    goals: [
+    longTermGoals: [
+      { goal: "Sell more bread", reason: "Coins buy ale", progress: "Sold two loaves" },
+    ],
+    shortTermGoals: [
       {
-        text: "Sell more bread",
-        why: "Coins buy ale",
-        progress: "Sold two loaves",
-        kind: "world",
+        goal: "Sell this morning's loaves",
+        reason: "The square is busy before noon",
+        steps: ["carry the bread to the square", "call out the price"],
+        progress: "",
       },
     ],
     intention: "Find someone who wants bread",
     currentAction: { kind: "walk_to", target: "square", endsAtTick: null },
     awareness: {},
-    dossiers: {},
+    people: {},
     seenPlaces: [],
     lastThought: { text: `${name} wonders whether anyone wants bread today.`, tick: 28 },
   };
@@ -107,7 +110,7 @@ export function makeSampleMoment(id: number, actor: Agent, tick: number): Moment
     ...base,
     kind: "goal_added",
     text: "set a new goal: open a stall",
-    goal: { text: "Open a stall", why: "More buyers", progress: "", kind: "world" },
+    goal: { goal: "Open a stall", reason: "More buyers", progress: "" },
   };
   const others: Moment[] = [
     {

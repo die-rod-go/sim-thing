@@ -119,16 +119,23 @@ describe("database repositories", () => {
     expect(loaded?.body.strength).toBe(first.body.strength);
   });
 
-  it("keeps an agent's dossiers through a save", () => {
+  it("keeps an agent's person entries through a save", () => {
     const state = buildWorld();
     const [first, second] = state.agents;
     if (!first || !second) throw new Error("need two seed agents");
     state.agents[0] = {
       ...first,
-      dossiers: { [second.id]: { text: "Reliable.", updatedTick: 9 } },
+      people: {
+        [second.id]: {
+          whatIThinkOfThem: "Reliable.",
+          whatTheyThinkOfMe: "",
+          whatIWantFromThem: "",
+          whatTheyWantFromMe: "",
+        },
+      },
     };
     saveWorld(database, toSavedWorld(state, createDefaultSettings()));
-    expect(loadWorld(database)?.agents[0]?.dossiers).toEqual(state.agents[0]?.dossiers);
+    expect(loadWorld(database)?.agents[0]?.people).toEqual(state.agents[0]?.people);
   });
 
   it("refuses a save from before components existed and says to reset", () => {

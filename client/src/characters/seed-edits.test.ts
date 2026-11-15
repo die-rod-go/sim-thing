@@ -3,12 +3,12 @@ import type { SeedAgent, SeedFile } from "@village/shared";
 import {
   addAgent,
   duplicateAgent,
-  listNoteSubjects,
+  listPersonSubjects,
   moveAgent,
   removeAgent,
   renameAgent,
-  setPersonNote,
-  withoutBlankNotes,
+  setPersonEntry,
+  withoutBlankPeople,
 } from "./seed-edits";
 
 function buildSeedAgent(name: string, overrides: Partial<SeedAgent> = {}): SeedAgent {
@@ -31,7 +31,7 @@ function buildSeedAgent(name: string, overrides: Partial<SeedAgent> = {}): SeedA
     inventory: { coin: 30 },
     mood: "",
     goals: [],
-    peopleNotes: {},
+    people: {},
     seenPlaces: [],
     ...overrides,
   };
@@ -39,17 +39,22 @@ function buildSeedAgent(name: string, overrides: Partial<SeedAgent> = {}): SeedA
 
 const village: SeedFile = {
   agents: [
-    buildSeedAgent("Mara", { peopleNotes: { Edwin: "Stubborn.", Wren: "Eager." } }),
-    buildSeedAgent("Edwin", { peopleNotes: { mara: "Fair dealer." } }),
+    buildSeedAgent("Mara", {
+      people: {
+        Edwin: { whatIThinkOfThem: "Stubborn." },
+        Wren: { whatIThinkOfThem: "Eager." },
+      },
+    }),
+    buildSeedAgent("Edwin", { people: { mara: { whatIThinkOfThem: "Fair dealer." } } }),
     buildSeedAgent("Wren"),
   ],
 };
 
 describe("renameAgent", () => {
-  it("moves other characters' notes to the new name, matching the old name in any case", () => {
+  it("moves what others hold about them to the new name, matching the old name in any case", () => {
     const renamed = renameAgent(village, 0, "Marga");
     expect(renamed.agents[0]).toMatchObject({ name: "Marga", id: "marga" });
-    expect(renamed.agents[1]?.peopleNotes).toEqual({ Marga: "Fair dealer." });
+    expect(renamed.agents[1]?.people).toEqual({ Marga: { whatIThinkOfThem: "Fair dealer." } });
   });
 
   it("keeps a hand-picked id when the name changes", () => {
@@ -57,16 +62,18 @@ describe("renameAgent", () => {
     expect(renameAgent(customId, 0, "Marga").agents[0]?.id).toBe("baker");
   });
 
-  it("leaves notes alone when the name is cleared", () => {
-    expect(renameAgent(village, 0, "").agents[1]?.peopleNotes).toEqual({ mara: "Fair dealer." });
+  it("leaves people alone when the name is cleared", () => {
+    expect(renameAgent(village, 0, "").agents[1]?.people).toEqual({
+      mara: { whatIThinkOfThem: "Fair dealer." },
+    });
   });
 });
 
 describe("removeAgent", () => {
-  it("drops the character and everyone's notes about them", () => {
+  it("drops the character and what everyone holds about them", () => {
     const withoutEdwin = removeAgent(village, 1);
     expect(withoutEdwin.agents.map((agent) => agent.name)).toEqual(["Mara", "Wren"]);
-    expect(withoutEdwin.agents[0]?.peopleNotes).toEqual({ Wren: "Eager." });
+    expect(withoutEdwin.agents[0]?.people).toEqual({ Wren: { whatIThinkOfThem: "Eager." } });
   });
 });
 
@@ -90,7 +97,7 @@ describe("duplicateAgent", () => {
       "edwin",
       "wren",
     ]);
-    expect(copied.agents[1]?.peopleNotes).toEqual(village.agents[0]?.peopleNotes);
+    expect(copied.agents[1]?.people).toEqual(village.agents[0]?.people);
   });
 });
 
@@ -105,24 +112,35 @@ describe("moveAgent", () => {
   });
 });
 
-describe("people notes", () => {
-  it("lists other villagers, plus note subjects who are not in the village", () => {
+describe("people", () => {
+  it("lists other villagers, plus people held who are not in the village", () => {
     const withStranger = {
       agents: [
-        setPersonNote(village.agents[0] ?? buildSeedAgent("Mara"), "Old Master", "Accused me."),
+        setPersonEntry(village.agents[0] ?? buildSeedAgent("Mara"), "Old Master", {
+          whatTheyWantFromMe: "My silence.",
+        }),
         ...village.agents.slice(1),
       ],
     };
-    expect(listNoteSubjects(withStranger, 0)).toEqual({
+    expect(listPersonSubjects(withStranger, 0)).toEqual({
       villagers: ["Edwin", "Wren"],
       strangers: ["Old Master"],
     });
   });
 
-  it("does not save blank notes", () => {
+  it("does not save blank fields, or people with nothing filled in", () => {
     const blank = {
-      agents: [buildSeedAgent("Mara", { peopleNotes: { Edwin: " ", Wren: "Eager." } })],
+      agents: [
+        buildSeedAgent("Mara", {
+          people: {
+            Edwin: { whatIThinkOfThem: " " },
+            Wren: { whatIThinkOfThem: "Eager.", whatIWantFromThem: "" },
+          },
+        }),
+      ],
     };
-    expect(withoutBlankNotes(blank).agents[0]?.peopleNotes).toEqual({ Wren: "Eager." });
+    expect(withoutBlankPeople(blank).agents[0]?.people).toEqual({
+      Wren: { whatIThinkOfThem: "Eager." },
+    });
   });
 });

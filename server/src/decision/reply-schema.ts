@@ -49,7 +49,8 @@ function buildDecisionJsonSchema(
     thought: { type: "string", description: "One or two short private sentences." },
     intention: {
       type: "string",
-      description: "One line: what you are trying to get done and why.",
+      description:
+        "One line: what you are trying to get done and why; usually a step of one of your short-term goals.",
     },
     say: nullableJsonString(),
     volume: nullableJsonEnum(VOLUMES),

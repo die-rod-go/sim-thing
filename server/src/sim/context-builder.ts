@@ -1,14 +1,13 @@
 import { formatSimTime, readAgentHealth, type Agent } from "@village/shared";
 import { config } from "../config";
 import type { AwarenessEntry, DecisionContext, DecisionTargets } from "../decision/context";
-import { listPeopleOnMind } from "../decision/people-on-mind";
 import { computeChebyshevDistance } from "../economy/give";
-import { describeStreamEntry, describeSummary } from "../memory/stream";
 import { findObviousListeners } from "../perception/listeners";
 import { listBodyWords } from "../status/conditions";
 import { computeStarvationDamage, describeHealthAsSeen, isDead } from "../status/health";
 import { describeDoing } from "./action-phrases";
 import { getAgentRuntime } from "./agent-runtime";
+import { buildHeldKnowledge } from "./held-knowledge";
 import {
   buildBelongings,
   buildHere,
@@ -23,7 +22,6 @@ import {
   buildPerceptionWorld,
   describeAgentAsSeen,
   findAgent,
-  getAgentMemory,
   listLivingAgents,
   toPerceiver,
 } from "./world-access";
@@ -75,7 +73,7 @@ export function buildValidTargets(state: WorldState, agent: Agent): DecisionTarg
 
 /**
  * Step 1 of a decision: everything the agent knows right now, from its own state, its awareness,
- * its seen places and its stream. `decisionReason` is what flagged the decision, as perceived.
+ * and everything it remembers and holds. `decisionReason` is what flagged the decision, as perceived.
  */
 export function buildDecisionContext(
   state: WorldState,
@@ -85,7 +83,6 @@ export function buildDecisionContext(
 ): DecisionContext {
   const agent = findAgent(state, agentId);
   const runtime = getAgentRuntime(state, agentId);
-  const memory = getAgentMemory(state, agentId);
   const world = buildPerceptionWorld(state);
   const listeners = findObviousListeners(
     world,
@@ -107,7 +104,6 @@ export function buildDecisionContext(
     isStarvationHarming: computeStarvationDamage(agent, state.tick, minutesPerTick) > 0,
     conditionWords: listBodyWords(state.items, agent, false),
     body: agent.body,
-    goals: agent.goals,
     intention: agent.intention,
     simTime: formatSimTime(state.tick, config.clock),
     place: agent.place,
@@ -117,29 +113,9 @@ export function buildDecisionContext(
       normalHearerIds: listeners.wouldHearNormal,
       whisperHearerIds: listeners.wouldHearWhisper,
     },
-    peopleOnMind: listPeopleOnMind({
-      others: state.agents
-        .filter((other) => other.id !== agentId)
-        .map((other) => ({ id: other.id, name: other.name })),
-      dossiers: agent.dossiers,
-      inSightIds: runtime.visibleAgentIds,
-      mentioningTexts: [agent.intention, ...agent.goals.map((goal) => goal.text)],
-    }),
     belongings: buildBelongings(state, agent),
     itemlessVerbs: listItemlessVerbNames(state),
-    history: memory.history === null ? null : describeSummary(memory.history),
-    daySummary: memory.daySummary === null ? null : describeSummary(memory.daySummary),
-    chronicles: memory.chronicles.map(describeSummary),
-    episodes: memory.episodes.map(describeSummary),
-    stream: memory.stream.map(describeStreamEntry),
-    seenPlaces: agent.seenPlaces.map((seenPlace) => ({
-      name: seenPlace.name,
-      entityNames: seenPlace.entities?.names ?? null,
-      seenAt:
-        seenPlace.entities === null || seenPlace.entities.tick === state.tick
-          ? null
-          : formatSimTime(seenPlace.entities.tick, config.clock),
-    })),
+    ...buildHeldKnowledge(state, agent),
     currentAction:
       action === null
         ? null

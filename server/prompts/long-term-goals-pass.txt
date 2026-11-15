@@ -1,0 +1,7 @@
+{{context}}
+## The question: your long-term goals
+Look at what you are working toward over days and weeks. Keep a goal that still stands, with its progress brought up to date from what actually happened. Drop one that is reached or that you have truly given up. Add one only if what has happened gives you a real reason. At most {{maxGoals}} goals.
+
+## Reply
+Reply with only a JSON object with one field, goals: the full list, each {"goal", "reason", "progress"}.
+Every text is at most {{maxChars}} characters.

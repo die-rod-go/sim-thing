@@ -1,13 +1,26 @@
 import { useState } from "react";
-import type { Goal, GoalKind, SeedAgent, SeedFile, SeedProblem } from "@village/shared";
+import {
+  PERSON_ENTRY_FIELDS,
+  type LongTermGoal,
+  type PersonEntry,
+  type SeedAgent,
+  type SeedFile,
+  type SeedProblem,
+} from "@village/shared";
 import { Field, NumberInput, ProblemList, TextArea, TextInput } from "./fields";
-import { findNoteKey, listNoteSubjects, selectFieldProblems, setPersonNote } from "./seed-edits";
+import {
+  findPersonKey,
+  listPersonSubjects,
+  selectFieldProblems,
+  setPersonEntry,
+} from "./seed-edits";
 
-const GOAL_KINDS: readonly { kind: GoalKind; label: string }[] = [
-  { kind: "world", label: "world: something to get done" },
-  { kind: "social", label: "social: about other people" },
-  { kind: "self", label: "self: who they want to become" },
-];
+const PERSON_FIELD_LABELS: Record<keyof PersonEntry, string> = {
+  whatIThinkOfThem: "What they think of them",
+  whatTheyThinkOfMe: "What they believe this person thinks of them",
+  whatIWantFromThem: "What they want from them",
+  whatTheyWantFromMe: "What they believe this person wants from them",
+};
 
 interface AgentEditorProps {
   agent: SeedAgent;
@@ -75,27 +88,16 @@ function GoalRow({
   onChange,
   onRemove,
 }: {
-  goal: Goal;
+  goal: LongTermGoal;
   goalIndex: number;
   problems: readonly SeedProblem[];
-  onChange: (goal: Goal) => void;
+  onChange: (goal: LongTermGoal) => void;
   onRemove: () => void;
 }) {
   return (
     <div className="row-item goal-row">
       <div className="goal-row-heading">
         <span className="muted">Goal {goalIndex + 1}</span>
-        <select
-          aria-label="Goal kind"
-          value={goal.kind}
-          onChange={(event) => onChange({ ...goal, kind: event.target.value as GoalKind })}
-        >
-          {GOAL_KINDS.map((option) => (
-            <option key={option.kind} value={option.kind}>
-              {option.label}
-            </option>
-          ))}
-        </select>
         <button className="icon-button" onClick={onRemove} title="Remove goal">
           ×
         </button>
@@ -104,15 +106,19 @@ function GoalRow({
         {(inputId) => (
           <TextInput
             id={inputId}
-            value={goal.text}
+            value={goal.goal}
             placeholder="Win Mara's business away from Edwin"
-            onChange={(text) => onChange({ ...goal, text })}
+            onChange={(text) => onChange({ ...goal, goal: text })}
           />
         )}
       </Field>
       <Field label="Why">
         {(inputId) => (
-          <TextInput id={inputId} value={goal.why} onChange={(why) => onChange({ ...goal, why })} />
+          <TextInput
+            id={inputId}
+            value={goal.reason}
+            onChange={(reason) => onChange({ ...goal, reason })}
+          />
         )}
       </Field>
       <Field label="Progress so far">
@@ -130,7 +136,7 @@ function GoalRow({
 }
 
 export function GoalsEditor({ agent, problems, onChange }: AgentEditorProps) {
-  const setGoals = (goals: Goal[]) => onChange({ ...agent, goals });
+  const setGoals = (goals: LongTermGoal[]) => onChange({ ...agent, goals });
   return (
     <div className="row-list">
       {agent.goals.length === 0 && <p className="muted">No goals yet.</p>}
@@ -150,9 +156,7 @@ export function GoalsEditor({ agent, problems, onChange }: AgentEditorProps) {
       ))}
       <button
         className="add-button"
-        onClick={() =>
-          setGoals([...agent.goals, { text: "", why: "", progress: "", kind: "world" }])
-        }
+        onClick={() => setGoals([...agent.goals, { goal: "", reason: "", progress: "" }])}
       >
         + Add a goal
       </button>
@@ -160,7 +164,8 @@ export function GoalsEditor({ agent, problems, onChange }: AgentEditorProps) {
   );
 }
 
-export function PeopleNotesEditor({
+/** What the character starts out holding about each person: four optional fields each. */
+export function PeopleEditor({
   seedFile,
   agentIndex,
   problems,
@@ -169,46 +174,52 @@ export function PeopleNotesEditor({
   const [newPersonName, setNewPersonName] = useState("");
   const agent = seedFile.agents[agentIndex];
   if (!agent) return null;
-  const { villagers, strangers } = listNoteSubjects(seedFile, agentIndex);
-  const renderNote = (personName: string, isStranger: boolean) => {
-    const noteKey = findNoteKey(agent, personName);
+  const { villagers, strangers } = listPersonSubjects(seedFile, agentIndex);
+  const renderPerson = (personName: string, isStranger: boolean) => {
+    const personKey = findPersonKey(agent, personName);
+    const entry = agent.people[personKey] ?? {};
     return (
       <div className="row-item" key={personName}>
-        <Field
-          label={isStranger ? `${personName} (not in the village)` : personName}
-          problems={selectFieldProblems(problems, `peopleNotes.${noteKey}`)}
-        >
-          {(inputId) => (
-            <TextArea
-              id={inputId}
-              value={agent.peopleNotes[noteKey] ?? ""}
-              placeholder={`What ${agent.name || "they"} thinks of ${personName}. Leave blank for no note.`}
-              onChange={(note) => onChange(setPersonNote(agent, noteKey, note))}
-            />
+        <div className="goal-row-heading">
+          <strong>{isStranger ? `${personName} (not in the village)` : personName}</strong>
+          {isStranger && (
+            <button
+              className="icon-button"
+              onClick={() => onChange(setPersonEntry(agent, personKey, null))}
+            >
+              Remove
+            </button>
           )}
-        </Field>
-        {isStranger && (
-          <button
-            className="icon-button"
-            onClick={() => onChange(setPersonNote(agent, noteKey, null))}
-          >
-            Remove note
-          </button>
-        )}
+        </div>
+        <ProblemList problems={selectFieldProblems(problems, `people.${personKey}`)} />
+        {PERSON_ENTRY_FIELDS.map((field) => (
+          <Field key={field} label={PERSON_FIELD_LABELS[field]}>
+            {(inputId) => (
+              <TextArea
+                id={inputId}
+                value={entry[field] ?? ""}
+                placeholder="Leave blank for nothing yet."
+                onChange={(text) =>
+                  onChange(setPersonEntry(agent, personKey, { ...entry, [field]: text }))
+                }
+              />
+            )}
+          </Field>
+        ))}
       </div>
     );
   };
   const addStranger = () => {
     const personName = newPersonName.trim();
     if (personName === "") return;
-    onChange(setPersonNote(agent, findNoteKey(agent, personName), ""));
+    onChange(setPersonEntry(agent, findPersonKey(agent, personName), {}));
     setNewPersonName("");
   };
   return (
     <div className="row-list">
       {villagers.length === 0 && <p className="muted">Nobody else lives here yet.</p>}
-      {villagers.map((personName) => renderNote(personName, false))}
-      {strangers.map((personName) => renderNote(personName, true))}
+      {villagers.map((personName) => renderPerson(personName, false))}
+      {strangers.map((personName) => renderPerson(personName, true))}
       <form
         className="add-person"
         onSubmit={(event) => {
@@ -222,7 +233,7 @@ export function PeopleNotesEditor({
           onChange={setNewPersonName}
         />
         <button type="submit" disabled={newPersonName.trim() === ""}>
-          Add note
+          Add person
         </button>
       </form>
     </div>

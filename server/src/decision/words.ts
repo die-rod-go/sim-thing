@@ -1,5 +1,5 @@
 import { NEED_NAMES, STAT_NAMES, TRAIT_NAMES } from "@village/shared";
-import type { AgentBody, NeedName, Needs, Personality } from "@village/shared";
+import type { AgentBody, NeedName, Needs, Personality, TraitName } from "@village/shared";
 import { config } from "../config";
 import type { NeedWord } from "../config";
 import { findHealthWord } from "../status/health";
@@ -90,16 +90,14 @@ function pickBandWord(
   return words[bandIndex === -1 ? words.length - 1 : bandIndex] ?? fallback;
 }
 
+/** "quite introverted": one trait as the word for its band. */
+export function describeTraitWord(traitName: TraitName, value: number): string {
+  return pickBandWord(config.traits.words[traitName], config.traits.wordBands, value, traitName);
+}
+
 /** "quite introverted, very agreeable, ...": each trait as the word for its band. */
 export function describeTraits(traits: Personality["traits"]): string {
-  return TRAIT_NAMES.map((traitName) =>
-    pickBandWord(
-      config.traits.words[traitName],
-      config.traits.wordBands,
-      traits[traitName],
-      traitName,
-    ),
-  ).join(", ");
+  return TRAIT_NAMES.map((traitName) => describeTraitWord(traitName, traits[traitName])).join(", ");
 }
 
 /** "quite strong, rather clumsy": the agent's own stats as words. Others never see these. */

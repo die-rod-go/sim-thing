@@ -21,7 +21,7 @@ Leave out anything you don't use (null).
 
 ## Reply
 Reply with only a JSON object, fields in this order:
-thought (one or two short private sentences: what you notice and why you choose this), intention (one line: what you are trying to get done and why), say, volume, action, verb, item, from, target, text, amount, minutes, mood.
+thought (one or two short private sentences: what you notice and why you choose this), intention (one line: what you are trying to get done and why; usually a step of one of your short-term goals), say, volume, action, verb, item, from, target, text, amount, minutes, mood.
 
 <<<cache>>>
 ## Who you are
@@ -32,12 +32,20 @@ Your body: {{body}}
 {{core}}
 How you see yourself: {{selfImage}}
 
-## Goals
-{{goals}}
+## Long-term goals
+{{longTermGoals}}
 
 {{olderMemory}}
 
 <<<cache>>>
+## People you know
+What you hold about each person. What they think and want is your own reading, and may be wrong.
+{{people}}
+
+## Short-term goals
+What you are trying to get done over the coming hours, each with its steps in order.
+{{shortTermGoals}}
+
 {{episodes}}
 
 <<<cache>>>
@@ -67,9 +75,6 @@ Here:
 
 ## Around you
 {{aroundYou}}
-
-## People on your mind
-{{peopleOnMind}}
 
 ## Belongings
 {{belongings}}

@@ -37,7 +37,7 @@ export function describeMomentDetail(moment: Moment): string | null {
     case "personality_changed":
       return `${moment.oldValue} → ${moment.newValue}${moment.reason ? `, because ${moment.reason}` : ""}`;
     case "goal_added":
-      return moment.goal.why ? `because ${moment.goal.why}` : null;
+      return moment.goal.reason ? `because ${moment.goal.reason}` : null;
     case "goal_progressed":
       return moment.goal.progress || null;
     case "died":

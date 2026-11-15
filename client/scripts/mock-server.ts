@@ -96,6 +96,13 @@ function buildDetail(agent: Agent): AgentDetailMessage {
       lastMidnightDay: 1,
       midnight: null,
       retryAtTick: null,
+      passes: {
+        episodesSincePeople: 0,
+        episodesSinceShortTermGoals: 0,
+        isFirstShortTermGoalsOwed: false,
+        isIdentityOwed: false,
+        isLongTermGoalsOwed: false,
+      },
     },
     llmCalls: [1, 2, 3].map((index) => makeSampleLlmCall(index, agent.id, tick - index * 5)),
     personalityHistory: [],

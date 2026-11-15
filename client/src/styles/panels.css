@@ -98,23 +98,8 @@ pre {
   font-size: 11px;
 }
 
-.tag-world,
 .tag-decision {
   background: #23324d;
-}
-
-.tag-social,
-.tag-night {
-  background: #3a2a4d;
-}
-
-.tag-self,
-.tag-morning {
-  background: #2c3d2a;
-}
-
-.tag-weekly {
-  background: #4d3a23;
 }
 
 .chip-row {

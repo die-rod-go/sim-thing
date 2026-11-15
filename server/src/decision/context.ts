@@ -1,4 +1,12 @@
-import type { AgentBody, AwarenessVia, Goal, Needs, Personality } from "@village/shared";
+import type {
+  AgentBody,
+  AwarenessVia,
+  LongTermGoal,
+  Needs,
+  Personality,
+  PersonEntry,
+  ShortTermGoal,
+} from "@village/shared";
 
 /** Names the agent may use as an action `target` right now. */
 export interface DecisionTargets {
@@ -64,10 +72,10 @@ export interface AroundYou {
   whisperHearerIds: string[];
 }
 
-/** One entry of "People on your mind": a person's name and what the agent holds about them. */
-export interface PersonOnMind {
+/** One person the agent knows, with what it holds about them. */
+export interface KnownPerson {
   name: string;
-  text: string;
+  entry: PersonEntry;
 }
 
 /** One entry of "Places you have seen". */
@@ -87,31 +95,8 @@ export interface CurrentActionSummary {
   slowedBy: string | null;
 }
 
-/** Everything step 1 of a decision puts in front of the agent. Filled by the tick loop. */
-export interface DecisionContext {
-  name: string;
-  profession: string;
-  personality: Personality;
-  mood: string;
-  needs: Needs;
-  health: number;
-  /** Going without food has begun to cost health. */
-  isStarvationHarming: boolean;
-  /** Words for every condition the agent has. */
-  conditionWords: string[];
-  body: AgentBody;
-  goals: Goal[];
-  intention: string;
-  /** e.g. "Day 1, 6:30 am" from `formatSimTime`. */
-  simTime: string;
-  place: string;
-  /** What is here: placed objects and ground items. */
-  nearbyEntities: PromptEntityGroup[];
-  aroundYou: AroundYou;
-  peopleOnMind: PersonOnMind[];
-  belongings: PromptEntityGroup[];
-  /** Verbs that need no item (`punch`), listed after belongings. */
-  itemlessVerbs: string[];
+/** What the agent remembers and holds, as prompts read it; decisions and passes show the same. */
+export interface HeldKnowledge {
   /** Everything before the day summary, as it reads; null when there is none yet. */
   history: string | null;
   /** The last full day, as it reads; null when that day made no summary. */
@@ -123,6 +108,35 @@ export interface DecisionContext {
   /** The agent's stream, oldest first, each entry as it reads ("[Day 1, 6:32 am] I saw ..."). */
   stream: string[];
   seenPlaces: SeenPlaceLine[];
+  longTermGoals: LongTermGoal[];
+  shortTermGoals: ShortTermGoal[];
+  /** Everyone the agent has a person entry for. */
+  people: KnownPerson[];
+}
+
+/** Everything step 1 of a decision puts in front of the agent. Filled by the tick loop. */
+export interface DecisionContext extends HeldKnowledge {
+  name: string;
+  profession: string;
+  personality: Personality;
+  mood: string;
+  needs: Needs;
+  health: number;
+  /** Going without food has begun to cost health. */
+  isStarvationHarming: boolean;
+  /** Words for every condition the agent has. */
+  conditionWords: string[];
+  body: AgentBody;
+  intention: string;
+  /** e.g. "Day 1, 6:30 am" from `formatSimTime`. */
+  simTime: string;
+  place: string;
+  /** What is here: placed objects and ground items. */
+  nearbyEntities: PromptEntityGroup[];
+  aroundYou: AroundYou;
+  belongings: PromptEntityGroup[];
+  /** Verbs that need no item (`punch`), listed after belongings. */
+  itemlessVerbs: string[];
   currentAction: CurrentActionSummary | null;
   /** True for a perception interrupt during an action; only then is `continue` offered. */
   isMidActionInterrupt: boolean;

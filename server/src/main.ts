@@ -9,6 +9,7 @@ import {
   appendEvent,
   appendLlmCall,
   appendMoment,
+  appendPersonalityChange,
   createTokenUsageStore,
 } from "./db/log-repository";
 import { loadWorld, saveWorld } from "./db/world-repository";
@@ -150,6 +151,9 @@ async function run(): Promise<void> {
       isReplySchemaStable: environment.LLM_PROVIDER === "anthropic",
       shouldCallLlmInBackground: config.decision.shouldCallLlmInBackground,
       idleDecisionWaitMs: config.decision.idleDecisionWaitMs,
+      recordPersonalityChange: (change) => {
+        appendPersonalityChange(database, change);
+      },
     }),
     scheduler: createRealScheduler(),
     speed: settings.speed,

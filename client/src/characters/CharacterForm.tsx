@@ -18,7 +18,7 @@ import {
   TextInput,
   TraitSlider,
 } from "./fields";
-import { GoalsEditor, InventoryEditor, PeopleNotesEditor, SeenPlacesEditor } from "./list-editors";
+import { GoalsEditor, InventoryEditor, PeopleEditor, SeenPlacesEditor } from "./list-editors";
 import { selectFieldProblems } from "./seed-edits";
 
 interface CharacterFormProps {
@@ -239,16 +239,16 @@ export function CharacterForm(props: CharacterFormProps) {
       <BodySection {...sectionProps} />
       <StartingStateSection {...sectionProps} />
       <FormSection
-        title="Goals"
-        description="What they are working toward on day 1. Agents rewrite these as they go."
+        title="Long-term goals"
+        description="What they are working toward on day 1, over days and weeks. They rewrite these as they go. Short-term goals they write themselves when the sim starts."
       >
         <GoalsEditor agent={agent} problems={problems} onChange={onChange} />
       </FormSection>
       <FormSection
-        title="People notes"
-        description="What they already think of each person. Each note becomes their starting dossier on that person, rewritten as they learn more. People must live in the village."
+        title="People"
+        description="What they already hold about each person on day 1. Every field is optional and is rewritten as they learn more. People must live in the village."
       >
-        <PeopleNotesEditor
+        <PeopleEditor
           seedFile={seedFile}
           agentIndex={agentIndex}
           agent={agent}

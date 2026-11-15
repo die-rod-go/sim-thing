@@ -25,42 +25,60 @@
       "mood": "Awake before the alarm, as usual.",
       "goals": [
         {
-          "text": "Keep the bakery running every day",
-          "why": "People need to eat and it's my job",
-          "progress": "Have wheat and water for one bake",
-          "kind": "world"
+          "goal": "Keep the bakery running every day",
+          "reason": "People need to eat and it's my job",
+          "progress": "Have wheat and water for one bake"
         },
         {
-          "text": "Do something just for fun this week",
-          "why": "All I do is work",
-          "progress": "Nothing yet",
-          "kind": "self"
+          "goal": "Do something just for fun this week",
+          "reason": "All I do is work",
+          "progress": "Nothing yet"
         },
         {
-          "text": "Draw my own water at the well and fetch my own wheat for every bake",
-          "why": "Nobody else does it properly, and the bake can't wait on other people's promises",
-          "progress": "",
-          "kind": "world"
+          "goal": "Draw my own water at the well and fetch my own wheat for every bake",
+          "reason": "Nobody else does it properly, and the bake can't wait on other people's promises",
+          "progress": ""
         },
         {
-          "text": "Keep people out of the bakery!",
-          "why": "it gets crowded and impossible to work if people are there",
-          "progress": "",
-          "kind": "world"
+          "goal": "Keep people out of the bakery!",
+          "reason": "it gets crowded and impossible to work if people are there",
+          "progress": ""
         }
       ],
-      "peopleNotes": {
-        "Beckett": "Needs to get to work",
-        "Diego": "Needs to get to work",
-        "Z": "Needs to get to work",
-        "Tony": "The woodcutter. Good worker, but picks fights he doesn't need.",
-        "Wil": "The farmer. Grows the wheat I bake with. Brings it to the bakery if I push.",
-        "Ambrose": "Keeps the chapel and the records at the town hall. Talks too long, but people listen to him in a dispute.",
-        "Cobb": "The miner at the quarry. Works when he feels like it, then drinks it away at the tavern.",
-        "Malin": "No job, plenty of coin, too much opinion. Wants to run things. Doesn't run anything.",
-        "Nastya": "No trade that I know of. Can't make up their mind. Could be put to work.",
-        "Nell": "Fishes the lake. Never in a hurry. Fish is food, so fine.",
-        "Maeve": "Dreamy. The only person who makes me sweat."
+      "people": {
+        "Beckett": {
+          "whatIThinkOfThem": "Needs to get to work"
+        },
+        "Diego": {
+          "whatIThinkOfThem": "Needs to get to work"
+        },
+        "Z": {
+          "whatIThinkOfThem": "Needs to get to work"
+        },
+        "Tony": {
+          "whatIThinkOfThem": "The woodcutter. Good worker, but picks fights he doesn't need."
+        },
+        "Wil": {
+          "whatIThinkOfThem": "The farmer. Grows the wheat I bake with. Brings it to the bakery if I push."
+        },
+        "Ambrose": {
+          "whatIThinkOfThem": "Keeps the chapel and the records at the town hall. Talks too long, but people listen to him in a dispute."
+        },
+        "Cobb": {
+          "whatIThinkOfThem": "The miner at the quarry. Works when he feels like it, then drinks it away at the tavern."
+        },
+        "Malin": {
+          "whatIThinkOfThem": "No job, plenty of coin, too much opinion. Wants to run things. Doesn't run anything."
+        },
+        "Nastya": {
+          "whatIThinkOfThem": "No trade that I know of. Can't make up their mind. Could be put to work."
+        },
+        "Nell": {
+          "whatIThinkOfThem": "Fishes the lake. Never in a hurry. Fish is food, so fine."
+        },
+        "Maeve": {
+          "whatIThinkOfThem": "Dreamy. The only person who makes me sweat."
+        }
       },
       "seenPlaces": [
         "town square",
@@ -121,40 +139,54 @@
       "mood": "Listless",
       "goals": [
         {
-          "text": "Kill Malin and lead the revolution",
-          "why": "He's up to something",
-          "progress": "",
-          "kind": "social"
+          "goal": "Kill Malin and lead the revolution",
+          "reason": "He's up to something",
+          "progress": ""
         },
         {
-          "text": "Write a beautiful novel",
-          "why": "Fulfill writers dream",
-          "progress": "",
-          "kind": "social"
+          "goal": "Write a beautiful novel",
+          "reason": "Fulfill writers dream",
+          "progress": ""
         },
         {
-          "text": "Bring my friends together at the tavern",
-          "why": "",
-          "progress": "",
-          "kind": "social"
+          "goal": "Bring my friends together at the tavern",
+          "reason": "",
+          "progress": ""
         },
         {
-          "text": "Convince Nastya she is going crazy",
-          "why": "",
-          "progress": "",
-          "kind": "social"
+          "goal": "Convince Nastya she is going crazy",
+          "reason": "",
+          "progress": ""
         }
       ],
-      "peopleNotes": {
-        "Diego": "A very wholesome friend",
-        "Beckett": "Really cool",
-        "Malin": "Suspicious",
-        "Jess": "The baker. Bosses everyone like she runs the village. Told me to get a job.",
-        "Ambrose": "Chapel keeper and scribe at the town hall. Knows everyone's business on paper. Might help with my novel.",
-        "Tony": "The woodcutter. Strong and friendly, but wants to fight someone. Keeps going on about Malin.",
-        "Nastya": "Keeps staring at me like I'm an experiment. Strange, but maybe a friend. I want her to think she is absolutely insane",
-        "Maeve": "The herbalist. Always listening. Everything I say ends up all over town.",
-        "Wil": "The farmer. Says he needs help on the farm. Could be work for me."
+      "people": {
+        "Diego": {
+          "whatIThinkOfThem": "A very wholesome friend"
+        },
+        "Beckett": {
+          "whatIThinkOfThem": "Really cool"
+        },
+        "Malin": {
+          "whatIThinkOfThem": "Suspicious"
+        },
+        "Jess": {
+          "whatIThinkOfThem": "The baker. Bosses everyone like she runs the village. Told me to get a job."
+        },
+        "Ambrose": {
+          "whatIThinkOfThem": "Chapel keeper and scribe at the town hall. Knows everyone's business on paper. Might help with my novel."
+        },
+        "Tony": {
+          "whatIThinkOfThem": "The woodcutter. Strong and friendly, but wants to fight someone. Keeps going on about Malin."
+        },
+        "Nastya": {
+          "whatIThinkOfThem": "Keeps staring at me like I'm an experiment. Strange, but maybe a friend. I want her to think she is absolutely insane"
+        },
+        "Maeve": {
+          "whatIThinkOfThem": "The herbalist. Always listening. Everything I say ends up all over town."
+        },
+        "Wil": {
+          "whatIThinkOfThem": "The farmer. Says he needs help on the farm. Could be work for me."
+        }
       },
       "seenPlaces": [
         "town square",
@@ -216,38 +248,48 @@
       "mood": "Eager",
       "goals": [
         {
-          "text": "Nap in a bed",
-          "why": "",
-          "progress": "",
-          "kind": "world"
+          "goal": "Nap in a bed",
+          "reason": "",
+          "progress": ""
         },
         {
-          "text": "Get out of doing work",
-          "why": "lazy",
-          "progress": "",
-          "kind": "world"
+          "goal": "Get out of doing work",
+          "reason": "lazy",
+          "progress": ""
         },
         {
-          "text": "Hang out with Diego",
-          "why": "in love with diego",
-          "progress": "",
-          "kind": "world"
+          "goal": "Hang out with Diego",
+          "reason": "in love with diego",
+          "progress": ""
         },
         {
-          "text": "Get Diego to quit being a butcher",
-          "why": "I love animals and I love Diego",
-          "progress": "",
-          "kind": "world"
+          "goal": "Get Diego to quit being a butcher",
+          "reason": "I love animals and I love Diego",
+          "progress": ""
         }
       ],
-      "peopleNotes": {
-        "Diego": "Cool and handsome and interesting and I love him",
-        "Jess": "The baker. Bossy. Keeps telling me to go work. Won't let anyone into the bakery.",
-        "Wil": "The farmer. Thinks I'm supposed to help on the farm. I'd rather not.",
-        "Z": "My friend. Loud, wants everyone together at the tavern. Fun.",
-        "Nastya": "Always following me around and getting flustered. Sweet, I guess.",
-        "Malin": "Says we've met. Gives me a weird feeling.",
-        "Ambrose": "Old chapel keeper. Writes everything down. Might like my art."
+      "people": {
+        "Diego": {
+          "whatIThinkOfThem": "Cool and handsome and interesting and I love him"
+        },
+        "Jess": {
+          "whatIThinkOfThem": "The baker. Bossy. Keeps telling me to go work. Won't let anyone into the bakery."
+        },
+        "Wil": {
+          "whatIThinkOfThem": "The farmer. Thinks I'm supposed to help on the farm. I'd rather not."
+        },
+        "Z": {
+          "whatIThinkOfThem": "My friend. Loud, wants everyone together at the tavern. Fun."
+        },
+        "Nastya": {
+          "whatIThinkOfThem": "Always following me around and getting flustered. Sweet, I guess."
+        },
+        "Malin": {
+          "whatIThinkOfThem": "Says we've met. Gives me a weird feeling."
+        },
+        "Ambrose": {
+          "whatIThinkOfThem": "Old chapel keeper. Writes everything down. Might like my art."
+        }
       },
       "seenPlaces": [
         "town square",
@@ -309,34 +351,49 @@
       "mood": "Eager",
       "goals": [
         {
-          "text": "Hang out with Beckett",
-          "why": "",
-          "progress": "",
-          "kind": "world"
+          "goal": "Hang out with Beckett",
+          "reason": "",
+          "progress": ""
         },
         {
-          "text": "Become a billionaire in the meat industry",
-          "why": "",
-          "progress": "",
-          "kind": "world"
+          "goal": "Become a billionaire in the meat industry",
+          "reason": "",
+          "progress": ""
         },
         {
-          "text": "Convince Beckett to eat meat",
-          "why": "I love eating meat and I love Beckett",
-          "progress": "",
-          "kind": "world"
+          "goal": "Convince Beckett to eat meat",
+          "reason": "I love eating meat and I love Beckett",
+          "progress": ""
         }
       ],
-      "peopleNotes": {
-        "Beckett": "Amazing and creative and friendly and beautiful girl",
-        "Jess": "The baker. Bossy, but the bread is good. Keeps telling me to get to work.",
-        "Wil": "The farmer. Keeps the animal pens and the pigs. Meat starts with animals, so I need him.",
-        "Cobb": "The miner. Good company at the tavern. Tells wild stories about the quarry.",
-        "Z": "Good friend. Wants to get everyone together at the tavern.",
-        "Malin": "Rich and quiet. Has a lot of coin for someone with no job. Could be an investor.",
-        "Nell": "The fisher on the south shore. Fish is meat too, kind of.",
-        "Tony": "The woodcutter. Very strong. Wants to fight someone.",
-        "Nastya": "The butcher"
+      "people": {
+        "Beckett": {
+          "whatIThinkOfThem": "Amazing and creative and friendly and beautiful girl"
+        },
+        "Jess": {
+          "whatIThinkOfThem": "The baker. Bossy, but the bread is good. Keeps telling me to get to work."
+        },
+        "Wil": {
+          "whatIThinkOfThem": "The farmer. Keeps the animal pens and the pigs. Meat starts with animals, so I need him."
+        },
+        "Cobb": {
+          "whatIThinkOfThem": "The miner. Good company at the tavern. Tells wild stories about the quarry."
+        },
+        "Z": {
+          "whatIThinkOfThem": "Good friend. Wants to get everyone together at the tavern."
+        },
+        "Malin": {
+          "whatIThinkOfThem": "Rich and quiet. Has a lot of coin for someone with no job. Could be an investor."
+        },
+        "Nell": {
+          "whatIThinkOfThem": "The fisher on the south shore. Fish is meat too, kind of."
+        },
+        "Tony": {
+          "whatIThinkOfThem": "The woodcutter. Very strong. Wants to fight someone."
+        },
+        "Nastya": {
+          "whatIThinkOfThem": "The butcher"
+        }
       },
       "seenPlaces": [
         "town square",
@@ -397,36 +454,42 @@
       "mood": "",
       "goals": [
         {
-          "text": "Start a physical fight",
-          "why": "",
-          "progress": "",
-          "kind": "world"
+          "goal": "Start a physical fight",
+          "reason": "",
+          "progress": ""
         },
         {
-          "text": "Get along with everyone",
-          "why": "",
-          "progress": "",
-          "kind": "world"
+          "goal": "Get along with everyone",
+          "reason": "",
+          "progress": ""
         },
         {
-          "text": "Make malin fall for me",
-          "why": "",
-          "progress": "",
-          "kind": "social"
+          "goal": "Make malin fall for me",
+          "reason": "",
+          "progress": ""
         },
         {
-          "text": "Make malin fall in love with me",
-          "why": "",
-          "progress": "",
-          "kind": "social"
+          "goal": "Make malin fall in love with me",
+          "reason": "",
+          "progress": ""
         }
       ],
-      "peopleNotes": {
-        "Malin": "I love him. I will have him. I will change him for the better.",
-        "Jess": "The baker. Bossy, but I like her.",
-        "Ambrose": "Chapel keeper. Keeps telling me not to fight.",
-        "Cobb": "The miner. Tough talk. Could be fun to scrap with.",
-        "Z": "Talks big about Malin. Doesn't like him. That makes us rivals."
+      "people": {
+        "Malin": {
+          "whatIThinkOfThem": "I love him. I will have him. I will change him for the better."
+        },
+        "Jess": {
+          "whatIThinkOfThem": "The baker. Bossy, but I like her."
+        },
+        "Ambrose": {
+          "whatIThinkOfThem": "Chapel keeper. Keeps telling me not to fight."
+        },
+        "Cobb": {
+          "whatIThinkOfThem": "The miner. Tough talk. Could be fun to scrap with."
+        },
+        "Z": {
+          "whatIThinkOfThem": "Talks big about Malin. Doesn't like him. That makes us rivals."
+        }
       },
       "seenPlaces": [
         "town square",
@@ -488,27 +551,41 @@
       "mood": "Curious about the new faces in town.",
       "goals": [
         {
-          "text": "Gather enough herbs to sell at the apothecary",
-          "why": "Herbs are how I pay my way",
-          "progress": "Some herbs on hand, need more from the meadow",
-          "kind": "world"
+          "goal": "Gather enough herbs to sell at the apothecary",
+          "reason": "Herbs are how I pay my way",
+          "progress": "Some herbs on hand, need more from the meadow"
         },
         {
-          "text": "Find out what is really going on between the people at the tavern",
-          "why": "Someone is hiding something and I want to know what",
-          "progress": "Only rumors so far",
-          "kind": "social"
+          "goal": "Find out what is really going on between the people at the tavern",
+          "reason": "Someone is hiding something and I want to know what",
+          "progress": "Only rumors so far"
         }
       ],
-      "peopleNotes": {
-        "Z": "Tells a different story every time. I'm keeping track.",
-        "Wil": "The farmer. Grows herbs in the kitchen garden. I want some.",
-        "Jess": "The baker. Acts like the village's boss. Nobody ever chose her.",
-        "Ambrose": "Chapel keeper, writes the town records. Thinks he knows everything. I know more.",
-        "Malin": "Lots of coin, no work, watches everyone. Where did the money come from?",
-        "Tony": "Woodcutter. Wants a fight and is sweet on Malin. Interesting.",
-        "Nastya": "Sweet on Beckett. Anyone can see it but Beckett.",
-        "Beckett": "Lazy. Mooning over Diego."
+      "people": {
+        "Z": {
+          "whatIThinkOfThem": "Tells a different story every time. I'm keeping track."
+        },
+        "Wil": {
+          "whatIThinkOfThem": "The farmer. Grows herbs in the kitchen garden. I want some."
+        },
+        "Jess": {
+          "whatIThinkOfThem": "The baker. Acts like the village's boss. Nobody ever chose her."
+        },
+        "Ambrose": {
+          "whatIThinkOfThem": "Chapel keeper, writes the town records. Thinks he knows everything. I know more."
+        },
+        "Malin": {
+          "whatIThinkOfThem": "Lots of coin, no work, watches everyone. Where did the money come from?"
+        },
+        "Tony": {
+          "whatIThinkOfThem": "Woodcutter. Wants a fight and is sweet on Malin. Interesting."
+        },
+        "Nastya": {
+          "whatIThinkOfThem": "Sweet on Beckett. Anyone can see it but Beckett."
+        },
+        "Beckett": {
+          "whatIThinkOfThem": "Lazy. Mooning over Diego."
+        }
       },
       "seenPlaces": [
         "town square",
@@ -570,24 +647,32 @@
       "mood": "Nervous about all the new people.",
       "goals": [
         {
-          "text": "Brew enough ale for the tavern and the farmhouse",
-          "why": "People keep asking and I never have enough",
-          "progress": "Wheat and water on hand for one batch",
-          "kind": "world"
+          "goal": "Brew enough ale for the tavern and the farmhouse",
+          "reason": "People keep asking and I never have enough",
+          "progress": "Wheat and water on hand for one batch"
         },
         {
-          "text": "Make one real friend",
-          "why": "I'm lonely and I know it",
-          "progress": "Haven't spoken to anyone in days",
-          "kind": "social"
+          "goal": "Make one real friend",
+          "reason": "I'm lonely and I know it",
+          "progress": "Haven't spoken to anyone in days"
         }
       ],
-      "peopleNotes": {
-        "Nell": "Fishes the lake. Seems kind.",
-        "Jess": "The baker. Very blunt. A little scary. I think she's sort of in charge?",
-        "Wil": "The farmer. Grows the wheat I brew with. The farmhouse could use some ale. I should bring some.",
-        "Maeve": "The herbalist. Notices everything. I worry what she says about me.",
-        "Mell": "My sister and complete opposite."
+      "people": {
+        "Nell": {
+          "whatIThinkOfThem": "Fishes the lake. Seems kind."
+        },
+        "Jess": {
+          "whatIThinkOfThem": "The baker. Very blunt. A little scary. I think she's sort of in charge?"
+        },
+        "Wil": {
+          "whatIThinkOfThem": "The farmer. Grows the wheat I brew with. The farmhouse could use some ale. I should bring some."
+        },
+        "Maeve": {
+          "whatIThinkOfThem": "The herbalist. Notices everything. I worry what she says about me."
+        },
+        "Mell": {
+          "whatIThinkOfThem": "My sister and complete opposite."
+        }
       },
       "seenPlaces": [
         "town square",
@@ -647,32 +732,43 @@
       "mood": "Up with the sun, thinking about the wheat.",
       "goals": [
         {
-          "text": "Harvest the wheat in the south fields",
-          "why": "An empty field is a hungry winter",
-          "progress": "Wheat ready in the south fields",
-          "kind": "world"
+          "goal": "Harvest the wheat in the south fields",
+          "reason": "An empty field is a hungry winter",
+          "progress": "Wheat ready in the south fields"
         },
         {
-          "text": "Get the wheat to the bakery",
-          "why": "Wheat is no use sitting in the farmhouse",
-          "progress": "Six wheat on hand",
-          "kind": "world"
+          "goal": "Get the wheat to the bakery",
+          "reason": "Wheat is no use sitting in the farmhouse",
+          "progress": "Six wheat on hand"
         },
         {
-          "text": "Find someone reliable to help on the farm",
-          "why": "I can't do it alone forever",
-          "progress": "No one yet",
-          "kind": "social"
+          "goal": "Find someone reliable to help on the farm",
+          "reason": "I can't do it alone forever",
+          "progress": "No one yet"
         }
       ],
-      "peopleNotes": {
-        "Jess": "Needs my wheat for the bakery. Always in a hurry.",
-        "Beckett": "Supposed to help with the farm. Rarely does.",
-        "Maeve": "The herbalist. Wants herbs from the kitchen garden.",
-        "Tony": "The woodcutter. Cuts wood for the village.",
-        "Diego": "Asking about animals. Wants meat. Hasn't offered to work.",
-        "Z": "Needs a job. Might be good help on the farm.",
-        "Ambrose": "Chapel keeper. Writes down the harvests at the town hall."
+      "people": {
+        "Jess": {
+          "whatIThinkOfThem": "Needs my wheat for the bakery. Always in a hurry."
+        },
+        "Beckett": {
+          "whatIThinkOfThem": "Supposed to help with the farm. Rarely does."
+        },
+        "Maeve": {
+          "whatIThinkOfThem": "The herbalist. Wants herbs from the kitchen garden."
+        },
+        "Tony": {
+          "whatIThinkOfThem": "The woodcutter. Cuts wood for the village."
+        },
+        "Diego": {
+          "whatIThinkOfThem": "Asking about animals. Wants meat. Hasn't offered to work."
+        },
+        "Z": {
+          "whatIThinkOfThem": "Needs a job. Might be good help on the farm."
+        },
+        "Ambrose": {
+          "whatIThinkOfThem": "Chapel keeper. Writes down the harvests at the town hall."
+        }
       },
       "seenPlaces": [
         "town square",
@@ -734,24 +830,32 @@
       "mood": "Calm. The lake was still this morning.",
       "goals": [
         {
-          "text": "Catch fish and trade them in the village",
-          "why": "Fish don't keep, so they're better shared",
-          "progress": "Two fish from yesterday",
-          "kind": "world"
+          "goal": "Catch fish and trade them in the village",
+          "reason": "Fish don't keep, so they're better shared",
+          "progress": "Two fish from yesterday"
         },
         {
-          "text": "Get someone to come out to the lake and fish with me",
-          "why": "It's quiet out here, maybe too quiet",
-          "progress": "No visitors yet",
-          "kind": "social"
+          "goal": "Get someone to come out to the lake and fish with me",
+          "reason": "It's quiet out here, maybe too quiet",
+          "progress": "No visitors yet"
         }
       ],
-      "peopleNotes": {
-        "Pell": "The shy brewer. Wants something, too shy to ask for it.",
-        "Jess": "The baker. Runs about like the village would fall down without her. Maybe it would.",
-        "Wil": "The farmer. Worries about the weather. I just watch it.",
-        "Ambrose": "Chapel keeper. Writes everything down at the town hall. Nice enough.",
-        "Cobb": "The miner. Loud at the tavern. Funny."
+      "people": {
+        "Pell": {
+          "whatIThinkOfThem": "The shy brewer. Wants something, too shy to ask for it."
+        },
+        "Jess": {
+          "whatIThinkOfThem": "The baker. Runs about like the village would fall down without her. Maybe it would."
+        },
+        "Wil": {
+          "whatIThinkOfThem": "The farmer. Worries about the weather. I just watch it."
+        },
+        "Ambrose": {
+          "whatIThinkOfThem": "Chapel keeper. Writes everything down at the town hall. Nice enough."
+        },
+        "Cobb": {
+          "whatIThinkOfThem": "The miner. Loud at the tavern. Funny."
+        }
       },
       "seenPlaces": [
         "town square",
@@ -812,24 +916,32 @@
       "mood": "Thirsty.",
       "goals": [
         {
-          "text": "Mine enough iron ore to sell to the smithy",
-          "why": "I need the coin for ale",
-          "progress": "Haven't been to the quarry today",
-          "kind": "world"
+          "goal": "Mine enough iron ore to sell to the smithy",
+          "reason": "I need the coin for ale",
+          "progress": "Haven't been to the quarry today"
         },
         {
-          "text": "Get a drink at the tavern",
-          "why": "Mining is thirsty work",
-          "progress": "Low on coin",
-          "kind": "self"
+          "goal": "Get a drink at the tavern",
+          "reason": "Mining is thirsty work",
+          "progress": "Low on coin"
         }
       ],
-      "peopleNotes": {
-        "Diego": "Good company at the tavern.",
-        "Jess": "The baker. Thinks she's in charge. Nobody put her in charge.",
-        "Tony": "The woodcutter. Strong. Thinks he's tougher than me. He isn't.",
-        "Z": "Always trying to get people together at the tavern. Fine by me.",
-        "Malin": "Has lots of coin. Might buy a drink."
+      "people": {
+        "Diego": {
+          "whatIThinkOfThem": "Good company at the tavern."
+        },
+        "Jess": {
+          "whatIThinkOfThem": "The baker. Thinks she's in charge. Nobody put her in charge."
+        },
+        "Tony": {
+          "whatIThinkOfThem": "The woodcutter. Strong. Thinks he's tougher than me. He isn't."
+        },
+        "Z": {
+          "whatIThinkOfThem": "Always trying to get people together at the tavern. Fine by me."
+        },
+        "Malin": {
+          "whatIThinkOfThem": "Has lots of coin. Might buy a drink."
+        }
       },
       "seenPlaces": [
         "town square",
@@ -889,28 +1001,44 @@
       "mood": "Thoughtful. So many new names to write down.",
       "goals": [
         {
-          "text": "Write down what each person in the village does and post it on the notice board in the town square",
-          "why": "A village that knows itself works better",
-          "progress": "Haven't started",
-          "kind": "world"
+          "goal": "Write down what each person in the village does and post it on the notice board in the town square",
+          "reason": "A village that knows itself works better",
+          "progress": "Haven't started"
         },
         {
-          "text": "Stop the fighting before someone ends up in the graveyard",
-          "why": "I have dug enough graves",
-          "progress": "Heard the woodcutter is looking for trouble",
-          "kind": "social"
+          "goal": "Stop the fighting before someone ends up in the graveyard",
+          "reason": "I have dug enough graves",
+          "progress": "Heard the woodcutter is looking for trouble"
         }
       ],
-      "peopleNotes": {
-        "Jess": "Keeps this village fed and lets everyone know it.",
-        "Tony": "Spoiling for a fight. I'd like to talk him out of it.",
-        "Wil": "The farmer. Works the south fields, kitchen garden and animal pens. The village eats because of the farm.",
-        "Cobb": "The miner. Brings iron ore from the quarry, when sober.",
-        "Maeve": "The herbalist. Herbs and gossip, both in good supply.",
-        "Pell": "The brewer. Shy. Makes the ale we drink.",
-        "Nell": "The fisher on the south shore.",
-        "Malin": "No trade. Wealthy. Speaks of leadership in a way that unsettles me.",
-        "Z": "No trade yet. Says she wants to write a novel."
+      "people": {
+        "Jess": {
+          "whatIThinkOfThem": "Keeps this village fed and lets everyone know it."
+        },
+        "Tony": {
+          "whatIThinkOfThem": "Spoiling for a fight. I'd like to talk him out of it."
+        },
+        "Wil": {
+          "whatIThinkOfThem": "The farmer. Works the south fields, kitchen garden and animal pens. The village eats because of the farm."
+        },
+        "Cobb": {
+          "whatIThinkOfThem": "The miner. Brings iron ore from the quarry, when sober."
+        },
+        "Maeve": {
+          "whatIThinkOfThem": "The herbalist. Herbs and gossip, both in good supply."
+        },
+        "Pell": {
+          "whatIThinkOfThem": "The brewer. Shy. Makes the ale we drink."
+        },
+        "Nell": {
+          "whatIThinkOfThem": "The fisher on the south shore."
+        },
+        "Malin": {
+          "whatIThinkOfThem": "No trade. Wealthy. Speaks of leadership in a way that unsettles me."
+        },
+        "Z": {
+          "whatIThinkOfThem": "No trade yet. Says she wants to write a novel."
+        }
       },
       "seenPlaces": [
         "town square",
@@ -970,35 +1098,52 @@
       "mood": "Reflective. Eager to learn new things and get job and dominate",
       "goals": [
         {
-          "text": "Get employed",
-          "why": "So I can get money",
-          "progress": "",
-          "kind": "world"
+          "goal": "Get employed",
+          "reason": "So I can get money",
+          "progress": ""
         },
         {
-          "text": "Dominate the village",
-          "why": "",
-          "progress": "",
-          "kind": "world"
+          "goal": "Dominate the village",
+          "reason": "",
+          "progress": ""
         },
         {
-          "text": "Become happier with myself",
-          "why": "",
-          "progress": "",
-          "kind": "self"
+          "goal": "Become happier with myself",
+          "reason": "",
+          "progress": ""
         }
       ],
-      "peopleNotes": {
-        "Diego": "Is alright",
-        "Beckett": "Is alright. I've only met her once, though I don't know if she remembers me.",
-        "Z": "Something is up with her",
-        "Tony": "Gross",
-        "Jess": "The baker. Thinks she's in charge because she bakes the bread. Control the bread, control the village.",
-        "Ambrose": "Keeps the records at the town hall. Whoever controls the records controls what people remember.",
-        "Wil": "The farmer. Grows the food. If the farm works for me, the village does too.",
-        "Maeve": "The herbalist. Watches me. Dangerous.",
-        "Cobb": "The miner. Cheap. Will do anything for a drink.",
-        "Nastya": "Easily led. Could be useful."
+      "people": {
+        "Diego": {
+          "whatIThinkOfThem": "Is alright"
+        },
+        "Beckett": {
+          "whatIThinkOfThem": "Is alright. I've only met her once, though I don't know if she remembers me."
+        },
+        "Z": {
+          "whatIThinkOfThem": "Something is up with her"
+        },
+        "Tony": {
+          "whatIThinkOfThem": "Gross"
+        },
+        "Jess": {
+          "whatIThinkOfThem": "The baker. Thinks she's in charge because she bakes the bread. Control the bread, control the village."
+        },
+        "Ambrose": {
+          "whatIThinkOfThem": "Keeps the records at the town hall. Whoever controls the records controls what people remember."
+        },
+        "Wil": {
+          "whatIThinkOfThem": "The farmer. Grows the food. If the farm works for me, the village does too."
+        },
+        "Maeve": {
+          "whatIThinkOfThem": "The herbalist. Watches me. Dangerous."
+        },
+        "Cobb": {
+          "whatIThinkOfThem": "The miner. Cheap. Will do anything for a drink."
+        },
+        "Nastya": {
+          "whatIThinkOfThem": "Easily led. Could be useful."
+        }
       },
       "seenPlaces": [
         "town square",
@@ -1059,19 +1204,30 @@
       "mood": "Restless and optimistic.",
       "goals": [
         {
-          "text": "Cure Z's autism",
-          "why": "Out of scientific curiousity",
-          "progress": "",
-          "kind": "social"
+          "goal": "Cure Z's autism",
+          "reason": "Out of scientific curiousity",
+          "progress": ""
         }
       ],
-      "peopleNotes": {
-        "Beckett": "I think about my pookie all the time, I'm super in love with her!",
-        "Z": "Fascinating. I want to study her.",
-        "Diego": "Beckett is always with him. I can't tell if they are a thing.",
-        "Jess": "The baker. Very bossy. Keeps telling people to work.",
-        "Ambrose": "The scribe. Has books and records at the town hall.",
-        "Maeve": "The herbalist. Seems to know things about everyone. Hopefully not about me and Beckett."
+      "people": {
+        "Beckett": {
+          "whatIThinkOfThem": "I think about my pookie all the time, I'm super in love with her!"
+        },
+        "Z": {
+          "whatIThinkOfThem": "Fascinating. I want to study her."
+        },
+        "Diego": {
+          "whatIThinkOfThem": "Beckett is always with him. I can't tell if they are a thing."
+        },
+        "Jess": {
+          "whatIThinkOfThem": "The baker. Very bossy. Keeps telling people to work."
+        },
+        "Ambrose": {
+          "whatIThinkOfThem": "The scribe. Has books and records at the town hall."
+        },
+        "Maeve": {
+          "whatIThinkOfThem": "The herbalist. Seems to know things about everyone. Hopefully not about me and Beckett."
+        }
       },
       "seenPlaces": [
         "town square",
@@ -1133,20 +1289,20 @@
       "mood": "Excited to see new people.",
       "goals": [
         {
-          "text": "Make it so Pell can't sell anything",
-          "why": "I want to sabatoge Pell's business",
-          "progress": "",
-          "kind": "social"
+          "goal": "Make it so Pell can't sell anything",
+          "reason": "I want to sabatoge Pell's business",
+          "progress": ""
         },
         {
-          "text": "Make an enemy",
-          "why": "",
-          "progress": "",
-          "kind": "world"
+          "goal": "Make an enemy",
+          "reason": "",
+          "progress": ""
         }
       ],
-      "peopleNotes": {
-        "Pell": "My sister and complete opposite."
+      "people": {
+        "Pell": {
+          "whatIThinkOfThem": "My sister and complete opposite."
+        }
       },
       "seenPlaces": [
         "town square",

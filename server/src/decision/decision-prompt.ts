@@ -7,13 +7,14 @@ import type { DecisionContext } from "./context";
 import {
   describeBelongings,
   describeCurrentAction,
-  describeGoals,
   describeDecisionReason,
   describeLastFailure,
   describeEpisodes,
   describeNearbyEntities,
   describeOlderMemory,
-  describePeopleOnMind,
+  describeLongTermGoals,
+  describePeople,
+  describeShortTermGoals,
   describeSeenPlaces,
   describeStream,
 } from "./sections";
@@ -60,7 +61,9 @@ function buildTemplateValues(
     body: describeStats(context.body),
     status: status.otherWords.length === 0 ? "" : `You are ${joinWithAnd(status.otherWords)}.`,
     pressingNeeds,
-    goals: describeGoals(context.goals),
+    longTermGoals: describeLongTermGoals(context.longTermGoals),
+    shortTermGoals: describeShortTermGoals(context.shortTermGoals),
+    people: describePeople(context.people),
     simTime: context.simTime,
     intention: context.intention || "nothing in particular",
     currentAction: describeCurrentAction(context.currentAction, context.isMidActionInterrupt),
@@ -70,7 +73,6 @@ function buildTemplateValues(
     here: describeNearbyEntities(context.nearbyEntities),
     seenPlaces: describeSeenPlaces(context.seenPlaces),
     aroundYou: describeAroundYou(context.aroundYou),
-    peopleOnMind: describePeopleOnMind(context.peopleOnMind),
     belongings: describeBelongings(context.belongings, context.itemlessVerbs),
     olderMemory: describeOlderMemory(context.history, context.daySummary, context.chronicles),
     episodes: describeEpisodes(context.episodes),
@@ -88,7 +90,7 @@ export interface DecisionPrompt {
 }
 
 /** Removes the markers from a filled template and returns where each one was. */
-function extractCacheBreakpoints(filledTemplate: string): DecisionPrompt {
+export function extractCacheBreakpoints(filledTemplate: string): DecisionPrompt {
   const pieces = filledTemplate.split(CACHE_BREAKPOINT_MARKER);
   const cacheBreakpoints: number[] = [];
   let length = 0;

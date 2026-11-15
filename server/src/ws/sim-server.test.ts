@@ -44,14 +44,15 @@ const agent = {
   death: null,
   bodyReplacedById: null,
   mood: "",
-  goals: [],
+  longTermGoals: [],
+  shortTermGoals: [],
   dailyPlan: "",
   plans: [],
   intention: "",
   currentAction: null,
   workingMemory: [],
   awareness: {},
-  dossiers: {},
+  people: {},
   seenPlaces: [],
   lastThought: null,
 };
@@ -69,7 +70,7 @@ const seedAgent = {
   inventory: { coin: 30 },
   mood: "",
   goals: [],
-  peopleNotes: {},
+  people: {},
   seenPlaces: [],
 };
 

@@ -1,0 +1,9 @@
+{{context}}
+## The question: the people you know
+Think over the people you know in light of what has happened lately. For each person about whom something changed, rewrite what you hold about them. Leave out everyone else.
+Write only what you have reason to believe from what you saw, heard and were told. What they think and want is your own reading of them, and may be wrong.
+The people you may write about: {{personNames}}
+
+## Reply
+Reply with only a JSON object with one field, people: a list of {"person", "whatIThinkOfThem", "whatTheyThinkOfMe", "whatIWantFromThem", "whatTheyWantFromMe"}.
+person is one of the names above. Each of the other four is at most {{maxChars}} characters, or null to keep that part as it is. Use an empty list if nothing changed.

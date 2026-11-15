@@ -6,7 +6,7 @@ import type {
   SeedProblem,
   SeedRules,
 } from "@village/shared";
-import { withoutBlankNotes } from "./seed-edits";
+import { withoutBlankPeople } from "./seed-edits";
 
 export type SaveStatus = "idle" | "saving" | "saved" | "rejected";
 
@@ -107,6 +107,6 @@ export function reduceEditorState(state: EditorState, action: EditorAction): Edi
 /** Compares the draft with the saved file, leaving out blank notes, which are never saved. */
 export function hasUnsavedChanges(state: EditorState): boolean {
   if (state.draft === null || state.savedFile === null) return false;
-  const draftText = JSON.stringify(withoutBlankNotes(state.draft));
-  return draftText !== JSON.stringify(withoutBlankNotes(state.savedFile));
+  const draftText = JSON.stringify(withoutBlankPeople(state.draft));
+  return draftText !== JSON.stringify(withoutBlankPeople(state.savedFile));
 }

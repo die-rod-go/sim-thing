@@ -1,4 +1,11 @@
-import type { LlmCallKind, NeedName, StatName, TraitName, Volume } from "@village/shared";
+import type {
+  LlmCallKind,
+  NeedName,
+  PersonEntry,
+  StatName,
+  TraitName,
+  Volume,
+} from "@village/shared";
 
 /**
  * Every global tunable in the sim lives here: rates, caps, weights, loudness and budgets. Item
@@ -353,7 +360,12 @@ export const config = {
     } satisfies Record<TraitName, string[]>,
     /** Upper bounds of the bands that select each word above. */
     wordBands: [-0.6, -0.2, 0.2, 0.6, Infinity],
-    weeklyDeltaClamp: 0.05,
+    /** Most a trait moves in one identity pass. */
+    passDeltaClamp: 0.003,
+    /** Trait values are rounded to this many decimals after a change. */
+    traitValueDecimals: 3,
+    /** How a trait reads in a pass prompt: its value and the words for it. */
+    valueText: "{trait}: {value} ({words})",
     min: -1,
     max: 1,
   },
@@ -509,15 +521,37 @@ export const config = {
     },
   },
 
-  dossier: {
-    /** The length a rewritten entry is asked to keep to; see `llm.replyTextSlack`. */
-    maxChars: 400,
-    /** The decision prompt's "People on your mind" lists at most this many. */
-    shownInDecision: 5,
-    /** Shown for a person in sight or in the conversation whom the agent has no entry for. */
-    unknownPersonText: "nothing known yet beyond what you see.",
-    /** The decision section's text when no one is on the agent's mind. */
-    nobodyOnMindText: "No one in particular.",
+  people: {
+    /** New episodes between runs of the people pass. */
+    everyEpisodes: 2,
+    /** Length limit of each of a person entry's four fields; see `llm.replyTextSlack`. */
+    fieldMaxChars: 200,
+    /** How each field of a person entry is labelled in prompts. */
+    fieldLabels: {
+      whatIThinkOfThem: "What I think of them",
+      whatTheyThinkOfMe: "What they think of me",
+      whatIWantFromThem: "What I want from them",
+      whatTheyWantFromMe: "What they want from me",
+    } satisfies Record<keyof PersonEntry, string>,
+    /** Shown beside a person the agent holds nothing about yet. */
+    emptyEntryText: "nothing yet beyond what you see.",
+    /** The section's text when the agent knows no one. */
+    nobodyKnownText: "No one yet.",
+  },
+
+  goals: {
+    /** New episodes between runs of the short-term goals pass. */
+    shortTermEveryEpisodes: 2,
+    maxShortTerm: 3,
+    /** Most steps per short-term goal. */
+    maxSteps: 5,
+    /** Length limit of each short-term goal text (goal, reason, each step, progress). */
+    shortTermFieldMaxChars: 200,
+    maxLongTerm: 5,
+    /** Length limit of each long-term goal text (goal, reason, progress). */
+    longTermFieldMaxChars: 250,
+    noLongTermText: "No long-term goals right now.",
+    noShortTermText: "No short-term goals yet.",
   },
 
   decision: {
@@ -572,9 +606,15 @@ export const config = {
       chronicle: 860,
       day_summary: 1040,
       history: 1730,
+      // Each pass's largest possible reply: every text at its limit with the slack. The people
+      // pass allows for a village of about a dozen people rewritten at once.
+      people: 16000,
+      short_term_goals: 6500,
+      identity: 3000,
+      long_term_goals: 6000,
     },
     /** Calls of these kinds use `LLM_REFLECTION_MODEL` when it is set. */
-    reflectionKinds: [] as LlmCallKind[],
+    reflectionKinds: ["people", "short_term_goals", "identity", "long_term_goals"] as LlmCallKind[],
     dailyTokenBudget: 100_000_000,
     /**
      * Tries per call, the first included. A rejected reply (bad JSON, failed validation, too long)

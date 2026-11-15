@@ -39,7 +39,7 @@ function buildSeedAgent(overrides: Partial<SeedAgent> = {}): SeedAgent {
     inventory: { bread: 2, coin: 30 },
     mood: "",
     goals: [],
-    peopleNotes: {},
+    people: {},
     seenPlaces: [],
     ...overrides,
   };
@@ -120,7 +120,7 @@ describe("findSeedFileProblems", () => {
         agents: [
           buildSeedAgent({
             sleepRecoveryPerHour: 0.5,
-            peopleNotes: { Gregor: "Who is he?" },
+            people: { Gregor: { whatIThinkOfThem: "Who is he?" } },
           }),
         ],
       },
@@ -138,7 +138,7 @@ describe("findSeedFileProblems", () => {
 
   it("matches people notes to characters by name, ignoring case", () => {
     const agents = [
-      buildSeedAgent({ peopleNotes: { edwin: "Stubborn." } }),
+      buildSeedAgent({ people: { edwin: { whatIThinkOfThem: "Stubborn." } } }),
       buildSeedAgent({ id: "edwin", name: "Edwin" }),
     ];
     expect(listFields(agents)).toEqual([]);

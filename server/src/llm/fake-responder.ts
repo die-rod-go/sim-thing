@@ -1,3 +1,4 @@
+import { TRAIT_NAMES } from "@village/shared";
 import { config } from "../config";
 import { isRecord, readDecisionChoices, readEnum } from "./fake-choices";
 import { buildDecisionReply } from "./fake-decision";
@@ -66,11 +67,37 @@ function buildBuiltInAnswers(hitRollVerbs: ReadonlySet<string>): Record<string, 
       text: random.pick(config.llm.fakeResponder.lines),
       minutes: null,
     }),
+    people_reply: () => ({ people: [] }),
+    short_term_goals_reply: (_request, random) => ({
+      goals: [
+        {
+          goal: "Get on with the day's work",
+          reason: "It keeps me fed",
+          steps: [random.pick(config.llm.fakeResponder.lines)],
+          progress: "",
+        },
+      ],
+    }),
+    identity_reply: (_request, random) => ({
+      traitChanges: [
+        {
+          trait: random.pick(TRAIT_NAMES),
+          delta: (random.next() < 0.5 ? -1 : 1) * config.traits.passDeltaClamp,
+          reason: "Lately I acted a little differently from how I used to.",
+        },
+      ],
+      profession: null,
+      core: null,
+      selfImage: null,
+    }),
+    long_term_goals_reply: () => ({
+      goals: [{ goal: "Keep my work going", reason: "It is my living", progress: "Steady." }],
+    }),
   };
 }
 
 /**
- * Answers decision and interact calls with plausible valid replies, and any other
+ * Answers decision, interact and pass calls with plausible valid replies, and any other
  * structured call with a minimal valid object. `answerOverrides` replaces answers per schema name.
  */
 export function createFakeResponder(

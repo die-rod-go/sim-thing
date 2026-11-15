@@ -23,15 +23,18 @@ export const seedAgentSchema = z.object({
   /** Starting items by definition id, coins included ("coin": 30). */
   inventory: z.record(z.string(), z.number()),
   mood: z.string(),
-  goals: z.array(
+  /** The long-term goals the character starts with. */
+  goals: z.array(z.object({ goal: z.string(), reason: z.string(), progress: z.string() })),
+  /** What the character starts out holding about people, by their name; every field is optional. */
+  people: z.record(
+    z.string(),
     z.object({
-      text: z.string(),
-      why: z.string(),
-      progress: z.string(),
-      kind: z.enum(["world", "social", "self"]),
+      whatIThinkOfThem: z.string().optional(),
+      whatTheyThinkOfMe: z.string().optional(),
+      whatIWantFromThem: z.string().optional(),
+      whatTheyWantFromMe: z.string().optional(),
     }),
   ),
-  peopleNotes: z.record(z.string(), z.string()),
   /** Names of the map's places the character has already seen when the sim starts. */
   seenPlaces: z.array(z.string()),
 });
@@ -40,6 +43,7 @@ export const seedAgentSchema = z.object({
 export const seedFileSchema = z.object({ agents: z.array(seedAgentSchema) });
 
 export type SeedAgent = z.infer<typeof seedAgentSchema>;
+export type SeedPersonEntry = SeedAgent["people"][string];
 export type SeedFile = z.infer<typeof seedFileSchema>;
 
 /** What a seed file is checked against; the server builds this from its map and config. */
@@ -148,7 +152,7 @@ function findStartingStateProblems(
     }
   }
   agent.goals.forEach((goal, goalIndex) => {
-    if (goal.text.trim() === "") add("error", `goals.${goalIndex}`, "A goal needs its text.");
+    if (goal.goal.trim() === "") add("error", `goals.${goalIndex}`, "A goal needs its text.");
   });
   return problems;
 }
@@ -158,12 +162,13 @@ function findPeopleNoteProblems(
   agentIndex: number,
   knownNames: ReadonlySet<string>,
 ): SeedProblem[] {
-  return Object.entries(agent.peopleNotes).flatMap(([personName, note]): SeedProblem[] => {
-    const field = `peopleNotes.${personName}`;
+  return Object.entries(agent.people).flatMap(([personName, entry]): SeedProblem[] => {
+    const field = `people.${personName}`;
+    const isBlank = Object.values(entry).every((text) => text.trim() === "");
     if (personName.toLowerCase() === agent.name.toLowerCase()) {
       return [{ severity: "warning", agentIndex, field, message: "A note about themself." }];
     }
-    if (knownNames.has(personName.toLowerCase()) || note.trim() === "") return [];
+    if (knownNames.has(personName.toLowerCase()) || isBlank) return [];
     return [
       {
         severity: "error",

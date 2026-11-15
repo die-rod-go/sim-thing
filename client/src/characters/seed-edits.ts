@@ -1,4 +1,10 @@
-import { slugifyAgentName, type SeedAgent, type SeedFile, type SeedProblem } from "@village/shared";
+import {
+  slugifyAgentName,
+  type SeedAgent,
+  type SeedFile,
+  type SeedPersonEntry,
+  type SeedProblem,
+} from "@village/shared";
 
 function replaceAgentAt(seedFile: SeedFile, agentIndex: number, agent: SeedAgent): SeedFile {
   return {
@@ -47,7 +53,7 @@ export function duplicateAgent(seedFile: SeedFile, agentIndex: number): SeedFile
   return { ...seedFile, agents };
 }
 
-/** Removes a character and every other character's note about them. */
+/** Removes a character and what every other character holds about them. */
 export function removeAgent(seedFile: SeedFile, agentIndex: number): SeedFile {
   const removed = seedFile.agents[agentIndex];
   if (!removed) return seedFile;
@@ -55,8 +61,8 @@ export function removeAgent(seedFile: SeedFile, agentIndex: number): SeedFile {
     .filter((_agent, index) => index !== agentIndex)
     .map((agent) => ({
       ...agent,
-      peopleNotes: Object.fromEntries(
-        Object.entries(agent.peopleNotes).filter(
+      people: Object.fromEntries(
+        Object.entries(agent.people).filter(
           ([personName]) => removed.name.trim() === "" || !isSameName(personName, removed.name),
         ),
       ),
@@ -76,7 +82,7 @@ export function moveAgent(seedFile: SeedFile, agentIndex: number, offset: number
 
 /**
  * Renames a character. The id follows the name while it still matches the old name (or is empty),
- * and other characters' notes about the old name move to the new one.
+ * and what other characters hold about the old name moves to the new one.
  */
 export function renameAgent(seedFile: SeedFile, agentIndex: number, newName: string): SeedFile {
   const agent = seedFile.agents[agentIndex];
@@ -94,10 +100,10 @@ export function renameAgent(seedFile: SeedFile, agentIndex: number, newName: str
     if (!canMoveNotes) return existing;
     return {
       ...existing,
-      peopleNotes: Object.fromEntries(
-        Object.entries(existing.peopleNotes).map(([personName, note]) => [
+      people: Object.fromEntries(
+        Object.entries(existing.people).map(([personName, entry]) => [
           isSameName(personName, oldName) ? newName.trim() : personName,
-          note,
+          entry,
         ]),
       ),
     };
@@ -105,32 +111,39 @@ export function renameAgent(seedFile: SeedFile, agentIndex: number, newName: str
   return { ...seedFile, agents };
 }
 
-export function setPersonNote(
+/** Sets what the character holds about a person; null removes the person. */
+export function setPersonEntry(
   agent: SeedAgent,
   personName: string,
-  note: string | null,
+  entry: SeedPersonEntry | null,
 ): SeedAgent {
-  const peopleNotes = { ...agent.peopleNotes };
-  if (note === null) delete peopleNotes[personName];
-  else peopleNotes[personName] = note;
-  return { ...agent, peopleNotes };
+  const people = { ...agent.people };
+  if (entry === null) delete people[personName];
+  else people[personName] = entry;
+  return { ...agent, people };
 }
 
-/** Blank notes are only editor placeholders; they are not written to the seed file. */
-export function withoutBlankNotes(seedFile: SeedFile): SeedFile {
+function withoutBlankFields(entry: SeedPersonEntry): SeedPersonEntry {
+  return Object.fromEntries(Object.entries(entry).filter(([, text]) => text.trim() !== ""));
+}
+
+/** Blank fields and people with nothing filled in are only editor placeholders; they are not saved. */
+export function withoutBlankPeople(seedFile: SeedFile): SeedFile {
   return {
     ...seedFile,
     agents: seedFile.agents.map((agent) => ({
       ...agent,
-      peopleNotes: Object.fromEntries(
-        Object.entries(agent.peopleNotes).filter(([, note]) => note.trim() !== ""),
+      people: Object.fromEntries(
+        Object.entries(agent.people)
+          .map(([personName, entry]) => [personName, withoutBlankFields(entry)] as const)
+          .filter(([, entry]) => Object.keys(entry).length > 0),
       ),
     })),
   };
 }
 
-/** The other characters' names, and any names this character has notes about who aren't in the village. */
-export function listNoteSubjects(
+/** The other characters' names, and any people this character holds something about who aren't in the village. */
+export function listPersonSubjects(
   seedFile: SeedFile,
   agentIndex: number,
 ): { villagers: string[]; strangers: string[] } {
@@ -138,16 +151,16 @@ export function listNoteSubjects(
     .filter((agent, index) => index !== agentIndex && agent.name.trim() !== "")
     .map((agent) => agent.name.trim());
   const agent = seedFile.agents[agentIndex];
-  const strangers = Object.keys(agent?.peopleNotes ?? {}).filter(
+  const strangers = Object.keys(agent?.people ?? {}).filter(
     (personName) => !villagers.some((villager) => isSameName(villager, personName)),
   );
   return { villagers, strangers };
 }
 
-/** Finds the note key matching a name regardless of case, so "edwin" and "Edwin" are one note. */
-export function findNoteKey(agent: SeedAgent, personName: string): string {
+/** Finds the key matching a name regardless of case, so "edwin" and "Edwin" are one person. */
+export function findPersonKey(agent: SeedAgent, personName: string): string {
   return (
-    Object.keys(agent.peopleNotes).find((noteName) => isSameName(noteName, personName)) ??
+    Object.keys(agent.people).find((existingName) => isSameName(existingName, personName)) ??
     personName
   );
 }

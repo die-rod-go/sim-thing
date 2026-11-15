@@ -36,6 +36,7 @@ const ticksPerHour = 60 / config.clock.minutesPerTick;
  */
 export async function runSoak(options: SoakOptions): Promise<SoakReport> {
   const sim = createTestSim({
+    shouldRunFirstGoalsPass: true,
     responder: createFakeResponder({}, undefined, {
       hitRollVerbNames: listHitRollVerbNames(loadTestItems()),
     }),

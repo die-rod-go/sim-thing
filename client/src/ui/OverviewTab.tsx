@@ -81,14 +81,29 @@ export function OverviewTab({ agent }: { agent: Agent }) {
           ))}
         </div>
       </PanelSection>
-      <PanelSection title="Goals">
-        {agent.goals.length === 0 && <EmptyNote>No goals.</EmptyNote>}
-        {agent.goals.map((goal, goalIndex) => (
-          <div key={`${goal.kind}-${goalIndex}`} className={`goal goal-${goal.kind}`}>
-            <div className="goal-text">
-              <span className={`tag tag-${goal.kind}`}>{goal.kind}</span> {goal.text}
-            </div>
-            {goal.why && <div className="goal-why">because {goal.why}</div>}
+      <PanelSection title="Long-term goals">
+        {agent.longTermGoals.length === 0 && <EmptyNote>No long-term goals.</EmptyNote>}
+        {agent.longTermGoals.map((goal, goalIndex) => (
+          <div key={goalIndex} className="goal">
+            <div className="goal-text">{goal.goal}</div>
+            {goal.reason && <div className="goal-why">because {goal.reason}</div>}
+            {goal.progress && <div className="goal-progress">▸ {goal.progress}</div>}
+          </div>
+        ))}
+      </PanelSection>
+      <PanelSection title="Short-term goals">
+        {agent.shortTermGoals.length === 0 && <EmptyNote>None yet.</EmptyNote>}
+        {agent.shortTermGoals.map((goal, goalIndex) => (
+          <div key={goalIndex} className="goal">
+            <div className="goal-text">{goal.goal}</div>
+            {goal.reason && <div className="goal-why">because {goal.reason}</div>}
+            {goal.steps.length > 0 && (
+              <ol className="bullet-list">
+                {goal.steps.map((step, stepIndex) => (
+                  <li key={stepIndex}>{step}</li>
+                ))}
+              </ol>
+            )}
             {goal.progress && <div className="goal-progress">▸ {goal.progress}</div>}
           </div>
         ))}

@@ -7,7 +7,7 @@ import {
   reduceEditorState,
   type EditorState,
 } from "./editor-state";
-import { withoutBlankNotes } from "./seed-edits";
+import { withoutBlankPeople } from "./seed-edits";
 
 export interface SeedEditorClient {
   state: EditorState;
@@ -73,7 +73,7 @@ export function useSeedEditor(): SeedEditorClient {
   const save = useCallback(
     (shouldResetWorld: boolean) => {
       if (draft === null) return;
-      const file = withoutBlankNotes(draft);
+      const file = withoutBlankPeople(draft);
       const isSent = connectionRef.current?.send({
         type: "save_seed_file",
         seedFile: file,

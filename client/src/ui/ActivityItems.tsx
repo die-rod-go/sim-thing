@@ -19,6 +19,10 @@ const THOUGHT_LABELS: Record<ActivityThought["thoughtKind"], string> = {
   chronicle: "remembering the last hours",
   day_summary: "remembering the day",
   history: "remembering what came before",
+  people: "thinking about people",
+  short_term_goals: "planning the next hours",
+  identity: "looking at who they are",
+  long_term_goals: "rethinking long-term goals",
   latest: "thought",
 };
 

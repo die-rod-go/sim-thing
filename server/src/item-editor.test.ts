@@ -31,7 +31,7 @@ const seedAgent = {
   inventory: { coin: 30, bread: 2 },
   mood: "",
   goals: [],
-  peopleNotes: {},
+  people: {},
   seenPlaces: [],
 };
 

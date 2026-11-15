@@ -15,10 +15,10 @@ function HoveredNotes({ relation }: { relation: Relation | undefined }) {
   return (
     <div className="web-caption">
       <strong>{relation.name}</strong>
-      {relation.dossier === null ? (
-        <span className="muted"> · nothing written about them</span>
+      {relation.entry === null || relation.entry.whatIThinkOfThem.trim() === "" ? (
+        <span className="muted"> · nothing held about them yet</span>
       ) : (
-        <p className="relation-notes">{relation.dossier.text}</p>
+        <p className="relation-notes">{relation.entry.whatIThinkOfThem}</p>
       )}
     </div>
   );

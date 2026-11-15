@@ -14,6 +14,7 @@ import { writeField } from "../items/thing-writes";
 import { wakeAgent } from "./action-stopping";
 import { WAIT_ACTION, WALK_ACTION, describeDoing } from "./action-phrases";
 import { getAgentRuntime, requestDecision } from "./agent-runtime";
+import { EMPTY_PERSON_ENTRY } from "../passes/apply-pass";
 import { lookAtPlaces } from "./place-sighting";
 import { NO_RULE_CAUSE } from "./rule-cause";
 import { expireComponents, runEveryRules } from "./rule-timers";
@@ -108,8 +109,8 @@ export function progressActions(context: TickContext): void {
 }
 
 /**
- * Phase 3a: everyone's awareness and seen places are refreshed from sight; someone newly in view
- * interrupts.
+ * Phase 3a: everyone's awareness and seen places are refreshed from sight; someone seen for the
+ * first time gets an empty person entry; someone newly in view interrupts.
  */
 export function updateSight(context: TickContext): void {
   const { state, result } = context;
@@ -125,13 +126,18 @@ export function updateSight(context: TickContext): void {
     const runtime = getAgentRuntime(state, agentId);
     const sighted = observeAgents(world, toPerceiver(agent), observed, state.tick);
     const places = lookAtPlaces(state, world, agent);
+    const visibleIds = listVisibleAgentIds(state, world, agent);
+    const firstSeenIds = visibleIds.filter((otherId) => agent.people[otherId] === undefined);
     replaceAgent(state, {
       ...agent,
       awareness: mergeAwareness(agent.awareness, sighted),
       seenPlaces: places.seenPlaces,
+      people: {
+        ...agent.people,
+        ...Object.fromEntries(firstSeenIds.map((otherId) => [otherId, EMPTY_PERSON_ENTRY])),
+      },
     });
-    if (places.hasNewKnowledge) markAgentChanged(result, agentId);
-    const visibleIds = listVisibleAgentIds(state, world, agent);
+    if (places.hasNewKnowledge || firstSeenIds.length > 0) markAgentChanged(result, agentId);
     const newlyVisible = detectNewPerceptions(runtime.visibleAgentIds, visibleIds);
     if (newlyVisible.length > 0) {
       const names = newlyVisible

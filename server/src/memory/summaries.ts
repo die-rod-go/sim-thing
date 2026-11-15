@@ -24,6 +24,13 @@ export function createAgentMemory(day: number): AgentMemory {
     lastMidnightDay: day,
     midnight: null,
     retryAtTick: null,
+    passes: {
+      episodesSincePeople: 0,
+      episodesSinceShortTermGoals: 0,
+      isFirstShortTermGoalsOwed: true,
+      isIdentityOwed: false,
+      isLongTermGoalsOwed: false,
+    },
   };
 }
 
@@ -88,11 +95,8 @@ function buildChronicleJob(memory: AgentMemory): SummaryJob {
   };
 }
 
-/**
- * The next summary the agent owes, memory compression first: episode, chronicle, then at midnight
- * the day summary and the history. Null when nothing is due. Expects a settled memory.
- */
-export function findDueSummary(memory: AgentMemory): SummaryJob | null {
+/** The episode or chronicle the agent owes, the episode first. Null when neither is due. */
+export function findDueCompression(memory: AgentMemory): SummaryJob | null {
   const step = memory.midnight?.step ?? null;
   const hasStreamToSummarize = memory.stream.length > config.memory.streamKeep;
   if (
@@ -108,6 +112,12 @@ export function findDueSummary(memory: AgentMemory): SummaryJob | null {
   ) {
     return buildChronicleJob(memory);
   }
+  return null;
+}
+
+/** At midnight, once the passes have read the day: the day summary, then the history. */
+export function findDueDayEnd(memory: AgentMemory): SummaryJob | null {
+  const step = memory.midnight?.step ?? null;
   if (step === "daySummary" && memory.chronicles.length > 0) {
     return { level: "daySummary", chronicles: [...memory.chronicles] };
   }
@@ -115,6 +125,11 @@ export function findDueSummary(memory: AgentMemory): SummaryJob | null {
     return { level: "history", daySummary: memory.daySummary, history: memory.history };
   }
   return null;
+}
+
+/** The next summary the agent owes, leaving the passes aside. Expects a settled memory. */
+export function findDueSummary(memory: AgentMemory): SummaryJob | null {
+  return findDueCompression(memory) ?? findDueDayEnd(memory);
 }
 
 function lastTickOf(entry: StreamEntry): number {
@@ -158,6 +173,11 @@ export function applySummary(memory: AgentMemory, job: SummaryJob, text: string)
         ...memory,
         stream: memory.stream.slice(job.entries.length),
         episodes: [...memory.episodes, summary],
+        passes: {
+          ...memory.passes,
+          episodesSincePeople: memory.passes.episodesSincePeople + 1,
+          episodesSinceShortTermGoals: memory.passes.episodesSinceShortTermGoals + 1,
+        },
       },
       "episode",
     );
@@ -168,6 +188,7 @@ export function applySummary(memory: AgentMemory, job: SummaryJob, text: string)
         ...memory,
         episodes: memory.episodes.slice(job.episodes.length),
         chronicles: [...memory.chronicles, summary],
+        passes: { ...memory.passes, isIdentityOwed: true, isLongTermGoalsOwed: true },
       },
       "chronicle",
     );
@@ -186,4 +207,36 @@ export function applySummary(memory: AgentMemory, job: SummaryJob, text: string)
     };
   }
   return finishMidnight({ ...memory, history: summary }, midnight);
+}
+
+export type PassName = "identity" | "longTermGoals" | "people" | "shortTermGoals";
+
+/** The next pass the agent owes, from slowest-changing to fastest. Null when none is due. */
+export function findDuePass(memory: AgentMemory): PassName | null {
+  const { passes } = memory;
+  if (passes.isIdentityOwed) return "identity";
+  if (passes.isLongTermGoalsOwed) return "longTermGoals";
+  if (passes.episodesSincePeople >= config.people.everyEpisodes) return "people";
+  const isShortTermDue =
+    passes.isFirstShortTermGoalsOwed ||
+    passes.episodesSinceShortTermGoals >= config.goals.shortTermEveryEpisodes;
+  return isShortTermDue ? "shortTermGoals" : null;
+}
+
+/** The memory once a pass has run: that pass is no longer owed. */
+export function markPassDone(memory: AgentMemory, pass: PassName): AgentMemory {
+  const { passes } = memory;
+  switch (pass) {
+    case "identity":
+      return { ...memory, passes: { ...passes, isIdentityOwed: false } };
+    case "longTermGoals":
+      return { ...memory, passes: { ...passes, isLongTermGoalsOwed: false } };
+    case "people":
+      return { ...memory, passes: { ...passes, episodesSincePeople: 0 } };
+    case "shortTermGoals":
+      return {
+        ...memory,
+        passes: { ...passes, episodesSinceShortTermGoals: 0, isFirstShortTermGoalsOwed: false },
+      };
+  }
 }

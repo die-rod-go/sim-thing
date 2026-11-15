@@ -6,8 +6,8 @@ import {
   type Agent,
   type Entity,
   type ItemCatalog,
-  type Dossier,
   type Needs,
+  type PersonEntry,
   type Position,
   type SeedAgent,
   type SeenPlace,
@@ -58,7 +58,7 @@ export function buildNewAgentTemplate(): SeedAgent {
     inventory: { ...config.seeds.newAgent.inventory },
     mood: "",
     goals: [],
-    peopleNotes: {},
+    people: {},
     seenPlaces: [],
   };
 }
@@ -104,7 +104,7 @@ function buildAgent(
   seed: SeedAgent,
   map: WorldMap,
   pos: Position,
-  dossiers: Record<string, Dossier>,
+  people: Record<string, PersonEntry>,
 ): Agent {
   return {
     id: seed.id,
@@ -128,29 +128,35 @@ function buildAgent(
     death: null,
     bodyReplacedById: null,
     mood: seed.mood,
-    goals: seed.goals.map((goal) => ({ ...goal })),
+    longTermGoals: seed.goals.map((goal) => ({ ...goal })),
+    shortTermGoals: [],
     intention: "",
     currentAction: null,
     awareness: {},
-    dossiers,
+    people,
     seenPlaces: [],
     lastThought: null,
   };
 }
 
-/** Each seed note becomes the agent's dossier on that person; a blank note makes none. */
-function buildDossiers(seed: SeedAgent, seedFile: SeedFile): Record<string, Dossier> {
-  const dossiers: Record<string, Dossier> = {};
-  for (const [personName, note] of Object.entries(seed.peopleNotes)) {
-    if (note.trim() === "") continue;
+/** A person entry for everyone in the seed, with the fields the seed leaves out empty. */
+function buildPeople(seed: SeedAgent, seedFile: SeedFile): Record<string, PersonEntry> {
+  const people: Record<string, PersonEntry> = {};
+  for (const [personName, seeded] of Object.entries(seed.people)) {
     const personId = resolveName(personName, seedFile.agents);
     if (personId === null) {
-      throw new Error(`${seed.name}'s peopleNotes name "${personName}", who is not in the village`);
+      if (Object.values(seeded).every((text) => text.trim() === "")) continue;
+      throw new Error(`${seed.name}'s people name "${personName}", who is not in the village`);
     }
     if (personId === seed.id) continue;
-    dossiers[personId] = { text: note.trim(), updatedTick: 0 };
+    people[personId] = {
+      whatIThinkOfThem: seeded.whatIThinkOfThem?.trim() ?? "",
+      whatTheyThinkOfMe: seeded.whatTheyThinkOfMe?.trim() ?? "",
+      whatIWantFromThem: seeded.whatIWantFromThem?.trim() ?? "",
+      whatTheyWantFromMe: seeded.whatTheyWantFromMe?.trim() ?? "",
+    };
   }
-  return dossiers;
+  return people;
 }
 
 function seedEntities(seedFile: SeedFile, map: WorldMap, world: EntityWorld): void {
@@ -177,7 +183,7 @@ function buildSeenPlaces(seed: SeedAgent, world: EntityWorld): SeenPlace[] {
 }
 
 /**
- * Builds the starting agents, with their seeded dossiers and seen places, and the entities: the
+ * Builds the starting agents, with their seeded goals, person entries and seen places, and the entities: the
  * map's objects and everyone's starting inventory. Throws on any seed error.
  */
 export function buildSeededWorld(
@@ -194,7 +200,7 @@ export function buildSeededWorld(
   }
   const takenIndexes = new Set<number>();
   const agents = seedFile.agents.map((seed) =>
-    buildAgent(seed, map, findStartTile(seed, map, takenIndexes), buildDossiers(seed, seedFile)),
+    buildAgent(seed, map, findStartTile(seed, map, takenIndexes), buildPeople(seed, seedFile)),
   );
   const world: EntityWorld = { agents, entities: [], nextEntityId: 1, items };
   seedEntities(seedFile, map, world);

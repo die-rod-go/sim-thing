@@ -1,6 +1,6 @@
 import type {
   Agent,
-  Goal,
+  LongTermGoal,
   Moment,
   MomentDetail,
   PersonalityChange,
@@ -61,27 +61,27 @@ export function buildPersonalityMoments(
 }
 
 /**
- * Goals are matched by their text. A goal missing from the new list is reported as removed: the
+ * Moments for the long-term goals a pass rewrote. Goals are matched by their text. A goal missing from the new list is reported as removed: the
  * reply doesn't say whether it was reached or given up, so neither is claimed.
  */
 export function buildGoalMoments(
   subject: MomentSubject,
   tick: number,
-  goalsBefore: readonly Goal[],
-  goalsAfter: readonly Goal[],
+  goalsBefore: readonly LongTermGoal[],
+  goalsAfter: readonly LongTermGoal[],
 ): MomentDraft[] {
-  const beforeByText = new Map(goalsBefore.map((goal) => [goal.text, goal]));
-  const afterTexts = new Set(goalsAfter.map((goal) => goal.text));
+  const beforeByText = new Map(goalsBefore.map((goal) => [goal.goal, goal]));
+  const afterTexts = new Set(goalsAfter.map((goal) => goal.goal));
   const moments: MomentDraft[] = [];
   for (const goal of goalsAfter) {
-    const previous = beforeByText.get(goal.text);
+    const previous = beforeByText.get(goal.goal);
     if (!previous) {
       moments.push(
-        draftMoment(subject, tick, `set a new goal: ${goal.text}`, { kind: "goal_added", goal }),
+        draftMoment(subject, tick, `set a new goal: ${goal.goal}`, { kind: "goal_added", goal }),
       );
     } else if (previous.progress !== goal.progress) {
       moments.push(
-        draftMoment(subject, tick, `made progress on "${goal.text}": ${goal.progress}`, {
+        draftMoment(subject, tick, `made progress on "${goal.goal}": ${goal.progress}`, {
           kind: "goal_progressed",
           goal,
           previousProgress: previous.progress,
@@ -90,9 +90,9 @@ export function buildGoalMoments(
     }
   }
   for (const goal of goalsBefore) {
-    if (afterTexts.has(goal.text)) continue;
+    if (afterTexts.has(goal.goal)) continue;
     moments.push(
-      draftMoment(subject, tick, `no longer has the goal: ${goal.text}`, {
+      draftMoment(subject, tick, `no longer has the goal: ${goal.goal}`, {
         kind: "goal_removed",
         goal,
       }),

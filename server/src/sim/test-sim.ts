@@ -6,6 +6,7 @@ import {
   type Agent,
   type Entity,
   type ItemCatalog,
+  type PersonalityChange,
   type Position,
 } from "@village/shared";
 import { config } from "../config";
@@ -14,7 +15,9 @@ import { FakeLlmClient, type FakeResponder } from "../llm/fake-llm-client";
 import { buildLlmStack, type LlmStack } from "../llm/llm-stack";
 import { InMemoryTokenUsageStore } from "../llm/token-budget";
 import type { LlmRequest } from "../llm/types";
+import { markPassDone } from "../memory/summaries";
 import { SUMMARY_SCHEMA_NAMES } from "../memory/summary-prompts";
+import { findPassSchemaName } from "../passes/pass-prompts";
 import { buildSeededWorld, loadSeedFile, type SeededWorld } from "../seeds";
 import { findPlaceAt, loadWorldMap } from "../world/map-loader";
 import { getAgentRuntime, requestDecision } from "./agent-runtime";
@@ -115,6 +118,18 @@ export type AgentScript = (request: LlmRequest, callIndex: number) => string | u
 
 export const DEFAULT_SUMMARY = "I went about my day.";
 
+/** What each pass answers when a test doesn't script it: nothing changes. */
+export const DEFAULT_PASS_REPLIES: Record<string, unknown> = {
+  [findPassSchemaName("people")]: { people: [] },
+  [findPassSchemaName("shortTermGoals")]: { goals: [] },
+  [findPassSchemaName("identity")]: {
+    traitChanges: [],
+    profession: null,
+    core: null,
+    selfImage: null,
+  },
+};
+
 /**
  * Replies per agent name; anyone unscripted (or a script returning undefined) waits a long time.
  * Memory summaries get a fixed text, so scripts only deal with decisions.
@@ -124,6 +139,8 @@ export function scriptByAgent(scripts: Record<string, AgentScript>): FakeRespond
     if (SUMMARY_SCHEMA_NAMES.includes(request.schemaName ?? "")) {
       return JSON.stringify({ summary: DEFAULT_SUMMARY });
     }
+    const passReply = DEFAULT_PASS_REPLIES[request.schemaName ?? ""];
+    if (passReply !== undefined) return JSON.stringify(passReply);
     const reply = scripts[findPromptAgentName(request)]?.(request, callIndex);
     return reply ?? decisionReply({ action: "wait", minutes: config.decision.maxWaitMinutes });
   };
@@ -155,6 +172,13 @@ export interface TestSimOptions {
   /** Keep only these seed agents (all when omitted). */
   agentIds?: string[];
   dailyTokenBudget?: number;
+  /**
+   * Lets the short-term goals pass every agent owes at tick 0 run. Off when omitted, so tests of
+   * decisions see only decision calls.
+   */
+  shouldRunFirstGoalsPass?: boolean;
+  /** Receives each change the identity pass makes; dropped when omitted. */
+  recordPersonalityChange?: (change: Omit<PersonalityChange, "id">) => void;
   /** Runs LLM calls in the background, as the live sim does; off (each tick waits) when omitted. */
   shouldCallLlmInBackground?: boolean;
   /** Caps how long idle agents' decisions hold a tick; no cap when omitted. */
@@ -168,6 +192,12 @@ export function createTestSim(options: TestSimOptions): TestSim {
   if (options.agentIds) {
     const kept = new Set(options.agentIds);
     state.agents = state.agents.filter((agent) => kept.has(agent.id));
+  }
+  if (!options.shouldRunFirstGoalsPass) {
+    for (const agent of state.agents) {
+      const memory = getAgentMemory(state, agent.id);
+      state.agentMemories[agent.id] = markPassDone(memory, "shortTermGoals");
+    }
   }
   const records: LlmCallDraft[] = [];
   const client = new FakeLlmClient(options.responder);
@@ -184,6 +214,7 @@ export function createTestSim(options: TestSimOptions): TestSim {
     callStructured: llm.callStructured,
     shouldCallLlmInBackground: options.shouldCallLlmInBackground,
     idleDecisionWaitMs: options.idleDecisionWaitMs,
+    recordPersonalityChange: options.recordPersonalityChange,
   });
   const results: TickResult[] = [];
   return {

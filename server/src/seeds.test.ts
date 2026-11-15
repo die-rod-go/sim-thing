@@ -47,10 +47,8 @@ function makeSeedAgent(overrides: Partial<SeedAgent> = {}): SeedAgent {
     agility: 0.5,
     inventory: { coin: 30, bread: 2, wheat: 4, wood: 2 },
     mood: "Up early.",
-    goals: [
-      { text: "Bake every day", why: "It is my job", progress: "Not started", kind: "world" },
-    ],
-    peopleNotes: {},
+    goals: [{ goal: "Bake every day", reason: "It is my job", progress: "Not started" }],
+    people: {},
     seenPlaces: [],
     ...overrides,
   };
@@ -59,7 +57,12 @@ function makeSeedAgent(overrides: Partial<SeedAgent> = {}): SeedAgent {
 describe("seeds", () => {
   const seedFile = parseSeedFile({
     agents: [
-      makeSeedAgent({ peopleNotes: { Ilsa: "Runs the square.", Bram: "  " } }),
+      makeSeedAgent({
+        people: {
+          Ilsa: { whatIThinkOfThem: "Runs the square.", whatIWantFromThem: " A stall. " },
+          Bram: { whatIThinkOfThem: "  " },
+        },
+      }),
       makeSeedAgent({ id: "ilsa", name: "Ilsa" }),
     ],
   });
@@ -133,15 +136,30 @@ describe("seeds", () => {
     expect(() => buildSeededWorld(broken, map, items)).toThrow(/entity-/);
   });
 
-  it("turns a seed note into the agent's dossier on that person", () => {
+  it("turns what a seed holds about a person into a person entry, empty where it says nothing", () => {
     const mara = world.agents.find((agent) => agent.id === "mara");
-    expect(mara?.dossiers).toEqual({ ilsa: { text: "Runs the square.", updatedTick: 0 } });
-    expect(world.agents.find((agent) => agent.id === "ilsa")?.dossiers).toEqual({});
+    expect(mara?.people).toEqual({
+      ilsa: {
+        whatIThinkOfThem: "Runs the square.",
+        whatTheyThinkOfMe: "",
+        whatIWantFromThem: "A stall.",
+        whatTheyWantFromMe: "",
+      },
+    });
+    expect(world.agents.find((agent) => agent.id === "ilsa")?.people).toEqual({});
+  });
+
+  it("starts the seed's goals as long-term goals, with no short-term goals yet", () => {
+    const mara = world.agents.find((agent) => agent.id === "mara");
+    expect(mara?.longTermGoals).toEqual([
+      { goal: "Bake every day", reason: "It is my job", progress: "Not started" },
+    ]);
+    expect(mara?.shortTermGoals).toEqual([]);
   });
 
   it("rejects a seed note about someone who is not in the village", () => {
     const stranger = parseSeedFile({
-      agents: [makeSeedAgent({ peopleNotes: { Zed: "A drifter." } })],
+      agents: [makeSeedAgent({ people: { Zed: { whatIThinkOfThem: "A drifter." } } })],
     });
     expect(() => buildSeededWorld(stranger, map, items)).toThrow(/Zed/);
   });

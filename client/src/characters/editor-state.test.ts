@@ -15,7 +15,7 @@ const agent: SeedAgent = {
   inventory: { coin: 30 },
   mood: "",
   goals: [],
-  peopleNotes: {},
+  people: {},
   seenPlaces: [],
 };
 
@@ -52,7 +52,7 @@ describe("reduceEditorState", () => {
     expect(hasUnsavedChanges(edited)).toBe(true);
     const blankNote = reduceEditorState(loaded, {
       kind: "edited",
-      draft: { agents: [{ ...agent, peopleNotes: { Edwin: "" } }] },
+      draft: { agents: [{ ...agent, people: { Edwin: { whatIThinkOfThem: "" } } }] },
     });
     expect(hasUnsavedChanges(blankNote)).toBe(false);
   });

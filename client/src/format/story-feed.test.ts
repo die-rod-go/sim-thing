@@ -47,13 +47,13 @@ const goalMoment: Moment = {
   ...makeSampleMoment(7, ada, 5),
   kind: "goal_added",
   text: "set a new goal",
-  goal: { text: "Open a stall", why: "", progress: "", kind: "world" },
+  goal: { goal: "Open a stall", reason: "", progress: "" },
 };
 const planMoment: Moment = {
   ...makeSampleMoment(8, ada, 6),
   kind: "goal_progressed",
   text: "made progress",
-  goal: { text: "Open a stall", why: "", progress: "Found a spot", kind: "world" },
+  goal: { goal: "Open a stall", reason: "", progress: "Found a spot" },
   previousProgress: "",
 };
 

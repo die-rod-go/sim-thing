@@ -19,7 +19,7 @@ import {
   renameAgent,
   selectAgentProblems,
   updateAgent,
-  withoutBlankNotes,
+  withoutBlankPeople,
 } from "./seed-edits";
 import { useSeedEditor } from "./use-seed-editor";
 
@@ -89,7 +89,7 @@ export function CharacterEditor() {
   const { state, isDirty } = editor;
   const { draft, rules, newAgentTemplate, selectedIndex } = state;
   const problems = useMemo(
-    () => (draft && rules ? findSeedFileProblems(withoutBlankNotes(draft), rules) : []),
+    () => (draft && rules ? findSeedFileProblems(withoutBlankPeople(draft), rules) : []),
     [draft, rules],
   );
   const isLive = editor.connectionStatus === "open";

@@ -304,7 +304,7 @@ select {
   gap: 8px;
 }
 
-.goal-row-heading select {
+.goal-row-heading button {
   margin-left: auto;
 }
 

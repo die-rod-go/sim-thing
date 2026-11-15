@@ -25,30 +25,37 @@
       "mood": "Up early, already thinking about the day's bake.",
       "goals": [
         {
-          "text": "Bake enough bread every day that nobody in the village goes hungry",
-          "why": "It is my job and my pride",
-          "progress": "I have wheat and wood for one bake",
-          "kind": "world"
+          "goal": "Bake enough bread every day that nobody in the village goes hungry",
+          "reason": "It is my job and my pride",
+          "progress": "I have wheat and wood for one bake"
         },
         {
-          "text": "Secure a steady wheat supply from one reliable farmer",
-          "why": "Haggling with both farmers every day wears me out",
-          "progress": "Not started",
-          "kind": "world"
+          "goal": "Secure a steady wheat supply from one reliable farmer",
+          "reason": "Haggling with both farmers every day wears me out",
+          "progress": "Not started"
         },
         {
-          "text": "Pay off my debt to Tobias before anyone finds out",
-          "why": "I could not bear the gossip",
-          "progress": "I still owe him 15 coins",
-          "kind": "social"
+          "goal": "Pay off my debt to Tobias before anyone finds out",
+          "reason": "I could not bear the gossip",
+          "progress": "I still owe him 15 coins"
         }
       ],
-      "peopleNotes": {
-        "Edwin": "Has farmed here all his life. Reliable but stubborn about prices.",
-        "Wren": "The young farmer. Eager, cheaper than Edwin, but I'm not sure she can keep up.",
-        "Bram": "Quiet woodcutter. Kind. I need his wood for the oven.",
-        "Tobias": "Runs the tavern. Charming, but I owe him 15 coins and he knows it.",
-        "Ilsa": "A stranger who arrived in the village yesterday. Don't know anything about her."
+      "people": {
+        "Edwin": {
+          "whatIThinkOfThem": "Has farmed here all his life. Reliable but stubborn about prices."
+        },
+        "Wren": {
+          "whatIThinkOfThem": "The young farmer. Eager, cheaper than Edwin, but I'm not sure she can keep up."
+        },
+        "Bram": {
+          "whatIThinkOfThem": "Quiet woodcutter. Kind. I need his wood for the oven."
+        },
+        "Tobias": {
+          "whatIThinkOfThem": "Runs the tavern. Charming, but I owe him 15 coins and he knows it."
+        },
+        "Ilsa": {
+          "whatIThinkOfThem": "A stranger who arrived in the village yesterday. Don't know anything about her."
+        }
       },
       "seenPlaces": [
         "rose cottage",
@@ -86,24 +93,32 @@
       "mood": "Gruff and ready to get to the field before anyone else.",
       "goals": [
         {
-          "text": "Become Mara's only wheat supplier",
-          "why": "The bakery is the best buyer in the village",
-          "progress": "She buys from both of us",
-          "kind": "world"
+          "goal": "Become Mara's only wheat supplier",
+          "reason": "The bakery is the best buyer in the village",
+          "progress": "She buys from both of us"
         },
         {
-          "text": "Get Wren to give up farming",
-          "why": "The field barely feeds one farmer's trade",
-          "progress": "She shows no sign of quitting",
-          "kind": "social"
+          "goal": "Get Wren to give up farming",
+          "reason": "The field barely feeds one farmer's trade",
+          "progress": "She shows no sign of quitting"
         }
       ],
-      "peopleNotes": {
-        "Mara": "The baker. Fair dealer, but she plays me against Wren on price.",
-        "Wren": "Young upstart who started farming my field two seasons ago. Undercuts me.",
-        "Bram": "Woodcutter. Keeps to himself. Decent man.",
-        "Tobias": "Tavern keeper. Talks too much, but he buys wheat for his ale.",
-        "Ilsa": "Some stranger who showed up yesterday. Keep an eye on her."
+      "people": {
+        "Mara": {
+          "whatIThinkOfThem": "The baker. Fair dealer, but she plays me against Wren on price."
+        },
+        "Wren": {
+          "whatIThinkOfThem": "Young upstart who started farming my field two seasons ago. Undercuts me."
+        },
+        "Bram": {
+          "whatIThinkOfThem": "Woodcutter. Keeps to himself. Decent man."
+        },
+        "Tobias": {
+          "whatIThinkOfThem": "Tavern keeper. Talks too much, but he buys wheat for his ale."
+        },
+        "Ilsa": {
+          "whatIThinkOfThem": "Some stranger who showed up yesterday. Keep an eye on her."
+        }
       },
       "seenPlaces": [
         "rose cottage",
@@ -141,30 +156,37 @@
       "mood": "Restless and optimistic.",
       "goals": [
         {
-          "text": "Win Mara's business away from Edwin",
-          "why": "Steady sales would let me save",
-          "progress": "She buys from me sometimes",
-          "kind": "world"
+          "goal": "Win Mara's business away from Edwin",
+          "reason": "Steady sales would let me save",
+          "progress": "She buys from me sometimes"
         },
         {
-          "text": "Find out whether Edwin is overharvesting the field",
-          "why": "The field always seems emptier than it should be",
-          "progress": "Just a suspicion so far",
-          "kind": "social"
+          "goal": "Find out whether Edwin is overharvesting the field",
+          "reason": "The field always seems emptier than it should be",
+          "progress": "Just a suspicion so far"
         },
         {
-          "text": "Become more patient",
-          "why": "I rush things and it costs me",
-          "progress": "Not much yet",
-          "kind": "self"
+          "goal": "Become more patient",
+          "reason": "I rush things and it costs me",
+          "progress": "Not much yet"
         }
       ],
-      "peopleNotes": {
-        "Mara": "The baker. My best possible customer.",
-        "Edwin": "The old farmer. Acts like the field is his. I think he cheats.",
-        "Bram": "Woodcutter. Shy but sweet. Might be an ally.",
-        "Tobias": "Tavern keeper. Fun, knows everyone's business.",
-        "Ilsa": "Newcomer, arrived yesterday. Seemed interesting. Maybe a friend?"
+      "people": {
+        "Mara": {
+          "whatIThinkOfThem": "The baker. My best possible customer."
+        },
+        "Edwin": {
+          "whatIThinkOfThem": "The old farmer. Acts like the field is his. I think he cheats."
+        },
+        "Bram": {
+          "whatIThinkOfThem": "Woodcutter. Shy but sweet. Might be an ally."
+        },
+        "Tobias": {
+          "whatIThinkOfThem": "Tavern keeper. Fun, knows everyone's business."
+        },
+        "Ilsa": {
+          "whatIThinkOfThem": "Newcomer, arrived yesterday. Seemed interesting. Maybe a friend?"
+        }
       },
       "seenPlaces": [
         "rose cottage",
@@ -202,24 +224,32 @@
       "mood": "Quiet, a little stiff from yesterday's work.",
       "goals": [
         {
-          "text": "Save 50 coins to repair the roof of my cottage",
-          "why": "It leaks every time it rains",
-          "progress": "I have 30 coins",
-          "kind": "world"
+          "goal": "Save 50 coins to repair the roof of my cottage",
+          "reason": "It leaks every time it rains",
+          "progress": "I have 30 coins"
         },
         {
-          "text": "Make one real friend in the village",
-          "why": "Evenings are long alone",
-          "progress": "Nobody close yet",
-          "kind": "social"
+          "goal": "Make one real friend in the village",
+          "reason": "Evenings are long alone",
+          "progress": "Nobody close yet"
         }
       ],
-      "peopleNotes": {
-        "Mara": "Baker. Always polite. Buys my wood for her oven.",
-        "Edwin": "Farmer. Blunt. We get along by not talking much.",
-        "Wren": "Farmer. Very chatty, a bit much, but kind.",
-        "Tobias": "Tavern keeper. Buys wood for brewing. He'd sell his mother for a coin.",
-        "Ilsa": "Newcomer. Haven't met her yet."
+      "people": {
+        "Mara": {
+          "whatIThinkOfThem": "Baker. Always polite. Buys my wood for her oven."
+        },
+        "Edwin": {
+          "whatIThinkOfThem": "Farmer. Blunt. We get along by not talking much."
+        },
+        "Wren": {
+          "whatIThinkOfThem": "Farmer. Very chatty, a bit much, but kind."
+        },
+        "Tobias": {
+          "whatIThinkOfThem": "Tavern keeper. Buys wood for brewing. He'd sell his mother for a coin."
+        },
+        "Ilsa": {
+          "whatIThinkOfThem": "Newcomer. Haven't met her yet."
+        }
       },
       "seenPlaces": [
         "rose cottage",
@@ -258,30 +288,37 @@
       "mood": "Cheerful, humming a tavern song.",
       "goals": [
         {
-          "text": "Make the tavern the place everyone gathers every evening",
-          "why": "A full tavern means coins and gossip",
-          "progress": "Some nights it's empty",
-          "kind": "world"
+          "goal": "Make the tavern the place everyone gathers every evening",
+          "reason": "A full tavern means coins and gossip",
+          "progress": "Some nights it's empty"
         },
         {
-          "text": "Get wheat cheaply for brewing",
-          "why": "Ale needs wheat and farmers charge too much",
-          "progress": "Paying full price for now",
-          "kind": "world"
+          "goal": "Get wheat cheaply for brewing",
+          "reason": "Ale needs wheat and farmers charge too much",
+          "progress": "Paying full price for now"
         },
         {
-          "text": "Find out what brought the newcomer here",
-          "why": "Every stranger has a story worth knowing",
-          "progress": "She hasn't said",
-          "kind": "social"
+          "goal": "Find out what brought the newcomer here",
+          "reason": "Every stranger has a story worth knowing",
+          "progress": "She hasn't said"
         }
       ],
-      "peopleNotes": {
-        "Mara": "The baker. Owes me 15 coins from cards. Useful to remember.",
-        "Edwin": "Grumpy farmer. Good for wheat if you flatter him.",
-        "Wren": "Lively farmer. Good company at the card table.",
-        "Bram": "Woodcutter. Hardly says a word. Reliable for wood.",
-        "Ilsa": "Newcomer. I offered her the spare bed in the tavern. Wants something; not sure what."
+      "people": {
+        "Mara": {
+          "whatIThinkOfThem": "The baker. Owes me 15 coins from cards. Useful to remember."
+        },
+        "Edwin": {
+          "whatIThinkOfThem": "Grumpy farmer. Good for wheat if you flatter him."
+        },
+        "Wren": {
+          "whatIThinkOfThem": "Lively farmer. Good company at the card table."
+        },
+        "Bram": {
+          "whatIThinkOfThem": "Woodcutter. Hardly says a word. Reliable for wood."
+        },
+        "Ilsa": {
+          "whatIThinkOfThem": "Newcomer. I offered her the spare bed in the tavern. Wants something; not sure what."
+        }
       },
       "seenPlaces": [
         "rose cottage",
@@ -319,30 +356,37 @@
       "mood": "Nervous but hopeful about this new place.",
       "goals": [
         {
-          "text": "Find somewhere to sleep tonight",
-          "why": "I have no home here",
-          "progress": "Tobias mentioned a spare bed at the tavern",
-          "kind": "world"
+          "goal": "Find somewhere to sleep tonight",
+          "reason": "I have no home here",
+          "progress": "Tobias mentioned a spare bed at the tavern"
         },
         {
-          "text": "Learn a trade so I can earn coins",
-          "why": "10 coins won't last",
-          "progress": "Not sure which trade yet",
-          "kind": "world"
+          "goal": "Learn a trade so I can earn coins",
+          "reason": "10 coins won't last",
+          "progress": "Not sure which trade yet"
         },
         {
-          "text": "Earn the village's trust without revealing my past",
-          "why": "If they knew, they'd turn me away",
-          "progress": "Nobody knows me yet",
-          "kind": "social"
+          "goal": "Earn the village's trust without revealing my past",
+          "reason": "If they knew, they'd turn me away",
+          "progress": "Nobody knows me yet"
         }
       ],
-      "peopleNotes": {
-        "Mara": "The baker, I think. Haven't spoken.",
-        "Edwin": "An older farmer. Gave me a hard look yesterday.",
-        "Wren": "A farmer about my age. Smiled at me.",
-        "Bram": "Woodcutter, someone said. Haven't met him.",
-        "Tobias": "Runs the tavern. Friendly. Said the tavern has a spare bed."
+      "people": {
+        "Mara": {
+          "whatIThinkOfThem": "The baker, I think. Haven't spoken."
+        },
+        "Edwin": {
+          "whatIThinkOfThem": "An older farmer. Gave me a hard look yesterday."
+        },
+        "Wren": {
+          "whatIThinkOfThem": "A farmer about my age. Smiled at me."
+        },
+        "Bram": {
+          "whatIThinkOfThem": "Woodcutter, someone said. Haven't met him."
+        },
+        "Tobias": {
+          "whatIThinkOfThem": "Runs the tavern. Friendly. Said the tavern has a spare bed."
+        }
       },
       "seenPlaces": [
         "rose cottage",

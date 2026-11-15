@@ -59,6 +59,28 @@ describe("summarizeLlmCall", () => {
     expect(summarizeLlmCall(call)).toMatchObject({ headline: "I baked all morning.", parts: [] });
   });
 
+  it("lists what a people pass rewrote, person by person", () => {
+    const call = {
+      ...makeSampleLlmCall(5, "ada", 9),
+      kind: "people" as const,
+      parsed: {
+        people: [{ person: "Bob", whatIThinkOfThem: "Grumpy.", whatTheyWantFromMe: null }],
+      },
+    };
+    expect(summarizeLlmCall(call).parts).toEqual([{ label: "Bob: thinks", text: "Grumpy." }]);
+  });
+
+  it("lists a goals pass's goals with their steps", () => {
+    const call = {
+      ...makeSampleLlmCall(6, "ada", 9),
+      kind: "short_term_goals" as const,
+      parsed: { goals: [{ goal: "Sell bread", steps: ["go to the square", "call out"] }] },
+    };
+    expect(summarizeLlmCall(call).parts).toEqual([
+      { label: "goal", text: "Sell bread: go to the square; call out" },
+    ]);
+  });
+
   it("returns no summary when nothing was parsed", () => {
     const call = { ...makeSampleLlmCall(3, "ada", 1), parsed: null, error: "timeout" };
     expect(summarizeLlmCall(call)).toMatchObject({ headline: null, parts: [], error: "timeout" });

@@ -1,12 +1,12 @@
 import { describe, expect, it } from "vitest";
-import type { Goal } from "@village/shared";
+import type { LongTermGoal } from "@village/shared";
 import { buildGoalMoments, buildPersonalityMoments } from "./moments";
 import { createTestSim, decisionReply } from "./test-sim";
 
 const MARA = { id: "mara", name: "Mara" };
 
-function makeGoal(text: string, progress: string): Goal {
-  return { text, why: "it matters", progress, kind: "world" };
+function makeGoal(goal: string, progress: string): LongTermGoal {
+  return { goal, reason: "it matters", progress };
 }
 
 describe("moments", () => {

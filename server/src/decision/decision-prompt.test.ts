@@ -26,8 +26,34 @@ function buildContext(overrides: Partial<DecisionContext> = {}): DecisionContext
     isStarvationHarming: false,
     conditionWords: [],
     body: { sleepRecoveryPerHour: 0.15, strength: 0.7, agility: 0.3 },
-    goals: [
-      { text: "Bake every day", why: "people rely on me", progress: "on track", kind: "world" },
+    longTermGoals: [{ goal: "Bake every day", reason: "people rely on me", progress: "on track" }],
+    shortTermGoals: [
+      {
+        goal: "Sell today's bread",
+        reason: "I need coins for wheat",
+        steps: ["carry the bread to the square", "call out the price"],
+        progress: "baked 4 loaves",
+      },
+    ],
+    people: [
+      {
+        name: "Tom",
+        entry: {
+          whatIThinkOfThem: "Fair, but slow to pay.",
+          whatTheyThinkOfMe: "",
+          whatIWantFromThem: "The 3 coins he owes me.",
+          whatTheyWantFromMe: "",
+        },
+      },
+      {
+        name: "Clara",
+        entry: {
+          whatIThinkOfThem: "",
+          whatTheyThinkOfMe: "",
+          whatIWantFromThem: "",
+          whatTheyWantFromMe: "",
+        },
+      },
     ],
     intention: "going to buy wheat from Tom, offering 2 coins",
     simTime: "Day 1, 06:30",
@@ -36,7 +62,6 @@ function buildContext(overrides: Partial<DecisionContext> = {}): DecisionContext
       { text: "oven", details: [], verbs: ["bake bread"], toolUses: [], contents: [] },
     ],
     aroundYou: { entries: [], normalHearerIds: [], whisperHearerIds: [] },
-    peopleOnMind: [],
     belongings: [
       { text: "30 coins", details: [], verbs: [], toolUses: [], contents: [] },
       { text: "2 bread", details: [], verbs: ["eat"], toolUses: [], contents: [] },
@@ -222,17 +247,42 @@ describe("buildDecisionPrompt", () => {
     );
   });
 
-  it("lists the people on the agent's mind after the around-you section", () => {
-    const prompt = buildDecisionPrompt(
-      buildContext({ peopleOnMind: [{ name: "Tom", text: "Owes me 3 coins." }] }),
+  it("lists everyone the agent knows with the fields it holds, and says when it holds nothing", () => {
+    const prompt = buildDecisionPrompt(buildContext());
+    expect(prompt).toContain(
+      [
+        "- Tom",
+        "  What I think of them: Fair, but slow to pay.",
+        "  What I want from them: The 3 coins he owes me.",
+        `- Clara: ${config.people.emptyEntryText}`,
+      ].join("\n"),
     );
-    expect(prompt).toContain("## People on your mind\n- Tom: Owes me 3 coins.");
-    expect(prompt.indexOf("## Around you")).toBeLessThan(prompt.indexOf("## People on your mind"));
+    expect(buildDecisionPrompt(buildContext({ people: [] }))).toContain(
+      config.people.nobodyKnownText,
+    );
   });
 
-  it("says no one is on the agent's mind when the list is empty", () => {
-    const prompt = buildDecisionPrompt(buildContext({ peopleOnMind: [] }));
-    expect(prompt).toContain(`## People on your mind\n${config.dossier.nobodyOnMindText}`);
+  it("shows short-term goals with their steps as a numbered plan", () => {
+    const prompt = buildDecisionPrompt(buildContext());
+    expect(prompt).toContain(
+      [
+        "- Sell today's bread (why: I need coins for wheat; so far: baked 4 loaves)",
+        "  1. carry the bread to the square",
+        "  2. call out the price",
+      ].join("\n"),
+    );
+    expect(buildDecisionPrompt(buildContext({ shortTermGoals: [] }))).toContain(
+      config.goals.noShortTermText,
+    );
+  });
+
+  it("puts people and short-term goals in the part that changes when an episode forms", () => {
+    const { text, cacheBreakpoints } = buildCacheableDecisionPrompt(buildContext());
+    const [, perAgentEnd, episodesEnd] = cacheBreakpoints;
+    const perEpisode = text.slice(perAgentEnd, episodesEnd);
+    expect(perEpisode).toContain("## People you know");
+    expect(perEpisode).toContain("## Short-term goals");
+    expect(text.slice(0, perAgentEnd)).toContain("## Long-term goals");
   });
 
   it("shows the whole stream, oldest first, and says so when it is empty", () => {
@@ -483,7 +533,7 @@ describe("buildCacheableDecisionPrompt", () => {
     expect(text.slice(0, sharedEnd)).toContain("## What you can do");
     expect(text.slice(0, sharedEnd)).toContain("## Reply");
     expect(text.slice(0, sharedEnd)).not.toContain("## Who you are");
-    expect(text.slice(sharedEnd, perAgentEnd)).toContain("## Goals");
+    expect(text.slice(sharedEnd, perAgentEnd)).toContain("## Long-term goals");
     expect(text.slice(episodesEnd, placesEnd)).toContain("## Places you have seen");
     expect(text.slice(placesEnd)).toContain("## Now");
     expect(text).not.toContain("<<<cache>>>");
