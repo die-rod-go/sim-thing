@@ -134,7 +134,7 @@ export function addComponent(
     {
       fields: adding.fields ?? {},
       endsAtTick: computeConditionEndTick(adding.minutes, state.tick, config.clock.minutesPerTick),
-      sourceAgentId: cause.sourceAgentId,
+      sourceId: cause.sourceId,
     },
   );
   storeChanges(context, thing, addition.changes);

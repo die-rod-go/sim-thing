@@ -7,6 +7,7 @@ import { computeHitChance, type Defender } from "../../status/combat";
 import { broadcastEvent } from "../event-broadcast";
 import { createEvent } from "../event-factory";
 import { stretchWaitMinutes } from "../verb-slowdown";
+import { findUserAgent, readUserStats } from "../verb-user";
 import { findAgent, markAgentChanged, replaceAgent } from "../world-access";
 import { findRoleThing, requireVerbRun } from "./step-roles";
 import { DONE, type StepHandler, type StepOutcome, type StepRun } from "./step-run";
@@ -38,21 +39,23 @@ export const sleepStep: StepHandler<"sleep"> = {
   isVerbOnly: true,
   findRefusal(run, step) {
     const verbRun = requireVerbRun(run, "sleep");
-    const agent = findAgent(run.context.state, verbRun.agentId);
+    const agent = findUserAgent(run.context.state, verbRun.userId);
+    if (agent === null) return config.creatures.cannotSleepReason;
     return findSleepBlocker(agent, resolveNapMinutes(run, step));
   },
   run(run, step): StepOutcome {
     const { context } = run;
     const { state, result } = context;
     const verbRun = requireVerbRun(run, "sleep");
-    const agent = findAgent(state, verbRun.agentId);
+    const agent = findUserAgent(state, verbRun.userId);
+    if (agent === null) return { kind: "refused", reason: config.creatures.cannotSleepReason };
     const blocker = findSleepBlocker(agent, resolveNapMinutes(run, step));
     if (blocker !== null) return { kind: "refused", reason: blocker };
     const placeName = readThingName(scopeOf(run), "item");
     const slept = startSleep(agent, placeName, state.tick, resolveNapMinutes(run, step));
     if (!slept.isSuccess) throw new Error(`sleep started despite its check: ${slept.reason}`);
     replaceAgent(state, slept.agent);
-    markAgentChanged(result, verbRun.agentId);
+    markAgentChanged(result, verbRun.userId);
     const place = findRoleThing(run, "item");
     const event = createEvent(state, slept.agent, {
       kind: "fell_asleep",
@@ -74,7 +77,7 @@ function describeDefender(run: StepRun): Defender {
     kind: "agent",
     agility: defender.body.agility,
     isAsleep: isAsleep(defender),
-    isUser: target.agentId === run.verbRun?.agentId,
+    isUser: target.agentId === run.verbRun?.userId,
   };
 }
 
@@ -87,10 +90,8 @@ export const rollHitStep: StepHandler<"roll_hit"> = {
     const target = verbRun.target;
     const hasTarget = target !== null && readComponents(state, target) !== null;
     const baseHitChance = resolveNumber(scopeOf(run), step.chance);
-    const attacker = findAgent(state, verbRun.agentId);
-    const chance = hasTarget
-      ? computeHitChance(baseHitChance, attacker.body.agility, describeDefender(run))
-      : 1;
+    const { agility } = readUserStats(state, verbRun.userId);
+    const chance = hasTarget ? computeHitChance(baseHitChance, agility, describeDefender(run)) : 1;
     verbRun.isHit = state.random.next() < chance;
     return DONE;
   },

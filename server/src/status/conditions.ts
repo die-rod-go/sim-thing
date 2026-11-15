@@ -44,7 +44,7 @@ const ACTOR_PLACEHOLDER = "{actor}";
  * "bled to death", with "after being hurt by {actor}" when an agent caused it and the phrase
  * doesn't name them itself.
  */
-export function describeConditionKilling(killed: string, sourceAgentId: string | null): string {
-  if (sourceAgentId === null || killed.includes(ACTOR_PLACEHOLDER)) return killed;
+export function describeConditionKilling(killed: string, sourceId: string | null): string {
+  if (sourceId === null || killed.includes(ACTOR_PLACEHOLDER)) return killed;
   return `${killed}${config.conditions.causedBySuffix}`;
 }

@@ -48,7 +48,7 @@ function carried(id: string, definitionId: string, holderId: string, changes = {
 }
 
 function writtenBy(author: string, text: string) {
-  return { writing: { fields: { author, text }, endsAtTick: null, sourceAgentId: null } };
+  return { writing: { fields: { author, text }, endsAtTick: null, sourceId: null } };
 }
 
 describe("itemData", () => {

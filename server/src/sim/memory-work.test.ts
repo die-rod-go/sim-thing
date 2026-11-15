@@ -73,9 +73,7 @@ describe("memory work", () => {
     await sim.advance();
     fillStream(sim, "mara", streamKeep + 4);
     sim.state.agents = sim.state.agents.map((agent) =>
-      agent.id === "ilsa"
-        ? { ...agent, death: { tick: 0, cause: "x", sourceAgentId: null } }
-        : agent,
+      agent.id === "ilsa" ? { ...agent, death: { tick: 0, cause: "x", sourceId: null } } : agent,
     );
     fillStream(sim, "ilsa", streamKeep + 4);
     sim.state.tick = TICKS_TO_FIRST_MIDNIGHT - 1;

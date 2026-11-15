@@ -34,7 +34,7 @@ export function buildVerbRun(sim: TestSim, options: VerbRunOptions = {}): VerbRu
   const items = options.items ?? [];
   const [first] = items;
   const verbRun: VerbRun = {
-    agentId: options.agentId ?? "mara",
+    userId: options.agentId ?? "mara",
     verbIndex: 0,
     verbName: options.verbName ?? "test verb",
     itemIds: items.map((entity) => entity.id),
@@ -66,7 +66,7 @@ export function buildStepRun(
     context,
     verbRun,
     self: null,
-    sourceAgentId: verbRun?.agentId ?? null,
+    sourceId: verbRun?.userId ?? null,
     killedPhrase: "",
     depth: 0,
     isInPassing: false,
@@ -128,10 +128,10 @@ export function runRuleSteps(
   sim: TestSim,
   self: ThingRef,
   steps: readonly unknown[],
-  sourceAgentId: string | null = null,
+  sourceId: string | null = null,
 ): TickContext {
   const context = contextOf(sim);
-  const run = buildStepRun(context, null, { self, sourceAgentId });
+  const run = buildStepRun(context, null, { self, sourceId });
   for (const step of parseSteps(steps)) applyStep(run, step);
   return context;
 }
@@ -141,10 +141,10 @@ export function stimulate(
   sim: TestSim,
   receiver: ThingRef,
   stimulus: string,
-  sourceAgentId: string | null = "mara",
+  sourceId: string | null = "mara",
 ): TickContext {
   const context = contextOf(sim);
-  sendStimulus(buildStepRun(context, null, { sourceAgentId }), receiver, stimulus);
+  sendStimulus(buildStepRun(context, null, { sourceId }), receiver, stimulus);
   return context;
 }
 

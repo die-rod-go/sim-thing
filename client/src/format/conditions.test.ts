@@ -30,8 +30,8 @@ describe("visible components", () => {
     const agent = {
       ...makeSampleAgent("ada", "Ada", 0, 0),
       bodyChanges: {
-        burning: { fields: {}, endsAtTick: null, sourceAgentId: null },
-        poisoned: { fields: {}, endsAtTick: null, sourceAgentId: null },
+        burning: { fields: {}, endsAtTick: null, sourceId: null },
+        poisoned: { fields: {}, endsAtTick: null, sourceId: null },
       },
     };
     expect(listVisibleBodyComponents(catalog, agent)).toEqual([
@@ -45,7 +45,7 @@ describe("visible components", () => {
       definitionId: "door",
       label: null,
       location: { kind: "tile", place: "bakery", pos: { x: 3, y: 4 } },
-      changes: { burning: { fields: {}, endsAtTick: null, sourceAgentId: null } },
+      changes: { burning: { fields: {}, endsAtTick: null, sourceId: null } },
     };
     const carried: Entity = {
       ...door,

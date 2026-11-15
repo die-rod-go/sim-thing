@@ -126,7 +126,7 @@ interface Entity {
 interface ActiveCondition {
   name: string;
   endsAtTick: number | null; // null: lasts until removed
-  sourceAgentId: string | null; // who caused it, for death causes ("bled to death after...")
+  sourceId: string | null; // who caused it, for death causes ("bled to death after...")
 }
 ```
 

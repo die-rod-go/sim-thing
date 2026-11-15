@@ -8,6 +8,7 @@ import { isDead } from "../../status/health";
 import { broadcastEvent } from "../event-broadcast";
 import { createEvent } from "../event-factory";
 import { findAgent } from "../world-access";
+import { readUserStats } from "../verb-user";
 import { describeRunCause, findStepThings } from "./step-roles";
 import { DONE, type StepHandler, type StepRun } from "./step-run";
 
@@ -42,7 +43,7 @@ function rollDamage(run: StepRun, step: StepOfType<"damage">): number {
   const amount = resolveNumber(scopeOf(run), step.amount);
   const { verbRun } = run;
   if (!step.scaledByStrength || verbRun === null) return amount;
-  return scaleByStrength(amount, findAgent(run.context.state, verbRun.agentId).body.strength);
+  return scaleByStrength(amount, readUserStats(run.context.state, verbRun.userId).strength);
 }
 
 /** In a verb, an agent hurt with no `attacked` event showing it is seen as `hurt`. A rule's damage makes none. */

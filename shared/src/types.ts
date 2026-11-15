@@ -93,7 +93,7 @@ export interface AgentDeath {
   /** For the viewer only: "starved", "stabbed by Tobias". Agents learn causes only by witnessing. */
   cause: string;
   /** Whoever did the last damage, when someone did. */
-  sourceAgentId: string | null;
+  sourceId: string | null;
 }
 
 export interface Agent {

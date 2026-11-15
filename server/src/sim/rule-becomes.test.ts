@@ -22,7 +22,7 @@ import type { RuleCause } from "./rule-cause";
 import type { TestSim } from "./test-sim";
 
 const HEALTH = "health.current";
-const MARA_KILLS: RuleCause = { killed: "stabbed by {actor}", sourceAgentId: "mara", depth: 0 };
+const MARA_KILLS: RuleCause = { killed: "stabbed by {actor}", sourceId: "mara", depth: 0 };
 
 const WORN_RULE = {
   trigger: "becomes",

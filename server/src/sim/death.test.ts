@@ -50,14 +50,14 @@ describe("death", () => {
     applyDamage(context, "mara", {
       amount: LETHAL,
       killed: "stabbed by {actor}",
-      sourceAgentId: "ilsa",
+      sourceId: "ilsa",
     });
     const mara = sim.agent("mara");
     expect(readHealth(sim, "mara")).toBe(0);
     expect(mara.death).toEqual({
       tick: sim.state.tick,
       cause: "stabbed by Ilsa",
-      sourceAgentId: "ilsa",
+      sourceId: "ilsa",
     });
     expect(context.result.events.map((event) => event.kind)).toContain("died");
     expect(context.result.moments).toContainEqual(
@@ -70,7 +70,7 @@ describe("death", () => {
     sim.placeAgent("mara", SQUARE);
     sim.placeAgent("ilsa", NEXT_TO_SQUARE);
     await sim.advance();
-    applyDamage(contextOf(sim), "mara", { amount: LETHAL, killed: "starved", sourceAgentId: null });
+    applyDamage(contextOf(sim), "mara", { amount: LETHAL, killed: "starved", sourceId: null });
     expect(sim.streamTexts("ilsa")).toContain("I saw that Mara died");
     expect(getAgentRuntime(sim.state, "ilsa").pendingDecision?.isUrgent).toBe(true);
     expect(sim.streamTexts("mara")).not.toContain("I died");
@@ -84,7 +84,7 @@ describe("death", () => {
       currentAction: { kind: "interact", target: "card table", verb: "play cards", endsAtTick: 30 },
     });
     getAgentRuntime(sim.state, "mara").verbRun = buildRunRecord(sim, "mara", "play cards", table);
-    applyDamage(contextOf(sim), "mara", { amount: LETHAL, killed: "starved", sourceAgentId: null });
+    applyDamage(contextOf(sim), "mara", { amount: LETHAL, killed: "starved", sourceId: null });
     expect(sim.agent("mara").currentAction).toBeNull();
     expect(getAgentRuntime(sim.state, "mara").verbRun).toBeNull();
   });
@@ -100,7 +100,7 @@ describe("death", () => {
     interruptDuringWait(sim, "mara", MINUTES_PER_HOUR);
     await sim.advance();
     expect(releases).toHaveLength(1);
-    applyDamage(contextOf(sim), "mara", { amount: LETHAL, killed: "starved", sourceAgentId: null });
+    applyDamage(contextOf(sim), "mara", { amount: LETHAL, killed: "starved", sourceId: null });
     releases[0]?.(decisionReply({ action: "walk_to", target: "bakery" }));
     await settleReplies();
     const [result] = await sim.advance();
@@ -112,7 +112,7 @@ describe("death", () => {
   it("stops need decay, regeneration and decisions after death", async () => {
     const sim = createTestSim({ agentIds: ["mara"], responder: scriptByAgent({ Mara: waitLong }) });
     sim.placeAgent("mara", SQUARE);
-    applyDamage(contextOf(sim), "mara", { amount: LETHAL, killed: "starved", sourceAgentId: null });
+    applyDamage(contextOf(sim), "mara", { amount: LETHAL, killed: "starved", sourceId: null });
     const needsAtDeath = sim.agent("mara").needs;
     await sim.advance(MINUTES_PER_HOUR);
     expect(sim.agent("mara").needs).toEqual(needsAtDeath);
@@ -159,7 +159,7 @@ describe("death", () => {
     sim.placeAgent("mara", SQUARE);
     sim.placeAgent("ilsa", NEXT_TO_SQUARE);
     await sim.advance();
-    applyDamage(contextOf(sim), "mara", { amount: LETHAL, killed: "starved", sourceAgentId: null });
+    applyDamage(contextOf(sim), "mara", { amount: LETHAL, killed: "starved", sourceId: null });
     sim.client.requests.length = 0;
     await sim.advance();
     const ilsaPrompt = sim.client.requests

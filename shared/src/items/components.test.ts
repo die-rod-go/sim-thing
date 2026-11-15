@@ -55,7 +55,7 @@ const oven = findDefinition(catalog, "oven");
 const field = findDefinition(catalog, "field");
 
 function instance(overrides: Partial<ComponentInstance> = {}): ComponentInstance {
-  return { fields: {}, endsAtTick: null, sourceAgentId: null, ...overrides };
+  return { fields: {}, endsAtTick: null, sourceId: null, ...overrides };
 }
 
 describe("resolving components", () => {
@@ -143,14 +143,14 @@ describe("adding and removing a component", () => {
       oven,
       {},
       "burning",
-      instance({ endsAtTick: 31, sourceAgentId: "mara" }),
+      instance({ endsAtTick: 31, sourceId: "mara" }),
     );
     const longer = addComponentChange(
       declarations,
       oven,
       first.changes,
       "burning",
-      instance({ endsAtTick: 40, sourceAgentId: "tobias" }),
+      instance({ endsAtTick: 40, sourceId: "tobias" }),
     );
     const shorter = addComponentChange(
       declarations,
@@ -160,8 +160,8 @@ describe("adding and removing a component", () => {
       instance({ endsAtTick: 35 }),
     );
     expect(longer.isNew).toBe(false);
-    expect(longer.changes.burning).toEqual(instance({ endsAtTick: 40, sourceAgentId: "tobias" }));
-    expect(shorter.changes.burning).toEqual(instance({ endsAtTick: 40, sourceAgentId: "tobias" }));
+    expect(longer.changes.burning).toEqual(instance({ endsAtTick: 40, sourceId: "tobias" }));
+    expect(shorter.changes.burning).toEqual(instance({ endsAtTick: 40, sourceId: "tobias" }));
   });
 
   it("lets no end beat any end", () => {

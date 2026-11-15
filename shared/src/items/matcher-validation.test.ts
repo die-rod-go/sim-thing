@@ -58,10 +58,7 @@ describe("where in a matcher", () => {
     expect(messages).toEqual([]);
   });
 
-  it("rejects where: self in appliesTo but accepts the other values", () => {
-    expect(inAppliesTo({ allOf: [{ has: "lamp" }, { where: "self" }] })).toContain(
-      "error: verbs.2 (tinker).appliesTo: `where: self` doesn't work in appliesTo; omit appliesTo for a bare-handed verb.",
-    );
+  it("accepts where in appliesTo", () => {
     expect(inAppliesTo({ allOf: [{ has: "lamp" }, { where: "here" }] })).toEqual([]);
   });
 });

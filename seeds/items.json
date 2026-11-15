@@ -80,7 +80,7 @@
       "description": "Catches fire."
     },
     "alive": {
-      "description": "A living person."
+      "description": "A living person or animal."
     },
     "door": {
       "description": "Opens and closes. Closed, it is in the way."
@@ -492,6 +492,61 @@
     },
     "instrument": {
       "description": "Music to play, heard by everyone in earshot."
+    },
+    "creature": {
+      "description": "An animal that acts on its instincts, not a person."
+    },
+    "timid": {
+      "description": "Runs from people."
+    },
+    "defensive": {
+      "description": "Strikes back at whoever attacks it."
+    },
+    "predator": {
+      "description": "Hunts people and eats raw meat when hungry."
+    },
+    "grazer": {
+      "description": "Grazes on crops when hungry."
+    },
+    "sated": {
+      "description": "Ate lately, so it won't eat again for a while."
+    },
+    "jaws": {
+      "description": "Bites.",
+      "fields": {
+        "damage": {
+          "type": "range",
+          "description": "Health one bite takes, before strength."
+        },
+        "hitChance": {
+          "type": "number",
+          "description": "Chance to bite someone as nimble."
+        }
+      }
+    },
+    "drops": {
+      "description": "What it leaves behind when it dies.",
+      "fields": {
+        "item": {
+          "type": "item",
+          "description": "What it leaves."
+        },
+        "count": {
+          "type": "number",
+          "description": "How many.",
+          "min": 0,
+          "default": 1
+        }
+      }
+    },
+    "spawns": {
+      "description": "An animal comes out of it each time its stock grows back to one.",
+      "fields": {
+        "item": {
+          "type": "item",
+          "description": "The animal."
+        }
+      }
     }
   },
   "definitions": [
@@ -1666,6 +1721,134 @@
         "health": {
           "max": 1,
           "current": 1
+        }
+      }
+    },
+    {
+      "id": "deer",
+      "name": "deer",
+      "glyph": {
+        "index": 100,
+        "color": "#c89a5a"
+      },
+      "components": {
+        "alive": {},
+        "flesh": {},
+        "creature": {},
+        "health": {
+          "max": 0.4,
+          "current": 0.4
+        },
+        "timid": {},
+        "grazer": {},
+        "drops": {
+          "item": "raw_meat",
+          "count": 2
+        }
+      }
+    },
+    {
+      "id": "boar",
+      "name": "boar",
+      "plural": "boars",
+      "glyph": {
+        "index": 98,
+        "color": "#8a6a4a"
+      },
+      "components": {
+        "alive": {},
+        "flesh": {},
+        "creature": {},
+        "health": {
+          "max": 0.7,
+          "current": 0.7
+        },
+        "defensive": {},
+        "grazer": {},
+        "jaws": {
+          "damage": {
+            "min": 0.04,
+            "max": 0.1
+          },
+          "hitChance": 0.6
+        },
+        "drops": {
+          "item": "raw_meat",
+          "count": 3
+        }
+      }
+    },
+    {
+      "id": "wolf",
+      "name": "wolf",
+      "plural": "wolves",
+      "glyph": {
+        "index": 119,
+        "color": "#a8a8b0"
+      },
+      "components": {
+        "alive": {},
+        "flesh": {},
+        "creature": {},
+        "health": {
+          "max": 0.6,
+          "current": 0.6
+        },
+        "predator": {},
+        "jaws": {
+          "damage": {
+            "min": 0.06,
+            "max": 0.14
+          },
+          "hitChance": 0.65
+        },
+        "drops": {
+          "item": "raw_meat",
+          "count": 1
+        }
+      }
+    },
+    {
+      "id": "wolf_den",
+      "name": "wolf den",
+      "plural": "wolf dens",
+      "glyph": {
+        "index": 127,
+        "color": "#7a6a5a",
+        "background": "#2a2418"
+      },
+      "components": {
+        "stock": {
+          "capacity": 1,
+          "amount": 0
+        },
+        "regrows": {
+          "perHour": 0.02
+        },
+        "spawns": {
+          "item": "wolf"
+        }
+      }
+    },
+    {
+      "id": "deer_thicket",
+      "name": "deer thicket",
+      "plural": "deer thickets",
+      "glyph": {
+        "index": 6,
+        "color": "#4f7a3a",
+        "background": "#1f2a18"
+      },
+      "components": {
+        "stock": {
+          "capacity": 1,
+          "amount": 0
+        },
+        "regrows": {
+          "perHour": 0.04
+        },
+        "spawns": {
+          "item": "deer"
         }
       }
     }
@@ -5176,6 +5359,170 @@
         "done": "picked up {item}",
         "attempt": "pick up the {item}"
       }
+    },
+    {
+      "name": "bite",
+      "appliesTo": {
+        "allOf": [
+          {
+            "has": "jaws"
+          },
+          {
+            "where": "self"
+          }
+        ]
+      },
+      "target": {
+        "allOf": [
+          {
+            "field": "health.current",
+            "above": 0
+          },
+          {
+            "has": "flesh"
+          },
+          {
+            "not": {
+              "where": "self"
+            }
+          }
+        ]
+      },
+      "steps": [
+        {
+          "step": "wait",
+          "minutes": 1,
+          "loudness": 6
+        },
+        {
+          "step": "roll_hit",
+          "chance": {
+            "from": "item.jaws.hitChance"
+          }
+        },
+        {
+          "step": "damage",
+          "on": "target",
+          "field": "health.current",
+          "amount": {
+            "from": "item.jaws.damage"
+          },
+          "scaledByStrength": true
+        },
+        {
+          "step": "send",
+          "on": "target",
+          "stimulus": "cut"
+        }
+      ],
+      "phrases": {
+        "ongoing": "biting {target}",
+        "hit": "bit {target}",
+        "missed": "snapped at {target} and missed",
+        "killed": "mauled to death by {actor}",
+        "attempt": "bite {target}"
+      }
+    },
+    {
+      "name": "graze",
+      "appliesTo": {
+        "allOf": [
+          {
+            "has": "grazer"
+          },
+          {
+            "where": "self"
+          }
+        ]
+      },
+      "target": {
+        "allOf": [
+          {
+            "has": "crop"
+          },
+          {
+            "has": "stock"
+          }
+        ]
+      },
+      "steps": [
+        {
+          "step": "check",
+          "on": "target",
+          "if": {
+            "field": "stock.amount",
+            "atLeast": 1
+          },
+          "otherwise": "there was nothing left to graze"
+        },
+        {
+          "step": "wait",
+          "minutes": 10,
+          "loudness": 1
+        },
+        {
+          "step": "change",
+          "on": "target",
+          "field": "stock.amount",
+          "by": -1
+        },
+        {
+          "step": "add",
+          "on": "user",
+          "component": "sated",
+          "minutes": 180
+        }
+      ],
+      "phrases": {
+        "ongoing": "grazing on {target}",
+        "done": "grazed on {target}",
+        "attempt": "graze on {target}"
+      }
+    },
+    {
+      "name": "devour",
+      "appliesTo": {
+        "allOf": [
+          {
+            "has": "jaws"
+          },
+          {
+            "where": "self"
+          }
+        ]
+      },
+      "target": {
+        "allOf": [
+          {
+            "has": "food"
+          },
+          {
+            "where": "here"
+          }
+        ]
+      },
+      "steps": [
+        {
+          "step": "wait",
+          "minutes": 3,
+          "loudness": 2
+        },
+        {
+          "step": "destroy",
+          "on": "target"
+        },
+        {
+          "step": "add",
+          "on": "user",
+          "component": "sated",
+          "minutes": 240
+        }
+      ],
+      "phrases": {
+        "ongoing": "devouring {target}",
+        "done": "devoured {target}",
+        "attempt": "devour {target}"
+      }
     }
   ],
   "rules": [
@@ -5328,6 +5675,11 @@
             "not": {
               "definition": "person"
             }
+          },
+          {
+            "not": {
+              "has": "creature"
+            }
           }
         ]
       },
@@ -5335,6 +5687,58 @@
         {
           "step": "announce",
           "text": "broke and is gone"
+        },
+        {
+          "step": "destroy"
+        }
+      ]
+    },
+    {
+      "trigger": "becomes",
+      "if": {
+        "allOf": [
+          {
+            "has": "creature"
+          },
+          {
+            "has": "drops"
+          },
+          {
+            "field": "health.current",
+            "atMost": 0
+          }
+        ]
+      },
+      "steps": [
+        {
+          "step": "create",
+          "item": {
+            "from": "self.drops.item"
+          },
+          "count": {
+            "from": "self.drops.count"
+          },
+          "at": "self"
+        }
+      ]
+    },
+    {
+      "trigger": "becomes",
+      "if": {
+        "allOf": [
+          {
+            "has": "creature"
+          },
+          {
+            "field": "health.current",
+            "atMost": 0
+          }
+        ]
+      },
+      "steps": [
+        {
+          "step": "announce",
+          "text": "died"
         },
         {
           "step": "destroy"
@@ -5540,6 +5944,147 @@
           "isPrivate": true
         }
       ]
+    },
+    {
+      "trigger": "every",
+      "minutes": 60,
+      "if": {
+        "allOf": [
+          {
+            "has": "spawns"
+          },
+          {
+            "field": "stock.amount",
+            "atLeast": 1
+          }
+        ]
+      },
+      "steps": [
+        {
+          "step": "create",
+          "item": {
+            "from": "self.spawns.item"
+          },
+          "count": 1,
+          "at": "self"
+        },
+        {
+          "step": "change",
+          "field": "stock.amount",
+          "by": -1
+        }
+      ]
+    }
+  ],
+  "instincts": [
+    {
+      "do": "flee",
+      "appliesTo": {
+        "has": "timid"
+      },
+      "from": {
+        "definition": "person"
+      },
+      "radius": 4
+    },
+    {
+      "do": "flee",
+      "appliesTo": {
+        "allOf": [
+          {
+            "has": "predator"
+          },
+          {
+            "field": "health.current",
+            "below": 0.2
+          }
+        ]
+      },
+      "from": {
+        "definition": "person"
+      },
+      "radius": 6
+    },
+    {
+      "do": "verb",
+      "appliesTo": {
+        "has": "defensive"
+      },
+      "verb": "bite",
+      "isRetaliation": true
+    },
+    {
+      "do": "verb",
+      "appliesTo": {
+        "has": "predator"
+      },
+      "verb": "bite",
+      "isRetaliation": true
+    },
+    {
+      "do": "verb",
+      "appliesTo": {
+        "allOf": [
+          {
+            "has": "grazer"
+          },
+          {
+            "not": {
+              "has": "sated"
+            }
+          }
+        ]
+      },
+      "verb": "graze",
+      "target": {
+        "field": "stock.amount",
+        "atLeast": 1
+      }
+    },
+    {
+      "do": "verb",
+      "appliesTo": {
+        "allOf": [
+          {
+            "has": "predator"
+          },
+          {
+            "not": {
+              "has": "sated"
+            }
+          }
+        ]
+      },
+      "verb": "devour",
+      "target": {
+        "has": "raw"
+      }
+    },
+    {
+      "do": "verb",
+      "appliesTo": {
+        "allOf": [
+          {
+            "has": "predator"
+          },
+          {
+            "not": {
+              "has": "sated"
+            }
+          }
+        ]
+      },
+      "verb": "bite",
+      "target": {
+        "definition": "person"
+      }
+    },
+    {
+      "do": "wander",
+      "appliesTo": {
+        "has": "creature"
+      },
+      "chance": 0.3
     }
   ]
 }

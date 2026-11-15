@@ -18,7 +18,7 @@ import type { RuleCause } from "./rule-cause";
 import { runVerb } from "./steps/step-test-kit";
 import type { TestSim } from "./test-sim";
 
-const MARA_CAUSE: RuleCause = { killed: "", sourceAgentId: "mara", depth: 0 };
+const MARA_CAUSE: RuleCause = { killed: "", sourceId: "mara", depth: 0 };
 
 function endTickOf(sim: TestSim, name: string): number | null | undefined {
   return sim.agent("tobias").bodyChanges[name]?.endsAtTick;
@@ -119,7 +119,7 @@ describe("bleeding and bandages", () => {
     const sim = setUpRules();
     stab(sim, 0);
     expect(hasComponentNow(sim, TOBIAS, "bleeding")).toBe(true);
-    expect(sim.agent("tobias").bodyChanges.bleeding?.sourceAgentId).toBe("mara");
+    expect(sim.agent("tobias").bodyChanges.bleeding?.sourceId).toBe("mara");
   });
 
   it("leaves a cut without bleeding when the chance fails", () => {

@@ -4,17 +4,20 @@ import { computeChebyshevDistance } from "../economy/give";
 import { findEntityIfPresent, isHeldBy } from "../items/entity-store";
 import { locateThing, viewThing, type ThingRef } from "../items/things";
 import { canSee } from "../perception/sight";
-import { buildPerceptionWorld, findAgent } from "./world-access";
+import { locateUser } from "./verb-user";
+import { buildPerceptionWorld } from "./world-access";
 import type { WorldState } from "./world-state";
 
 /*
- * Where a thing is relative to an agent doing a verb, and whether the agent can see and reach it:
+ * Where a thing is relative to whoever does a verb (an agent or a creature), and whether they can
+ * see and reach it:
  * what a verb's `appliesTo` and `target` matchers and its roles are checked against.
  */
 
 /**
  * `held` (directly inside the user), `here` (on a tile, or another agent's body), `inside`
- * (inside something other than the user), `self` (the user's own body); null when gone.
+ * (inside something other than the user), `self` (the user's own body, or the creature itself);
+ * null when gone.
  */
 export function findThingWhere(
   state: WorldState,
@@ -29,6 +32,7 @@ export function findThingWhere(
   }
   const entity = findEntityIfPresent(state, thing.entityId);
   if (!entity) return null;
+  if (entity.id === userId) return "self";
   if (entity.location.kind === "tile") return "here";
   return isHeldBy(entity, userId) ? "held" : "inside";
 }
@@ -50,10 +54,9 @@ export function isThingInSight(state: WorldState, userId: string, thing: ThingRe
   if (where === "held" || where === "self") return true;
   const position = locateThing(state, thing);
   if (position === null) return false;
-  const user = findAgent(state, userId);
   return canSee(
     buildPerceptionWorld(state),
-    user.pos,
+    locateUser(state, userId),
     position.pos,
     config.perception.sightRangeTiles,
   );
@@ -70,5 +73,5 @@ export function isThingInReach(
   if (where === "held" || where === "self") return true;
   const position = locateThing(state, thing);
   if (position === null) return false;
-  return computeChebyshevDistance(findAgent(state, userId).pos, position.pos) <= reachTiles;
+  return computeChebyshevDistance(locateUser(state, userId), position.pos) <= reachTiles;
 }

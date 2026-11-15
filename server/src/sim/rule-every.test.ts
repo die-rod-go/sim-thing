@@ -22,7 +22,7 @@ function setStock(sim: TestSim, field: ThingRef, amount: number): void {
   writeField(contextOf(sim), field, "stock.amount", amount);
 }
 
-const MARA_CAUSE = { killed: "", sourceAgentId: "mara", depth: 0 };
+const MARA_CAUSE = { killed: "", sourceId: "mara", depth: 0 };
 const BURN_PER_MINUTE = 0.01;
 
 describe("counting every-rule firings", () => {
@@ -156,7 +156,7 @@ describe("every rules", () => {
     const bench = placeThing(sim, "bench", { x: 21, y: 15 });
     addComponent(contextOf(sim), bench, "burning", { minutes: 30 }, MARA_CAUSE);
     runTicks(sim, 3);
-    expect(readThingChanges(sim.state, TOBIAS)?.burning?.sourceAgentId).toBe("mara");
+    expect(readThingChanges(sim.state, TOBIAS)?.burning?.sourceId).toBe("mara");
     expect(sim.agent("tobias").death?.cause).toBe("burned to death after being hurt by Mara");
   });
 
@@ -175,7 +175,7 @@ describe("every rules", () => {
     addComponent(contextOf(sim), TOBIAS, "wet", { minutes: 2 }, MARA_CAUSE);
     runTicks(sim, 5);
     expect(sim.agent("tobias").death?.cause).toBe("dried out");
-    expect(sim.agent("tobias").death?.sourceAgentId).toBeNull();
+    expect(sim.agent("tobias").death?.sourceId).toBeNull();
   });
 
   it("files a fire as caught and stopped, not every minute it burns", () => {

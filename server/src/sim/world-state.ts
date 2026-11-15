@@ -14,7 +14,12 @@ import { findOrphanedEntities } from "../items/entity-store";
 import { createConversationLog, type ConversationLog } from "../memory/conversation";
 import type { SeededWorld } from "../seeds";
 import type { WorldMap } from "../world/types";
-import { createAgentRuntime, type AgentRuntime, type SimRuntime } from "./agent-runtime";
+import {
+  createAgentRuntime,
+  type AgentRuntime,
+  type CreatureRuntime,
+  type SimRuntime,
+} from "./agent-runtime";
 import { dropStaleVerbRuns } from "./stale-verb-runs";
 
 /** All mutable sim state. The sim loop is its only writer. */
@@ -44,6 +49,7 @@ export interface WorldState {
   /** Recent speech, kept only to tell who is taking part in a conversation. */
   conversationLog: ConversationLog;
   agentRuntimes: Record<string, AgentRuntime>;
+  creatureRuntimes: Record<string, CreatureRuntime>;
 }
 
 /** Settings that persist with the world and can change at runtime. */
@@ -109,6 +115,7 @@ export function createWorldState(
     streamEntriesInSummary: {},
     conversationLog: createConversationLog(),
     agentRuntimes: createAgentRuntimes(seededWorld.agents),
+    creatureRuntimes: {},
   };
 }
 
@@ -153,6 +160,7 @@ export function takeNextMomentId(state: WorldState): number {
 function toSimRuntime(state: WorldState): SimRuntime {
   return {
     agentRuntimes: state.agentRuntimes,
+    creatureRuntimes: state.creatureRuntimes,
     conversationLog: state.conversationLog,
     nextMomentId: state.nextMomentId,
   };
@@ -215,6 +223,7 @@ export function restoreWorldState(
       streamEntriesInSummary: {},
       conversationLog: runtime.conversationLog,
       agentRuntimes,
+      creatureRuntimes: runtime.creatureRuntimes,
     },
     settings: { speed: saved.speed, dailyTokenBudget: saved.dailyTokenBudget },
   };

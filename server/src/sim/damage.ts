@@ -1,4 +1,5 @@
-import { readAgentHealth } from "@village/shared";
+import { isEntityId, readAgentHealth } from "@village/shared";
+import { describeThingName } from "../items/things";
 import { config } from "../config";
 import { isAsleep } from "../economy/sleep";
 import { findCrossedHealthThresholds, isDead, withAgentHealth } from "../status/health";
@@ -16,8 +17,8 @@ const ACTOR_PLACEHOLDER = "{actor}";
 export interface HarmCause {
   /** The cause of death if this damage kills, e.g. "stabbed by {actor}" or "starved". */
   killed: string;
-  /** The agent who did it, if anyone; fills `{actor}` in `killed`. */
-  sourceAgentId: string | null;
+  /** The agent or creature who did it, if anyone; fills `{actor}` in `killed`. */
+  sourceId: string | null;
 }
 
 /** Health lost to one cause. Verbs, conditions and starvation all come through here. */
@@ -25,11 +26,14 @@ export interface Damage extends HarmCause {
   amount: number;
 }
 
+function describeSource(context: TickContext, sourceId: string | null): string {
+  if (sourceId === null) return config.death.unknownSource;
+  if (!isEntityId(sourceId)) return findAgent(context.state, sourceId).name;
+  return describeThingName(context.state, { kind: "entity", entityId: sourceId });
+}
+
 function describeCause(context: TickContext, cause: HarmCause): string {
-  const source = cause.sourceAgentId
-    ? findAgent(context.state, cause.sourceAgentId).name
-    : config.death.unknownSource;
-  return cause.killed.split(ACTOR_PLACEHOLDER).join(source);
+  return cause.killed.split(ACTOR_PLACEHOLDER).join(describeSource(context, cause.sourceId));
 }
 
 /**
@@ -71,7 +75,7 @@ export function settleDeath(context: TickContext, agentId: string, cause: HarmCa
   const agent = withAgentHealth(state.items, findAgent(state, agentId), 0);
   const dead = {
     ...agent,
-    death: { tick: state.tick, cause: description, sourceAgentId: cause.sourceAgentId },
+    death: { tick: state.tick, cause: description, sourceId: cause.sourceId },
   };
   replaceAgent(state, dead);
   const runtime = getAgentRuntime(state, agentId);

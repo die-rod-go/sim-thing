@@ -64,7 +64,7 @@ export function buildRunRecord(
   item: Entity,
 ): VerbRun {
   return {
-    agentId,
+    userId: agentId,
     verbIndex: findVerbIndex(sim, verbName),
     verbName,
     itemIds: [item.id],

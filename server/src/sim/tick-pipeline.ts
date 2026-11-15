@@ -3,6 +3,7 @@ import { applyDecisionPlan } from "./action-executor";
 import { BackgroundWork } from "./background-work";
 import { runDecision, type DecisionPlan } from "./decision-runner";
 import type { AdvanceTick } from "./loop";
+import { actCreatures } from "./creatures/creature-phase";
 import { createMemoryWork } from "./memory-work";
 import type { SimDependencies, TickContext } from "./tick-context";
 import type { DecisionRequest } from "./tick-phases";
@@ -28,6 +29,8 @@ function listIdleAgentIds(state: WorldState): string[] {
  * 2. actions progress: walks step (clearing what is in the way), arrivals, verbs finish, sleepers
  *    wake on their own, waits run out; every event is broadcast (perceived and added to streams)
  *    as it happens;
+ * 2b. creatures: each carries on with its verb or follows its first instinct that can act (no
+ *    LLM); their events are broadcast the same way;
  * 3. sight: awareness of everyone in view and seen places are refreshed; someone newly in view
  *    flags a decision;
  * 4. needs that crossed the decision threshold flag a decision;
@@ -57,6 +60,7 @@ export function createDecisionStrategy(dependencies: SimDependencies): AdvanceTi
     const context: TickContext = { state, result: createEmptyTickResult(state.tick), dependencies };
     const needsBefore = applyMechanics(context);
     progressActions(context);
+    actCreatures(context);
     updateSight(context);
     flagCrossedNeeds(context, needsBefore);
     if (backgroundDecisions) {

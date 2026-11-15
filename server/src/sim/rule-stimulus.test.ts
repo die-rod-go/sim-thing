@@ -186,7 +186,7 @@ describe("stimulus rules", () => {
     const bench = placeThing(sim, "bench", NEXT_TO_OPEN_GROUND);
     ignite(sim, jar);
     stimulate(sim, jar, "impact");
-    expect(readThingChanges(sim.state, bench)?.burning?.sourceAgentId).toBe("mara");
+    expect(readThingChanges(sim.state, bench)?.burning?.sourceId).toBe("mara");
   });
 
   it("drops a chain of stimuli at the depth cap and reports it", () => {
@@ -210,9 +210,7 @@ describe("stimulus rules", () => {
     const sim = setUpRules(ALWAYS);
     setAgentHealth(sim, "tobias", 0);
     sim.state.agents = sim.state.agents.map((agent) =>
-      agent.id === "tobias"
-        ? { ...agent, death: { tick: 0, cause: "x", sourceAgentId: null } }
-        : agent,
+      agent.id === "tobias" ? { ...agent, death: { tick: 0, cause: "x", sourceId: null } } : agent,
     );
     const context = stimulate(sim, TOBIAS, "fire");
     expect(hasComponentNow(sim, TOBIAS, "burning")).toBe(true);

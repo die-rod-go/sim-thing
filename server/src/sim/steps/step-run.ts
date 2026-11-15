@@ -10,7 +10,7 @@ export interface StepRun {
   verbRun: VerbRun | null;
   /** The thing a rule fired on; null in a verb. */
   self: ThingRef | null;
-  sourceAgentId: string | null;
+  sourceId: string | null;
   /** How a death from this run reads, before `{actor}` is filled. */
   killedPhrase: string;
   /** 0 for a verb or an `every` rule; one more for each rule fired from inside a run. */

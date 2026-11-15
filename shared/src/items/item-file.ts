@@ -12,7 +12,7 @@ import { matcherSchema } from "./matcher-schema";
 
 /*
  * The shape of `seeds/items.json`: the world settings, component declarations, item definitions,
- * verbs and rules. Cross-references (unknown names, what a step reads or works on) are checked by `findItemFileProblems`.
+ * verbs, rules and instincts. Cross-references (unknown names, what a step reads or works on) are checked by `findItemFileProblems`.
  */
 
 /** Extras of the decision a verb uses, read as `choice.<name>`. */
@@ -69,6 +69,45 @@ export const ruleSchema = z.discriminatedUnion("trigger", [
 export type Rule = z.infer<typeof ruleSchema>;
 export type RuleTrigger = Rule["trigger"];
 export type RuleOfTrigger<Trigger extends RuleTrigger> = Extract<Rule, { trigger: Trigger }>;
+const instinctParts = {
+  /** Which entities have this instinct, matched against the creature itself (`where` is `self`). */
+  appliesTo: matcherSchema,
+};
+
+/**
+ * How a creature acts, with no LLM. Each tick a creature follows the first instinct, in file
+ * order, that applies to it and finds something to act on: `verb` walks to the nearest thing it
+ * sees that fits and does the verb to it, `flee` steps away from what it fears, `wander` ambles.
+ */
+export const instinctSchema = z.discriminatedUnion("do", [
+  z.strictObject({
+    do: z.literal("verb"),
+    ...instinctParts,
+    /** The verb's name; the verb whose `appliesTo` fits the creature itself is the one done. */
+    verb: z.string().trim().min(1),
+    /** Narrows the verb's own `target` to what this instinct goes for. */
+    target: matcherSchema.optional(),
+    /** Only goes for whoever attacked the creature lately. */
+    isRetaliation: z.boolean().default(false),
+  }),
+  z.strictObject({
+    do: z.literal("flee"),
+    ...instinctParts,
+    /** What it runs from. */
+    from: matcherSchema,
+    /** Tiles within which what it fears makes it run. */
+    radius: z.number().int().positive(),
+  }),
+  z.strictObject({
+    do: z.literal("wander"),
+    ...instinctParts,
+    /** Chance each tick that it takes a step in a random direction. */
+    chance: z.number().min(0).max(1),
+  }),
+]);
+export type Instinct = z.infer<typeof instinctSchema>;
+export type InstinctOfKind<Kind extends Instinct["do"]> = Extract<Instinct, { do: Kind }>;
+
 export const itemDefinitionSchema = z.strictObject({
   id: identifierSchema,
   name: z.string().trim().min(1),
@@ -119,6 +158,7 @@ export const itemFileSchema = z.strictObject({
   definitions: z.array(itemDefinitionSchema),
   verbs: z.array(verbSchema),
   rules: z.array(ruleSchema).default([]),
+  instincts: z.array(instinctSchema).default([]),
 });
 
 export type ItemFile = z.infer<typeof itemFileSchema>;

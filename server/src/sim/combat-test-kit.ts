@@ -131,7 +131,7 @@ export function setAgentHealth(sim: TestSim, agentId: string, health: number): v
 /** Takes the agent's health to nothing the way a verb would, so the death rules fire too. */
 export function killAgent(sim: TestSim, agentId: string): void {
   const agentThing: ThingRef = { kind: "agent", agentId };
-  const cause = { killed: "killed", sourceAgentId: null, depth: 0 };
+  const cause = { killed: "killed", sourceId: null, depth: 0 };
   writeField(contextOf(sim), agentThing, sim.state.items.world.agentHealth, 0, cause);
 }
 

@@ -31,7 +31,7 @@ export function stretchWaitMinutes(verbRun: VerbRun | null, minutes: number): nu
 export function noteSlowStart(state: WorldState, verbRun: VerbRun): void {
   if (verbRun.slowedBy === undefined) return;
   const text = fillStatusWords(config.impairment.slowStartText, verbRun.slowedBy);
-  appendToStream(state, verbRun.agentId, text);
+  appendToStream(state, verbRun.userId, text);
 }
 
 /** Only the agent itself knows why it was slow: "finished chopping wood, slowly, because I was exhausted". */

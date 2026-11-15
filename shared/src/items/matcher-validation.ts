@@ -85,11 +85,6 @@ export function checkMatcher(
           path,
           "`where` only works in a verb's appliesTo and target: there is no user here.",
         );
-      } else if (options.isAppliesTo === true && term.where === "self") {
-        problems.error(
-          path,
-          "`where: self` doesn't work in appliesTo; omit appliesTo for a bare-handed verb.",
-        );
       }
     }
     if ("field" in term) checkFieldTerm(term, path, check, options);

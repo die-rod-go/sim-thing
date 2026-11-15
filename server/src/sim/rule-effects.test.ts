@@ -103,9 +103,7 @@ describe("announce", () => {
     const onBench = applyOn(sim, bench, { step: "announce", text: "hummed", isPrivate: true });
     expect(onBench.result.events).toEqual([]);
     sim.state.agents = sim.state.agents.map((agent) =>
-      agent.id === "tobias"
-        ? { ...agent, death: { tick: 0, cause: "x", sourceAgentId: null } }
-        : agent,
+      agent.id === "tobias" ? { ...agent, death: { tick: 0, cause: "x", sourceId: null } } : agent,
     );
     const streamBefore = sim.streamTexts("tobias");
     const onBody = applyOn(sim, TOBIAS, { step: "announce", text: "hummed", isPrivate: true });

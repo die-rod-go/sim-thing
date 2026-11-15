@@ -262,7 +262,7 @@ interface ComponentInstance {
   /** Null: lasts until removed. */
   endsAtTick: number | null;
   /** The agent behind whatever added or last changed it, for death causes. */
-  sourceAgentId: string | null;
+  sourceId: string | null;
 }
 
 /** What differs from the definition: a changed or added component, or null for a removed one. */
@@ -859,16 +859,57 @@ mentions, and looks only at things that have or just changed one of them.
 
 Every run carries who is behind it and how a death from it reads:
 
-| Run                    | Source agent                                                                                             | Death phrase                        |
-| ---------------------- | -------------------------------------------------------------------------------------------------------- | ----------------------------------- |
-| A verb                 | The user                                                                                                 | The verb's `killed` phrase          |
-| A rule fired by a step | The same as the run that fired it                                                                        | The rule's `killed`, else inherited |
-| An `every` rule        | The `sourceAgentId` of the first component named by a `has` in its `if` that the thing has with a source | The rule's `killed`                 |
-| A component expiring   | None                                                                                                     | None                                |
+| Run                    | Source agent                                                                                        | Death phrase                        |
+| ---------------------- | --------------------------------------------------------------------------------------------------- | ----------------------------------- |
+| A verb                 | The user                                                                                            | The verb's `killed` phrase          |
+| A rule fired by a step | The same as the run that fired it                                                                   | The rule's `killed`, else inherited |
+| An `every` rule        | The `sourceId` of the first component named by a `has` in its `if` that the thing has with a source | The rule's `killed`                 |
+| A component expiring   | None                                                                                                | None                                |
 
 `add` stamps the run's source agent on the component it adds. So Tobias's thrown torch sets a
 shelf burning with Tobias as its source, and whoever that fire kills "burned to death after being
-hurt by Tobias", as today (`conditions.causedBySuffix`).
+hurt by Tobias", as today (`conditions.causedBySuffix`). The source can also be a creature
+(an entity id), and then the death reads "mauled to death by the wolf".
+
+## Creatures
+
+A **creature** is an entity some **instinct** applies to: animals that walk around and act with
+no LLM. They aren't agents. They have no mind, memory or needs, only an entity's components, so
+health, bleeding, burning, `punch`, `attack` and every rule already work on them.
+
+`items.json` has an `instincts` list. Each instinct has an `appliesTo` matcher, checked against
+the creature itself (`where: self`), and is one of three kinds:
+
+| `do`     | Settings                                   | What the creature does                                                                     |
+| -------- | ------------------------------------------ | ------------------------------------------------------------------------------------------ |
+| `verb`   | `verb`, optional `target`, `isRetaliation` | Walks to the nearest thing it sees that fits the verb's `target` and this one, and does it |
+| `flee`   | `from` (a matcher), `radius`               | Steps away from what it fears within `radius` tiles                                        |
+| `wander` | `chance`                                   | Takes a random step with that chance each tick                                             |
+
+Each tick (phase 2b, after agents' actions progress), a creature busy with a verb carries on with
+it. Otherwise it tries its instincts in file order and follows the first that finds something to
+do. Temperament is therefore data: which components a definition has decides which instincts
+apply. A `timid` deer flees people, a `defensive` boar bites only whoever attacked it lately
+(`isRetaliation`, within `creatures.attackMemoryMinutes`), and a hungry `predator` wolf hunts
+people.
+
+Creatures act through ordinary verbs. A creature's verb uses its own body as the `item`: its
+`appliesTo` ends in `where: self` (`bite`: `{ "allOf": [{ "has": "jaws" }, { "where": "self" }] }`).
+An agent never meets an entity as `self`, so agents are never offered these verbs. Steps read the
+creature's fields as `item.*`, and `user` is the creature. Because they are verbs, their events
+are ordinary events: onlookers file "I saw that the wolf bit Mara", and the target files "The wolf
+bit me" and gets an urgent decision. The verb runner reaches its user only through
+`sim/verb-user.ts`, so it never branches on agent versus creature. Steps that only make sense for
+agents do nothing for a creature (`inspect`, `read`) or refuse it (`sleep`). Creatures use the
+config's middling `creatures.stats` for strength and agility.
+
+A creature sees `creatures.sightRangeTiles` around it (walls and closed doors block sight). It
+moves one tile a tick on the agents' walking grid, so walls and closed doors stop it too.
+
+Everything else is rules. Dying is a `becomes` rule on `health.current` that creates the `drops`
+item where the creature stood and then destroys it. Spawning is an `every` rule on a den with
+`stock`, `regrows` and `spawns`. Being _hungry_ is just not having the timed `sated` component a
+meal adds.
 
 ## World settings
 
@@ -1094,7 +1135,7 @@ interface StepRun {
   verbRun: VerbRun | null;
   /** The thing a rule fired on; null in a verb. */
   self: ThingRef | null;
-  sourceAgentId: string | null;
+  sourceId: string | null;
   /** How a death from this run reads, before `{actor}` is filled. */
   killedPhrase: string;
   /** 0 for a verb or an `every` rule; one more for each rule fired from inside a run. */

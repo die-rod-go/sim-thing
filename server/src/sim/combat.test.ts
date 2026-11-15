@@ -98,7 +98,7 @@ describe("attacking someone", () => {
     setAgentHealth(sim, "tobias", 0.05);
     stabTobias(sim, ALWAYS_HIT);
     expect(sim.agent("tobias").death?.cause).toBe("killed by Mara with a knife");
-    expect(sim.agent("tobias").death?.sourceAgentId).toBe("mara");
+    expect(sim.agent("tobias").death?.sourceId).toBe("mara");
   });
 
   it("always hits a sleeper, who wakes hurt without perceiving the attacker", () => {
@@ -120,7 +120,7 @@ describe("attacking someone", () => {
     setAgentHealth(sim, "tobias", 0);
     replaceAgent(sim.state, {
       ...sim.agent("tobias"),
-      death: { tick: 0, cause: "starved", sourceAgentId: null },
+      death: { tick: 0, cause: "starved", sourceId: null },
     });
     const knife = handOver(sim, "mara", "knife");
     aimWith(sim, "mara", knife, "attack", "Tobias's body");

@@ -37,6 +37,10 @@ agent can perceive. The LLM decides what agents do, say, believe and feel. Never
 social behavior: no trust scores, affinity formulas or scripted reactions. If a feature seems to
 need one, ask first.
 
+Creatures are the one deliberate exception. They are animals, not agents, and are meant to be
+scripted: they act on instincts declared in `seeds/items.json` (flee, wander, do a verb), never
+through the LLM. Keep that behavior in the data, not in code, and never give agents instincts.
+
 ## Naming
 
 - Use full, descriptive names. No single-letter names, including loop variables and callback
@@ -89,7 +93,7 @@ need one, ask first.
 - Cover the code-driven core with unit tests: perception (sight and sound), seen places, event
   filing, the stream (appending, merging repeats), summaries (what is due, the midnight steps), passes (what is due, applying replies), needs
   decay, each step type, the verb runner,
-  rules, matchers, `items.json` validation and `give`.
+  rules, matchers, `items.json` validation, `give` and creature instincts.
 - Name tests by behavior: `"muffles speech heard through a closed door"`.
 
 ## Errors and logging
@@ -140,3 +144,5 @@ need one, ask first.
 | stats           | `strength` and `agility`, 0–1, set per character in the seeds                         |
 | status          | The UI section showing health, needs and visible components together                  |
 | glyph           | How a tile or item is drawn: a CP437 index in the glyph sheet, a color, a background  |
+| creature        | An entity some instinct applies to: an animal that acts with no LLM                   |
+| instinct        | A creature's scripted behavior in `items.json`: `verb`, `flee` or `wander`            |

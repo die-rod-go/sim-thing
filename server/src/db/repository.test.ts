@@ -109,13 +109,13 @@ describe("database repositories", () => {
     if (!first) throw new Error("no seed agents");
     state.agents[0] = {
       ...first,
-      bodyChanges: { health: { fields: { current: 0 }, endsAtTick: null, sourceAgentId: null } },
-      death: { tick: 5, cause: "starved", sourceAgentId: null },
+      bodyChanges: { health: { fields: { current: 0 }, endsAtTick: null, sourceId: null } },
+      death: { tick: 5, cause: "starved", sourceId: null },
     };
     saveWorld(database, toSavedWorld(state, createDefaultSettings()));
     const loaded = loadWorld(database)?.agents[0];
     expect(loaded?.bodyChanges).toEqual(state.agents[0]?.bodyChanges);
-    expect(loaded?.death).toEqual({ tick: 5, cause: "starved", sourceAgentId: null });
+    expect(loaded?.death).toEqual({ tick: 5, cause: "starved", sourceId: null });
     expect(loaded?.body.strength).toBe(first.body.strength);
   });
 
@@ -209,7 +209,7 @@ describe("database repositories", () => {
     if (!first) throw new Error("no entities");
     state.entities[0] = {
       ...first,
-      changes: { closed: { fields: {}, endsAtTick: 9, sourceAgentId: "mara" } },
+      changes: { closed: { fields: {}, endsAtTick: 9, sourceId: "mara" } },
     };
     saveWorld(database, toSavedWorld(state, createDefaultSettings()));
     const loaded = loadWorld(database);

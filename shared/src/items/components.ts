@@ -15,7 +15,7 @@ export interface ComponentInstance {
   /** Null: lasts until removed. */
   endsAtTick: number | null;
   /** The agent behind whatever added it, for death causes. */
-  sourceAgentId: string | null;
+  sourceId: string | null;
 }
 
 /** What differs from the definition: a changed or added component, or null for a removed one. */
@@ -131,12 +131,12 @@ function storeInstance(
     Object.hasOwn(definition.components, component) &&
     Object.keys(fields).length === 0 &&
     instance.endsAtTick === null &&
-    instance.sourceAgentId === null;
+    instance.sourceId === null;
   const others = withoutComponent(changes, component);
   return isAsDefined ? others : { ...others, [component]: { ...instance, fields } };
 }
 
-const UNCHANGED_INSTANCE: ComponentInstance = { fields: {}, endsAtTick: null, sourceAgentId: null };
+const UNCHANGED_INSTANCE: ComponentInstance = { fields: {}, endsAtTick: null, sourceId: null };
 
 /**
  * The changes after writing one field: the value is clamped to the field's `min` and `max`, and an
@@ -194,7 +194,7 @@ export function addComponentChange(
   const extended: ComponentInstance = {
     fields: { ...existing.fields, ...added.fields },
     endsAtTick: pickLaterEnd(existing.endsAtTick, added.endsAtTick),
-    sourceAgentId: added.sourceAgentId ?? existing.sourceAgentId,
+    sourceId: added.sourceId ?? existing.sourceId,
   };
   return {
     changes: storeInstance(declarations, definition, changes, component, extended),

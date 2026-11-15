@@ -6,4 +6,4 @@ export interface RuleCause extends HarmCause {
   depth: number;
 }
 
-export const NO_RULE_CAUSE: RuleCause = { killed: "", sourceAgentId: null, depth: 0 };
+export const NO_RULE_CAUSE: RuleCause = { killed: "", sourceId: null, depth: 0 };

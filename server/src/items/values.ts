@@ -19,7 +19,7 @@ import type { StepRun } from "../sim/steps/step-run";
 import { pickWithinRange } from "../status/combat";
 import { takeFreshId, type WorldState } from "../sim/world-state";
 import { describeEntityName, findEntityIfPresent } from "./entity-store";
-import { readComponents, type ThingRef } from "./things";
+import { readComponents, refThingById, type ThingRef } from "./things";
 
 /*
  * A value is a literal, a read of somebody's field, or a roll. Validation makes sure a read is
@@ -55,7 +55,7 @@ export function findScopeThing(scope: ValueScope, who: string): ThingRef | null 
   if (verbRun === null) return null;
   switch (who) {
     case "user":
-      return { kind: "agent", agentId: verbRun.agentId };
+      return refThingById(verbRun.userId);
     case "item": {
       const presentId = verbRun.itemIds.find((entityId) => findEntityIfPresent(state, entityId));
       return presentId === undefined ? null : toEntityRef(presentId);

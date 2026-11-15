@@ -76,12 +76,23 @@ function aimedTargetId(event: WorldEvent, perceptions: readonly EventPerception[
   return perceptions.some((perception) => perception.agentId === targetId) ? targetId : null;
 }
 
+function draftsForThingTarget(
+  event: WorldEvent,
+  perceptions: readonly EventPerception[],
+): FiledEvent[] {
+  const targetId = aimedTargetId(event, perceptions);
+  if (targetId === null || event.targetDescription === undefined) return [];
+  return [{ agentId: targetId, text: capitalize(`${event.actorName} ${event.targetDescription}`) }];
+}
+
 function draftsForParticipants(
   event: WorldEvent,
   perceptions: readonly EventPerception[],
 ): FiledEvent[] {
-  // The dead remember nothing more, not even dying; a thing remembers nothing at all.
-  if (event.kind === "died" || event.isActorThing === true) return [];
+  // The dead remember nothing more, not even dying; a thing remembers nothing at all, though
+  // whoever a creature went for remembers it ("the wolf bit me").
+  if (event.kind === "died") return [];
+  if (event.isActorThing === true) return draftsForThingTarget(event, perceptions);
   const actorDraft: FiledEvent = isSpeech(event)
     ? {
         agentId: event.actorId,

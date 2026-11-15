@@ -11,7 +11,7 @@
  "tilewidth": 16,
  "tileheight": 16,
  "nextlayerid": 7,
- "nextobjectid": 227,
+ "nextobjectid": 233,
  "layers": [
   {
    "id": 1,
@@ -5002,6 +5002,144 @@
        "name": "definition",
        "type": "string",
        "value": "tree"
+      }
+     ]
+    },
+    {
+     "id": 227,
+     "name": "wolf den",
+     "type": "",
+     "rotation": 0,
+     "visible": true,
+     "x": 96,
+     "y": 1056,
+     "width": 16,
+     "height": 16,
+     "properties": [
+      {
+       "name": "name",
+       "type": "string",
+       "value": "wolf den"
+      },
+      {
+       "name": "definition",
+       "type": "string",
+       "value": "wolf_den"
+      }
+     ]
+    },
+    {
+     "id": 228,
+     "name": "grey wolf",
+     "type": "",
+     "rotation": 0,
+     "visible": true,
+     "x": 112,
+     "y": 1040,
+     "width": 16,
+     "height": 16,
+     "properties": [
+      {
+       "name": "name",
+       "type": "string",
+       "value": "grey wolf"
+      },
+      {
+       "name": "definition",
+       "type": "string",
+       "value": "wolf"
+      }
+     ]
+    },
+    {
+     "id": 229,
+     "name": "deer thicket",
+     "type": "",
+     "rotation": 0,
+     "visible": true,
+     "x": 64,
+     "y": 560,
+     "width": 16,
+     "height": 16,
+     "properties": [
+      {
+       "name": "name",
+       "type": "string",
+       "value": "deer thicket"
+      },
+      {
+       "name": "definition",
+       "type": "string",
+       "value": "deer_thicket"
+      }
+     ]
+    },
+    {
+     "id": 230,
+     "name": "meadow deer",
+     "type": "",
+     "rotation": 0,
+     "visible": true,
+     "x": 240,
+     "y": 240,
+     "width": 16,
+     "height": 16,
+     "properties": [
+      {
+       "name": "name",
+       "type": "string",
+       "value": "meadow deer"
+      },
+      {
+       "name": "definition",
+       "type": "string",
+       "value": "deer"
+      }
+     ]
+    },
+    {
+     "id": 231,
+     "name": "woodland deer",
+     "type": "",
+     "rotation": 0,
+     "visible": true,
+     "x": 48,
+     "y": 464,
+     "width": 16,
+     "height": 16,
+     "properties": [
+      {
+       "name": "name",
+       "type": "string",
+       "value": "woodland deer"
+      },
+      {
+       "name": "definition",
+       "type": "string",
+       "value": "deer"
+      }
+     ]
+    },
+    {
+     "id": 232,
+     "name": "old boar",
+     "type": "",
+     "rotation": 0,
+     "visible": true,
+     "x": 144,
+     "y": 832,
+     "width": 16,
+     "height": 16,
+     "properties": [
+      {
+       "name": "name",
+       "type": "string",
+       "value": "old boar"
+      },
+      {
+       "name": "definition",
+       "type": "string",
+       "value": "boar"
       }
      ]
     }

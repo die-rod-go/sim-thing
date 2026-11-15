@@ -11,6 +11,7 @@ import {
   type ItemValidationOptions,
   type ValidationContext,
 } from "./item-problems";
+import { checkInstincts } from "./instinct-validation";
 import { checkRules } from "./rule-validation";
 import { checkClosedSupply } from "./supply-validation";
 import { checkVerbs } from "./verb-validation";
@@ -50,7 +51,7 @@ function checkReferences(references: readonly ItemReference[], context: Validati
 
 /**
  * Everything wrong with an item file beyond its shape: unknown names, field values, the world
- * settings, verbs and rules with the steps and values they use, shadowed verbs, missing phrases, the closed
+ * settings, verbs and rules with the steps and values they use, instincts, shadowed verbs, missing phrases, the closed
  * supply, and definitions the map or seeds use. Pure, so the item editor can run it live.
  */
 export function findItemFileProblems(
@@ -71,6 +72,7 @@ export function findItemFileProblems(
   checkDefinitions(context);
   checkVerbs(definitionsById, context);
   checkRules(definitionsById, context);
+  checkInstincts(context);
   checkUnusedComponents(file, problems);
   checkReferences(options.references ?? [], context);
   checkClosedSupply(file, problems);

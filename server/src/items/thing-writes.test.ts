@@ -20,7 +20,7 @@ import { createEntity, findEntity } from "./entity-store";
 import { readComponents, readThingChanges, type ThingRef } from "./things";
 
 const HEALTH = "health.current";
-const MARA_CAUSE: RuleCause = { killed: "", sourceAgentId: "mara", depth: 0 };
+const MARA_CAUSE: RuleCause = { killed: "", sourceId: "mara", depth: 0 };
 const OPEN_GROUND = { x: 23, y: 19 };
 const TOBIAS: ThingRef = { kind: "agent", agentId: "tobias" };
 
@@ -97,7 +97,7 @@ describe("adding and removing components on an entity", () => {
     expect(readThingChanges(sim.state, bench)?.burning).toEqual({
       fields: {},
       endsAtTick: sim.state.tick + 1 + 5,
-      sourceAgentId: "mara",
+      sourceId: "mara",
     });
   });
 
@@ -111,7 +111,7 @@ describe("adding and removing components on an entity", () => {
     expect(longEnd).toBe(sim.state.tick + 1 + 10);
     addComponent(contextOf(sim), bench, "burning", { minutes: 2 });
     expect(readThingChanges(sim.state, bench)?.burning?.endsAtTick).toBe(longEnd);
-    expect(readThingChanges(sim.state, bench)?.burning?.sourceAgentId).toBe("mara");
+    expect(readThingChanges(sim.state, bench)?.burning?.sourceId).toBe("mara");
   });
 
   it("lets a component with no end beat any end", () => {
@@ -205,7 +205,7 @@ describe("an agent's health field", () => {
     expect(sim.agent("tobias").death).toEqual({
       tick: sim.state.tick,
       cause: "stabbed by Mara",
-      sourceAgentId: "mara",
+      sourceId: "mara",
     });
     expect(readAgentHealth(sim.state.items, sim.agent("tobias"))).toBe(0);
     expect(context.result.events.map((event) => event.kind)).toContain("died");

@@ -208,7 +208,11 @@ export function createThingEvent(
     pos: { ...position.pos },
     description: fields.description,
     loudness: fields.loudness ?? null,
+    ...(fields.targetDescription === undefined
+      ? {}
+      : { targetDescription: fields.targetDescription }),
     isActorThing: true,
+
     ...describeCarried(state, thing, fields.description),
   };
 }

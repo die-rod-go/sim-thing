@@ -86,7 +86,7 @@ export function refreshSnapshots(state: WorldState, verbRun: VerbRun): void {
 
 /** What a write made by this run carries: who is behind it, how a death reads, how deep it is. */
 export function describeRunCause(run: StepRun): RuleCause {
-  return { killed: run.killedPhrase, sourceAgentId: run.sourceAgentId, depth: run.depth };
+  return { killed: run.killedPhrase, sourceId: run.sourceId, depth: run.depth };
 }
 
 /** The verb run behind steps that only make sense in a verb. */

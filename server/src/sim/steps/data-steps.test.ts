@@ -137,7 +137,7 @@ describe("add and remove", () => {
     );
     expect(readComponents(sim.state, bench)?.writing?.text).toBe("hello");
     const changes = findEntityIfPresent(sim.state, entityIdOf(bench))?.changes;
-    expect(changes?.writing?.sourceAgentId).toBe("mara");
+    expect(changes?.writing?.sourceId).toBe("mara");
     expect(changes?.writing?.endsAtTick).toBe(
       computeConditionEndTick(10, sim.state.tick, config.clock.minutesPerTick),
     );

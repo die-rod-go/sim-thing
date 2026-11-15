@@ -59,7 +59,8 @@ const verbChoiceSchema = z.object({
 
 /** A verb in progress, between its steps. */
 const verbRunSchema = z.object({
-  agentId: z.string(),
+  /** The agent or creature doing it: an agent id or an entity id. */
+  userId: z.string(),
   /** Index into `items.json` verbs, with the name to detect a changed file. */
   verbIndex: z.number().int().nonnegative(),
   verbName: z.string(),
@@ -109,6 +110,20 @@ const agentRuntimeSchema = z.object({
   pendingDecision: pendingDecisionSchema.nullable(),
 });
 
+const lastAttackSchema = z.object({
+  attackerId: z.string(),
+  tick: z.number().int(),
+});
+
+/** What a creature is in the middle of, and who last went for it. */
+const creatureRuntimeSchema = z.object({
+  verbRun: verbRunSchema.nullable(),
+  /** The tick its verb's current `wait` runs out; null while it isn't waiting. */
+  resumeAtTick: z.number().int().nullable(),
+  /** The last attack on it, hit or missed, for instincts that strike back. */
+  lastAttack: lastAttackSchema.nullable(),
+});
+
 const spokenLineSchema = z.object({
   speakerId: z.string(),
   speakerName: z.string(),
@@ -122,12 +137,15 @@ const spokenLineSchema = z.object({
 /** Everything besides agents, entities and their memories that the sim needs to resume exactly. */
 export const simRuntimeSchema = z.object({
   agentRuntimes: z.record(z.string(), agentRuntimeSchema),
+  /** Keyed by the creature's entity id. */
+  creatureRuntimes: z.record(z.string(), creatureRuntimeSchema),
   conversationLog: z.object({ lines: z.array(spokenLineSchema) }),
   nextMomentId: z.number().int().positive(),
 });
 
 export type SimRuntime = z.infer<typeof simRuntimeSchema>;
 export type AgentRuntime = z.infer<typeof agentRuntimeSchema>;
+export type CreatureRuntime = z.infer<typeof creatureRuntimeSchema>;
 export type Walk = z.infer<typeof walkSchema>;
 export type WalkDestination = z.infer<typeof walkDestinationSchema>;
 export type InteractRequest = z.infer<typeof interactRequestSchema>;
@@ -153,6 +171,15 @@ export function getAgentRuntime(state: WorldState, agentId: string): AgentRuntim
   if (existing) return existing;
   const created = createAgentRuntime();
   state.agentRuntimes[agentId] = created;
+  return created;
+}
+
+/** The creature's runtime record, created the first time it acts or is attacked. */
+export function getCreatureRuntime(state: WorldState, entityId: string): CreatureRuntime {
+  const existing = state.creatureRuntimes[entityId];
+  if (existing) return existing;
+  const created: CreatureRuntime = { verbRun: null, resumeAtTick: null, lastAttack: null };
+  state.creatureRuntimes[entityId] = created;
   return created;
 }
 

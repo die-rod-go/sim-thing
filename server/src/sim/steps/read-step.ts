@@ -5,6 +5,7 @@ import { readField, type ThingRef } from "../../items/things";
 import { readThingName, scopeOf } from "../../items/values";
 import { appendToStream } from "../world-access";
 import type { WorldState } from "../world-state";
+import { findUserAgent } from "../verb-user";
 import { findStepThings, requireVerbRun } from "./step-roles";
 import { DONE, type StepHandler, type StepRun } from "./step-run";
 
@@ -110,7 +111,8 @@ function readThing(
 export const readStep: StepHandler<"read"> = {
   isVerbOnly: true,
   run(run, step) {
-    const readerId = requireVerbRun(run, "read").agentId;
+    const readerId = requireVerbRun(run, "read").userId;
+    if (findUserAgent(run.context.state, readerId) === null) return DONE;
     for (const thing of findStepThings(run, step.on ?? "self"))
       readThing(run, step, thing, readerId);
     return DONE;

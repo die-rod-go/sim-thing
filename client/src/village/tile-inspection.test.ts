@@ -84,7 +84,7 @@ function onTile(x: number, y: number): Entity["location"] {
 }
 
 function instance(fields: Record<string, number | string> = {}) {
-  return { fields, endsAtTick: null, sourceAgentId: null };
+  return { fields, endsAtTick: null, sourceId: null };
 }
 
 const map: TiledMap = {

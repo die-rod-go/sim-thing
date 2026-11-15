@@ -39,9 +39,9 @@ export interface BecomesSnapshot {
 /** What a rule's run carries: its own `killed` phrase if it has one, else the cause's. */
 export function deriveRuleCause(rule: Rule, parent: RuleCause, depth: number): RuleCause {
   const killed = rule.killed
-    ? describeConditionKilling(rule.killed, parent.sourceAgentId)
+    ? describeConditionKilling(rule.killed, parent.sourceId)
     : parent.killed;
-  return { killed, sourceAgentId: parent.sourceAgentId, depth };
+  return { killed, sourceId: parent.sourceId, depth };
 }
 
 /** False, and logged into the tick's result, when a firing at `depth` is past `rules.maxDepth`. */
@@ -71,7 +71,7 @@ export function runRule(context: TickContext, thing: ThingRef, rule: Rule, cause
     context,
     verbRun: null,
     self: thing,
-    sourceAgentId: cause.sourceAgentId,
+    sourceId: cause.sourceId,
     killedPhrase: cause.killed,
     depth: cause.depth,
     isInPassing: false,

@@ -6,8 +6,8 @@ import { matchesThing, type ThingView } from "./matchers";
 
 /*
  * How a verb's `appliesTo` meets things. The verb's item is always an entity, met where it is
- * (`held`, `here`, `inside`); an agent's body is never an item. A verb without `appliesTo` is done
- * bare-handed.
+ * (`held`, `here`, `inside`), or `self` for a creature using its own body; an agent's body is never
+ * an item. A verb without `appliesTo` is done bare-handed.
  */
 
 /** Whether the verb applies to the thing as the user meets it. Bare-handed verbs apply to nothing. */
@@ -29,13 +29,24 @@ export function isLyingWhenOnTile(
   return matcher !== undefined && matchesThing(matcher, { definitionId, components });
 }
 
+/** Whether an instinct applies to the definition untouched, so it acts as a creature. */
+export function isCreatureDefinition(file: ItemFile, definition: ItemDefinition): boolean {
+  const components = resolveComponents(file.components, definition, {});
+  const view: ThingView = { definitionId: definition.id, components, where: "self" };
+  return file.instincts.some((instinct) => matchesThing(instinct.appliesTo, view));
+}
+
 /**
  * Where an untouched entity of the definition can be met: something that lies loose can be held,
- * here or inside something; anything else stands here, where it was placed.
+ * here or inside something; anything else stands here, where it was placed. A creature also meets
+ * itself, as the item of the verbs its instincts do.
  */
 export function listPossibleWheres(file: ItemFile, definition: ItemDefinition): ThingWhere[] {
   const components = resolveComponents(file.components, definition, {});
-  return isLyingWhenOnTile(file, definition.id, components) ? ["held", "here", "inside"] : ["here"];
+  const wheres: ThingWhere[] = isLyingWhenOnTile(file, definition.id, components)
+    ? ["held", "here", "inside"]
+    : ["here"];
+  return isCreatureDefinition(file, definition) ? [...wheres, "self"] : wheres;
 }
 
 /** The definition as a verb's `appliesTo` meets it, in each place it can be. */

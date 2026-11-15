@@ -115,7 +115,7 @@ function listDueRules(context: TickContext, minutesPerTick: number): DueRule[] {
 function findEverySource(context: TickContext, thing: ThingRef, rule: EveryRule): string | null {
   const changes = readThingChanges(context.state, thing) ?? {};
   for (const term of listMatcherTerms(rule.if)) {
-    const source = "has" in term ? (changes[term.has]?.sourceAgentId ?? null) : null;
+    const source = "has" in term ? (changes[term.has]?.sourceId ?? null) : null;
     if (source !== null) return source;
   }
   return null;
@@ -137,10 +137,10 @@ export function runEveryRules(context: TickContext, minutesPerTick: number): voi
   for (const due of listDueRules(context, minutesPerTick)) {
     for (let firing = 0; firing < due.count; firing += 1) {
       if (!isStillDue(context, due)) break;
-      const sourceAgentId = findEverySource(context, due.thing, due.rule);
+      const sourceId = findEverySource(context, due.thing, due.rule);
       runRule(context, due.thing, due.rule, {
-        killed: describeConditionKilling(due.rule.killed ?? "", sourceAgentId),
-        sourceAgentId,
+        killed: describeConditionKilling(due.rule.killed ?? "", sourceId),
+        sourceId,
         depth: 0,
       });
     }

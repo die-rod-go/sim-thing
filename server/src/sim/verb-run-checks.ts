@@ -40,7 +40,7 @@ function findTargetProblem(run: StepRun, verb: Verb, verbRun: VerbRun): ResumePr
   if (target === null || verb.target === undefined) return null;
   const { state } = run.context;
   const name = verbRun.targetName ?? "it";
-  const view = viewThingFrom(state, verbRun.agentId, target);
+  const view = viewThingFrom(state, verbRun.userId, target);
   const refused = (reason: string, isOnlyOutOfReach = false): ResumeProblem => ({
     reason,
     isOnlyOutOfReach,
@@ -49,9 +49,9 @@ function findTargetProblem(run: StepRun, verb: Verb, verbRun: VerbRun): ResumePr
   if (!matchesThing(verb.target, view)) {
     return refused(`I couldn't ${verb.name} ${name} any more`);
   }
-  if (!isThingInSight(state, verbRun.agentId, target)) return refused(`${name} was out of sight`);
+  if (!isThingInSight(state, verbRun.userId, target)) return refused(`${name} was out of sight`);
   const reach = resolveNumber(scopeOf(run), verb.reach);
-  if (!isThingInReach(state, verbRun.agentId, target, reach)) {
+  if (!isThingInReach(state, verbRun.userId, target, reach)) {
     return refused(`${name} was out of reach`, true);
   }
   return null;

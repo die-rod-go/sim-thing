@@ -11,9 +11,10 @@ import {
 } from "./action-phrases";
 import type { VerbRun } from "./agent-runtime";
 import { broadcastEvent } from "./event-broadcast";
-import { createEvent } from "./event-factory";
+import { noteAttackOnCreature } from "./creatures/creature-attacks";
 import type { StepRun } from "./steps/step-run";
 import { addSlowFinish } from "./verb-slowdown";
+import { createUserEvent } from "./verb-user";
 import { findAgent } from "./world-access";
 import type { WorldState } from "./world-state";
 
@@ -45,7 +46,7 @@ function describeAimedPhrases(
   const description = describe(names);
   const { target } = verbRun;
   if (target?.kind !== "agent") return { description };
-  if (target.agentId === verbRun.agentId) {
+  if (target.agentId === verbRun.userId) {
     const own = config.verbs.selfTargetWords.own;
     return { description, actorDescription: describe({ ...names, target: own }) };
   }
@@ -103,7 +104,7 @@ export function announceStarted(run: StepRun, verb: Verb): void {
     ),
     "started ",
   );
-  const event = createEvent(state, findAgent(state, verbRun.agentId), {
+  const event = createUserEvent(state, verbRun.userId, {
     kind: "action_started",
     ...phrases,
     ...describeRunTarget(verbRun),
@@ -136,7 +137,7 @@ export function announceFinished(run: StepRun, verb: Verb): void {
         verbRun,
       )
     : describeAimedPhrases(state, verbRun, (names) => describeVerbPhrase(verb, "done", names));
-  const event = createEvent(state, findAgent(state, verbRun.agentId), {
+  const event = createUserEvent(state, verbRun.userId, {
     kind: "action_finished",
     ...phrases,
     ...describeRunTarget(verbRun),
@@ -159,7 +160,8 @@ export function announceHitRoll(run: StepRun, verb: Verb, isHit: boolean): void 
   const { target } = verbRun;
   const sleepingTargetIds =
     target?.kind === "agent" && isAsleep(findAgent(state, target.agentId)) ? [target.agentId] : [];
-  const event = createEvent(state, findAgent(state, verbRun.agentId), {
+  noteAttackOnCreature(state, verbRun);
+  const event = createUserEvent(state, verbRun.userId, {
     kind: isHit ? "attacked" : "missed",
     ...phrases,
     ...describeRunTarget(verbRun),

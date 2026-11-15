@@ -2,8 +2,12 @@ import type { Entity, Step, Verb } from "@village/shared";
 import { config } from "../config";
 import { describeEntityName, findEntityIfPresent } from "../items/entity-store";
 import type { ThingRef } from "../items/things";
-import { isDead } from "../status/health";
-import { getAgentRuntime, type VerbChoice, type VerbRun } from "./agent-runtime";
+import {
+  getAgentRuntime,
+  getCreatureRuntime,
+  type VerbChoice,
+  type VerbRun,
+} from "./agent-runtime";
 import { failAction } from "./failure";
 import { applyStep } from "./steps/step-registry";
 import { refreshSnapshots } from "./steps/step-roles";
@@ -18,6 +22,7 @@ import {
   describeVerbAttempt,
 } from "./verb-run-events";
 import { findVerbSlowdown, noteSlowStart, withSlowdown } from "./verb-slowdown";
+import { findUserAgent, getUserRuntime, isUserGone } from "./verb-user";
 import { findAgent, markAgentChanged, replaceAgent } from "./world-access";
 import type { WorldState } from "./world-state";
 
@@ -60,9 +65,9 @@ function cutChoice(choice: VerbChoice): VerbChoice {
   return { ...choice, text: choice.text.slice(0, config.verbs.maxTextChars) };
 }
 
-export function buildVerbRun(state: WorldState, agentId: string, start: VerbStart): VerbRun {
+export function buildVerbRun(state: WorldState, userId: string, start: VerbStart): VerbRun {
   const verbRun: VerbRun = {
-    agentId,
+    userId,
     verbIndex: start.verbIndex,
     verbName: requireVerb(state, start.verbIndex).name,
     itemIds: [...start.itemIds],
@@ -95,30 +100,54 @@ function buildStepRun(
     context,
     verbRun,
     self: null,
-    sourceAgentId: verbRun.agentId,
+    sourceId: verbRun.userId,
     killedPhrase: describeKilledPhrase(context.state, verbRun, verb),
     depth: 0,
     isInPassing,
   };
 }
 
-function endRun(context: TickContext, agentId: string): void {
+function endRun(context: TickContext, userId: string): void {
   const { state, result } = context;
-  getAgentRuntime(state, agentId).verbRun = null;
-  replaceAgent(state, { ...findAgent(state, agentId), currentAction: null });
-  markAgentChanged(result, agentId);
+  const agent = findUserAgent(state, userId);
+  if (agent === null) {
+    const runtime = getCreatureRuntime(state, userId);
+    runtime.verbRun = null;
+    runtime.resumeAtTick = null;
+    return;
+  }
+  getAgentRuntime(state, userId).verbRun = null;
+  replaceAgent(state, { ...agent, currentAction: null });
+  markAgentChanged(result, userId);
+}
+
+/** An agent's failure is an event it remembers; a creature just stops and its instincts pick again. */
+function failRun(context: TickContext, verbRun: VerbRun, verb: Verb, reason: string): void {
+  const { state, result } = context;
+  if (findUserAgent(state, verbRun.userId) === null) {
+    endRun(context, verbRun.userId);
+    return;
+  }
+  failAction(state, result, verbRun.userId, describeVerbAttempt(state, verbRun, verb), reason);
 }
 
 function failVerb(run: StepRun, verb: Verb, reason: string): void {
-  const { verbRun } = run;
-  if (verbRun === null) return;
-  const { state, result } = run.context;
-  failAction(state, result, verbRun.agentId, describeVerbAttempt(state, verbRun, verb), reason);
+  if (run.verbRun !== null) failRun(run.context, run.verbRun, verb, reason);
+}
+
+function beginCreatureRun(state: WorldState, verbRun: VerbRun): void {
+  const runtime = getCreatureRuntime(state, verbRun.userId);
+  runtime.verbRun = verbRun;
+  runtime.resumeAtTick = null;
 }
 
 function beginRun(context: TickContext, verbRun: VerbRun): void {
   const { state, result } = context;
-  const { agentId } = verbRun;
+  if (findUserAgent(state, verbRun.userId) === null) {
+    beginCreatureRun(state, verbRun);
+    return;
+  }
+  const agentId = verbRun.userId;
   replaceAgent(state, {
     ...findAgent(state, agentId),
     currentAction: {
@@ -143,11 +172,13 @@ function pauseRun(run: StepRun, verb: Verb, step: Step, untilTick: number | null
   if (verbRun === null) return;
   if (run.isInPassing) throw new Error(`"${verb.name}" paused in passing at its ${step.step} step`);
   const { state, result } = run.context;
-  const agent = findAgent(state, verbRun.agentId);
-  if (agent.currentAction !== null) {
+  const agent = findUserAgent(state, verbRun.userId);
+  if (agent === null) {
+    getCreatureRuntime(state, verbRun.userId).resumeAtTick = untilTick;
+  } else if (agent.currentAction !== null) {
     const currentAction = { ...agent.currentAction, endsAtTick: untilTick };
     replaceAgent(state, { ...agent, currentAction });
-    markAgentChanged(result, verbRun.agentId);
+    markAgentChanged(result, verbRun.userId);
   }
   if (step.step === "wait" && !verbRun.hasWaited) {
     verbRun.hasWaited = true;
@@ -178,7 +209,7 @@ function executeSteps(run: StepRun, verb: Verb): Progress {
     if (step.step === "roll_hit" && verbRun.isHit !== null) {
       announceHitRoll(run, verb, verbRun.isHit);
     }
-    if (isDead(findAgent(state, verbRun.agentId))) return { kind: "stopped" };
+    if (isUserGone(state, verbRun.userId)) return { kind: "stopped" };
     if (outcome.kind === "pause") {
       pauseRun(run, verb, step, outcome.untilTick);
       return { kind: "paused" };
@@ -191,7 +222,7 @@ function executeSteps(run: StepRun, verb: Verb): Progress {
 function finishVerb(run: StepRun, verb: Verb): void {
   const { verbRun } = run;
   if (verbRun === null) return;
-  if (!run.isInPassing) endRun(run.context, verbRun.agentId);
+  if (!run.isInPassing) endRun(run.context, verbRun.userId);
   if (!verb.steps.some((step) => step.step === "roll_hit")) announceFinished(run, verb);
 }
 
@@ -201,20 +232,21 @@ function settle(run: StepRun, verb: Verb, progress: Progress): void {
 }
 
 /**
- * Starts a verb where the agent stands. Every step is asked first whether it could run (a refusal
- * is filed as a failure and nothing has changed); then the steps run until the first `wait`.
- * Resolution has already checked that the item and target are in reach and sight.
+ * Starts a verb where the user (an agent or a creature) stands. Every step is asked first whether
+ * it could run (a refusal is a failure and nothing has changed); then the steps run until the
+ * first `wait`. Resolution has already checked that the item and target are in reach and sight.
  */
-export function startVerbRun(context: TickContext, agentId: string, start: VerbStart): void {
-  const { state, result } = context;
+export function startVerbRun(context: TickContext, userId: string, start: VerbStart): void {
+  const { state } = context;
   const verb = requireVerb(state, start.verbIndex);
-  const verbRun = buildVerbRun(state, agentId, start);
-  const slowdown = findVerbSlowdown(state, findAgent(state, agentId), verb);
+  const verbRun = buildVerbRun(state, userId, start);
+  const agent = findUserAgent(state, userId);
+  const slowdown = agent === null ? null : findVerbSlowdown(state, agent, verb);
   const slowedRun = withSlowdown(verbRun, slowdown);
   const run = buildStepRun(context, slowedRun, verb, false);
   const refusal = findStepsRefusal(run, verb, 0);
   if (refusal !== null) {
-    failAction(state, result, agentId, describeVerbAttempt(state, slowedRun, verb), refusal);
+    failRun(context, slowedRun, verb, refusal);
     return;
   }
   beginRun(context, slowedRun);
@@ -223,16 +255,16 @@ export function startVerbRun(context: TickContext, agentId: string, start: VerbS
 }
 
 /**
- * Continues the agent's verb after a `wait` ran out. The item must still be where it was and the
+ * Continues the user's verb after a `wait` ran out. The item must still be where it was and the
  * target still there, fitting, in sight and in reach; a target only out of reach at a `roll_hit`
  * is a miss. The steps still to run are checked again.
  */
-export function resumeRunningVerb(context: TickContext, agentId: string): void {
+export function resumeRunningVerb(context: TickContext, userId: string): void {
   const { state } = context;
-  const verbRun = getAgentRuntime(state, agentId).verbRun;
+  const verbRun = getUserRuntime(state, userId).verbRun;
   const verb = verbRun ? state.items.verbs[verbRun.verbIndex] : undefined;
   if (!verbRun || verb?.name !== verbRun.verbName) {
-    endRun(context, agentId);
+    endRun(context, userId);
     return;
   }
   const run = buildStepRun(context, verbRun, verb, false);
@@ -255,8 +287,8 @@ export function resumeRunningVerb(context: TickContext, agentId: string): void {
 }
 
 /** Stops a verb early. What its earlier steps did stays done and its later steps never run. */
-export function cancelRunningVerb(context: TickContext, agentId: string): void {
-  endRun(context, agentId);
+export function cancelRunningVerb(context: TickContext, userId: string): void {
+  endRun(context, userId);
 }
 
 /**
