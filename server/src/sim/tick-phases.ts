@@ -32,8 +32,10 @@ import { listCreatures } from "./creatures/creature-instincts";
 import { listVisibleCreatureIds } from "./creatures/creature-sight";
 import { resumeRunningVerb } from "./verb-runner";
 
+import { describePlace } from "../memory/filing";
 import { advanceWalk } from "./walking";
 import {
+  appendToStream,
   buildPerceptionWorld,
   describeAgentAsSeen,
   findAgent,
@@ -158,9 +160,35 @@ export function updateSight(context: TickContext): void {
         .join(", ");
       requestDecision(runtime, `${names} came into view`, false);
     }
+    noticeBodies(context, agent, newlyVisible);
     runtime.visibleAgentIds = visibleIds;
     noticeCreatures(context, world, agent, creatures);
   }
+}
+
+/**
+ * Bodies newly in view that the viewer didn't already know lay dead (from `viewer`'s awareness
+ * before this tick's sight) go into the stream and give an urgent decision, as seeing a death does.
+ */
+function noticeBodies(context: TickContext, viewer: Agent, newlyVisibleIds: string[]): void {
+  const { state } = context;
+  const foundBodies = newlyVisibleIds
+    .map((otherId) => findAgent(state, otherId))
+    .filter((other) => isDead(other))
+    .filter((other) => viewer.awareness[other.id]?.doing !== config.death.doing);
+  if (foundBodies.length === 0) return;
+  const words = config.death;
+  for (const body of foundBodies) {
+    const entry = words.foundBodyEntry
+      .split("{body}")
+      .join(describeAgentAsSeen(body))
+      .split("{place}")
+      .join(describePlace(body.place));
+    appendToStream(state, viewer.id, entry);
+  }
+  const bodies = foundBodies.map(describeAgentAsSeen).join(", ");
+  const reason = words.foundBodyReason.split("{bodies}").join(bodies);
+  requestDecision(getAgentRuntime(state, viewer.id), reason, true);
 }
 
 /** A creature newly in view gives a decision, as a person coming into view does. */

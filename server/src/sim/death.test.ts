@@ -21,6 +21,7 @@ import { createEmptyTickResult } from "./world-state";
 
 const SQUARE = { x: 19, y: 15 };
 const NEXT_TO_SQUARE = { x: 20, y: 15 };
+const OUT_OF_SIGHT_OF_SQUARE = { x: 5, y: 4 };
 const MINUTES_PER_HOUR = 60;
 const LETHAL = 2;
 
@@ -168,5 +169,37 @@ describe("death", () => {
       .join("\n");
     expect(ilsaPrompt).toContain("Mara's body");
     expect(sim.agent("ilsa").awareness.mara?.doing).toBe(config.death.doing);
+  });
+
+  it("files a body come upon later and gives an urgent decision", async () => {
+    const sim = createTestSim({ agentIds: ["mara", "ilsa"], responder: scriptByAgent({}) });
+    sim.placeAgent("mara", SQUARE);
+    sim.placeAgent("ilsa", OUT_OF_SIGHT_OF_SQUARE);
+    applyDamage(contextOf(sim), "mara", { amount: LETHAL, killed: "starved", sourceId: null });
+    await sim.advance();
+    expect(sim.streamTexts("ilsa").join("\n")).not.toContain("Mara");
+    interruptDuringWait(sim, "ilsa", MINUTES_PER_HOUR);
+    getAgentRuntime(sim.state, "ilsa").lastInterruptTick = sim.state.tick;
+    sim.placeAgent("ilsa", NEXT_TO_SQUARE);
+    const [result] = await sim.advance();
+    expect(sim.streamTexts("ilsa")).toContain("I found Mara's body in the town square");
+    expect(result?.decidedAgentIds).toContain("ilsa");
+  });
+
+  it("doesn't file a body again once it is known to lie dead", async () => {
+    const sim = createTestSim({
+      agentIds: ["mara", "ilsa"],
+      responder: scriptByAgent({ Ilsa: waitLong }),
+    });
+    sim.placeAgent("mara", SQUARE);
+    sim.placeAgent("ilsa", NEXT_TO_SQUARE);
+    await sim.advance();
+    applyDamage(contextOf(sim), "mara", { amount: LETHAL, killed: "starved", sourceId: null });
+    await sim.advance();
+    sim.placeAgent("ilsa", OUT_OF_SIGHT_OF_SQUARE);
+    await sim.advance();
+    sim.placeAgent("ilsa", NEXT_TO_SQUARE);
+    await sim.advance();
+    expect(sim.streamTexts("ilsa").join("\n")).not.toContain("I found");
   });
 });

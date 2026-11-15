@@ -296,6 +296,10 @@ export const config = {
     doing: "lying dead",
     /** The `died` event's description; its subject is the dead agent. */
     eventDescription: "died",
+    /** The stream entry for coming upon a body not already known to lie dead. */
+    foundBodyEntry: "I found {body} in {place}",
+    /** Why finding a body gives an urgent decision; `{bodies}` lists the bodies found. */
+    foundBodyReason: "I found {bodies}",
     /** Fills `{actor}` in a killed phrase when no agent did the damage. */
     unknownSource: "someone",
   },
