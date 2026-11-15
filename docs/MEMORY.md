@@ -158,8 +158,9 @@ form in a day.
 - Each pass is its own LLM call with its own prompt template and call kind.
 - **Every pass reads the same context:** all of the agent's memory (history, day summary,
   chronicles, episodes, stream), its seen places, who it is, its long-term goals, its short-term
-  goals and its person entries. Only the question at the end differs. Memory comes first in the
-  prompt: no pass changes it, so passes run back to back read it from the provider's cache.
+  goals and its person entries. Only the question at the end differs. Pass prompts are not
+  cached: each pass sends its own reply schema and the stream moves on between passes, so no
+  pass could read another's cached prompt.
 - Each of the two episode-counting passes keeps its own count of episodes formed since it last
   ran. Episodes made at midnight count like any other.
 - The identity pass follows the rules of today's weekly prompt: change a trait only on what the
@@ -223,8 +224,9 @@ every tick and would defeat the cache. "Now" gives the current time.
   window. Seeing one such tile reveals the whole place: agents cannot steer tile by tile, and a
   place must not look empty because of where they stood.
 - A place whose inside the agent has not seen yet is listed by its name alone. A place seen
-  inside shows what it held and when ("as of Day 1, 6:10 am", or "in view now"), and "nothing"
-  when it was empty.
+  inside shows what it held when last seen ("bakery: oven, 2 bread"), and "nothing" when it was
+  empty. The line carries no time, so it changes only when what the place holds changes and the
+  section stays in the provider's cache while the agent walks about.
 - The list holds placed objects and items on the ground.
 - Entities are collapsed for display: unlabelled identical ones as today ("3 bread"), and labels
   that differ only by a trailing number together ("tree ×32", "square bench ×4").
@@ -322,7 +324,7 @@ Decided by the owner (2026-11-14), no longer open: a place not yet looked into i
 with no mark; place entity lists hold placed objects and ground items only; merging repeats only
 joins an entry to the one directly before it; profession is changed by the identity pass; a day
 with no chronicles makes no day summary (see [The memory pipeline](#the-memory-pipeline)); the
-cache layout of the decision prompt and memory-first order in the pass context; the four passes
+cache layout of the decision prompt; the four passes
 go in `llm.reflectionKinds` and the four summaries use the default model; reply token ceilings
 are derived from the length limits (roughly 520, 860, 1040 and 1730 for the four summaries), with
 each pass's ceiling sized to its largest possible reply.
