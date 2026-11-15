@@ -497,7 +497,7 @@ export const config = {
     /** Newest entries left in the stream when an episode forms. */
     streamKeep: 5,
     /** Episodes before a chronicle is made. */
-    episodesMax: 6,
+    episodesMax: 9,
     /** Newest episodes left when a chronicle forms. */
     episodesKeep: 1,
     /** Earlier episodes the episode summarizer sees for context. */

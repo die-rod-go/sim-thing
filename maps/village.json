@@ -11,7 +11,7 @@
  "tilewidth": 16,
  "tileheight": 16,
  "nextlayerid": 7,
- "nextobjectid": 249,
+ "nextobjectid": 252,
  "layers": [
   {
    "id": 1,
@@ -5163,6 +5163,52 @@
        "name": "definition",
        "type": "string",
        "value": "wolf"
+      }
+     ]
+    },
+    {
+     "id": 250,
+     "name": "sword",
+     "type": "",
+     "rotation": 0,
+     "visible": true,
+     "x": 336,
+     "y": 576,
+     "width": 16,
+     "height": 16,
+     "properties": [
+      {
+       "name": "name",
+       "type": "string",
+       "value": "sword"
+      },
+      {
+       "name": "definition",
+       "type": "string",
+       "value": "sword"
+      }
+     ]
+    },
+    {
+     "id": 251,
+     "name": "birch cottage chest",
+     "type": "",
+     "rotation": 0,
+     "visible": true,
+     "x": 480,
+     "y": 48,
+     "width": 16,
+     "height": 16,
+     "properties": [
+      {
+       "name": "name",
+       "type": "string",
+       "value": "birch cottage chest"
+      },
+      {
+       "name": "definition",
+       "type": "string",
+       "value": "chest"
       }
      ]
     }
