@@ -3,9 +3,11 @@ import { describe, expect, it } from "vitest";
 import { computeChebyshevDistance } from "../economy/give";
 import { findEntityIfPresent } from "../items/entity-store";
 
-import { simRuntimeSchema } from "./agent-runtime";
+import { config } from "../config";
+import { getAgentRuntime, simRuntimeSchema } from "./agent-runtime";
 import {
   aim,
+  contextOf,
   entityThing,
   finish,
   fixRolls,
@@ -13,7 +15,15 @@ import {
   setAgentHealth,
   setField,
 } from "./combat-test-kit";
-import { FIELD_EDGE, actForTicks, buildCreatureSim, placeCreature } from "./creature-test-kit";
+import {
+  FIELD_EDGE,
+  WOLF_STATS,
+  actForTicks,
+  buildCreatureSim,
+  placeCreature,
+} from "./creature-test-kit";
+import { updateSight } from "./tick-phases";
+import { readUserStats } from "./verb-user";
 import type { TestSim } from "./test-sim";
 import { createDefaultSettings, toSavedWorld, type TickResult } from "./world-state";
 
@@ -121,5 +131,45 @@ describe("creature instincts", () => {
     const saved = toSavedWorld(sim.state, createDefaultSettings());
     const runtime = simRuntimeSchema.parse(JSON.parse(JSON.stringify(saved.runtime)));
     expect(runtime.creatureRuntimes[boar.id]?.lastAttack?.attackerId).toBe("mara");
+  });
+});
+
+describe("creature stats", () => {
+  it("reads a creature's strength and agility from its fields, else the middling ones", () => {
+    const sim = buildCreatureSim(NEVER);
+    const wolf = placeCreature(sim, "wolf", FIELD_EDGE);
+    const deer = placeCreature(sim, "deer", { x: 24, y: 19 });
+    expect(readUserStats(sim.state, wolf.id)).toEqual(WOLF_STATS);
+    expect(readUserStats(sim.state, deer.id)).toEqual(config.creatures.stats);
+  });
+
+  it("lets an agile creature dodge a blow that lands on a middling one", () => {
+    const punchChance = 0.8;
+    const { agilitySpread } = config.combat;
+    const maraAgility = buildCreatureSim().agent("mara").body.agility;
+    const againstWolf = punchChance + (maraAgility - WOLF_STATS.agility) * agilitySpread;
+    const againstDeer =
+      punchChance + (maraAgility - config.creatures.stats.agility) * agilitySpread;
+    const roll = (againstWolf + againstDeer) / 2;
+    const outcomes = ["wolf", "deer"].map((definitionId) => {
+      const sim = buildCreatureSim(roll);
+      placeCreature(sim, definitionId, { x: 19, y: 16 });
+      aim(sim, "mara", { verb: "punch", targetName: definitionId });
+      return listEvents([finish(sim, "mara").result], "attacked").length > 0;
+    });
+    expect(outcomes).toEqual([false, true]);
+  });
+});
+
+describe("creatures coming into view", () => {
+  it("gives a decision when a creature comes into view, and not again while it stays", () => {
+    const sim = buildCreatureSim(NEVER);
+    placeCreature(sim, "boar", FIELD_EDGE);
+    updateSight(contextOf(sim));
+    const runtime = getAgentRuntime(sim.state, "mara");
+    expect(runtime.pendingDecision?.reason).toBe("the boar came into view");
+    runtime.pendingDecision = null;
+    updateSight(contextOf(sim));
+    expect(runtime.pendingDecision).toBeNull();
   });
 });

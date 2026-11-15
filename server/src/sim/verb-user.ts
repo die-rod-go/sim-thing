@@ -6,7 +6,7 @@ import {
   type WorldEvent,
 } from "@village/shared";
 import { config } from "../config";
-import { createThingEvent, locateThing, refThingById } from "../items/things";
+import { createThingEvent, locateThing, readNumberField, refThingById } from "../items/things";
 import { isDead } from "../status/health";
 import { getAgentRuntime, getCreatureRuntime, type VerbRun } from "./agent-runtime";
 import { createEvent, type EventFields } from "./event-factory";
@@ -54,8 +54,25 @@ export function getUserRuntime(state: WorldState, userId: string): { verbRun: Ve
   return isEntityId(userId) ? getCreatureRuntime(state, userId) : getAgentRuntime(state, userId);
 }
 
-/** An agent's own stats; every creature has the same middling ones from the config. */
+function readCreatureStat(state: WorldState, userId: string, stat: StatName): number {
+  const componentPath =
+    stat === "strength" ? state.items.world.creatureStrength : state.items.world.creatureAgility;
+  const value =
+    componentPath === undefined
+      ? null
+      : readNumberField(state, refThingById(userId), componentPath);
+  return value ?? config.creatures.stats[stat];
+}
+
+/**
+ * An agent's own stats, or a creature's from the fields the world settings name; a creature
+ * without them has the config's middling ones.
+ */
 export function readUserStats(state: WorldState, userId: string): Record<StatName, number> {
   const agent = findUserAgent(state, userId);
-  return agent === null ? config.creatures.stats : agent.body;
+  if (agent !== null) return agent.body;
+  return {
+    strength: readCreatureStat(state, userId, "strength"),
+    agility: readCreatureStat(state, userId, "agility"),
+  };
 }

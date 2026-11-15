@@ -7,7 +7,9 @@ import { computeHitChance, type Defender } from "../../status/combat";
 import { broadcastEvent } from "../event-broadcast";
 import { createEvent } from "../event-factory";
 import { stretchWaitMinutes } from "../verb-slowdown";
+import { isCreatureId } from "../creatures/creature-instincts";
 import { findUserAgent, readUserStats } from "../verb-user";
+
 import { findAgent, markAgentChanged, replaceAgent } from "../world-access";
 import { findRoleThing, requireVerbRun } from "./step-roles";
 import { DONE, type StepHandler, type StepOutcome, type StepRun } from "./step-run";
@@ -68,13 +70,20 @@ export const sleepStep: StepHandler<"sleep"> = {
   },
 };
 
+/** An agent or a creature dodges with its agility; anything else just stands there. */
 function describeDefender(run: StepRun): Defender {
   const { state } = run.context;
   const target = run.verbRun?.target ?? null;
-  if (target?.kind !== "agent") return { kind: "entity" };
+  if (target?.kind === "entity") {
+    if (!isCreatureId(state, target.entityId)) return { kind: "still" };
+    const { agility } = readUserStats(state, target.entityId);
+    const isUser = target.entityId === run.verbRun?.userId;
+    return { kind: "dodging", agility, isAsleep: false, isUser };
+  }
+  if (target === null) return { kind: "still" };
   const defender = findAgent(state, target.agentId);
   return {
-    kind: "agent",
+    kind: "dodging",
     agility: defender.body.agility,
     isAsleep: isAsleep(defender),
     isUser: target.agentId === run.verbRun?.userId,

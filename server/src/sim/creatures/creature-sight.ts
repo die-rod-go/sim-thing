@@ -1,10 +1,12 @@
-import { isBodyInWorld, type Entity, type Position } from "@village/shared";
+import { isBodyInWorld, type Agent, type Entity, type Position } from "@village/shared";
 import { config } from "../../config";
 import { computeChebyshevDistance } from "../../economy/give";
 import { findEntityIfPresent } from "../../items/entity-store";
 import { listThingsWithin, locateThing, type ThingRef } from "../../items/things";
 import { canSee } from "../../perception/sight";
 import type { PerceptionWorld } from "../../perception/types";
+import { isAsleep } from "../../economy/sleep";
+import { isDead } from "../../status/health";
 import type { WorldState } from "../world-state";
 
 /** A thing a creature sees, and how far off it is. */
@@ -41,4 +43,21 @@ export function listSeenThings(
     seen.push({ thing, pos: position.pos, distance });
   }
   return seen.sort((first, second) => first.distance - second.distance);
+}
+
+/** The creatures the agent can see right now, in entity order; a sleeper or the dead see none. */
+export function listVisibleCreatureIds(
+  state: WorldState,
+  world: PerceptionWorld,
+  viewer: Agent,
+  creatures: readonly Entity[],
+): string[] {
+  if (isAsleep(viewer) || isDead(viewer)) return [];
+  const range = config.perception.sightRangeTiles;
+  return creatures
+    .filter((creature) => {
+      const position = locateThing(state, { kind: "entity", entityId: creature.id });
+      return position !== null && canSee(world, viewer.pos, position.pos, range);
+    })
+    .map((creature) => creature.id);
 }

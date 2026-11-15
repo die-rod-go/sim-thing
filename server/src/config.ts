@@ -404,7 +404,7 @@ export const config = {
   },
 
   creatures: {
-    /** Every creature's strength and agility, for strength-scaled damage and hit rolls. */
+    /** Strength and agility for a creature without the fields `world.creatureStrength` and `creatureAgility` name. */
     stats: { strength: 0.5, agility: 0.5 },
     /** How far a creature notices things its instincts look for. */
     sightRangeTiles: 8,

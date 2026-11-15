@@ -17,6 +17,9 @@ import type { TickResult } from "./world-state";
 /** Open ground east of the square, clear of the bench, the board and the agents. */
 export const FIELD_EDGE = { x: 23, y: 19 };
 
+/** The wolf's own stats; deer and boars have none, so they are middling. */
+export const WOLF_STATS = { strength: 0.9, agility: 1 };
+
 const ownBody = (component: string) => ({ allOf: [{ has: component }, { where: "self" }] });
 const isDead = { field: "health.current", atMost: 0 };
 const animal = (extra: Record<string, unknown>) => ({
@@ -36,6 +39,7 @@ const CREATURE_COMPONENTS = {
   grazer: {},
   sated: {},
   jaws: { fields: { damage: { type: "range" }, hitChance: { type: "number" } } },
+  stats: { fields: { strength: { type: "number" }, agility: { type: "number" } } },
   drops: { fields: { item: { type: "item" }, count: { type: "number" } } },
 };
 
@@ -56,7 +60,11 @@ const CREATURE_DEFINITIONS = [
     id: "wolf",
     name: "wolf",
     glyph: { index: 119, color: "#a8a8b0" },
-    components: animal({ predator: {}, jaws: { damage: { min: 0.1, max: 0.1 }, hitChance: 1 } }),
+    components: animal({
+      predator: {},
+      jaws: { damage: { min: 0.1, max: 0.1 }, hitChance: 1 },
+      stats: WOLF_STATS,
+    }),
   },
 ];
 
@@ -146,6 +154,11 @@ export function buildCreatureSim(roll = 0.99): TestSim {
   sim.state.items = buildItemCatalog(
     parseItemFile({
       ...file,
+      world: {
+        ...file.world,
+        creatureStrength: "stats.strength",
+        creatureAgility: "stats.agility",
+      },
       components: { ...file.components, ...CREATURE_COMPONENTS },
       definitions: [...file.definitions, ...CREATURE_DEFINITIONS],
       verbs: [...file.verbs, ...CREATURE_VERBS],

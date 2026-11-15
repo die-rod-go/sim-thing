@@ -24,6 +24,21 @@ function checkAgentBody(check: MatcherCheck) {
   }
 }
 
+const CREATURE_STAT_SETTINGS = ["creatureStrength", "creatureAgility"] as const;
+
+function checkCreatureStats(check: MatcherCheck) {
+  const { file, problems } = check;
+  for (const setting of CREATURE_STAT_SETTINGS) {
+    const componentPath = file.world[setting];
+    if (componentPath === undefined) continue;
+    const path = parseComponentPath(componentPath);
+    const field = path === null ? undefined : file.components[path.component]?.fields[path.field];
+    if (field?.type !== "number") {
+      problems.error(`world.${setting}`, `"${componentPath}" must be a number field.`);
+    }
+  }
+}
+
 /** The `world` block: its matchers' names, and the body and health field every agent needs. */
 export function checkWorldSettings(check: MatcherCheck): void {
   for (const setting of WORLD_MATCHER_SETTINGS) {
@@ -31,4 +46,5 @@ export function checkWorldSettings(check: MatcherCheck): void {
     if (matcher !== undefined) checkMatcher(matcher, `world.${setting}`, check);
   }
   checkAgentBody(check);
+  checkCreatureStats(check);
 }

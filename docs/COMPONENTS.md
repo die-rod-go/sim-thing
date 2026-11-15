@@ -900,11 +900,18 @@ creature's fields as `item.*`, and `user` is the creature. Because they are verb
 are ordinary events: onlookers file "I saw that the wolf bit Mara", and the target files "The wolf
 bit me" and gets an urgent decision. The verb runner reaches its user only through
 `sim/verb-user.ts`, so it never branches on agent versus creature. Steps that only make sense for
-agents do nothing for a creature (`inspect`, `read`) or refuse it (`sleep`). Creatures use the
-config's middling `creatures.stats` for strength and agility.
+agents do nothing for a creature (`inspect`, `read`) or refuse it (`sleep`).
+
+Each creature has its own strength and agility in the fields `world.creatureStrength` and
+`world.creatureAgility` name (the shipped `stats` component). Strength scales its
+`scaledByStrength` damage, and agility moves its hit rolls both ways, as an agent's does: an agile
+wolf lands bites more often and dodges more blows. A creature without those fields, or a file that
+leaves the settings out, gets the config's middling `creatures.stats`.
 
 A creature sees `creatures.sightRangeTiles` around it (walls and closed doors block sight). It
-moves one tile a tick on the agents' walking grid, so walls and closed doors stop it too.
+moves one tile a tick on the agents' walking grid, so walls and closed doors stop it too. An agent
+sees creatures as it sees people: one coming into view gives a non-urgent decision ("the wolf came
+into view"), under the same interrupt cooldown.
 
 Everything else is rules. Dying is a `becomes` rule on `health.current` that creates the `drops`
 item where the creature stood and then destroys it. Spawning is an `every` rule on a den with
@@ -927,7 +934,9 @@ in `items.json` answers. These are the only places the engine reaches into item 
   "lyingWhenOnTile":   { "has": "holdable" },
   "closedSupply":      { "definition": "coin" },
   "agentBody":         "person",
-  "agentHealth":       "health.current"
+  "agentHealth":       "health.current",
+  "creatureStrength":  "stats.strength",
+  "creatureAgility":   "stats.agility"
 }
 ```
 
@@ -942,6 +951,8 @@ in `items.json` answers. These are the only places the engine reaches into item 
 | `closedSupply`      | matcher        | Validation only: warns when a verb or rule could make or destroy a matching thing. Replaces `economy.currencyDefinitionId`                 |
 | `agentBody`         | definition id  | The definition of every agent's body                                                                                                       |
 | `agentHealth`       | component path | The number field that is an agent's health                                                                                                 |
+| `creatureStrength`  | component path | The number field that is a creature's strength; optional                                                                                   |
+| `creatureAgility`   | component path | The number field that is a creature's agility; optional                                                                                    |
 
 Only entities on tiles block sight, movement and sound; what is carried or contained never does.
 All matchers are optional (omitted: nothing matches); `agentBody` and `agentHealth` are required.

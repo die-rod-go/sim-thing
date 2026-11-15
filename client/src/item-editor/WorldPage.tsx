@@ -25,7 +25,58 @@ function selectSettingProblems(problems: readonly ItemProblem[], setting: string
   return selectProblemsUnder(problems, `world.${setting}`);
 }
 
-/** The settings the physics reads: seven matchers, the agent's body and its health field. */
+const CREATURE_STAT_SETTINGS = [
+  { setting: "creatureStrength", stat: "strength" },
+  { setting: "creatureAgility", stat: "agility" },
+] as const;
+
+/** The number fields that are a creature's strength and agility; unset, creatures are middling. */
+function CreatureStatSettings({
+  file,
+  problems,
+  onEdit,
+}: {
+  file: ItemFile;
+  problems: readonly ItemProblem[];
+  onEdit: (file: ItemFile) => void;
+}) {
+  return (
+    <section className="form-section">
+      <h4>creature stats</h4>
+      <p className="field-hint">
+        The number fields that are a creature&apos;s strength and agility. A creature without them,
+        or with these unset, has middling ones.
+      </p>
+      {CREATURE_STAT_SETTINGS.map(({ setting, stat }) => (
+        <div key={setting}>
+          <InlineField label={stat}>
+            <ComponentPathPicker
+              value={file.world[setting] ?? ""}
+              file={file}
+              fieldTypes={["number"]}
+              onChange={(path) => onEdit(setWorldSetting(file, setting, path))}
+            />
+            {file.world[setting] !== undefined && (
+              <button
+                className="icon-button"
+                title={`Clear ${setting}`}
+                onClick={() => onEdit(setWorldSetting(file, setting, undefined))}
+              >
+                ×
+              </button>
+            )}
+          </InlineField>
+          <ItemProblemList problems={selectSettingProblems(problems, setting)} />
+        </div>
+      ))}
+    </section>
+  );
+}
+
+/**
+ * The settings the physics reads: seven matchers, the agent's body and its health field, and the
+ * fields that are a creature's stats.
+ */
 export function WorldPage({
   file,
   problems,
@@ -77,6 +128,7 @@ export function WorldPage({
         </InlineField>
         <ItemProblemList problems={selectSettingProblems(problems, "agentHealth")} />
       </section>
+      <CreatureStatSettings file={file} problems={problems} onEdit={onEdit} />
     </div>
   );
 }

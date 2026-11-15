@@ -5,7 +5,7 @@ import { computeHitChance, pickWithinRange, scaleByStrength } from "./combat";
 const AVERAGE = 0.5;
 
 function awakeDefender(agility: number) {
-  return { kind: "agent", agility, isAsleep: false, isUser: false } as const;
+  return { kind: "dodging", agility, isAsleep: false, isUser: false } as const;
 }
 
 describe("hit chance", () => {
@@ -21,10 +21,10 @@ describe("hit chance", () => {
   });
 
   it("always hits a sleeper, the user itself and things", () => {
-    const sleeper = { kind: "agent", agility: 1, isAsleep: true, isUser: false } as const;
+    const sleeper = { kind: "dodging", agility: 1, isAsleep: true, isUser: false } as const;
     expect(computeHitChance(0.1, 0, sleeper)).toBe(1);
     expect(computeHitChance(0.1, 0, { ...awakeDefender(1), isUser: true })).toBe(1);
-    expect(computeHitChance(0.1, 0, { kind: "entity" })).toBe(1);
+    expect(computeHitChance(0.1, 0, { kind: "still" })).toBe(1);
   });
 });
 

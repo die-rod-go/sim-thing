@@ -59,6 +59,15 @@ function mapStepPaths(step: Step, change: ReferenceChange): Step {
   return mapped;
 }
 
+function mapOptionalWorldPath(
+  file: ItemFile,
+  setting: "creatureStrength" | "creatureAgility",
+  change: ReferenceChange,
+): Partial<ItemFile["world"]> {
+  const text = file.world[setting];
+  return text === undefined ? {} : { [setting]: mapComponentPathText(text, change) };
+}
+
 function mapReferences(file: ItemFile, change: ReferenceChange): ItemFile {
   const withMatchers = mapFileMatchers(file, (term) => mapMatcherTerm(term, change));
   const withSteps = mapFileSteps(withMatchers, (step) => mapStepPaths(step, change));
@@ -68,6 +77,8 @@ function mapReferences(file: ItemFile, change: ReferenceChange): ItemFile {
     world: {
       ...withReaches.world,
       agentHealth: mapComponentPathText(withReaches.world.agentHealth, change),
+      ...mapOptionalWorldPath(withReaches, "creatureStrength", change),
+      ...mapOptionalWorldPath(withReaches, "creatureAgility", change),
     },
   };
 }

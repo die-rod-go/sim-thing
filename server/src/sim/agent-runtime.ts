@@ -106,6 +106,8 @@ const agentRuntimeSchema = z.object({
   verbRun: verbRunSchema.nullable(),
   lastInterruptTick: z.number().int().nullable(),
   visibleAgentIds: z.array(z.string()),
+  /** Creatures in view at the last sight update, so one coming into view gives a decision. */
+  visibleCreatureIds: z.array(z.string()),
   lastFailure: z.string().nullable(),
   pendingDecision: pendingDecisionSchema.nullable(),
 });
@@ -160,6 +162,7 @@ export function createAgentRuntime(): AgentRuntime {
     verbRun: null,
     lastInterruptTick: null,
     visibleAgentIds: [],
+    visibleCreatureIds: [],
     lastFailure: null,
     pendingDecision: null,
   };

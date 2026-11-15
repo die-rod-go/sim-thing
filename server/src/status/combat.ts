@@ -3,18 +3,19 @@ import { config } from "../config";
 
 /** What the hit roll knows about who or what is on the receiving end. */
 export type Defender =
-  { kind: "agent"; agility: number; isAsleep: boolean; isUser: boolean } | { kind: "entity" };
+  { kind: "dodging"; agility: number; isAsleep: boolean; isUser: boolean } | { kind: "still" };
 
 /**
  * The chance a hit-roll verb lands: the base chance moved by the agility difference, clamped. A
- * sleeper, the user itself and an entity can't get out of the way, so they are always hit.
+ * sleeper, the user itself and an object (anything but an agent or a creature) can't get out of the
+ * way, so they are always hit.
  */
 export function computeHitChance(
   baseHitChance: number,
   attackerAgility: number,
   defender: Defender,
 ): number {
-  if (defender.kind === "entity" || defender.isAsleep || defender.isUser) return 1;
+  if (defender.kind === "still" || defender.isAsleep || defender.isUser) return 1;
   const { agilitySpread, minHitChance, maxHitChance } = config.combat;
   const chance = baseHitChance + (attackerAgility - defender.agility) * agilitySpread;
   return Math.min(maxHitChance, Math.max(minHitChance, chance));

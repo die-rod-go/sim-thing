@@ -139,6 +139,9 @@ export const worldSettingsSchema = z.strictObject({
   agentBody: identifierSchema,
   /** The number field that is an agent's health. */
   agentHealth: componentPathSchema,
+  /** The number fields that are a creature's strength and agility; one without them is middling. */
+  creatureStrength: componentPathSchema.optional(),
+  creatureAgility: componentPathSchema.optional(),
 });
 export type WorldSettings = z.infer<typeof worldSettingsSchema>;
 

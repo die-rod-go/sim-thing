@@ -76,3 +76,15 @@ describe("instinct validation", () => {
     );
   });
 });
+
+describe("creature stat settings", () => {
+  it("accepts number fields and rejects anything else", () => {
+    const base = withInstincts([{ do: "wander", appliesTo: { has: "jaws" }, chance: 0.5 }]);
+    const pointing = (creatureStrength: string) =>
+      buildTestItemFile({ ...base, world: { ...base.world, creatureStrength } });
+    expect(messagesFor(pointing("health.current"))).toEqual([]);
+    expect(messagesFor(pointing("weapon.stimulus"))).toContain(
+      'error: world.creatureStrength: "weapon.stimulus" must be a number field.',
+    );
+  });
+});

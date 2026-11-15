@@ -1,4 +1,11 @@
-import { isBodyInWorld, readAgentHealth, type Needs } from "@village/shared";
+import {
+  isBodyInWorld,
+  readAgentHealth,
+  type Agent,
+  type Entity,
+  type Needs,
+} from "@village/shared";
+
 import { config } from "../config";
 import { applyCrowdEffect, decayNeeds, findCrossedThresholds } from "../economy/needs";
 import { advanceSleep, findWakeReason, isAsleep } from "../economy/sleep";
@@ -19,7 +26,12 @@ import { lookAtPlaces } from "./place-sighting";
 import { NO_RULE_CAUSE } from "./rule-cause";
 import { expireComponents, runEveryRules } from "./rule-timers";
 import type { TickContext } from "./tick-context";
+import { describeThingName } from "../items/things";
+import type { PerceptionWorld } from "../perception/types";
+import { listCreatures } from "./creatures/creature-instincts";
+import { listVisibleCreatureIds } from "./creatures/creature-sight";
 import { resumeRunningVerb } from "./verb-runner";
+
 import { advanceWalk } from "./walking";
 import {
   buildPerceptionWorld,
@@ -110,11 +122,12 @@ export function progressActions(context: TickContext): void {
 
 /**
  * Phase 3a: everyone's awareness and seen places are refreshed from sight; someone seen for the
- * first time gets an empty person entry; someone newly in view interrupts.
+ * first time gets an empty person entry; someone or a creature newly in view interrupts.
  */
 export function updateSight(context: TickContext): void {
   const { state, result } = context;
   const world = buildPerceptionWorld(state);
+  const creatures = listCreatures(state);
   const observed = state.agents.filter(isBodyInWorld).map((agent) => ({
     agentId: agent.id,
     pos: agent.pos,
@@ -146,7 +159,27 @@ export function updateSight(context: TickContext): void {
       requestDecision(runtime, `${names} came into view`, false);
     }
     runtime.visibleAgentIds = visibleIds;
+    noticeCreatures(context, world, agent, creatures);
   }
+}
+
+/** A creature newly in view gives a decision, as a person coming into view does. */
+function noticeCreatures(
+  context: TickContext,
+  world: PerceptionWorld,
+  agent: Agent,
+  creatures: readonly Entity[],
+): void {
+  const { state } = context;
+  const runtime = getAgentRuntime(state, agent.id);
+  const visibleIds = listVisibleCreatureIds(state, world, agent, creatures);
+  const newlyVisible = detectNewPerceptions(runtime.visibleCreatureIds, visibleIds);
+  runtime.visibleCreatureIds = visibleIds;
+  if (newlyVisible.length === 0) return;
+  const names = newlyVisible
+    .map((entityId) => describeThingName(state, { kind: "entity", entityId }))
+    .join(", ");
+  requestDecision(runtime, `${names} came into view`, false);
 }
 
 /** Phase 4: a need that dropped below the decision threshold this tick gives a decision. */
