@@ -35,11 +35,11 @@ function LastPerceived({ relation }: { relation: Relation }) {
 }
 
 const ENTRY_LABELS: Record<keyof PersonEntry, string> = {
-  whatIThinkOfThem: "Thinks of them",
-  whatTheyThinkOfMe: "Believes they think",
-  whatIWantFromThem: "Wants from them",
-  whatTheyWantFromMe: "Believes they want",
-  misc: "Misc",
+  whatIThinkOfThem: "What I think of them",
+  whatTheyThinkOfMe: "What they think of me",
+  whatIWantFromThem: "What I want from them",
+  whatTheyWantFromMe: "What they want from me",
+  misc: "Anything else I know about them",
 };
 
 /** The fields of a person entry that hold something. */
