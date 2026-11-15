@@ -113,6 +113,7 @@ function listSettingReads(step: Step, where: string): StepRead[] {
     case "use_up":
       return listMatcherReads(step.rule, `${where}.rule`);
     case "check":
+    case "if":
       return listMatcherReads(step.if, `${where}.if`);
     case "wait":
       return [

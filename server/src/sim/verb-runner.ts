@@ -9,6 +9,7 @@ import {
   type VerbRun,
 } from "./agent-runtime";
 import { failAction } from "./failure";
+import { advanceStepIndex } from "./steps/step-flow";
 import { applyStep } from "./steps/step-registry";
 import { refreshSnapshots } from "./steps/step-roles";
 import type { StepRun } from "./steps/step-run";
@@ -84,6 +85,7 @@ export function buildVerbRun(state: WorldState, userId: string, start: VerbStart
     touchedIds: [],
     made: {},
     hasWaited: false,
+    firstWaitIndex: null,
     startedAtTick: state.tick,
   };
   refreshSnapshots(state, verbRun);
@@ -201,9 +203,10 @@ function executeSteps(run: StepRun, verb: Verb): Progress {
   const { state } = run.context;
   while (verbRun.stepIndex < verb.steps.length) {
     const step = verb.steps[verbRun.stepIndex]!;
+    if (step.step === "wait") verbRun.firstWaitIndex ??= verbRun.stepIndex;
     const outcome = applyStep(run, step);
     if (outcome.kind === "refused") return { kind: "refused", reason: outcome.reason };
-    verbRun.stepIndex += 1;
+    verbRun.stepIndex = advanceStepIndex(run, verb.steps, verbRun.stepIndex, true);
     refreshSnapshots(state, verbRun);
     if (outcome.kind === "done") addMade(verbRun, outcome.made);
     if (step.step === "roll_hit" && verbRun.isHit !== null) {

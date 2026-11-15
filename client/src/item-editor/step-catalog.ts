@@ -13,6 +13,9 @@ export const STEP_DESCRIPTIONS: Record<StepType, string> = {
   require: "Needs some things inside the user, the item or the target",
   use_up: "Needs some things inside the user, the item or the target, and destroys them",
   check: "Needs a thing to match, or refuses with a message",
+  if: "Runs the steps below it only when a thing matches",
+  else: "Runs the steps below it only when the if above didn't match",
+  end_if: "Ends the if block above",
   wait: "Takes time: what is above happens at the start, what is below at the end",
   sleep: "The user sleeps until woken or for some minutes",
   roll_hit: "Rolls to hit, adjusted by the agility of the user and the target",
@@ -35,6 +38,7 @@ export const STEP_DESCRIPTIONS: Record<StepType, string> = {
 
 export const STEP_GROUPS: readonly { label: string; types: readonly StepType[] }[] = [
   { label: "Needing things", types: ["require", "use_up", "check"] },
+  { label: "Logic", types: ["if", "else", "end_if"] },
   { label: "Taking time and chance", types: ["wait", "sleep", "roll_hit"] },
   { label: "Changing data", types: ["change", "damage", "set", "add", "remove"] },
   { label: "Things and places", types: ["move", "create", "transform", "destroy"] },
@@ -101,6 +105,11 @@ export function buildNewStep(type: StepType, spot: ValueSpot): Step {
         if: buildStartingMatcher(file),
         otherwise: config.newTextValue,
       };
+    case "if":
+      return { step: "if", ...on, if: buildStartingMatcher(file) };
+    case "else":
+    case "end_if":
+      return { step: type };
     case "wait":
       return { step: "wait", minutes: config.newStepMinutes };
     case "sleep":

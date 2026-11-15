@@ -8,7 +8,7 @@ import { isThingInReach, isThingInSight, viewThingFrom } from "./thing-where";
 
 /** The first reason any step from `fromIndex` on can't run now, or null. Changes nothing. */
 export function findStepsRefusal(run: StepRun, verb: Verb, fromIndex: number): string | null {
-  return findStepListRefusal(run, verb.steps.slice(fromIndex));
+  return findStepListRefusal(run, verb.steps, fromIndex);
 }
 
 function holderOf(entityId: string, run: StepRun): string | null | undefined {

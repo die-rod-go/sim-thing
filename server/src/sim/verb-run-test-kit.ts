@@ -81,6 +81,7 @@ export function buildRunRecord(
     touchedIds: [],
     made: {},
     hasWaited: true,
+    firstWaitIndex: 0,
     startedAtTick: 0,
   };
 }

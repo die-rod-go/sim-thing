@@ -115,9 +115,8 @@ Potions act on bodies.
 that isn't laced already. The potion is destroyed and the food gains a hidden component,
 `laced_poison` or `laced_sleep`, that no one perceives: a laced loaf reads exactly like any other
 and is counted with them. Eating or drinking a laced item applies the potion's effect to the eater.
-This is one `pour into` verb per potion plus `eat` and `drink` variants that match the laced
-components, placed above the plain ones (first match wins). Laced raw or spoiled food keeps its
-food-poisoning risk.
+This is one `pour into` verb per potion, and `if` blocks in `eat` and `drink` that look for the
+laced components. Laced raw or spoiled food keeps its food-poisoning risk.
 
 ## Tools and weapons
 

@@ -75,9 +75,13 @@ function describeRunTarget(verbRun: VerbRun): { targetId: string | null; targetN
   return { targetId, targetName: verbRun.targetName ?? "" };
 }
 
-/** How far the verb is heard: the loudness of its first `wait`, or null when that sets none. */
+/**
+ * How far the verb is heard: the loudness of the first `wait` the run reached (with `if` blocks,
+ * not always the first in the list). Null before it reaches one, or when that sets none.
+ */
 export function computeLoudness(run: StepRun, verb: Verb): number | null {
-  const firstWait = verb.steps.find((step) => step.step === "wait");
+  const index = run.verbRun?.firstWaitIndex ?? null;
+  const firstWait = index === null ? undefined : verb.steps[index];
   if (firstWait?.step !== "wait" || firstWait.loudness === undefined) return null;
   return resolveNumber(scopeOf(run), firstWait.loudness);
 }

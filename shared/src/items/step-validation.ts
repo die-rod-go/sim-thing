@@ -13,6 +13,8 @@ import {
   type Step,
   type StepType,
 } from "./step-schema";
+import { checkBlockSteps } from "./step-block-validation";
+import { BlockTracker, isFirstWait } from "./step-blocks";
 import {
   buildStepScope,
   couldReachBody,
@@ -24,6 +26,7 @@ import { isFanOutName, type FanOutName } from "./value-schema";
 
 /** Steps that work on a thing named by `on`. */
 const ON_STEPS: ReadonlySet<StepType> = new Set<StepType>([
+  "if",
   "check",
   "change",
   "damage",
@@ -183,11 +186,7 @@ function checkVerbSequence(
       problems.error(path, "`roll_hit` needs a verb with a `target`.");
     }
   }
-  if (
-    step.step === "wait" &&
-    step.loudness !== undefined &&
-    earlier.some((other) => other.step === "wait")
-  ) {
+  if (step.step === "wait" && step.loudness !== undefined && !isFirstWait(steps, index)) {
     problems.error(path, "`loudness` only works on a verb's first `wait`.");
   }
 }
@@ -201,7 +200,7 @@ function checkStep(
 ) {
   const path = `${ownerPath}.steps.${index}`;
   checkOn(step, path, scope);
-  if (step.step === "check") {
+  if (step.step === "check" || step.step === "if") {
     checkMatcher(step.if, `${path}.if`, scope.context, { canReadValues: true });
   }
   checkDestination(step, path, scope);
@@ -240,6 +239,14 @@ export function checkSteps(
   if (owner.kind === "verb") {
     for (const read of listReachReads(owner.verb)) checkStepRead(read, path, scope);
   }
-  steps.forEach((step, index) => checkStep(step, steps, index, path, scope));
+  checkBlockSteps(steps, path, scope);
+  const blocks = new BlockTracker(scope, (role) => {
+    const thing = resolveThing(scope, role);
+    return thing.ok ? thing.matcher : null;
+  });
+  steps.forEach((step, index) => {
+    checkStep(step, steps, index, path, scope);
+    blocks.noteStep(step);
+  });
   return scope;
 }

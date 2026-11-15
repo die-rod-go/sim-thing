@@ -37,17 +37,19 @@ function buildOnChanges(on: string | undefined, step: OnFields): Record<string, 
 
 /**
  * `on`; for `nearby` its radius and for `earshot` its loudness, and what either counts around.
- * `onChange` takes the settings that changed.
+ * `onChange` takes the settings that changed. A step that works on one thing can't fan out.
  */
 export function OnSettings({
   step,
   spot,
   isInRule,
+  canFanOut = true,
   onChange,
 }: {
   step: OnFields;
   spot: ValueSpot;
   isInRule: boolean;
+  canFanOut?: boolean;
   onChange: (changes: Record<string, unknown>) => void;
 }) {
   const emptyLabel = isInRule ? "self" : undefined;
@@ -58,7 +60,7 @@ export function OnSettings({
         <ThingNamePicker
           value={step.on}
           spot={spot}
-          withFanOuts
+          withFanOuts={canFanOut}
           emptyLabel={emptyLabel}
           onChange={(on) => onChange(buildOnChanges(on, step))}
         />

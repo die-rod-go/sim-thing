@@ -14,6 +14,7 @@ import { addStep, changeStep, damageStep, removeStep, setStep } from "./data-ste
 import { checkStep, requireStep, useUpStep } from "./need-steps";
 import { inspectStep } from "./inspect-step";
 import { readStep } from "./read-step";
+import { advanceStepIndex, elseStep, endIfStep, ifStep } from "./step-flow";
 import { findRoleThing } from "./step-roles";
 import {
   DONE,
@@ -35,6 +36,9 @@ export const STEP_REGISTRY: StepRegistry = {
   require: requireStep,
   use_up: useUpStep,
   check: checkStep,
+  if: ifStep,
+  else: elseStep,
+  end_if: endIfStep,
   wait: waitStep,
   sleep: sleepStep,
   roll_hit: rollHitStep,
@@ -96,23 +100,53 @@ function listSurelyTakenIds(run: StepRun, step: Step): string[] {
 }
 
 /**
- * The first reason any of the steps can't run now, or null. Each is judged as if the steps before
- * it had run: what an earlier `use_up` takes no longer counts (flour used up frees oven space).
+ * The first reason any of the steps from `fromIndex` on can't run now, or null. Each is judged as
+ * if the steps before it had run: what an earlier `use_up` takes no longer counts (flour used up
+ * frees oven space). Only the branch of each `if` that matches now is checked.
  */
-export function findStepListRefusal(run: StepRun, steps: readonly Step[]): string | null {
+export function findStepListRefusal(
+  run: StepRun,
+  steps: readonly Step[],
+  fromIndex = 0,
+): string | null {
   const setAsideIds = new Set<string>();
   const checkRun: StepRun = { ...run, setAsideIds };
-  for (const step of steps) {
+  let index = fromIndex;
+  while (index < steps.length) {
+    const step = steps[index]!;
     const refusal = findStepRefusal(checkRun, step);
     if (refusal !== null) return refusal;
     for (const entityId of listSurelyTakenIds(checkRun, step)) setAsideIds.add(entityId);
+    index = advanceStepIndex(checkRun, steps, index, false);
   }
   return null;
 }
 
+/** Runs a rule's steps in order, following its `if` blocks. Returns each refusal, in order. */
+export function runStepList(
+  run: StepRun,
+  steps: readonly Step[],
+): { step: Step; reason: string }[] {
+  const refusals: { step: Step; reason: string }[] = [];
+  let index = 0;
+  while (index < steps.length) {
+    const step = steps[index]!;
+    const outcome = applyStep(run, step);
+    if (outcome.kind === "refused") refusals.push({ step, reason: outcome.reason });
+    index = advanceStepIndex(run, steps, index, true);
+  }
+  return refusals;
+}
+
+/**
+ * A `choice` the decision didn't give refuses here too: the check before the verb only saw the
+ * branches that matched then, and an earlier step can change which one runs.
+ */
 function applyOnce(run: StepRun, step: Step): StepOutcome {
   const chance = step.step === "roll_hit" ? undefined : step.chance;
   if (chance !== undefined && run.context.state.random.next() >= chance) return DONE;
+  const missing = findMissingChoice(scopeOf(run), step);
+  if (missing !== null) return { kind: "refused", reason: missing };
   return findHandler(step).run(run, step as StepOfType<StepType>);
 }
 

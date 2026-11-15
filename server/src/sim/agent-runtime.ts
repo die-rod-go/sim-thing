@@ -88,6 +88,8 @@ const verbRunSchema = z.object({
   made: z.record(z.string(), z.number().int().nonnegative()),
   /** Whether a `wait` has been reached, so `action_started` was announced. */
   hasWaited: z.boolean(),
+  /** The first `wait` the run reached, by step index: its loudness is how far the verb is heard. */
+  firstWaitIndex: z.number().int().nonnegative().nullable(),
   startedAtTick: z.number().int(),
   /** What made the verb take longer than usual ("exhausted"); absent when nothing did. */
   slowedBy: z.string().optional(),

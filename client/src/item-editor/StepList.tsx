@@ -1,13 +1,13 @@
-import { useState } from "react";
-import type { Step, StepType } from "@village/shared";
+import { useState, type CSSProperties } from "react";
+import { isBlockStep, listBlockDepths, type Step, type StepType } from "@village/shared";
 import { StepCommonSettings } from "./StepCommonSettings";
 import { StepPalette } from "./StepPalette";
 import { StepSettings } from "./StepSettings";
 import type { StepListProps } from "./step-list-props";
 import { findDropIndex, isBelowMiddleOf } from "./step-drag";
-import { insertStep, listStepDividers, moveStep, removeStep, replaceStep } from "./step-edits";
+import { appendNewStep, listStepDividers, moveStep, removeStep, replaceStep } from "./step-edits";
 import { selectStepProblems } from "./step-fields";
-import { STEP_DESCRIPTIONS, buildNewStep } from "./step-catalog";
+import { STEP_DESCRIPTIONS } from "./step-catalog";
 import { ItemProblemList } from "./widgets";
 
 export type { StepListProps } from "./step-list-props";
@@ -33,10 +33,8 @@ export function StepList({ steps, owner, file, problems, ownerPath, onChange }: 
           {divider.label}
         </div>
       ));
-  const addStep = (type: StepType) =>
-    onChange(
-      insertStep(steps, steps.length, buildNewStep(type, { file, owner, stepIndex: steps.length })),
-    );
+  const depths = listBlockDepths(steps);
+  const addStep = (type: StepType) => onChange(appendNewStep(steps, type, { file, owner }));
   const drop = () => {
     if (drag !== null) {
       const target = { overIndex: drag.overIndex, isBelowMiddle: drag.isBelowMiddle };
@@ -54,7 +52,8 @@ export function StepList({ steps, owner, file, problems, ownerPath, onChange }: 
         <div key={index}>
           {renderDividers(index)}
           <div
-            className={`step-row${dropClass(index)}`}
+            className={`step-row${isBlockStep(step) ? " block-marker" : ""}${dropClass(index)}`}
+            style={{ "--block-depth": depths[index] ?? 0 } as CSSProperties}
             draggable={grabbedIndex === index}
             onDragStart={() =>
               setDrag({ fromIndex: index, overIndex: index, isBelowMiddle: false })

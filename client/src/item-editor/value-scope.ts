@@ -1,5 +1,7 @@
 import {
+  BlockTracker,
   describeNamedThing,
+  type KnownThings,
   findStepAs,
   listGuaranteedComponents,
   resolveBodyDefaults,
@@ -26,15 +28,24 @@ export function listOwnerSteps(owner: StepOwner): readonly Step[] {
   return owner.kind === "verb" ? owner.verb.steps : owner.rule.steps;
 }
 
-/** `as` names given by steps before the spot, each with a matcher what it names is sure to meet. */
+/**
+ * `as` names the spot can use, each with a matcher what it names is sure to meet: given above it,
+ * and not only in the other branch of an `if`, or in one branch of a block that has closed.
+ */
 export function listGivenNames(spot: ValueSpot): Map<string, Matcher> {
-  const givenNames = new Map<string, Matcher>();
-  if (spot.stepIndex === null) return givenNames;
+  const known: KnownThings = {
+    givenNames: new Map(),
+    transformedRoles: new Map(),
+    blockNames: new Set(),
+  };
+  if (spot.stepIndex === null) return known.givenNames;
+  const blocks = new BlockTracker(known, () => null);
   for (const step of listOwnerSteps(spot.owner).slice(0, spot.stepIndex)) {
     const name = findStepAs(step);
-    if (name !== undefined) givenNames.set(name, describeNamedThing(step));
+    if (name !== undefined) known.givenNames.set(name, describeNamedThing(step));
+    blocks.noteStep(step);
   }
-  return givenNames;
+  return known.givenNames;
 }
 
 /** Names a step may work on, or a value may read, at the spot (not `nearby` or `earshot`). */

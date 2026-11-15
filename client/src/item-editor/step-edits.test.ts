@@ -4,7 +4,6 @@ import {
   hasRollHitBefore,
   insertStep,
   isAfterRollHit,
-  isFirstWait,
   listStepDividers,
   moveStep,
   removeStep,
@@ -78,11 +77,23 @@ describe("step dividers", () => {
     expect(listStepDividers(attack, "rule")).toEqual([]);
   });
 
-  it("knows which steps come after a roll_hit and which wait is first", () => {
+  it("knows which steps come after a roll_hit", () => {
     expect(hasRollHitBefore(attack, 2)).toBe(false);
     expect(isAfterRollHit(attack, 3)).toBe(true);
-    expect(isFirstWait([second, fourth], 0)).toBe(true);
-    expect(isFirstWait([second, fourth], 1)).toBe(false);
-    expect(isFirstWait([second, fourth], 5)).toBe(false);
+  });
+
+  it("says when it finishes below the wait of each branch of an if", () => {
+    const steps: Step[] = [
+      { step: "if", on: "item", if: { has: "raw" } },
+      second,
+      { step: "else" },
+      fourth,
+      { step: "end_if" },
+    ];
+    expect(listStepDividers(steps, "verb").map((entry) => entry.label)).toEqual([
+      "when it starts",
+      "when it finishes",
+      "when it finishes",
+    ]);
   });
 });

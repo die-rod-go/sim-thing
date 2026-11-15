@@ -1,9 +1,21 @@
-import { listMentionedComponents, type Step } from "@village/shared";
+import { isFirstWait, listMentionedComponents, type Step, type StepType } from "@village/shared";
 import { moveWithin, removeAt, replaceAt } from "./list-edits";
+import { buildNewStep } from "./step-catalog";
+import type { ValueSpot } from "./step-owner";
 
 export function insertStep(steps: readonly Step[], index: number, step: Step): Step[] {
   const position = Math.min(Math.max(index, 0), steps.length);
   return [...steps.slice(0, position), step, ...steps.slice(position)];
+}
+
+/** Adds a palette step at the end; a new `if` comes with its `end_if`. */
+export function appendNewStep(
+  steps: readonly Step[],
+  type: StepType,
+  where: Omit<ValueSpot, "stepIndex">,
+): Step[] {
+  const added = buildNewStep(type, { ...where, stepIndex: steps.length });
+  return type === "if" ? [...steps, added, { step: "end_if" }] : [...steps, added];
 }
 
 export function removeStep(steps: readonly Step[], index: number): Step[] {
@@ -37,14 +49,6 @@ export function isAfterRollHit(steps: readonly Step[], index: number): boolean {
   return hasRollHitBefore(steps, index);
 }
 
-/** Loudness only belongs on a verb's first `wait`. */
-export function isFirstWait(steps: readonly Step[], index: number): boolean {
-  return (
-    steps[index]?.step === "wait" &&
-    !steps.slice(0, index).some((earlier) => earlier.step === "wait")
-  );
-}
-
 /** A heading the list draws just above the step at `beforeIndex` (steps.length: below the last). */
 export interface StepDivider {
   beforeIndex: number;
@@ -53,8 +57,8 @@ export interface StepDivider {
 
 /**
  * Headings that explain when steps run, in list order. A verb with a `wait` gets "when it starts"
- * at index 0 and, below each wait, "when it finishes" (the first) or "after the next wait" (later
- * ones); each `roll_hit` gets "on a hit" below it. Rules get none.
+ * at index 0 and, below each wait, "when it finishes" (a run's first, in either branch of an `if`)
+ * or "after the next wait" (later ones); each `roll_hit` gets "on a hit" below it. Rules get none.
  */
 export function listStepDividers(
   steps: readonly Step[],
@@ -62,15 +66,13 @@ export function listStepDividers(
 ): StepDivider[] {
   if (ownerKind === "rule") return [];
   const dividers: StepDivider[] = [];
-  let waitCount = 0;
   steps.forEach((step, index) => {
     if (step.step === "wait") {
-      if (waitCount === 0) dividers.push({ beforeIndex: 0, label: "when it starts" });
+      if (dividers.length === 0) dividers.push({ beforeIndex: 0, label: "when it starts" });
       dividers.push({
         beforeIndex: index + 1,
-        label: waitCount === 0 ? "when it finishes" : "after the next wait",
+        label: isFirstWait(steps, index) ? "when it finishes" : "after the next wait",
       });
-      waitCount += 1;
     }
     if (step.step === "roll_hit") dividers.push({ beforeIndex: index + 1, label: "on a hit" });
   });

@@ -1,4 +1,4 @@
-import type { Step } from "@village/shared";
+import { isBlockStep, type Step } from "@village/shared";
 import { NumberInput } from "../characters/fields";
 import { clientConfig } from "../client-config";
 import { hasRollHitBefore, withStepSetting } from "./step-edits";
@@ -20,9 +20,10 @@ export function StepCommonSettings({
   isInRule: boolean;
   onChange: (step: Step) => void;
 }) {
-  const canSetChance = step.step !== "roll_hit";
+  const isMarker = isBlockStep(step);
+  const canSetChance = step.step !== "roll_hit" && !isMarker;
   const canSetEvenOnMiss =
-    !isInRule && (hasRollHitBefore(steps, index) || step.evenOnMiss !== undefined);
+    !isInRule && !isMarker && (hasRollHitBefore(steps, index) || step.evenOnMiss !== undefined);
   if (!canSetChance && !canSetEvenOnMiss) return null;
   return (
     <div className="step-common">

@@ -25,7 +25,8 @@ export function mapMatcherTerms(matcher: Matcher, change: (term: Matcher) => Mat
 
 function mapStepMatchers(step: Step, change: (term: Matcher) => Matcher): Step {
   if ("rule" in step) return { ...step, rule: mapMatcherTerms(step.rule, change) };
-  if (step.step === "check") return { ...step, if: mapMatcherTerms(step.if, change) };
+  if (step.step === "check" || step.step === "if")
+    return { ...step, if: mapMatcherTerms(step.if, change) };
   return step;
 }
 

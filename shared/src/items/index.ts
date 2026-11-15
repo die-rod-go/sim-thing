@@ -4,6 +4,7 @@ export * from "./matcher-schema";
 export * from "./matchers";
 export * from "./value-schema";
 export * from "./step-schema";
+export * from "./step-blocks";
 export * from "./item-file";
 export * from "./entity";
 export * from "./applies-to";

@@ -1986,9 +1986,6 @@
             "has": "food"
           },
           {
-            "has": "laced_poison"
-          },
-          {
             "where": "held"
           }
         ]
@@ -2008,53 +2005,28 @@
           "need": "hunger",
           "amount": {
             "from": "item.food.hunger"
+          }
+        },
+        {
+          "step": "if",
+          "on": "item",
+          "if": {
+            "has": "laced_poison"
           }
         },
         {
           "step": "add",
           "on": "user",
           "component": "poisoned"
-        }
-      ],
-      "phrases": {
-        "ongoing": "eating {item}",
-        "done": "ate {item}",
-        "attempt": "eat {item}"
-      }
-    },
-    {
-      "name": "eat",
-      "appliesTo": {
-        "allOf": [
-          {
-            "has": "food"
-          },
-          {
-            "has": "laced_sleep"
-          },
-          {
+        },
+        {
+          "step": "else"
+        },
+        {
+          "step": "if",
+          "on": "item",
+          "if": {
             "has": "rotten"
-          },
-          {
-            "where": "held"
-          }
-        ]
-      },
-      "steps": [
-        {
-          "step": "destroy",
-          "on": "item"
-        },
-        {
-          "step": "wait",
-          "minutes": 15
-        },
-        {
-          "step": "change_need",
-          "on": "user",
-          "need": "hunger",
-          "amount": {
-            "from": "item.food.hunger"
           }
         },
         {
@@ -2065,49 +2037,13 @@
           "chance": 0.5
         },
         {
-          "step": "sleep",
-          "minutes": 120
-        }
-      ],
-      "phrases": {
-        "ongoing": "eating {item}",
-        "done": "ate {item}",
-        "attempt": "eat {item}"
-      }
-    },
-    {
-      "name": "eat",
-      "appliesTo": {
-        "allOf": [
-          {
-            "has": "food"
-          },
-          {
-            "has": "laced_sleep"
-          },
-          {
+          "step": "else"
+        },
+        {
+          "step": "if",
+          "on": "item",
+          "if": {
             "has": "raw"
-          },
-          {
-            "where": "held"
-          }
-        ]
-      },
-      "steps": [
-        {
-          "step": "destroy",
-          "on": "item"
-        },
-        {
-          "step": "wait",
-          "minutes": 15
-        },
-        {
-          "step": "change_need",
-          "on": "user",
-          "need": "hunger",
-          "amount": {
-            "from": "item.food.hunger"
           }
         },
         {
@@ -2118,179 +2054,27 @@
           "chance": 0.25
         },
         {
-          "step": "sleep",
-          "minutes": 120
-        }
-      ],
-      "phrases": {
-        "ongoing": "eating {item}",
-        "done": "ate {item}",
-        "attempt": "eat {item}"
-      }
-    },
-    {
-      "name": "eat",
-      "appliesTo": {
-        "allOf": [
-          {
-            "has": "food"
-          },
-          {
+          "step": "end_if"
+        },
+        {
+          "step": "end_if"
+        },
+        {
+          "step": "end_if"
+        },
+        {
+          "step": "if",
+          "on": "item",
+          "if": {
             "has": "laced_sleep"
-          },
-          {
-            "where": "held"
-          }
-        ]
-      },
-      "steps": [
-        {
-          "step": "destroy",
-          "on": "item"
-        },
-        {
-          "step": "wait",
-          "minutes": 15
-        },
-        {
-          "step": "change_need",
-          "on": "user",
-          "need": "hunger",
-          "amount": {
-            "from": "item.food.hunger"
           }
         },
         {
           "step": "sleep",
           "minutes": 120
-        }
-      ],
-      "phrases": {
-        "ongoing": "eating {item}",
-        "done": "ate {item}",
-        "attempt": "eat {item}"
-      }
-    },
-    {
-      "name": "eat",
-      "appliesTo": {
-        "allOf": [
-          {
-            "has": "food"
-          },
-          {
-            "has": "rotten"
-          },
-          {
-            "where": "held"
-          }
-        ]
-      },
-      "steps": [
-        {
-          "step": "destroy",
-          "on": "item"
         },
         {
-          "step": "wait",
-          "minutes": 15
-        },
-        {
-          "step": "change_need",
-          "on": "user",
-          "need": "hunger",
-          "amount": {
-            "from": "item.food.hunger"
-          }
-        },
-        {
-          "step": "add",
-          "on": "user",
-          "component": "poisoned",
-          "minutes": 30,
-          "chance": 0.5
-        }
-      ],
-      "phrases": {
-        "ongoing": "eating {item}",
-        "done": "ate {item}",
-        "attempt": "eat {item}"
-      }
-    },
-    {
-      "name": "eat",
-      "appliesTo": {
-        "allOf": [
-          {
-            "has": "food"
-          },
-          {
-            "has": "raw"
-          },
-          {
-            "where": "held"
-          }
-        ]
-      },
-      "steps": [
-        {
-          "step": "destroy",
-          "on": "item"
-        },
-        {
-          "step": "wait",
-          "minutes": 15
-        },
-        {
-          "step": "change_need",
-          "on": "user",
-          "need": "hunger",
-          "amount": {
-            "from": "item.food.hunger"
-          }
-        },
-        {
-          "step": "add",
-          "on": "user",
-          "component": "poisoned",
-          "minutes": 30,
-          "chance": 0.25
-        }
-      ],
-      "phrases": {
-        "ongoing": "eating {item}",
-        "done": "ate {item}",
-        "attempt": "eat {item}"
-      }
-    },
-    {
-      "name": "eat",
-      "appliesTo": {
-        "allOf": [
-          {
-            "has": "food"
-          },
-          {
-            "where": "held"
-          }
-        ]
-      },
-      "steps": [
-        {
-          "step": "destroy",
-          "on": "item"
-        },
-        {
-          "step": "wait",
-          "minutes": 15
-        },
-        {
-          "step": "change_need",
-          "on": "user",
-          "need": "hunger",
-          "amount": {
-            "from": "item.food.hunger"
-          }
+          "step": "end_if"
         }
       ],
       "phrases": {
@@ -2305,9 +2089,6 @@
         "allOf": [
           {
             "has": "drink"
-          },
-          {
-            "has": "laced_poison"
           },
           {
             "where": "held"
@@ -2337,107 +2118,36 @@
           "need": "energy",
           "amount": {
             "from": "item.drink.energy"
+          }
+        },
+        {
+          "step": "if",
+          "on": "item",
+          "if": {
+            "has": "laced_poison"
           }
         },
         {
           "step": "add",
           "on": "user",
           "component": "poisoned"
-        }
-      ],
-      "phrases": {
-        "ongoing": "drinking {item}",
-        "done": "drank {item}",
-        "attempt": "drink {item}"
-      }
-    },
-    {
-      "name": "drink",
-      "appliesTo": {
-        "allOf": [
-          {
-            "has": "drink"
-          },
-          {
+        },
+        {
+          "step": "end_if"
+        },
+        {
+          "step": "if",
+          "on": "item",
+          "if": {
             "has": "laced_sleep"
-          },
-          {
-            "where": "held"
-          }
-        ]
-      },
-      "steps": [
-        {
-          "step": "destroy",
-          "on": "item"
-        },
-        {
-          "step": "wait",
-          "minutes": 15
-        },
-        {
-          "step": "change_need",
-          "on": "user",
-          "need": "fun",
-          "amount": {
-            "from": "item.drink.fun"
-          }
-        },
-        {
-          "step": "change_need",
-          "on": "user",
-          "need": "energy",
-          "amount": {
-            "from": "item.drink.energy"
           }
         },
         {
           "step": "sleep",
           "minutes": 120
-        }
-      ],
-      "phrases": {
-        "ongoing": "drinking {item}",
-        "done": "drank {item}",
-        "attempt": "drink {item}"
-      }
-    },
-    {
-      "name": "drink",
-      "appliesTo": {
-        "allOf": [
-          {
-            "has": "drink"
-          },
-          {
-            "where": "held"
-          }
-        ]
-      },
-      "steps": [
-        {
-          "step": "destroy",
-          "on": "item"
         },
         {
-          "step": "wait",
-          "minutes": 15
-        },
-        {
-          "step": "change_need",
-          "on": "user",
-          "need": "fun",
-          "amount": {
-            "from": "item.drink.fun"
-          }
-        },
-        {
-          "step": "change_need",
-          "on": "user",
-          "need": "energy",
-          "amount": {
-            "from": "item.drink.energy"
-          }
+          "step": "end_if"
         }
       ],
       "phrases": {

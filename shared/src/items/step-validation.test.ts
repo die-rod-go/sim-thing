@@ -489,3 +489,65 @@ describe("the closed supply and verbs", () => {
     );
   });
 });
+
+describe("if blocks", () => {
+  const IF_LIT = { step: "if", on: "item", if: { field: "lamp.lit", equals: true } };
+
+  it("accepts a closed block with an else", () => {
+    const steps = [IF_LIT, { step: "destroy", on: "item" }, { step: "else" }, { step: "end_if" }];
+    expect(errorsOf(inVerb(steps))).toEqual([]);
+  });
+
+  it("rejects an if with no end_if", () => {
+    expect(inVerb([IF_LIT])).toContain(`${VERB_STEP}: This \`if\` needs an \`end_if\` below it.`);
+  });
+
+  it("rejects using a name given inside a block after it closes", () => {
+    const steps = [
+      IF_LIT,
+      { step: "require", in: "item", rule: { has: "lamp" }, as: "wick" },
+      { step: "end_if" },
+      { step: "destroy", on: "wick" },
+    ];
+    expect(inVerb(steps)).toContain(
+      'error: verbs.2 (tinker).steps.3.on: "wick" is named in only one branch of an `if` block, so it may not exist here.',
+    );
+  });
+
+  it("accepts using a name both branches give after the block", () => {
+    const pick = { step: "require", in: "item", rule: { has: "lamp" }, as: "wick" };
+    const steps = [IF_LIT, pick, { step: "else" }, pick, { step: "end_if" }];
+    expect(errorsOf(inVerb([...steps, { step: "destroy", on: "wick" }]))).toEqual([]);
+  });
+
+  it("remembers a transform inside a block after the block closes", () => {
+    const steps = [
+      { step: "require", in: "user", rule: { has: "lamp" }, as: "wick" },
+      IF_LIT,
+      { step: "transform", on: "wick", into: "bread" },
+      { step: "end_if" },
+      { step: "change", on: "item", field: "lamp.glow", by: { from: "wick.lamp.glow" } },
+    ];
+    expect(inVerb(steps)).toContain(
+      "error: verbs.2 (tinker).steps.4.by: Reads wick.lamp.glow, but the step that named it doesn't require the lamp component.",
+    );
+  });
+
+  it("takes loudness on the first wait of either branch", () => {
+    const steps = [
+      IF_LIT,
+      { step: "wait", minutes: 30, loudness: 8 },
+      { step: "else" },
+      { step: "wait", minutes: 5, loudness: 2 },
+      { step: "end_if" },
+    ];
+    expect(errorsOf(inVerb(steps))).toEqual([]);
+  });
+
+  it("rejects a roll_hit inside a block", () => {
+    const steps = [IF_LIT, { step: "roll_hit", chance: 0.5 }, { step: "end_if" }];
+    expect(inVerb(steps, { target: { has: "lamp" } })).toContain(
+      "error: verbs.2 (tinker).steps.1: `roll_hit` can't go inside an `if` block.",
+    );
+  });
+});
