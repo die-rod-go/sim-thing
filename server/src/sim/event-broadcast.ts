@@ -2,6 +2,7 @@ import type { WorldEvent } from "@village/shared";
 import { addConversationSocial } from "../economy/needs";
 import { isTakingPart, recordSpeech } from "../memory/conversation";
 import { fileEvent, type FilingContext } from "../memory/filing";
+import { EMPTY_PERSON_ENTRY } from "../passes/apply-pass";
 import { awarenessFromPerceptions, mergeAwareness } from "../perception/awareness";
 import { perceiveEvent } from "../perception/perceive-event";
 import type { EventPerception } from "../perception/types";
@@ -33,13 +34,25 @@ function buildFilingContext(state: WorldState): FilingContext {
   };
 }
 
-function mergeHeardAwareness(state: WorldState, event: WorldEvent, perceptions: EventPerception[]) {
+/** Every voice is known, so someone heard for the first time gets an empty person entry. */
+function mergeHeardAwareness(
+  state: WorldState,
+  event: WorldEvent,
+  perceptions: EventPerception[],
+  result: TickResult,
+) {
   for (const entry of awarenessFromPerceptions({ event, perceptions })) {
     const perceiver = findAgent(state, entry.perceiverId);
+    const heardId = entry.awareness.agentId;
+    const isFirstHeard = perceiver.people[heardId] === undefined;
     replaceAgent(state, {
       ...perceiver,
       awareness: mergeAwareness(perceiver.awareness, [entry.awareness]),
+      people: isFirstHeard
+        ? { ...perceiver.people, [heardId]: EMPTY_PERSON_ENTRY }
+        : perceiver.people,
     });
+    if (isFirstHeard) markAgentChanged(result, perceiver.id);
   }
 }
 
@@ -122,7 +135,7 @@ export function broadcastEvent(
       .map(toPerceiver),
   );
   const perceived = { event, perceptions };
-  mergeHeardAwareness(state, event, perceptions);
+  mergeHeardAwareness(state, event, perceptions, result);
   if (event.kind === "said") state.conversationLog = recordSpeech(state.conversationLog, perceived);
   for (const filed of fileEvent(perceived, buildFilingContext(state))) {
     appendToStream(state, filed.agentId, filed.text);

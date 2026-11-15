@@ -4,6 +4,7 @@ import { config } from "../config";
 import {
   applySummary,
   beginMidnight,
+  canApplySummary,
   createAgentMemory,
   findDueSummary,
   settleMidnight,
@@ -153,6 +154,16 @@ describe("midnight", () => {
     expect(memory.chronicles).toHaveLength(2);
     expect(memory.daySummary?.text).toBe("The day before.");
     expect(findDueSummary(memory)?.level).toBe("history");
+  });
+
+  it("refuses a day summary that comes back after the midnight steps are over", () => {
+    const memory = settleMidnight(
+      beginMidnight(makeMemory({ chronicles: makeSummaries("chronicle", 2) }), 2),
+    );
+    const dayJob = findDueSummary(memory);
+    if (dayJob?.level !== "daySummary") throw new Error("the day summary should be due");
+    expect(canApplySummary(memory, dayJob)).toBe(true);
+    expect(canApplySummary({ ...memory, midnight: null }, dayJob)).toBe(false);
   });
 
   it("skips the history on the first midnight, when no day summary is outgoing", () => {

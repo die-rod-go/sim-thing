@@ -19,9 +19,6 @@ CREATE TABLE IF NOT EXISTS entities (
   changes TEXT NOT NULL
 );
 
--- The memory store became one record per agent; saves from before it need `make reset`.
-DROP TABLE IF EXISTS memories;
-
 CREATE TABLE IF NOT EXISTS agent_memories (
   agent_id TEXT PRIMARY KEY,
   data TEXT NOT NULL

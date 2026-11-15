@@ -79,6 +79,29 @@ describe("talking and perception", () => {
     expect(sim.agent("mara").currentAction?.kind).toBe("sleep");
   });
 
+  it("gives a sleeper a person entry for someone it only heard", async () => {
+    const sim = createTestSim({
+      agentIds: ["mara", "ilsa"],
+      responder: scriptByAgent({
+        Ilsa: () => decisionReply({ say: "Mara, wake up!", action: "wait", minutes: 240 }),
+        Mara: (request) => keepGoing(request),
+      }),
+    });
+    sim.placeAgent("mara", { x: 3, y: 3 });
+    sim.placeAgent("ilsa", { x: 5, y: 4 });
+    const mara = sim.agent("mara");
+    sim.state.agents[0] = {
+      ...mara,
+      people: {},
+      currentAction: { kind: "sleep", target: "rose cottage bed", verb: "sleep", endsAtTick: null },
+    };
+    const bed = findEntityByLabel(sim.state, "rose cottage bed");
+    sim.state.agentRuntimes.mara!.verbRun = buildRunRecord(sim, "mara", "sleep", bed);
+    await sim.advance(1);
+    expect(sim.agent("mara").awareness.ilsa?.via).toBe("heard");
+    expect(sim.agent("mara").people.ilsa?.whatIThinkOfThem).toBe("");
+  });
+
   it("perception interrupts at most once per cooldown", async () => {
     const sim = createTestSim({
       agentIds: ["mara", "ilsa"],

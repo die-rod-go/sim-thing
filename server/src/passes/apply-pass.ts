@@ -29,7 +29,7 @@ export const EMPTY_PERSON_ENTRY: PersonEntry = {
 
 /**
  * Rewrites the entries of the people the reply names; everyone else is untouched. A name that is
- * no one the agent has an entry for is ignored: only seeing someone makes an entry.
+ * no one the agent has an entry for is ignored: only seeing or hearing someone makes an entry.
  */
 export function applyPeopleReply(
   agent: Agent,

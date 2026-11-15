@@ -2,6 +2,7 @@ import { z } from "zod";
 import type { Agent, AgentMemory, ComponentChanges, Entity, EntityLocation } from "@village/shared";
 import { simRuntimeSchema, type SimRuntime } from "../sim/agent-runtime";
 import type { Database } from "./database";
+import { agentMemorySchema } from "./memory-schema";
 
 /** Everything needed to resume a sim, apart from the map, which is reloaded from its file. */
 export interface SavedWorld {
@@ -48,6 +49,12 @@ function parseSavedAgent(data: string): Agent {
   const parsed: unknown = JSON.parse(data);
   if (!currentAgentFieldsSchema.safeParse(parsed).success) throw new Error(OLD_SAVE_MESSAGE);
   return parsed as Agent;
+}
+
+function parseSavedMemory(data: string): AgentMemory {
+  const parsed = agentMemorySchema.safeParse(JSON.parse(data));
+  if (!parsed.success) throw new Error(OLD_SAVE_MESSAGE, { cause: parsed.error });
+  return parsed.data;
 }
 
 interface EntityRow {
@@ -144,13 +151,12 @@ export function loadWorld(database: Database): SavedWorld | null {
   const entities = (
     database.prepare("SELECT * FROM entities ORDER BY rowid").all() as EntityRow[]
   ).map(toEntity);
-  // Memory rows were written by saveWorld from typed values, so their JSON is trusted.
   const memoryRows = database.prepare("SELECT agent_id, data FROM agent_memories").all() as {
     agent_id: string;
     data: string;
   }[];
   const agentMemories = Object.fromEntries(
-    memoryRows.map((row) => [row.agent_id, JSON.parse(row.data) as AgentMemory]),
+    memoryRows.map((row) => [row.agent_id, parseSavedMemory(row.data)]),
   );
 
   return {

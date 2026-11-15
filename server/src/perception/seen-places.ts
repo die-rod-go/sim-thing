@@ -1,7 +1,7 @@
 import { describeCount, type ItemDefinition, type Position, type SeenPlace } from "@village/shared";
 import { config } from "../config";
 import type { PlaceArea } from "../world/types";
-import { canSee, isSightBlockingTile } from "./sight";
+import { canSee, computeTileDistance, isSightBlockingTile } from "./sight";
 import type { PerceptionWorld } from "./types";
 
 /** How much of a place is in view: any tile of it, and a tile sight passes through. */
@@ -19,9 +19,13 @@ function clampToPlace(position: Position, place: PlaceArea): Position {
 }
 
 /** The place's tiles within sight range, the one nearest the viewer first. */
-function listTilesInRange(place: PlaceArea, viewer: Position, rangeTiles: number): Position[] {
+function listTilesInRange(
+  place: PlaceArea,
+  viewer: Position,
+  nearest: Position,
+  rangeTiles: number,
+): Position[] {
   const reach = Math.floor(rangeTiles);
-  const nearest = clampToPlace(viewer, place);
   const tiles = [nearest];
   const lastX = Math.min(place.x + place.width - 1, viewer.x + reach);
   const lastY = Math.min(place.y + place.height - 1, viewer.y + reach);
@@ -45,8 +49,12 @@ export function sightPlace(
   rangeTiles: number,
   isInsideOnly: boolean,
 ): PlaceSighting {
+  const nearest = clampToPlace(viewer, place);
+  if (computeTileDistance(viewer, nearest) > rangeTiles) {
+    return { isInView: false, isInsideInView: false };
+  }
   let isInView = false;
-  for (const tile of listTilesInRange(place, viewer, rangeTiles)) {
+  for (const tile of listTilesInRange(place, viewer, nearest, rangeTiles)) {
     const isBlocking = isSightBlockingTile(world, tile);
     if (isBlocking && (isInsideOnly || isInView)) continue;
     if (!canSee(world, viewer, tile, rangeTiles)) continue;

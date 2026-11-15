@@ -161,6 +161,12 @@ function advanceMidnightPast(memory: AgentMemory, level: SummaryLevel): AgentMem
   return { ...memory, midnight: { ...midnight, step: nextStep } };
 }
 
+/** False for a day summary or history that came back after the midnight steps were over. */
+export function canApplySummary(memory: AgentMemory, job: SummaryJob): boolean {
+  if (job.level === "episode" || job.level === "chronicle") return true;
+  return memory.midnight !== null;
+}
+
 /**
  * The memory once a summary has come back: exactly the inputs that were sent are removed and the
  * summary takes their place. Anything that arrived while the job ran is kept.

@@ -9,6 +9,7 @@ import {
 import {
   applySummary,
   beginMidnight,
+  canApplySummary,
   findDueCompression,
   findDueDayEnd,
   findDuePass,
@@ -132,6 +133,7 @@ export function createMemoryWork(dependencies: SimDependencies): RunMemoryWork {
       apply: (current) => {
         if (!reply.ok) return false;
         const memory = getAgentMemory(current, agentId);
+        if (!canApplySummary(memory, job)) return false;
         setMemory(current, agentId, settleMidnight(applySummary(memory, job, reply.value.summary)));
         return true;
       },

@@ -169,9 +169,9 @@ form in a day.
   personality history and raise the existing personality and goal moments.
 - Short-term goals should serve the long-term goals and answer what has happened lately. Their
   steps are the plan. Steps and progress change only when the pass runs.
-- **Who has a person entry:** everyone in the agent's seed, and anyone the agent has seen. An
-  entry made on first sight starts with empty fields. Someone only heard about gets an entry when
-  first seen.
+- **Who has a person entry:** everyone in the agent's seed, and anyone the agent has seen or
+  heard. Every voice in the village is known, so hearing someone counts. An entry made this way
+  starts with empty fields. Someone only talked about gets an entry when first seen or heard.
 
 ### Order of work
 

@@ -151,6 +151,14 @@ describe("database repositories", () => {
     expect(() => loadWorld(database)).toThrow(/make reset/);
   });
 
+  it("refuses a saved memory in an older shape and says to reset", () => {
+    saveWorld(database, toSavedWorld(buildWorld(), createDefaultSettings()));
+    database
+      .prepare("INSERT INTO agent_memories (agent_id, data) VALUES (?, ?)")
+      .run("mara", JSON.stringify({ memories: [] }));
+    expect(() => loadWorld(database)).toThrow(/make reset/);
+  });
+
   it("refuses a save from before entities existed and says to reset", () => {
     saveWorld(database, toSavedWorld(buildWorld(), createDefaultSettings()));
     database.prepare("DELETE FROM meta WHERE key = 'nextEntityId'").run();
