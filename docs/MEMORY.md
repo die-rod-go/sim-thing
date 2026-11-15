@@ -47,7 +47,7 @@ Every value lives in the config file, in the block named in the table. None is h
 
 | Setting                         | Value | Chosen by | Meaning                                                  |
 | ------------------------------- | ----- | --------- | -------------------------------------------------------- |
-| `memory.streamMax`              | 60    | owner     | Entries in the stream before an episode is made          |
+| `memory.streamMax`              | 30    | owner     | Entries in the stream before an episode is made          |
 | `memory.streamKeep`             | 5     | owner     | Newest entries left in the stream when an episode forms  |
 | `memory.episodesMax`            | 6     | owner     | Episodes before a chronicle is made                      |
 | `memory.episodesKeep`           | 1     | owner     | Newest episodes left when a chronicle forms              |
@@ -55,13 +55,13 @@ Every value lives in the config file, in the block named in the table. None is h
 | `memory.earlierChroniclesShown` | 1     | owner     | Earlier chronicles the chronicle summarizer sees         |
 | `memory.streamEntryMaxChars`    | 200   | existing  | Length limit of one entry (today's `maxMemoryChars`)     |
 | `memory.episodeMaxChars`        | 345   | owner     | Length limit of an episode                               |
-| `memory.chronicleMaxChars`      | 575   | owner     | Length limit of a chronicle                              |
-| `memory.daySummaryMaxChars`     | 690   | owner     | Length limit of the day summary                          |
-| `memory.historyMaxChars`        | 1150  | owner     | Length limit of the history                              |
+| `memory.chronicleMaxChars`      | 1150  | owner     | Length limit of a chronicle                              |
+| `memory.daySummaryMaxChars`     | 1150  | owner     | Length limit of the day summary                          |
+| `memory.historyMaxChars`        | 1700  | owner     | Length limit of the history                              |
 | `memory.retryAfterTicks`        | 40    | owner     | Wait before retrying a summary or pass that failed       |
-| `people.everyEpisodes`          | 2     | owner     | New episodes between runs of the people pass             |
+| `people.everyEpisodes`          | 3     | owner     | New episodes between runs of the people pass             |
 | `people.fieldMaxChars`          | 200   | owner     | Length limit of each of a person entry's five fields     |
-| `goals.shortTermEveryEpisodes`  | 2     | owner     | New episodes between runs of the short-term goals pass   |
+| `goals.shortTermEveryEpisodes`  | 3     | owner     | New episodes between runs of the short-term goals pass   |
 | `goals.maxShortTerm`            | 3     | owner     | Most short-term goals                                    |
 | `goals.maxSteps`                | 5     | owner     | Most steps per short-term goal                           |
 | `goals.shortTermFieldMaxChars`  | 200   | owner     | Length limit of each short-term goal text                |
@@ -330,7 +330,7 @@ joins an entry to the one directly before it; profession is changed by the ident
 with no chronicles makes no day summary (see [The memory pipeline](#the-memory-pipeline)); the
 cache layout of the decision prompt; the four passes
 go in `llm.reflectionKinds` and the four summaries use the default model; reply token ceilings
-are derived from the length limits (roughly 520, 860, 1040 and 1730 for the four summaries), with
+are derived from the length limits (roughly 520, 1730, 1730 and 2550 for the four summaries), with
 each pass's ceiling sized to its largest possible reply.
 
 ## Build order

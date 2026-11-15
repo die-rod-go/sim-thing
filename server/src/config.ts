@@ -506,9 +506,9 @@ export const config = {
     earlierChroniclesShown: 1,
     /** Length limits the summarizers are asked to keep to; see `llm.replyTextSlack`. */
     episodeMaxChars: 345,
-    chronicleMaxChars: 575,
-    daySummaryMaxChars: 690,
-    historyMaxChars: 1150,
+    chronicleMaxChars: 1150,
+    daySummaryMaxChars: 1150,
+    historyMaxChars: 1700,
     /** Wait before retrying a summary that failed all its attempts. */
     retryAfterTicks: 40,
     /** An agent takes part in a conversation if it spoke within earshot of the speaker this recently. */
@@ -615,9 +615,9 @@ export const config = {
       interact: 500,
       // Each summary's length limit with `replyTextSlack`, at about one token per character.
       episode: 520,
-      chronicle: 860,
-      day_summary: 1040,
-      history: 1730,
+      chronicle: 1730,
+      day_summary: 1730,
+      history: 2550,
       // Each pass's largest possible reply: every text at its limit with the slack. The people
       // pass allows for a village of about a dozen people rewritten at once.
       people: 16000,
