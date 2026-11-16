@@ -20,6 +20,8 @@ export interface LlmStackOptions {
   recordLlmCall: LlmCallSink;
   /** Model for the reflection passes; decisions, interactions and summaries use the client's own. */
   reflectionModel?: string;
+  /** Model for the reality pass; falls back to the reflection model. */
+  realityModel?: string;
   /** For the `fake` provider: what the offline responder needs to know about the items. */
   fakeResponderOptions?: FakeResponderOptions;
   /** Supplies the client directly (tests); otherwise built from the provider. */
@@ -62,6 +64,7 @@ export function buildLlmStack(options: LlmStackOptions): LlmStack {
     recordLlmCall: options.recordLlmCall,
     pause: options.pause,
     reflectionModel: options.reflectionModel,
+    realityModel: options.realityModel,
   });
   return { client, limiter, budget, callStructured };
 }

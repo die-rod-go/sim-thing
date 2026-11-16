@@ -56,6 +56,19 @@ export interface StructuredCallerDependencies {
   pause?: (milliseconds: number) => Promise<void>;
   /** Used instead of the client's model for the reflection passes (`config.llm.reflectionKinds`). */
   reflectionModel?: string;
+  /** Used for the reality pass instead of either; it falls back to the reflection model. */
+  realityModel?: string;
+}
+
+/** The model a call of this kind is sent to; undefined means the client's own. */
+function chooseModel(
+  dependencies: StructuredCallerDependencies,
+  kind: LlmCallKind,
+): string | undefined {
+  if (kind === "reality" && dependencies.realityModel !== undefined) {
+    return dependencies.realityModel;
+  }
+  return config.llm.reflectionKinds.includes(kind) ? dependencies.reflectionModel : undefined;
 }
 
 type AttemptOutcome<Value> =
@@ -212,9 +225,7 @@ export function createStructuredCaller(
 ): StructuredCaller {
   const pause = dependencies.pause ?? pauseFor;
   return async <Value>(request: StructuredCallRequest<Value>) => {
-    const model = config.llm.reflectionKinds.includes(request.kind)
-      ? dependencies.reflectionModel
-      : undefined;
+    const model = chooseModel(dependencies, request.kind);
     let lastError = BUDGET_REACHED_ERROR;
     let rejection: string | null = null;
     const rejectedReplies: RejectedReply[] = [];

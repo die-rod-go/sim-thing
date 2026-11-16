@@ -11,7 +11,12 @@ import { InMemoryTokenUsageStore, TokenBudget } from "../../src/llm/token-budget
 const replySchema = z.object({ answer: z.string() });
 const NOON = new Date(2026, 10, 10, 12, 0, 0);
 
-function setUp(replies: FakeReply[], dailyTokenBudget = 1_000_000, reflectionModel?: string) {
+function setUp(
+  replies: FakeReply[],
+  dailyTokenBudget = 1_000_000,
+  reflectionModel?: string,
+  realityModel?: string,
+) {
   const client = new FakeLlmClient(replies);
   const records: LlmCallDraft[] = [];
   const pauses: number[] = [];
@@ -23,6 +28,7 @@ function setUp(replies: FakeReply[], dailyTokenBudget = 1_000_000, reflectionMod
     budget,
     recordLlmCall: (record) => records.push(record),
     reflectionModel,
+    realityModel,
     pause: async (milliseconds) => {
       pauses.push(milliseconds);
     },
@@ -53,6 +59,28 @@ describe("callStructured with a reflection model", () => {
     }
     expect(client.requests.map((sent) => sent.model)).toEqual(["stronger-model", undefined]);
     expect(records.map((record) => record.model)).toEqual(["stronger-model", "fake-model"]);
+  });
+
+  it("sends the reality pass to its own model, and other reflection calls to theirs", async () => {
+    const { client, callStructured, request } = setUp(
+      ['{"answer":"a"}', '{"answer":"b"}'],
+      1_000_000,
+      "stronger-model",
+      "reality-model",
+    );
+    await callStructured({ ...request, kind: "reality" });
+    await callStructured({ ...request, kind: "people" });
+    expect(client.requests.map((sent) => sent.model)).toEqual(["reality-model", "stronger-model"]);
+  });
+
+  it("sends the reality pass to the reflection model when it has none of its own", async () => {
+    const { client, callStructured, request } = setUp(
+      ['{"answer":"a"}'],
+      1_000_000,
+      "stronger-model",
+    );
+    await callStructured({ ...request, kind: "reality" });
+    expect(client.requests.map((sent) => sent.model)).toEqual(["stronger-model"]);
   });
 });
 

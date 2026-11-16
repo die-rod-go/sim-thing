@@ -16,6 +16,11 @@ export function readReflectionModel(
   return environment.LLM_REFLECTION_MODEL?.trim() || undefined;
 }
 
+/** The model for the reality pass, or undefined to use the reflection model (or `LLM_MODEL`). */
+export function readRealityModel(environment: NodeJS.ProcessEnv = process.env): string | undefined {
+  return environment.LLM_REALITY_MODEL?.trim() || undefined;
+}
+
 /** Reads the LLM settings from the environment; throws naming every missing variable. */
 export function readLlmEnv(environment: NodeJS.ProcessEnv = process.env): LlmEnv {
   const missingVariables = REQUIRED_VARIABLES.filter((name) => !environment[name]?.trim());
