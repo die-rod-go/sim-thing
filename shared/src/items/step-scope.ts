@@ -2,7 +2,7 @@ import { resolveBodyDefaults } from "./applies-to";
 import type { ItemDefinition, Rule, Verb } from "./item-file";
 import type { ValidationContext } from "./item-problems";
 import type { Matcher } from "./matcher-schema";
-import { couldMatchAnyView, listViewsAfterSteps } from "./matcher-validation";
+import { couldMatchAfterSteps } from "./matcher-validation";
 import { listGuaranteedComponents } from "./matchers";
 import type { KnownThings } from "./step-blocks";
 import { findStepAs, type Step } from "./step-schema";
@@ -134,7 +134,7 @@ export function resolveThing(scope: StepScope, name: string): ThingResolution {
 function listBodyViews(scope: StepScope) {
   const { file } = scope.context;
   const body = { definitionId: file.world.agentBody, components: resolveBodyDefaults(file) };
-  return listViewsAfterSteps(file, [{ ...body, where: "here" }, { ...body, where: "self" }, body]);
+  return [{ ...body, where: "here" as const }, { ...body, where: "self" as const }, body];
 }
 
 /** Whether the thing a step names could be an agent's body. A fan-out and the user always could. */
@@ -142,5 +142,8 @@ export function couldReachBody(scope: StepScope, name: string): boolean {
   if (isFanOutName(name)) return true;
   const thing = resolveThing(scope, name);
   if (!thing.ok) return false;
-  return thing.matcher === null || couldMatchAnyView(thing.matcher, listBodyViews(scope));
+  return (
+    thing.matcher === null ||
+    couldMatchAfterSteps(scope.context.file, thing.matcher, listBodyViews(scope))
+  );
 }

@@ -3,7 +3,7 @@ import { parseComponentPath } from "./component-schema";
 import { resolveComponents } from "./components";
 import type { Instinct, InstinctOfKind, ItemDefinition, Verb } from "./item-file";
 import type { ValidationContext } from "./item-problems";
-import { checkMatcher, couldMatchAnyView, listViewsAfterSteps } from "./matcher-validation";
+import { checkMatcher, couldMatchAfterSteps } from "./matcher-validation";
 import { listComparisonReads, listGuaranteedComponents, requiresWhere } from "./matchers";
 
 import { AGENT_ONLY_STEPS } from "./step-schema";
@@ -110,7 +110,7 @@ function checkAppliesToSomething(instinct: Instinct, check: InstinctCheck) {
       components: resolveComponents(file.components, definition, {}),
       where: "self" as const,
     }));
-  if (!couldMatchAnyView(instinct.appliesTo, listViewsAfterSteps(file, views))) {
+  if (!couldMatchAfterSteps(file, instinct.appliesTo, views)) {
     problems.warning(`${check.path}.appliesTo`, "appliesTo matches nothing.");
   }
 }

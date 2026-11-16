@@ -2,7 +2,7 @@ import { listAllVerbViews, matchesAppliesTo, resolveBodyDefaults } from "./appli
 import type { ItemDefinition, Verb } from "./item-file";
 import type { ValidationContext } from "./item-problems";
 import type { ThingView } from "./matchers";
-import { checkMatcher, couldMatchAnyView, listViewsAfterSteps } from "./matcher-validation";
+import { checkMatcher, couldMatchAfterSteps } from "./matcher-validation";
 import { checkSteps, isDamagingBodies } from "./step-validation";
 
 function describeVerbPath(verb: Verb, index: number): string {
@@ -12,8 +12,7 @@ function describeVerbPath(verb: Verb, index: number): string {
 function checkReach(verb: Verb, path: string, context: ValidationContext) {
   const { appliesTo } = verb;
   if (appliesTo === undefined) return;
-  const views = listAllVerbViews(context.file);
-  const couldMatch = couldMatchAnyView(appliesTo, listViewsAfterSteps(context.file, views));
+  const couldMatch = couldMatchAfterSteps(context.file, appliesTo, listAllVerbViews(context.file));
   if (!couldMatch) context.problems.warning(path, "appliesTo matches nothing.");
 }
 
@@ -26,7 +25,7 @@ function checkNotBody(verb: Verb, path: string, context: ValidationContext) {
     components: resolveBodyDefaults(file),
     where: "here",
   };
-  if (couldMatchAnyView(appliesTo, listViewsAfterSteps(file, [body]))) {
+  if (couldMatchAfterSteps(file, appliesTo, [body])) {
     context.problems.error(
       path,
       `appliesTo can match an agent's body ("${file.world.agentBody}"); a verb's item is always an entity.`,

@@ -2,12 +2,11 @@ import {
   describeCount,
   isBareHanded,
   isCreatureDefinition,
-  listAddableComponents,
+  listViewsWithAddedComponentSets,
   listDefinitionViews,
   matchesAppliesTo,
   couldMatchAnyView,
   parseValuePath,
-  resolveComponents,
   type DefinitionValue,
   type ItemCatalog,
   type ItemDefinition,
@@ -156,43 +155,12 @@ function listDefinitionVerbs(catalog: ItemCatalog, views: readonly ThingView[]):
   );
 }
 
-/** Each component steps can add, alone and in pairs: a door closed but not locked, or both. */
-function listAddedComponentSets(catalog: ItemCatalog): string[][] {
-  const addable = listAddableComponents(catalog.file);
-  const pairs = addable.flatMap((first, index) =>
-    addable.slice(index + 1).map((second) => [first, second]),
-  );
-  return [...addable.map((name) => [name]), ...pairs];
-}
-
-/**
- * The views as steps could change them. Adding every component at once would hide verbs that
- * need one without another (`open` needs a door closed and not locked).
- */
-function listChangedViews(
-  catalog: ItemCatalog,
-  views: readonly ThingView[],
-  addedSets: readonly string[][],
-): ThingView[] {
-  return addedSets.flatMap((names) => {
-    const added = resolveComponents(
-      catalog.declarations,
-      { components: Object.fromEntries(names.map((name) => [name, {}])) },
-      {},
-    );
-    return views.map((view) => ({ ...view, components: { ...added, ...view.components } }));
-  });
-}
-
-function buildCatalogEntry(
-  catalog: ItemCatalog,
-  definition: ItemDefinition,
-  addedSets: readonly string[][],
-): CatalogEntry {
+/** The verbs it offers untouched, and once steps have changed it (a closed door offers `open`). */
+function buildCatalogEntry(catalog: ItemCatalog, definition: ItemDefinition): CatalogEntry {
   const views = listDefinitionViews(catalog.file, definition).filter(
     (view) => view.where !== "self",
   );
-  const changedViews = listChangedViews(catalog, views, addedSets);
+  const changedViews = listViewsWithAddedComponentSets(catalog.file, views);
   return {
     definition,
     canBeCarried: views.some((view) => view.where === "held"),
@@ -240,10 +208,9 @@ export function describeWorldCatalog(catalog: ItemCatalog): string {
 
 function buildWorldCatalogText(catalog: ItemCatalog): string {
   const words = config.realityPass.catalog;
-  const addedSets = listAddedComponentSets(catalog);
   const entries = catalog.file.definitions
     .filter((definition) => !isAgentBody(catalog, definition))
-    .map((definition) => buildCatalogEntry(catalog, definition, addedSets));
+    .map((definition) => buildCatalogEntry(catalog, definition));
   const carriedThingVerbs = listCarriedThingVerbs(entries);
   const bareHandedVerbs = [
     ...new Set(catalog.verbs.filter((verb) => isBareHanded(verb)).map((verb) => verb.name)),

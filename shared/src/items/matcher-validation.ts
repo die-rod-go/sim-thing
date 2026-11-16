@@ -1,4 +1,8 @@
-import { listRemovableComponents, listViewsWithAddedComponents } from "./applies-to";
+import {
+  listRemovableComponents,
+  listViewsWithAddedComponents,
+  listViewsWithAddedComponentSets,
+} from "./applies-to";
 import { parseComponentPath } from "./component-schema";
 import type { ItemFile } from "./item-file";
 import type { ValidationContext } from "./item-problems";
@@ -125,4 +129,21 @@ export function listViewsAfterSteps(file: ItemFile, views: readonly ThingView[])
     ),
   }));
   return [...listViewsWithAddedComponents(file, views), ...withoutRemovable];
+}
+
+/**
+ * Whether the matcher could meet one of the views as the sim could leave them. Adding every
+ * component at once hides a matcher that needs one without another (`open` needs a door closed
+ * and not locked), so the views with each one or two added are tried too, but only when nothing
+ * else matched: there are many of them, and the editor validates on every change.
+ */
+export function couldMatchAfterSteps(
+  file: ItemFile,
+  matcher: Matcher,
+  views: readonly ThingView[],
+): boolean {
+  return (
+    couldMatchAnyView(matcher, listViewsAfterSteps(file, views)) ||
+    couldMatchAnyView(matcher, listViewsWithAddedComponentSets(file, views))
+  );
 }

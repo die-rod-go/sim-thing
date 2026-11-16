@@ -108,6 +108,31 @@ export function listViewsWithAddedComponents(
   return views.map((view) => ({ ...view, components: { ...added, ...view.components } }));
 }
 
+/** Each component steps can add, alone and with one other. */
+export function listAddedComponentSets(file: ItemFile): string[][] {
+  const addable = listAddableComponents(file);
+  const pairs = addable.flatMap((first, index) =>
+    addable.slice(index + 1).map((second) => [first, second]),
+  );
+  return [...addable.map((name) => [name]), ...pairs];
+}
+
+/**
+ * The views again, once for each set of added components from `listAddedComponentSets`. Adding
+ * every component at once hides a matcher that needs one without another: `open` needs a door
+ * closed and not locked.
+ */
+export function listViewsWithAddedComponentSets(
+  file: ItemFile,
+  views: readonly ThingView[],
+): ThingView[] {
+  return listAddedComponentSets(file).flatMap((names) => {
+    const components = Object.fromEntries(names.map((name) => [name, {}]));
+    const added = resolveComponents(file.components, { components }, {});
+    return views.map((view) => ({ ...view, components: { ...added, ...view.components } }));
+  });
+}
+
 /** "knife (held)", "person (here)": for validation messages and the editor. */
 export function describeThingView(view: ThingView): string {
   return view.where === undefined ? view.definitionId : `${view.definitionId} (${view.where})`;

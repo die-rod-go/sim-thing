@@ -91,6 +91,26 @@ describe("matchers nothing can match", () => {
     expect(messagesFor(file)).toEqual([]);
   });
 
+  it("doesn't warn about needing one added component without another, like a closed unlocked door", () => {
+    const adding = (name: string, component: string) => ({
+      name,
+      appliesTo: { has: "food" },
+      steps: [{ step: "add", on: "item", component }],
+    });
+    const file = buildFile({
+      verbs: [
+        adding("light", "lamp"),
+        adding("scorch", "burning"),
+        {
+          name: "admire",
+          appliesTo: { allOf: [{ has: "food" }, { has: "lamp" }, { not: { has: "burning" } }] },
+          steps: [],
+        },
+      ],
+    });
+    expect(messagesFor(file)).toEqual([]);
+  });
+
   it("doesn't warn about not-having a component every definition has but a step removes", () => {
     const remover = {
       name: "dim",
