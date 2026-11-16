@@ -1,3 +1,5 @@
+Stupid ai generated readme read at your own risk but the instructions should be correct for the most part.
+
 # Village Sim
 
 A browser-viewable village simulation. A handful of LLM-driven agents walk a 2D tile map, use
