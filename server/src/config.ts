@@ -298,6 +298,8 @@ export const config = {
     eventDescription: "died",
     /** The stream entry for coming upon a body not already known to lie dead. */
     foundBodyEntry: "I found {body} in {place}",
+    /** The stream entry each time a body already known to lie dead comes into view again. */
+    seenBodyEntry: "I saw {body} again in {place}",
     /** Why finding a body gives an urgent decision; `{bodies}` lists the bodies found. */
     foundBodyReason: "I found {bodies}",
     /** How a body someone carries is described; `{holder}` is the carrier as seen. */

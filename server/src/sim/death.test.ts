@@ -41,6 +41,16 @@ function settleReplies(): Promise<void> {
   return new Promise((resolveSettled) => setTimeout(resolveSettled, 0));
 }
 
+/** Busy waiting, inside the interrupt cooldown, with nothing pending: only an urgent flag decides. */
+function waitWithoutInterrupts(sim: TestSim, agentId: string): void {
+  const agent = sim.agent(agentId);
+  const endsAtTick = sim.state.tick + MINUTES_PER_HOUR;
+  replaceAgent(sim.state, { ...agent, currentAction: { kind: "wait", endsAtTick } });
+  const runtime = getAgentRuntime(sim.state, agentId);
+  runtime.pendingDecision = null;
+  runtime.lastInterruptTick = sim.state.tick;
+}
+
 describe("death", () => {
   it("records the killed phrase with the source agent as the cause", async () => {
     const sim = createTestSim({ agentIds: ["mara", "ilsa"], responder: scriptByAgent({}) });
@@ -178,15 +188,14 @@ describe("death", () => {
     applyDamage(contextOf(sim), "mara", { amount: LETHAL, killed: "starved", sourceId: null });
     await sim.advance();
     expect(sim.streamTexts("ilsa").join("\n")).not.toContain("Mara");
-    interruptDuringWait(sim, "ilsa", MINUTES_PER_HOUR);
-    getAgentRuntime(sim.state, "ilsa").lastInterruptTick = sim.state.tick;
+    waitWithoutInterrupts(sim, "ilsa");
     sim.placeAgent("ilsa", NEXT_TO_SQUARE);
     const [result] = await sim.advance();
     expect(sim.streamTexts("ilsa")).toContain("I found Mara's body in the town square");
     expect(result?.decidedAgentIds).toContain("ilsa");
   });
 
-  it("doesn't file a body again once it is known to lie dead", async () => {
+  it("files a known body each time it comes into view, without an urgent decision", async () => {
     const sim = createTestSim({
       agentIds: ["mara", "ilsa"],
       responder: scriptByAgent({ Ilsa: waitLong }),
@@ -198,8 +207,11 @@ describe("death", () => {
     await sim.advance();
     sim.placeAgent("ilsa", OUT_OF_SIGHT_OF_SQUARE);
     await sim.advance();
+    waitWithoutInterrupts(sim, "ilsa");
     sim.placeAgent("ilsa", NEXT_TO_SQUARE);
-    await sim.advance();
+    const [result] = await sim.advance();
+    expect(sim.streamTexts("ilsa")).toContain("I saw Mara's body again in the town square");
     expect(sim.streamTexts("ilsa").join("\n")).not.toContain("I found");
+    expect(result?.decidedAgentIds).not.toContain("ilsa");
   });
 });

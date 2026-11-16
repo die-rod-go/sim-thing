@@ -167,25 +167,27 @@ export function updateSight(context: TickContext): void {
 }
 
 /**
- * Bodies newly in view that the viewer didn't already know lay dead (from `viewer`'s awareness
- * before this tick's sight) go into the stream and give an urgent decision, as seeing a death does.
+ * Every body newly in view goes into the stream. One the viewer didn't already know lay dead (from
+ * `viewer`'s awareness before this tick's sight) also gives an urgent decision, as seeing a death does.
  */
 function noticeBodies(context: TickContext, viewer: Agent, newlyVisibleIds: string[]): void {
   const { state } = context;
-  const foundBodies = newlyVisibleIds
-    .map((otherId) => findAgent(state, otherId))
-    .filter((other) => isDead(other))
-    .filter((other) => viewer.awareness[other.id]?.doing !== config.death.doing);
-  if (foundBodies.length === 0) return;
   const words = config.death;
-  for (const body of foundBodies) {
-    const entry = words.foundBodyEntry
+  const visibleBodies = newlyVisibleIds
+    .map((otherId) => findAgent(state, otherId))
+    .filter((other) => isDead(other));
+  const isKnownDead = (body: Agent) => viewer.awareness[body.id]?.doing === words.doing;
+  for (const body of visibleBodies) {
+    const template = isKnownDead(body) ? words.seenBodyEntry : words.foundBodyEntry;
+    const entry = template
       .split("{body}")
       .join(describeAgentAsSeen(body))
       .split("{place}")
       .join(describePlace(body.place));
     appendToStream(state, viewer.id, entry);
   }
+  const foundBodies = visibleBodies.filter((body) => !isKnownDead(body));
+  if (foundBodies.length === 0) return;
   const bodies = foundBodies.map(describeAgentAsSeen).join(", ");
   const reason = words.foundBodyReason.split("{bodies}").join(bodies);
   requestDecision(getAgentRuntime(state, viewer.id), reason, true);
