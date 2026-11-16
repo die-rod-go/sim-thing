@@ -29,6 +29,7 @@ import type { EventFields } from "./event-factory";
 import type { TickContext } from "./tick-context";
 import { cancelRunningVerb } from "./verb-runner";
 import {
+  appendToStream,
   buildWalkingGridFor,
   findAgent,
   listLivingAgents,
@@ -200,8 +201,28 @@ function deleteEntity(context: TickContext, entityId: string): string | null {
 }
 
 /**
+ * Every living agent hears the viewer's words, wherever they are and even asleep, and decides at
+ * once. It goes straight into each stream rather than through perception: the voice has no
+ * speaker in the world, so there is no one to see, hear from a direction, or talk back to.
+ */
+function speakToAll(context: TickContext, words: string): string | null {
+  const { state, result } = context;
+  const spoken = words.trim();
+  if (spoken === "") return "Say something first";
+  const godWords = config.godMode;
+  const heard = godWords.voiceHeardDescription.split("{words}").join(spoken);
+  for (const agent of listLivingAgents(state)) {
+    appendToStream(state, agent.id, heard);
+    markAgentChanged(result, agent.id);
+    requestDecision(getAgentRuntime(state, agent.id), godWords.voiceDecisionReason, true);
+  }
+  return null;
+}
+
+/**
  * Applies a change the viewer made by hand to the paused world. Whoever sees it happen takes it in
- * as a thing vanishing or appearing; a moved person finds themselves elsewhere and decides anew.
+ * as a thing vanishing or appearing; a moved person finds themselves elsewhere and decides anew;
+ * spoken words reach everyone as a voice from the sky.
  * Returns why nothing was changed, or null once it was.
  */
 export function applyGodAction(context: TickContext, action: GodAction): string | null {
@@ -214,5 +235,7 @@ export function applyGodAction(context: TickContext, action: GodAction): string 
       return moveExistingEntity(context, action.entityId, action.destination);
     case "delete_entity":
       return deleteEntity(context, action.entityId);
+    case "speak":
+      return speakToAll(context, action.words);
   }
 }

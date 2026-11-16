@@ -321,6 +321,10 @@ export const config = {
     movedOwnDescription: "suddenly found myself in {place}",
     /** Why the moved person gets a decision straight away. */
     movedDecisionReason: "I suddenly found myself somewhere else",
+    /** How every living agent files the viewer's words; `{words}` is what was said. */
+    voiceHeardDescription: 'A booming voice from the sky said: "{words}"',
+    /** Why hearing the voice gives an urgent decision. */
+    voiceDecisionReason: "a booming voice spoke from the sky",
   },
 
   conditions: {

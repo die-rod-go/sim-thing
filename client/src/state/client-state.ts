@@ -46,6 +46,8 @@ export interface ClientState {
   agentDetail: AgentDetailMessage | null;
   /** Why the server turned down the last god mode action; null once one went through. */
   godRefusal: string | null;
+  /** The last words spoken from the sky, for the banner; null until something is said. */
+  lastVoice: { words: string; tick: number } | null;
 }
 
 const DEFAULT_MINUTES_PER_TICK = 1;
@@ -69,6 +71,7 @@ export const initialClientState: ClientState = {
   inspectedAgentId: null,
   agentDetail: null,
   godRefusal: null,
+  lastVoice: null,
 };
 
 export function findAgent(state: ClientState, agentId: string | null): Agent | null {

@@ -10,6 +10,8 @@ interface GodPanelProps {
   agentBodyId: string;
   refusal: string | null;
   onPause: () => void;
+  /** Says the words to every living agent, as a voice from the sky. */
+  onSpeak: (words: string) => void;
 }
 
 const TOOL_BUTTONS: { label: string; tool: GodTool }[] = [
@@ -70,13 +72,50 @@ function DefinitionPicker({
   );
 }
 
-/** God mode's tools: pick up and move people and things, place new things, delete them. */
+function SpeakForm({ onSpeak }: { onSpeak: (words: string) => void }) {
+  const [words, setWords] = useState("");
+  const canSpeak = words.trim() !== "";
+  const speak = () => {
+    if (!canSpeak) return;
+    onSpeak(words.trim());
+    setWords("");
+  };
+  return (
+    <form
+      className="god-speak"
+      onSubmit={(event) => {
+        event.preventDefault();
+        speak();
+      }}
+    >
+      <label htmlFor="god-speak-words">Speak to everyone from the sky</label>
+      <textarea
+        id="god-speak-words"
+        placeholder="Words every villager will hear…"
+        value={words}
+        onChange={(event) => setWords(event.target.value)}
+        onKeyDown={(event) => {
+          if (event.key === "Enter" && !event.shiftKey) {
+            event.preventDefault();
+            speak();
+          }
+        }}
+      />
+      <button type="submit" disabled={!canSpeak}>
+        Speak
+      </button>
+    </form>
+  );
+}
+
+/** God mode's tools: pick up and move people and things, place and delete things, speak to all. */
 export function GodPanel({
   godMode,
   itemDefinitions,
   agentBodyId,
   refusal,
   onPause,
+  onSpeak,
 }: GodPanelProps) {
   const { tool, setTool } = godMode;
   const placeable = useMemo(
@@ -131,6 +170,7 @@ export function GodPanel({
               onChoose={(definitionId) => setTool({ kind: "place", definitionId })}
             />
           )}
+          <SpeakForm onSpeak={onSpeak} />
           {refusal !== null && <p className="god-refusal">{refusal}</p>}
         </>
       )}

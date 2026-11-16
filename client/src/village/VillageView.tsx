@@ -10,6 +10,7 @@ import type { Size } from "./camera";
 import { CameraControls } from "./CameraControls";
 import { computeDaylightTint, computeHourOfDay } from "./daylight";
 import { GodPanel } from "./GodPanel";
+import { VoiceBanner } from "./VoiceBanner";
 import { parseThoughtMode, selectVisibleThoughts, type ThoughtMode } from "./thought-bubbles";
 import { useCameraInput } from "./use-camera-input";
 import { useCameraRig } from "./use-camera-rig";
@@ -210,8 +211,10 @@ export function VillageView({
           agentBodyId={state.catalog.world.agentBody}
           refusal={state.godRefusal}
           onPause={() => sendControl({ type: "pause" })}
+          onSpeak={(words) => sendControl({ type: "god_action", action: { kind: "speak", words } })}
         />
       )}
+      <VoiceBanner voice={state.lastVoice} />
       {mapStatus.kind === "loading" && <div className="village-notice">Loading map…</div>}
       {mapStatus.kind === "error" && (
         <div className="village-notice village-notice-error">

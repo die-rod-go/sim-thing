@@ -239,6 +239,19 @@ describe("sim WebSocket server", () => {
     expect(loop.getState().tick).toBe(0);
   });
 
+  it("tells every viewer what was spoken from the sky", async () => {
+    const speaker = await connect();
+    const watcher = await connect();
+    await speaker.waitFor("snapshot");
+    speaker.send({ type: "god_action", action: { kind: "speak", words: " Be kind " } });
+    expect((await speaker.waitFor("god_action_result")).refusal).toBeNull();
+    expect(await watcher.waitFor("voice_spoke")).toEqual({
+      type: "voice_spoke",
+      words: "Be kind",
+      tick: 0,
+    });
+  });
+
   it("refuses god actions while the sim runs", async () => {
     const client = await connect();
     await client.waitFor("snapshot");

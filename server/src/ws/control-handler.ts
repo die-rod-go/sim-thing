@@ -129,6 +129,10 @@ export async function handleClientMessage(
     case "god_action": {
       const refusal = await applyGodActionWhilePaused(context, message.action);
       session.send({ type: "god_action_result", refusal });
+      if (refusal === null && message.action.kind === "speak") {
+        const tick = context.loop.getState().tick;
+        broadcaster.broadcast({ type: "voice_spoke", words: message.action.words.trim(), tick });
+      }
       return;
     }
     case "save_map_file": {

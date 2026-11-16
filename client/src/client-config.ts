@@ -25,6 +25,8 @@ export const clientConfig = {
   village: {
     /** Upper bound on a one-tile move tween so slow speeds don't make agents lag behind. */
     maxMoveTweenMs: 1000,
+    /** How long the banner with the viewer's words from the sky stays up. */
+    voiceBannerLifetimeMs: 8000,
     /** Bubble sizes, gaps and offsets below are in screen pixels; bubbles don't scale with zoom. */
     speechBubbleLifetimeMs: 8000,
     speechBubbleFadeMs: 1500,

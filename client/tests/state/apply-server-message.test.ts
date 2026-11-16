@@ -236,4 +236,13 @@ describe("applyServerMessage catalog", () => {
     expect(Object.keys(state.catalog.declarations)).toEqual(["burning"]);
     expect([...state.catalog.definitionsById.keys()]).toEqual(["door"]);
   });
+
+  it("keeps the last words spoken from the sky for the banner", () => {
+    const state = applyServerMessage(loadedState(), {
+      type: "voice_spoke",
+      words: "Be kind",
+      tick: 42,
+    });
+    expect(state.lastVoice).toEqual({ words: "Be kind", tick: 42 });
+  });
 });

@@ -116,6 +116,8 @@ export function applyServerMessage(state: ClientState, message: ServerMessage): 
     }
     case "god_action_result":
       return { ...state, godRefusal: message.refusal };
+    case "voice_spoke":
+      return { ...state, lastVoice: { words: message.words, tick: message.tick } };
     case "seed_file":
     case "seed_file_saved":
     case "item_file":

@@ -49,6 +49,8 @@ export const godActionSchema = z.discriminatedUnion("kind", [
     destination: godDestinationSchema,
   }),
   z.object({ kind: z.literal("delete_entity"), entityId: z.string() }),
+  /** Words every living agent hears from the sky. */
+  z.object({ kind: z.literal("speak"), words: z.string() }),
 ]);
 
 export type GodAction = z.infer<typeof godActionSchema>;
@@ -242,6 +244,13 @@ export interface GodActionResultMessage {
   refusal: string | null;
 }
 
+/** Broadcast when the viewer spoke from the sky, so every viewer sees what the village heard. */
+export interface VoiceSpokeMessage {
+  type: "voice_spoke";
+  words: string;
+  tick: number;
+}
+
 export type ServerMessage =
   | SnapshotMessage
   | TickMessage
@@ -261,7 +270,8 @@ export type ServerMessage =
   | ItemFileSavedMessage
   | MapFileMessage
   | MapFileSavedMessage
-  | GodActionResultMessage;
+  | GodActionResultMessage
+  | VoiceSpokeMessage;
 
 export const SERVER_MESSAGE_TYPES = [
   "snapshot",
@@ -283,6 +293,7 @@ export const SERVER_MESSAGE_TYPES = [
   "map_file",
   "map_file_saved",
   "god_action_result",
+  "voice_spoke",
 ] as const satisfies readonly ServerMessage["type"][];
 
 const serverEnvelopeSchema = z.looseObject({ type: z.enum(SERVER_MESSAGE_TYPES) });

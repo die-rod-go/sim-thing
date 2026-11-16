@@ -10,6 +10,7 @@ import {
   BESIDE_SQUARE,
   buildCombatSim,
   contextOf,
+  killAgent,
   memoryTexts,
   NEXT_TO_SQUARE,
   place,
@@ -153,5 +154,37 @@ describe("god mode: entities", () => {
     expect(findEntityIfPresent(sim.state, chest.id)).toBeUndefined();
     expect(findEntityIfPresent(sim.state, knife.id)).toBeUndefined();
     expect(context.result.removedEntityIds).toEqual([chest.id, knife.id]);
+  });
+});
+
+describe("god mode: speaking from the sky", () => {
+  it("is heard word for word by everyone alive, however far apart, who decide at once", () => {
+    const sim = buildCombatSim();
+    place(sim, { mara: SQUARE, tobias: COTTAGE });
+    const refusal = applyGodAction(contextOf(sim), { kind: "speak", words: "  Repent!  " });
+    expect(refusal).toBeNull();
+    for (const agentId of ["mara", "tobias"]) {
+      expect(memoryTexts(sim, agentId)).toContain('A booming voice from the sky said: "Repent!"');
+      expect(getAgentRuntime(sim.state, agentId).pendingDecision).toEqual({
+        reason: "a booming voice spoke from the sky",
+        isUrgent: true,
+      });
+    }
+  });
+
+  it("is not heard by the dead", () => {
+    const sim = buildCombatSim();
+    place(sim, { mara: SQUARE, tobias: NEXT_TO_SQUARE });
+    killAgent(sim, "tobias");
+    const before = memoryTexts(sim, "tobias");
+    applyGodAction(contextOf(sim), { kind: "speak", words: "Hello" });
+    expect(memoryTexts(sim, "tobias")).toEqual(before);
+  });
+
+  it("refuses to say nothing", () => {
+    const sim = buildCombatSim();
+    const refusal = applyGodAction(contextOf(sim), { kind: "speak", words: "   " });
+    expect(refusal).not.toBeNull();
+    expect(getAgentRuntime(sim.state, "mara").pendingDecision).toBeNull();
   });
 });
