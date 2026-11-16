@@ -162,6 +162,11 @@ function summarizeReply(
       return summarizeGoals(fields);
     case "identity":
       return summarizeIdentity(fields);
+    case "reality":
+      return {
+        headline: readText(fields, "thought"),
+        parts: part("noticed", readText(fields, "noticed")),
+      };
     case "interact":
       return summarizeOther(fields);
   }

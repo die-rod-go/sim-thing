@@ -14,6 +14,7 @@ import {
   findDueDayEnd,
   findDuePass,
   markPassDone,
+  oweShortTermGoalsPass,
   settleMidnight,
   type PassName,
   type SummaryJob,
@@ -23,6 +24,7 @@ import {
   applyLongTermGoalsReply,
   applyPeopleReply,
   applyShortTermGoalsReply,
+  describeRealityThought,
 } from "../passes/apply-pass";
 import {
   buildPassPrompt,
@@ -35,6 +37,7 @@ import { buildHeldKnowledge } from "./held-knowledge";
 import { buildGoalMoments, buildPersonalityMoments, recordMoments } from "./moments";
 import type { SimDependencies } from "./tick-context";
 import {
+  appendToStream,
   findAgent,
   getAgentMemory,
   listLivingAgents,
@@ -97,6 +100,12 @@ function applyPassReply<Pass extends PassName>(
     for (const change of identity.changes) dependencies.recordPersonalityChange?.(change);
     recordMoments(state, result, buildPersonalityMoments(agent, identity.changes));
   }
+  if (replies.reality) {
+    const thought = describeRealityThought(replies.reality);
+    if (thought === null) return;
+    appendToStream(state, agentId, thought);
+    setMemory(state, agentId, oweShortTermGoalsPass(getAgentMemory(state, agentId)));
+  }
 }
 
 /**
@@ -150,6 +159,7 @@ export function createMemoryWork(dependencies: SimDependencies): RunMemoryWork {
       pass,
       agent,
       buildHeldKnowledge(state, agent),
+      { items: state.items, placeNames: state.map.places.map((place) => place.name) },
       dependencies.promptsDirectory,
     );
     const reply = await dependencies.callStructured({

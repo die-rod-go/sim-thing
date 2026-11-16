@@ -130,6 +130,7 @@ on the entity: no creature settings in the config, and no creature state kept by
 | person entry    | What the agent holds about one person it knows: five written fields                   |
 | long-term goal  | A goal with a reason and progress, rewritten when a chronicle forms                   |
 | short-term goal | A goal with a reason, steps and progress, rewritten every few episodes                |
+| reality pass    | A pass that checks the agent against the world's rules and may give it one thought    |
 | awareness       | The structured record of when each other agent was last perceived                     |
 | earshot         | Whether the sound simulation lets a listener hear a sound                             |
 | seen place      | A place the agent has seen, with the entities it held when last looked into           |

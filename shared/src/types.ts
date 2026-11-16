@@ -215,6 +215,7 @@ export interface AgentMemory {
 export interface PassProgress {
   episodesSincePeople: number;
   episodesSinceShortTermGoals: number;
+  episodesSinceReality: number;
   /** True until the first short-term goals pass has run. */
   isFirstShortTermGoalsOwed: boolean;
   /** A chronicle has formed since the identity pass last ran. */
@@ -316,7 +317,8 @@ export type LlmCallKind =
   | "people"
   | "short_term_goals"
   | "identity"
-  | "long_term_goals";
+  | "long_term_goals"
+  | "reality";
 
 /** The prompt is plain text; lines starting with "## " open a section the prompt viewer can collapse. */
 export interface LlmCallRecord {

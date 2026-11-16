@@ -27,6 +27,7 @@ export function createAgentMemory(day: number): AgentMemory {
     passes: {
       episodesSincePeople: 0,
       episodesSinceShortTermGoals: 0,
+      episodesSinceReality: 0,
       isFirstShortTermGoalsOwed: true,
       isIdentityOwed: false,
       isLongTermGoalsOwed: false,
@@ -183,6 +184,7 @@ export function applySummary(memory: AgentMemory, job: SummaryJob, text: string)
           ...memory.passes,
           episodesSincePeople: memory.passes.episodesSincePeople + 1,
           episodesSinceShortTermGoals: memory.passes.episodesSinceShortTermGoals + 1,
+          episodesSinceReality: memory.passes.episodesSinceReality + 1,
         },
       },
       "episode",
@@ -215,18 +217,32 @@ export function applySummary(memory: AgentMemory, job: SummaryJob, text: string)
   return finishMidnight({ ...memory, history: summary }, midnight);
 }
 
-export type PassName = "identity" | "longTermGoals" | "people" | "shortTermGoals";
+export type PassName = "identity" | "longTermGoals" | "people" | "reality" | "shortTermGoals";
 
-/** The next pass the agent owes, from slowest-changing to fastest. Null when none is due. */
+/**
+ * The next pass the agent owes, from slowest-changing to fastest. Null when none is due. The
+ * reality pass comes just before the short-term goals pass, so plans can take up its thought.
+ */
 export function findDuePass(memory: AgentMemory): PassName | null {
   const { passes } = memory;
   if (passes.isIdentityOwed) return "identity";
   if (passes.isLongTermGoalsOwed) return "longTermGoals";
   if (passes.episodesSincePeople >= config.people.everyEpisodes) return "people";
+  if (passes.episodesSinceReality >= config.realityPass.everyEpisodes) return "reality";
   const isShortTermDue =
     passes.isFirstShortTermGoalsOwed ||
     passes.episodesSinceShortTermGoals >= config.goals.shortTermEveryEpisodes;
   return isShortTermDue ? "shortTermGoals" : null;
+}
+
+/** The short-term goals pass is owed now rather than after the usual number of episodes. */
+export function oweShortTermGoalsPass(memory: AgentMemory): AgentMemory {
+  const { passes } = memory;
+  const episodesSinceShortTermGoals = Math.max(
+    passes.episodesSinceShortTermGoals,
+    config.goals.shortTermEveryEpisodes,
+  );
+  return { ...memory, passes: { ...passes, episodesSinceShortTermGoals } };
 }
 
 /**
@@ -234,15 +250,8 @@ export function findDuePass(memory: AgentMemory): PassName | null {
  * changes everything can change the plans at once instead of hours later.
  */
 export function oweGoalsPasses(memory: AgentMemory): AgentMemory {
-  const { passes } = memory;
-  const episodesSinceShortTermGoals = Math.max(
-    passes.episodesSinceShortTermGoals,
-    config.goals.shortTermEveryEpisodes,
-  );
-  return {
-    ...memory,
-    passes: { ...passes, isLongTermGoalsOwed: true, episodesSinceShortTermGoals },
-  };
+  const owed = oweShortTermGoalsPass(memory);
+  return { ...owed, passes: { ...owed.passes, isLongTermGoalsOwed: true } };
 }
 
 /** The memory once a pass has run: that pass is no longer owed. */
@@ -255,6 +264,8 @@ export function markPassDone(memory: AgentMemory, pass: PassName): AgentMemory {
       return { ...memory, passes: { ...passes, isLongTermGoalsOwed: false } };
     case "people":
       return { ...memory, passes: { ...passes, episodesSincePeople: 0 } };
+    case "reality":
+      return { ...memory, passes: { ...passes, episodesSinceReality: 0 } };
     case "shortTermGoals":
       return {
         ...memory,

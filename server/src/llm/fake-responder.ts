@@ -90,6 +90,7 @@ function buildBuiltInAnswers(hitRollVerbs: ReadonlySet<string>): Record<string, 
       core: null,
       selfImage: null,
     }),
+    reality_reply: () => ({ noticed: "", thought: null }),
     long_term_goals_reply: () => ({
       goals: [{ goal: "Keep my work going", reason: "It is my living", progress: "Steady." }],
     }),

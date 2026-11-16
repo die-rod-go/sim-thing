@@ -128,6 +128,7 @@ export const DEFAULT_PASS_REPLIES: Record<string, unknown> = {
     core: null,
     selfImage: null,
   },
+  [findPassSchemaName("reality")]: { noticed: "", thought: null },
 };
 
 /**

@@ -29,6 +29,7 @@ const midnightProgressSchema = z.object({
 const passProgressSchema = z.object({
   episodesSincePeople: z.number().int().nonnegative(),
   episodesSinceShortTermGoals: z.number().int().nonnegative(),
+  episodesSinceReality: z.number().int().nonnegative(),
   isFirstShortTermGoalsOwed: z.boolean(),
   isIdentityOwed: z.boolean(),
   isLongTermGoalsOwed: z.boolean(),

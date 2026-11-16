@@ -39,6 +39,7 @@ function makeDetail(agentId: string): AgentDetailMessage {
       passes: {
         episodesSincePeople: 0,
         episodesSinceShortTermGoals: 0,
+        episodesSinceReality: 0,
         isFirstShortTermGoalsOwed: false,
         isIdentityOwed: false,
         isLongTermGoalsOwed: false,

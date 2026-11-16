@@ -597,6 +597,33 @@ export const config = {
     noShortTermText: "No short-term goals yet.",
   },
 
+  realityPass: {
+    /** New episodes between runs of the reality pass. */
+    everyEpisodes: 2,
+    /** Length limit of the thought it gives the agent; see `llm.replyTextSlack`. */
+    thoughtMaxChars: 400,
+    /** Length limit of its note for the prompt viewer, which the agent never sees. */
+    noticedMaxChars: 300,
+    /** How the thought enters the agent's stream, in the agent's own voice. */
+    thoughtStreamText: "It dawned on me: {thought}",
+    placeJoiner: ", ",
+    /** How `items.json` reads in the prompt: each thing with the verbs a person can use on it. */
+    catalog: {
+      thingWithVerbs: "{name}: {verbs}",
+      creatureName: "{name} (an animal)",
+      verbWithDetails: "{verb} ({details})",
+      needsText: "needs {things}",
+      usesText: "uses {things}",
+      makesText: "makes {things}",
+      carriedThings: "Anything that can be carried can also be used with: {verbs}",
+      bareHanded: "Done bare-handed, at someone or something: {verbs}",
+      verbJoiner: "; ",
+      partJoiner: "; ",
+      listJoiner: ", ",
+      alternativesJoiner: " or ",
+    },
+  },
+
   decision: {
     /**
      * The running sim lets the clock go on while an agent interrupted mid-action decides; idle
@@ -655,9 +682,16 @@ export const config = {
       short_term_goals: 6500,
       identity: 3000,
       long_term_goals: 6000,
+      reality: 1500,
     },
     /** Calls of these kinds use `LLM_REFLECTION_MODEL` when it is set. */
-    reflectionKinds: ["people", "short_term_goals", "identity", "long_term_goals"] as LlmCallKind[],
+    reflectionKinds: [
+      "people",
+      "short_term_goals",
+      "identity",
+      "long_term_goals",
+      "reality",
+    ] as LlmCallKind[],
     dailyTokenBudget: 100_000_000,
     /**
      * Tries per call, the first included. A rejected reply (bad JSON, failed validation, too long)

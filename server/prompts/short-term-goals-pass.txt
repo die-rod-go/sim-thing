@@ -1,3 +1,5 @@
+You are {{name}}. Below is everything you remember and hold, and after it a question.
+
 {{context}}
 ## The question: your short-term goals
 Decide what you are trying to get done over the coming hours. Your short-term goals should serve your long-term goals and answer what has happened lately. Each has steps: the plan you will follow, in order.

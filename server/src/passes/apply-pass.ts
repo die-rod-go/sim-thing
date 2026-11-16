@@ -12,6 +12,7 @@ import type {
   IdentityReply,
   LongTermGoalsReply,
   PeopleReply,
+  RealityReply,
   ShortTermGoalsReply,
 } from "./pass-prompts";
 
@@ -47,6 +48,13 @@ export function applyPeopleReply(
     people[personId] = entry;
   }
   return { ...agent, people };
+}
+
+/** The stream entry the reality pass's thought becomes; null when it chose to say nothing. */
+export function describeRealityThought(reply: RealityReply): string | null {
+  const thought = reply.thought?.trim() ?? "";
+  if (thought.length === 0) return null;
+  return config.realityPass.thoughtStreamText.split("{thought}").join(thought);
 }
 
 export function applyShortTermGoalsReply(agent: Agent, reply: ShortTermGoalsReply): Agent {

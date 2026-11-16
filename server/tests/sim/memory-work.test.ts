@@ -5,7 +5,6 @@ import {
   createTestSim,
   decisionReply,
   DEFAULT_SUMMARY,
-  promptOf,
   scriptByAgent,
 } from "../../src/sim/test-sim";
 import { appendToStream, getAgentMemory } from "../../src/sim/world-access";
@@ -102,7 +101,9 @@ describe("memory work", () => {
     await sim.advance();
     fillStream(sim, "mara", streamMax);
     await sim.advance();
-    const prompts = sim.client.requests.map(promptOf).filter((prompt) => prompt.includes("fade"));
+    const prompts = sim.records
+      .filter((record) => record.kind === "episode")
+      .map((record) => record.prompt);
     expect(prompts).toHaveLength(2);
     expect(prompts[0]).toContain(config.memory.noEarlierText);
     expect(prompts[1]).toContain(DEFAULT_SUMMARY);

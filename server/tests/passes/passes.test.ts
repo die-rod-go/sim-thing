@@ -7,6 +7,7 @@ import {
   findDuePass,
   markPassDone,
   oweGoalsPasses,
+  oweShortTermGoalsPass,
 } from "../../src/memory/summaries";
 import {
   createTestSim,
@@ -19,6 +20,7 @@ import { getAgentMemory, replaceAgent } from "../../src/sim/world-access";
 import {
   applyIdentityReply,
   applyPeopleReply,
+  describeRealityThought,
   EMPTY_PERSON_ENTRY,
 } from "../../src/passes/apply-pass";
 import { buildPassReplySchema, findPassSchemaName } from "../../src/passes/pass-prompts";
@@ -73,6 +75,41 @@ describe("what is due", () => {
       memory = markPassDone(memory, pass);
     }
     expect(order).toEqual(["longTermGoals", "shortTermGoals"]);
+  });
+
+  it("owes the reality pass after enough new episodes, just before the short-term goals pass", () => {
+    const passes = {
+      ...settled.passes,
+      episodesSinceReality: config.realityPass.everyEpisodes,
+      episodesSinceShortTermGoals: config.goals.shortTermEveryEpisodes,
+    };
+    const order: string[] = [];
+    let memory = { ...settled, passes };
+    for (let pass = findDuePass(memory); pass !== null; pass = findDuePass(memory)) {
+      order.push(pass);
+      memory = markPassDone(memory, pass);
+    }
+    expect(order).toEqual(["reality", "shortTermGoals"]);
+  });
+
+  it("owes only the short-term goals pass when told to", () => {
+    const memory = oweShortTermGoalsPass(settled);
+    expect(findDuePass(memory)).toBe("shortTermGoals");
+    expect(findDuePass(markPassDone(memory, "shortTermGoals"))).toBeNull();
+  });
+});
+
+describe("describeRealityThought", () => {
+  it("files the thought in the agent's own voice", () => {
+    const text = describeRealityThought({ noticed: "", thought: " Nobody can see a bite. " });
+    expect(text).toBe(
+      config.realityPass.thoughtStreamText.split("{thought}").join("Nobody can see a bite."),
+    );
+  });
+
+  it("files nothing when the pass chose to say nothing", () => {
+    expect(describeRealityThought({ noticed: "Doing fine.", thought: null })).toBeNull();
+    expect(describeRealityThought({ noticed: "", thought: "  " })).toBeNull();
   });
 });
 
@@ -180,6 +217,13 @@ describe("pass reply schemas", () => {
     });
     expect(parsed.people).toEqual([{ person: "Ilsa", whatIThinkOfThem: "Fair." }]);
   });
+
+  it("accepts a reality reply that says nothing and rejects a thought well past its limit", () => {
+    const { schema } = buildPassReplySchema("reality");
+    expect(schema.safeParse({ noticed: "", thought: null }).success).toBe(true);
+    const tooLong = "x".repeat(config.realityPass.thoughtMaxChars * 2);
+    expect(schema.safeParse({ noticed: "", thought: tooLong }).success).toBe(false);
+  });
 });
 
 describe("passes in the sim", () => {
@@ -281,6 +325,60 @@ describe("passes in the sim", () => {
       isIdentityOwed: false,
       isLongTermGoalsOwed: false,
     });
+  });
+
+  function createRealitySim(thought: string | null) {
+    const sim = createTestSim({
+      agentIds: ["mara"],
+      responder: (request) => {
+        const schemaName = request.schemaName ?? "";
+        if (schemaName === findPassSchemaName("reality")) {
+          return JSON.stringify({ noticed: "Checking arms for marks.", thought });
+        }
+        const passReply = DEFAULT_PASS_REPLIES[schemaName];
+        if (passReply !== undefined) return JSON.stringify(passReply);
+        return decisionReply({ action: "wait", minutes: config.decision.maxWaitMinutes });
+      },
+    });
+    const memory = getAgentMemory(sim.state, "mara");
+    sim.state.agentMemories.mara = {
+      ...memory,
+      passes: { ...memory.passes, episodesSinceReality: config.realityPass.everyEpisodes },
+    };
+    return sim;
+  }
+
+  function listPassKinds(sim: ReturnType<typeof createTestSim>): string[] {
+    return sim.records.map((record) => record.kind).filter((kind) => kind !== "decision");
+  }
+
+  it("files the reality pass's thought in the stream, then rewrites the short-term goals", async () => {
+    const sim = createRealitySim("Nobody can see a bite under a sleeve.");
+    await sim.advance();
+    expect(listPassKinds(sim)).toEqual(["reality", "short_term_goals"]);
+    expect(sim.streamTexts("mara")).toContain(
+      describeRealityThought({ noticed: "", thought: "Nobody can see a bite under a sleeve." }),
+    );
+    const passes = getAgentMemory(sim.state, "mara").passes;
+    expect(passes.episodesSinceReality).toBe(0);
+  });
+
+  it("gives the reality pass the world's rules and places, and no one else's opening", async () => {
+    const sim = createRealitySim(null);
+    await sim.advance();
+    const prompt = sim.records.find((record) => record.kind === "reality")?.prompt ?? "";
+    expect(prompt).toContain("- chopping block: cut planks (uses 1 wood; makes 2 planks)");
+    expect(prompt).toContain(sim.state.map.places[0]?.name ?? "no place");
+    expect(prompt).not.toContain(`You are ${sim.agent("mara").name}.`);
+    expect(prompt).toContain("## Just now");
+  });
+
+  it("files nothing and owes nothing when the reality pass says nothing", async () => {
+    const sim = createRealitySim(null);
+    const streamBefore = sim.streamTexts("mara");
+    await sim.advance();
+    expect(listPassKinds(sim)).toEqual(["reality"]);
+    expect(sim.streamTexts("mara")).toEqual(streamBefore);
   });
 
   it("leaves a failed pass owed and tries it again later", async () => {
