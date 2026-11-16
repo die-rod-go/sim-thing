@@ -2,6 +2,7 @@ export * from "./component-schema";
 export * from "./components";
 export * from "./matcher-schema";
 export * from "./matchers";
+export { couldMatchAnyView } from "./matcher-validation";
 export * from "./value-schema";
 export * from "./step-schema";
 export * from "./step-blocks";

@@ -33,6 +33,14 @@ describe("describeWorldCatalog", () => {
     expect(catalogLines.at(-1)).toBe("Done bare-handed, at someone or something: bury; punch");
   });
 
+  it("offers verbs a thing gains once changed, like opening a door that is closed but not locked", () => {
+    expect(findLine("door")).toBe("- door: open; close; lock (needs a key); unlock (needs a key)");
+  });
+
+  it("leaves out verbs nothing could ever be used with", () => {
+    expect(findLine("bread")).not.toContain("unlock");
+  });
+
   it("leaves out the agent body", () => {
     expect(catalogLines.some((line) => line.startsWith("- person"))).toBe(false);
   });

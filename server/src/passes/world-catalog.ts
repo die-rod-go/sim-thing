@@ -2,11 +2,12 @@ import {
   describeCount,
   isBareHanded,
   isCreatureDefinition,
+  listAddableComponents,
   listDefinitionViews,
-  listViewsWithAddedComponents,
   matchesAppliesTo,
-  matchesThing,
+  couldMatchAnyView,
   parseValuePath,
+  resolveComponents,
   type DefinitionValue,
   type ItemCatalog,
   type ItemDefinition,
@@ -58,13 +59,18 @@ function isAgentBody(catalog: ItemCatalog, definition: ItemDefinition): boolean 
   return definition.id === catalog.world.agentBody;
 }
 
-/** Definitions a person could carry that the matcher accepts: what a `require` or `use_up` takes. */
+/**
+ * Definitions a person could carry that the matcher could accept: what a `require` or `use_up`
+ * takes. Field comparisons count as met, since only a run knows their values (the key whose id
+ * matches this lock).
+ */
 function listCarriedMatches(catalog: ItemCatalog, rule: Matcher): ItemDefinition[] {
   return catalog.file.definitions.filter(
     (definition) =>
       !isAgentBody(catalog, definition) &&
-      listDefinitionViews(catalog.file, definition).some(
-        (view) => view.where === "held" && matchesThing(rule, view),
+      couldMatchAnyView(
+        rule,
+        listDefinitionViews(catalog.file, definition).filter((view) => view.where === "held"),
       ),
   );
 }
@@ -150,11 +156,43 @@ function listDefinitionVerbs(catalog: ItemCatalog, views: readonly ThingView[]):
   );
 }
 
-function buildCatalogEntry(catalog: ItemCatalog, definition: ItemDefinition): CatalogEntry {
+/** Each component steps can add, alone and in pairs: a door closed but not locked, or both. */
+function listAddedComponentSets(catalog: ItemCatalog): string[][] {
+  const addable = listAddableComponents(catalog.file);
+  const pairs = addable.flatMap((first, index) =>
+    addable.slice(index + 1).map((second) => [first, second]),
+  );
+  return [...addable.map((name) => [name]), ...pairs];
+}
+
+/**
+ * The views as steps could change them. Adding every component at once would hide verbs that
+ * need one without another (`open` needs a door closed and not locked).
+ */
+function listChangedViews(
+  catalog: ItemCatalog,
+  views: readonly ThingView[],
+  addedSets: readonly string[][],
+): ThingView[] {
+  return addedSets.flatMap((names) => {
+    const added = resolveComponents(
+      catalog.declarations,
+      { components: Object.fromEntries(names.map((name) => [name, {}])) },
+      {},
+    );
+    return views.map((view) => ({ ...view, components: { ...added, ...view.components } }));
+  });
+}
+
+function buildCatalogEntry(
+  catalog: ItemCatalog,
+  definition: ItemDefinition,
+  addedSets: readonly string[][],
+): CatalogEntry {
   const views = listDefinitionViews(catalog.file, definition).filter(
     (view) => view.where !== "self",
   );
-  const changedViews = listViewsWithAddedComponents(catalog.file, views);
+  const changedViews = listChangedViews(catalog, views, addedSets);
   return {
     definition,
     canBeCarried: views.some((view) => view.where === "held"),
@@ -190,12 +228,22 @@ function describeEntry(
     : `- ${fillText(words.thingWithVerbs, { name, verbs: verbs.join(words.verbJoiner) })}`;
 }
 
+/** `items.json` is fixed for a run, so each catalog is described once. */
+const describedCatalogs = new WeakMap<ItemCatalog, string>();
+
 /** One line per definition a person can meet, then the verbs any carried thing and bare hands offer. */
 export function describeWorldCatalog(catalog: ItemCatalog): string {
+  const described = describedCatalogs.get(catalog) ?? buildWorldCatalogText(catalog);
+  describedCatalogs.set(catalog, described);
+  return described;
+}
+
+function buildWorldCatalogText(catalog: ItemCatalog): string {
   const words = config.realityPass.catalog;
+  const addedSets = listAddedComponentSets(catalog);
   const entries = catalog.file.definitions
     .filter((definition) => !isAgentBody(catalog, definition))
-    .map((definition) => buildCatalogEntry(catalog, definition));
+    .map((definition) => buildCatalogEntry(catalog, definition, addedSets));
   const carriedThingVerbs = listCarriedThingVerbs(entries);
   const bareHandedVerbs = [
     ...new Set(catalog.verbs.filter((verb) => isBareHanded(verb)).map((verb) => verb.name)),
