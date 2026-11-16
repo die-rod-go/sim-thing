@@ -114,6 +114,13 @@ export interface HeldKnowledge {
   people: KnownPerson[];
 }
 
+/** What someone in reach is offering the agent, waiting for its answer. */
+export interface OfferSummary {
+  giverName: string;
+  /** "3 coins", "a knife". */
+  itemText: string;
+}
+
 /** Everything step 1 of a decision puts in front of the agent. Filled by the tick loop. */
 export interface DecisionContext extends HeldKnowledge {
   name: string;
@@ -143,6 +150,7 @@ export interface DecisionContext extends HeldKnowledge {
   /** What flagged this decision, in the agent's own words ("my hunger"), or null. */
   decisionReason: string | null;
   lastFailure: string | null;
+  offer: OfferSummary | null;
   validTargets: DecisionTargets;
   validItems: ValidItem[];
   /** Things the agent can see into that hold something: what `from` may name. */

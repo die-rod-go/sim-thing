@@ -218,25 +218,6 @@ describe("decision loop", () => {
     expect(sim.agent("mara").currentAction).toMatchObject({ verb: "bake bread" });
   });
 
-  it("a give between adjacent agents moves coin entities and both remember it", async () => {
-    const sim = createTestSim({
-      agentIds: ["mara", "ilsa"],
-      responder: scriptByAgent({
-        Mara: (_request, callIndex) =>
-          callIndex === 0
-            ? decisionReply({ action: "give", target: "Ilsa", item: "coins", amount: 3 })
-            : undefined,
-      }),
-    });
-    sim.placeAgent("mara", SQUARE);
-    sim.placeAgent("ilsa", { x: SQUARE.x + 1, y: SQUARE.y });
-    await sim.advance();
-    expect(countHeld(sim.state, "mara", "coin")).toBe(27);
-    expect(countHeld(sim.state, "ilsa", "coin")).toBe(13);
-    expect(sim.streamTexts("mara")).toContain("I gave Ilsa 3 coins");
-    expect(sim.streamTexts("ilsa")).toContain("Mara gave me 3 coins");
-  });
-
   it("a give to an agent out of reach fails in the world and is remembered", async () => {
     const sim = createTestSim({
       agentIds: ["mara", "ilsa"],

@@ -83,6 +83,7 @@ function summarizeDecision(fields: ReplyFields): Pick<ThoughtEntry, "headline" |
       ...part("does", describeDecisionAction(fields)),
       ...part("intends", readText(fields, "intention")),
       ...part("feels", readText(fields, "mood")),
+      ...part("offer", readText(fields, "offer")),
     ],
   };
 }

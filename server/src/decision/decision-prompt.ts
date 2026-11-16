@@ -23,6 +23,7 @@ import { describeStats, describeTraits, joinWithAnd, splitStatus } from "./words
 const DECISION_TEMPLATE = "decision";
 const CONTINUE_ACTION_TEMPLATE = "decision-continue";
 const PRESSING_NEEDS_TEMPLATE = "decision-pressing";
+const OFFER_TEMPLATE = "decision-offer";
 /** Marks the end of a part of the template that is stable enough for the provider to cache. */
 const CACHE_BREAKPOINT_MARKER = "<<<cache>>>\n";
 const BASE_ACTIONS: readonly DecisionAction[] = ["walk_to", "interact", "give", "wait"];
@@ -35,6 +36,7 @@ export function listOfferedActions(isMidActionInterrupt: boolean): DecisionActio
 interface OptionalTemplates {
   continueAction: string;
   pressingNeeds: string;
+  offer: string;
 }
 
 function buildTemplateValues(
@@ -69,6 +71,14 @@ function buildTemplateValues(
     currentAction: describeCurrentAction(context.currentAction, context.isMidActionInterrupt),
     decisionReason: describeDecisionReason(context.decisionReason),
     lastFailure: describeLastFailure(context.lastFailure),
+    offer:
+      context.offer === null
+        ? ""
+        : fillTemplate(
+            optional.offer,
+            { giver: context.offer.giverName, what: context.offer.itemText },
+            OFFER_TEMPLATE,
+          ),
     place: context.place,
     here: describeNearbyEntities(context.nearbyEntities),
     seenPlaces: describeSeenPlaces(context.seenPlaces),
@@ -110,6 +120,7 @@ export function buildCacheableDecisionPrompt(
   const optional: OptionalTemplates = {
     continueAction: loadTemplate(CONTINUE_ACTION_TEMPLATE, promptsDirectory).trim(),
     pressingNeeds: loadTemplate(PRESSING_NEEDS_TEMPLATE, promptsDirectory).trim(),
+    offer: loadTemplate(OFFER_TEMPLATE, promptsDirectory).trim(),
   };
   const filled = fillTemplate(template, buildTemplateValues(context, optional), DECISION_TEMPLATE);
   return extractCacheBreakpoints(filled);

@@ -228,6 +228,9 @@ export type Volume = "whisper" | "normal" | "shout";
 
 export type DecisionAction = "walk_to" | "interact" | "give" | "wait" | "continue";
 
+/** How an agent answers what someone is offering it. */
+export type OfferAnswer = "accept" | "decline";
+
 export interface DecisionReply {
   thought: string;
   intention: string;
@@ -242,6 +245,7 @@ export interface DecisionReply {
   amount?: number;
   minutes?: number;
   mood?: string;
+  offer?: OfferAnswer;
 }
 
 export interface EventSpeech {
@@ -260,7 +264,9 @@ export type WorldEventKind =
   | "action_started"
   | "action_finished"
   | "action_failed"
+  | "offered"
   | "gave"
+  | "declined"
   | "fell_asleep"
   | "woke"
   | "died"

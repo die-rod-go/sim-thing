@@ -404,6 +404,36 @@ export const config = {
 
   economy: {
     giveReachTiles: 1,
+    /** An offer nobody answers lapses after this long, as if turned down. */
+    offerLapseMinutes: 10,
+    offer: {
+      /** The `offered` event; `{recipient}` and `{what}` ("3 coins"). Its subject is the giver. */
+      offeredDescription: "offered {recipient} {what}",
+      /** How the recipient files the offer; its subject is the giver. */
+      offeredTargetDescription: "offered me {what}",
+      /** Why the recipient gets an urgent decision. */
+      decisionReason: "{giver} is offering me {what}",
+      /** The `declined` event; its subject is the recipient. */
+      declinedDescription: "turned down the {what} {giver} offered",
+      /** How the giver files a refusal; its subject is the recipient. */
+      declinedTargetDescription: "turned down the {what} I offered",
+      /** Why the giver gets an urgent decision after a refusal. */
+      declinedDecisionReason: "{recipient} turned down the {what} I offered",
+      /** Private stream entries when the recipient lets the offer go unanswered. */
+      unansweredRecipientEntry: "I didn't take the {what} {giver} offered me",
+      unansweredGiverEntry: "{recipient} didn't take the {what} I offered",
+      /** Private stream entries when the giver moved out of reach or died before an answer. */
+      withdrawnRecipientEntry: "{giver} was gone before I took the {what} they offered me",
+      withdrawnGiverEntry: "I left before {recipient} took the {what} I offered",
+      /** Private stream entries when an accepted offer can't be handed over any more. */
+      acceptFailedRecipientEntry:
+        "I went to take the {what} {giver} offered me, but they no longer had them",
+      acceptFailedGiverEntry:
+        "{recipient} went to take the {what} I offered, but I no longer had them",
+      /** Why an offer to someone fails. */
+      asleepReason: "{recipient} is asleep",
+      alreadyOfferedReason: "{recipient} hasn't answered another offer yet",
+    },
   },
 
   seeds: {
@@ -741,6 +771,9 @@ export const config = {
       /** Chance a verb used with a carried item is also aimed at something here or at itself. */
       aimChance: 0.5,
       hungryWords: ["starving", "very hungry", "quite hungry"],
+      /** Text in the prompt that means someone is offering the agent something. */
+      offerMarker: "is offering you",
+      acceptOfferChance: 0.7,
       waitMinutes: { min: 5, max: 30 },
       lines: [
         "Good morning!",

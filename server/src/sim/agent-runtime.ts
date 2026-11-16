@@ -99,8 +99,21 @@ const verbRunSchema = z.object({
 
 const pendingDecisionSchema = z.object({
   reason: z.string(),
-  /** Urgent reasons (own name, conversation, woken, handed something) skip the interrupt cooldown. */
+  /** Urgent reasons (own name, conversation, woken, offered something) skip the interrupt cooldown. */
   isUrgent: z.boolean(),
+});
+
+/** Something another agent is offering this one, until it is answered or lapses. */
+const pendingOfferSchema = z.object({
+  /** The `offered` event's id, so only a decision that saw the offer answers it. */
+  eventId: z.number().int(),
+  giverId: z.string(),
+  /** The giver's reply's `item`, resolved again when the offer is accepted. */
+  itemName: z.string(),
+  amount: z.number().int().positive(),
+  /** "3 coins", "a knife". */
+  itemText: z.string(),
+  offeredAtTick: z.number().int(),
 });
 
 const agentRuntimeSchema = z.object({
@@ -112,6 +125,7 @@ const agentRuntimeSchema = z.object({
   visibleCreatureIds: z.array(z.string()),
   lastFailure: z.string().nullable(),
   pendingDecision: pendingDecisionSchema.nullable(),
+  pendingOffer: pendingOfferSchema.nullable(),
 });
 
 /** The verb a creature is in the middle of. Everything else about it is in its components. */
@@ -150,6 +164,7 @@ export type VerbRun = z.infer<typeof verbRunSchema>;
 export type VerbChoice = z.infer<typeof verbChoiceSchema>;
 export type ThingSnapshot = z.infer<typeof thingSnapshotSchema>;
 export type PendingDecision = z.infer<typeof pendingDecisionSchema>;
+export type PendingOffer = z.infer<typeof pendingOfferSchema>;
 
 export function createAgentRuntime(): AgentRuntime {
   return {
@@ -160,6 +175,7 @@ export function createAgentRuntime(): AgentRuntime {
     visibleCreatureIds: [],
     lastFailure: null,
     pendingDecision: null,
+    pendingOffer: null,
   };
 }
 

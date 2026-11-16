@@ -6,6 +6,7 @@ import { runDecision, type DecisionPlan } from "./decision-runner";
 import type { AdvanceTick } from "./loop";
 import { actCreatures } from "./creatures/creature-phase";
 import { createMemoryWork } from "./memory-work";
+import { lapseOffers } from "./offers";
 import type { SimDependencies, TickContext } from "./tick-context";
 import type { DecisionRequest } from "./tick-phases";
 import {
@@ -35,9 +36,11 @@ function listIdleAgentIds(state: WorldState): string[] {
  * 2c. carried bodies move to where whoever carries them now is;
  * 3. sight: awareness of everyone in view and seen places are refreshed; someone newly in view
  *    flags a decision;
+ * 3b. offers lapse: withdrawn when the giver left reach, unanswered after their time is up;
  * 4. needs that crossed the decision threshold flag a decision;
  * 5. decisions: everyone who needs one gets it, all in parallel through the limiter; the tick
- *    waits for all of them, then applies them in agent order (speech first, then the act), so
+ *    waits for all of them, then applies them in agent order (speech first, the answer to an
+ *    offer, then the act), so
  *    the result doesn't depend on which LLM call returned first;
  * 6. memory: each agent's due summary (episode, chronicle, and at midnight the day summary and
  *    history) or pass (identity, long-term goals, people, short-term goals) is started or applied;
@@ -65,6 +68,7 @@ export function createDecisionStrategy(dependencies: SimDependencies): AdvanceTi
     actCreatures(context);
     carryBodiesAlong(context);
     updateSight(context);
+    lapseOffers(context);
     flagCrossedNeeds(context, needsBefore);
     if (backgroundDecisions) {
       for (const plan of backgroundDecisions.collectFinished(state)) {

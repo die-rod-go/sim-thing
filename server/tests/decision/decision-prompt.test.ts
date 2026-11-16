@@ -89,6 +89,7 @@ function buildContext(overrides: Partial<DecisionContext> = {}): DecisionContext
     isMidActionInterrupt: false,
     decisionReason: null,
     lastFailure: null,
+    offer: null,
     validTargets: { places: ["bakery", "farm"], agents: ["Tom"], entities: ["oven"], aimOnly: [] },
     validItems: [{ name: "coin", plural: "coins" }, { name: "bread" }],
     validHolders: [],
@@ -234,6 +235,14 @@ describe("buildDecisionPrompt", () => {
     const flagged = buildDecisionPrompt(buildContext({ decisionReason: "Jess came into view" }));
     expect(flagged).toMatch(/^Just now: Jess came into view\.$/m);
     expect(buildDecisionPrompt(buildContext())).not.toContain("Just now:");
+  });
+
+  it("shows an offer waiting for an answer, and nothing when there is none", () => {
+    const offer = { giverName: "Tom", itemText: "3 wheat" };
+    expect(buildDecisionPrompt(buildContext({ offer }))).toContain(
+      "Tom is offering you 3 wheat, waiting for your answer.",
+    );
+    expect(buildDecisionPrompt(buildContext())).not.toContain("is offering you");
   });
 
   it("says why an interrupted action is going slowly", () => {

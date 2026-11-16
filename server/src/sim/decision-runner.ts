@@ -9,6 +9,7 @@ import type { SpeechOrigin } from "./event-factory";
 import type { DecisionRequest } from "./tick-phases";
 import type { SimDependencies } from "./tick-context";
 import { planInteract } from "./interact-planning";
+import { findShownOfferEventId } from "./offers";
 import { findAgent } from "./world-access";
 import type { WorldState } from "./world-state";
 
@@ -43,6 +44,8 @@ export interface DecisionPlan {
   speech: PlannedSpeech | null;
   /** "I looked for nail box, but ...": names the agent tried that aren't there. */
   unknownNameNotes: string[];
+  /** The `offered` event of the offer the decision was shown, which its `offer` answers. */
+  offerEventId: number | null;
 }
 
 function fallbackWait(agent: Agent): DecisionReply {
@@ -139,6 +142,7 @@ export async function runDecision(
   request: DecisionRequest,
 ): Promise<DecisionPlan> {
   const agent = findAgent(state, request.agentId);
+  const offerEventId = findShownOfferEventId(state, agent.id);
   const decided = await askForDecision(state, dependencies, request);
   const action =
     decided.reply.action === "interact"
@@ -151,5 +155,6 @@ export async function runDecision(
     action,
     speech: planSpeech(decided),
     unknownNameNotes: [...new Set(decided.unknownNameNotes ?? [])],
+    offerEventId,
   };
 }

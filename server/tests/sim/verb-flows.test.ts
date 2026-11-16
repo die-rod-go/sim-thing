@@ -21,6 +21,7 @@ import {
 import {
   createTestSim,
   decisionReply,
+  promptOf,
   findEntityByLabel,
   scriptByAgent,
 } from "../../src/sim/test-sim";
@@ -274,6 +275,10 @@ describe("notes on the board", () => {
           callIndex === 0
             ? decisionReply({ action: "give", target: "Tobias", item: "note", amount: 1 })
             : undefined,
+        Tobias: (request) =>
+          promptOf(request).includes("is offering you")
+            ? decisionReply({ action: "continue", offer: "accept" })
+            : undefined,
       }),
     });
     standOn(sim, "mara", BOARD);
@@ -281,7 +286,7 @@ describe("notes on the board", () => {
     aim(sim, "mara", { verb: "post a note", itemName: BOARD, text: "Meet at the well" });
     finish(sim, "mara");
     aim(sim, "mara", { verb: "take", itemName: "note", fromName: BOARD });
-    await sim.advance();
+    await sim.advance(2);
     expect(countHeld(sim.state, "tobias", "note")).toBe(1);
     aim(sim, "tobias", { verb: "read", itemName: "note" });
     finish(sim, "tobias");

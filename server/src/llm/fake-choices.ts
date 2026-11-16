@@ -116,6 +116,8 @@ export interface DecisionChoices {
   /** Verbs that need nothing carried ("You can also: punch."). */
   itemlessVerbs: string[];
   isHungry: boolean;
+  /** Someone is offering the agent something, waiting for its answer. */
+  hasOffer: boolean;
 }
 
 export function readDecisionChoices(schema: JsonSchema, prompt: string): DecisionChoices {
@@ -143,6 +145,7 @@ export function readDecisionChoices(schema: JsonSchema, prompt: string): Decisio
       .replace(/\.$/, "")
       .split(", ")
       .filter(Boolean),
+    hasOffer: prompt.includes(config.llm.fakeResponder.offerMarker),
     // Settled needs are listed under Now; pressing ones get their own sentence at the end.
     isHungry: config.llm.fakeResponder.hungryWords.some(
       (word) =>

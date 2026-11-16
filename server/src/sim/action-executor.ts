@@ -1,15 +1,15 @@
-import { findDefinition, type Agent, type AgentThought, type DecisionReply } from "@village/shared";
+import type { Agent, AgentThought, DecisionReply } from "@village/shared";
 import { config } from "../config";
-import { resolveName } from "../decision/resolve-name";
-import { computeChebyshevDistance, executeGive } from "../economy/give";
+import { computeChebyshevDistance } from "../economy/give";
 import { isDead } from "../status/health";
 import { WAIT_ACTION } from "./action-phrases";
 import { stopCurrentAction } from "./action-stopping";
 import { getAgentRuntime } from "./agent-runtime";
 import type { DecidedReply, DecisionPlan, PlannedAction, PlannedSpeech } from "./decision-runner";
 import { broadcastEvent } from "./event-broadcast";
-import { createEvent, createSpeechEvent } from "./event-factory";
+import { createSpeechEvent } from "./event-factory";
 import { failAction } from "./failure";
+import { answerOffer, makeOffer } from "./offers";
 import { findWalkDestination } from "./walk-target";
 import type { TickContext } from "./tick-context";
 import { startOrApproachVerb } from "./verb-approach";
@@ -17,9 +17,7 @@ import { startWalk } from "./walk-start";
 import {
   describeAgentAsSeen,
   findAgent,
-  listOthersAsSeen,
   markAgentChanged,
-  markEntityChanged,
   appendToStream,
   replaceAgent,
 } from "./world-access";
@@ -99,62 +97,6 @@ function executeWalk(context: TickContext, agentId: string, targetName: string):
   startWalk(context, agentId, destination, null);
 }
 
-function executeGiveAction(
-  context: TickContext,
-  agentId: string,
-  action: Extract<PlannedAction, { kind: "give" }>,
-): void {
-  const { state, result } = context;
-  const giver = findAgent(state, agentId);
-  const what = `${action.amount} ${action.item.trim().toLowerCase()}`;
-  const recipientId = resolveName(action.target, listOthersAsSeen(state, agentId));
-  if (!recipientId) {
-    failAction(
-      state,
-      result,
-      agentId,
-      `hand ${what} to ${action.target}`,
-      "there was no one by that name",
-    );
-    return;
-  }
-  const recipient = findAgent(state, recipientId);
-  if (isDead(recipient)) {
-    const recipientName = describeAgentAsSeen(recipient);
-    failAction(
-      state,
-      result,
-      agentId,
-      `hand ${what} to ${recipientName}`,
-      "a body can't take anything",
-    );
-    return;
-  }
-  const given = executeGive(state, {
-    giver,
-    recipient,
-    itemName: action.item,
-    amount: action.amount,
-  });
-  if (!given.isSuccess) {
-    failAction(state, result, agentId, `hand ${recipient.name} ${what}`, given.reason);
-    return;
-  }
-  for (const entityId of given.movedEntityIds) markEntityChanged(result, entityId);
-  markAgentChanged(result, agentId);
-  markAgentChanged(result, recipientId);
-  const event = createEvent(state, giver, {
-    kind: "gave",
-    description: `gave ${recipient.name} ${given.description}`,
-    targetId: recipientId,
-    targetName: recipient.name,
-    item: findDefinition(state.items, given.definitionId).name,
-    amount: given.amount,
-    itemText: given.description,
-  });
-  broadcastEvent(state, event, result);
-}
-
 function executeAction(context: TickContext, agentId: string, action: PlannedAction): void {
   switch (action.kind) {
     case "walk_to":
@@ -162,7 +104,7 @@ function executeAction(context: TickContext, agentId: string, action: PlannedAct
     case "interact":
       return startOrApproachVerb(context, agentId, action.request);
     case "give":
-      return executeGiveAction(context, agentId, action);
+      return makeOffer(context, agentId, action);
     case "wait":
       return startWait(context, agentId, action.minutes);
     case "continue":
@@ -178,8 +120,8 @@ function noteUnknownName(context: TickContext, agentId: string, note: string): v
 }
 
 /**
- * Applies one decision: free acts, notes of names that weren't found, the words spoken, then the
- * act itself. Choosing anything but `continue` stops the
+ * Applies one decision: free acts, notes of names that weren't found, the words spoken, the
+ * answer to an offer, then the act itself. Choosing anything but `continue` stops the
  * current action first.
  */
 export function applyDecisionPlan(context: TickContext, plan: DecisionPlan): void {
@@ -197,6 +139,7 @@ export function applyDecisionPlan(context: TickContext, plan: DecisionPlan): voi
   markAgentChanged(result, agentId);
   result.decidedAgentIds.push(agentId);
   if (plan.speech !== null) speak(context, agentId, plan.speech);
+  answerOffer(context, plan);
   if (isContinuing) return;
   const action: PlannedAction =
     plan.action.kind === "continue"

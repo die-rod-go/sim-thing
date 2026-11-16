@@ -1,4 +1,4 @@
-import type { DecisionAction, DecisionReply, Volume } from "@village/shared";
+import type { DecisionAction, DecisionReply, OfferAnswer, Volume } from "@village/shared";
 import { z } from "zod";
 import type { JsonSchema } from "../llm/types";
 import type { DecisionTargets, ValidItem } from "./context";
@@ -18,6 +18,7 @@ import {
 } from "./schema-fields";
 
 const VOLUMES: readonly [Volume, ...Volume[]] = ["whisper", "normal", "shout"];
+const OFFER_ANSWERS: readonly [OfferAnswer, ...OfferAnswer[]] = ["accept", "decline"];
 const ACTIONS_NEEDING_TARGET: readonly DecisionAction[] = ["walk_to", "give"];
 
 export interface ReplySchemas<Value> {
@@ -64,6 +65,7 @@ function buildDecisionJsonSchema(
     amount: nullableJsonInteger(),
     minutes: nullableJsonInteger(),
     mood: nullableJsonString(),
+    offer: nullableJsonEnum(OFFER_ANSWERS),
   });
 }
 
@@ -140,6 +142,7 @@ export function buildDecisionReplySchema(
       amount: z.number().int().positive().optional(),
       minutes: z.number().positive().optional(),
       mood: z.string().trim().optional(),
+      offer: looseEnum(OFFER_ANSWERS).optional(),
     })
     .superRefine(requireFieldsForAction)
     .superRefine(targetCheck.refine)

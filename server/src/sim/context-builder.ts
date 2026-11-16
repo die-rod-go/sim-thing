@@ -130,6 +130,13 @@ export function buildDecisionContext(
     isMidActionInterrupt,
     decisionReason,
     lastFailure: runtime.lastFailure,
+    offer:
+      runtime.pendingOffer === null
+        ? null
+        : {
+            giverName: describeAgentAsSeen(findAgent(state, runtime.pendingOffer.giverId)),
+            itemText: runtime.pendingOffer.itemText,
+          },
     validTargets: buildValidTargets(state, agent),
     validItems: listValidItems(state, agent),
     validHolders: listValidHolders(state, agent),

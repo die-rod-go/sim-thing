@@ -31,6 +31,7 @@ const nullReply = {
   amount: 1,
   minutes: null,
   mood: null,
+  offer: null,
 };
 
 describe("buildDecisionReplySchema", () => {
@@ -44,6 +45,15 @@ describe("buildDecisionReplySchema", () => {
       item: "bread",
       amount: 1,
     });
+  });
+
+  it("accepts an answer to an offer alongside any action", () => {
+    const { schema, jsonSchema } = buildDecisionReplySchema(targets, items, holders);
+    const wait = { thought: "Kind of her.", intention: "rest", action: "wait" };
+    expect(schema.parse({ ...wait, offer: "Accept" }).offer).toBe("accept");
+    expect(schema.safeParse({ ...wait, offer: "maybe" }).success).toBe(false);
+    const properties = jsonSchema.properties as Record<string, { anyOf: unknown[] }>;
+    expect(properties.offer?.anyOf).toContainEqual({ type: "string", enum: ["accept", "decline"] });
   });
 
   it("has no note field in the reply or its JSON schema", () => {

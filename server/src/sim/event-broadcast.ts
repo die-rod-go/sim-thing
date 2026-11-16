@@ -79,6 +79,8 @@ function applyConversationSocial(
 }
 
 const ATTACK_KINDS: readonly WorldEvent["kind"][] = ["attacked", "missed"];
+/** The one an offer, its acceptance or its refusal is aimed at gets its decision from the offer itself. */
+const OFFER_KINDS: readonly WorldEvent["kind"][] = ["offered", "gave", "declined"];
 
 /**
  * Flags decisions for those who perceived the event; the decision phase applies the cooldown.
@@ -89,6 +91,7 @@ function flagDecisions(state: WorldState, event: WorldEvent, perceptions: EventP
   for (const perception of perceptions) {
     const perceiver = findAgent(state, perception.agentId);
     const runtime = getAgentRuntime(state, perceiver.id);
+    if (OFFER_KINDS.includes(event.kind) && event.targetId === perceiver.id) continue;
     if (isAttack && event.targetId === perceiver.id) {
       requestDecision(runtime, `${event.actorName} attacked me`, true);
     } else if (isAttack && perception.isInSight) {
@@ -99,8 +102,6 @@ function flagDecisions(state: WorldState, event: WorldEvent, perceptions: EventP
       );
     } else if (event.kind === "died" && perception.isInSight) {
       requestDecision(runtime, `I saw ${event.actorName} die`, true);
-    } else if (event.kind === "gave" && event.targetId === perceiver.id) {
-      requestDecision(runtime, `${event.actorName} handed me something`, true);
     } else if (toPerceiver(perceiver).isAsleep) {
       requestDecision(runtime, "a loud sound reached me in my sleep", true);
     } else {

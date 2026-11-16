@@ -1,0 +1,1 @@
+{{giver}} is offering you {{what}}, waiting for your answer. Set offer to accept to take it, or to decline to turn it down; leaving it out means you don't take it.

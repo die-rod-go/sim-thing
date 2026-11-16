@@ -91,6 +91,10 @@ function buildAttackFields(
   return { ...random.pick(options), target: random.pick(choices.inSight) };
 }
 
+function answerOffer(random: SeededRandom): string {
+  return random.next() < config.llm.fakeResponder.acceptOfferChance ? "accept" : "decline";
+}
+
 export function buildDecisionReply(
   random: SeededRandom,
   choices: DecisionChoices,
@@ -111,6 +115,7 @@ export function buildDecisionReply(
     amount: null,
     minutes: null,
     mood: null,
+    offer: choices.hasOffer ? answerOffer(random) : null,
   };
   const meal = findMealToEat(choices);
   if (meal !== null) {
