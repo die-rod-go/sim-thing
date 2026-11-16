@@ -73,6 +73,17 @@ describe("callStructured with a reflection model", () => {
     expect(client.requests.map((sent) => sent.model)).toEqual(["reality-model", "stronger-model"]);
   });
 
+  it("keeps thinking for the kinds that think, with room for it on top of the reply", async () => {
+    const { client, callStructured, request } = setUp(['{"answer":"a"}', '{"answer":"b"}']);
+    await callStructured({ ...request, kind: "reality" });
+    await callStructured(request);
+    expect(client.requests.map((sent) => sent.shouldThink)).toEqual([true, false]);
+    expect(client.requests.map((sent) => sent.maxTokens)).toEqual([
+      config.llm.maxReplyTokens.reality + config.llm.thinkingTokenAllowance,
+      config.llm.maxReplyTokens.decision,
+    ]);
+  });
+
   it("sends the reality pass to the reflection model when it has none of its own", async () => {
     const { client, callStructured, request } = setUp(
       ['{"answer":"a"}'],

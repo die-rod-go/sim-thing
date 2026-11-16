@@ -86,6 +86,13 @@ describe("AnthropicClient", () => {
     expect(body).not.toHaveProperty("temperature");
   });
 
+  it("keeps thinking on for a call that asks for it, even with thinking disabled", async () => {
+    const fetchStub = stubFetch(message);
+    const client = new AnthropicClient(settings);
+    await client.complete({ prompt: "Think it over.", maxTokens: 50, shouldThink: true });
+    expect(sentBody(fetchStub)).not.toHaveProperty("thinking");
+  });
+
   it("reports total input tokens and the cache split", async () => {
     stubFetch(message);
     const response = await new AnthropicClient(settings).complete({ prompt: "hi", maxTokens: 50 });

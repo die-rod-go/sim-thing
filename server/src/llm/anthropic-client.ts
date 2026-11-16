@@ -133,7 +133,9 @@ export class AnthropicClient implements LlmClient {
       ...(isStrictSchema
         ? { output_config: { format: { type: "json_schema", schema: request.jsonSchema } } }
         : {}),
-      ...(this.settings.isThinkingDisabled ? { thinking: { type: "disabled" } } : {}),
+      ...(this.settings.isThinkingDisabled && !request.shouldThink
+        ? { thinking: { type: "disabled" } }
+        : {}),
     };
   }
 }

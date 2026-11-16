@@ -692,6 +692,19 @@ export const config = {
       "long_term_goals",
       "reality",
     ] as LlmCallKind[],
+    /** Calls of these kinds keep the model's thinking on even with `LLM_DISABLE_THINKING=true`. */
+    thinkingKinds: [
+      "people",
+      "short_term_goals",
+      "identity",
+      "long_term_goals",
+      "reality",
+    ] as LlmCallKind[],
+    /**
+     * Added to `maxReplyTokens` for those kinds: thinking counts against `max_tokens`, so without
+     * it the thinking could use up the room meant for the reply. A ceiling, billed only if used.
+     */
+    thinkingTokenAllowance: 8000,
     dailyTokenBudget: 100_000_000,
     /**
      * Tries per call, the first included. A rejected reply (bad JSON, failed validation, too long)

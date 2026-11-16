@@ -133,6 +133,16 @@ function parseReply<Value>(
   return { ok: true, value: validation.data, parsed: validation.data };
 }
 
+function shouldThink(kind: LlmCallKind): boolean {
+  return config.llm.thinkingKinds.includes(kind);
+}
+
+/** The reply's token ceiling, with room for thinking on calls that keep it, since it counts too. */
+function findMaxTokens(request: StructuredCallRequest<unknown>): number {
+  const replyTokens = request.maxTokens ?? config.llm.maxReplyTokens[request.kind];
+  return shouldThink(request.kind) ? replyTokens + config.llm.thinkingTokenAllowance : replyTokens;
+}
+
 /** A cut-off reply fails as broken JSON; say why, so the cap can be raised instead of guessed at. */
 function describeCutOff<Result extends { ok: boolean; error?: string }>(
   parseResult: Result,
@@ -140,8 +150,7 @@ function describeCutOff<Result extends { ok: boolean; error?: string }>(
   request: StructuredCallRequest<unknown>,
 ): Result {
   if (parseResult.ok || !wasCutOff) return parseResult;
-  const limit = request.maxTokens ?? config.llm.maxReplyTokens[request.kind];
-  const error = `reply cut off at the ${limit}-token limit (config.llm.maxReplyTokens.${request.kind})`;
+  const error = `reply cut off at the ${findMaxTokens(request)}-token limit (config.llm.maxReplyTokens.${request.kind})`;
   return { ...parseResult, error };
 }
 
@@ -163,8 +172,9 @@ async function attemptCall<Value>(
       prompt,
       jsonSchema: request.jsonSchema,
       schemaName: request.schemaName,
-      maxTokens: request.maxTokens ?? config.llm.maxReplyTokens[request.kind],
+      maxTokens: findMaxTokens(request),
       model,
+      shouldThink: shouldThink(request.kind),
       temperature: request.temperature ?? config.llm.temperature ?? undefined,
       cacheBreakpoints: request.cacheBreakpoints,
     });

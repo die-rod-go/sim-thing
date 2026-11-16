@@ -14,6 +14,8 @@ interface LlmRequestOptions {
   maxTokens: number;
   /** Overrides the client's own model for this call. */
   model?: string;
+  /** Keeps the model's thinking on for this call even when the client has thinking disabled. */
+  shouldThink?: boolean;
   /** Left out of the request when undefined, so the provider default applies. */
   temperature?: number;
   /** Character offsets into the prompt after which a provider with prompt caching may cache the prefix. */
