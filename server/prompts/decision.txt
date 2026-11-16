@@ -35,8 +35,6 @@ How you see yourself: {{selfImage}}
 ## Long-term goals
 {{longTermGoals}}
 
-{{olderMemory}}
-
 <<<cache>>>
 ## People you know
 What you hold about each person. What they think and want is your own reading, and may be wrong.
@@ -46,13 +44,19 @@ What you hold about each person. What they think and want is your own reading, a
 What you are trying to get done over the coming hours, each with its steps in order.
 {{shortTermGoals}}
 
-{{episodes}}
-
-<<<cache>>>
 ## Places you have seen
 {{seenPlaces}}
 
 <<<cache>>>
+{{olderMemory}}
+
+{{episodes}}
+
+<<<cache>>>
+## Just now
+The latest things you did, saw and heard, word for word, oldest first.
+{{stream}}
+
 ## Actions offered now
 Actions: {{actions}}
 {{continueAction}}
@@ -78,9 +82,5 @@ Here:
 
 ## Belongings
 {{belongings}}
-
-## Just now
-The latest things you did, saw and heard, word for word, oldest first.
-{{stream}}
 
 {{pressingNeeds}}

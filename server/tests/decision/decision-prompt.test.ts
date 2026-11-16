@@ -281,12 +281,13 @@ describe("buildDecisionPrompt", () => {
     );
   });
 
-  it("puts people and short-term goals in the part that changes when an episode forms", () => {
+  it("puts people, short-term goals and seen places in their own cached part", () => {
     const { text, cacheBreakpoints } = buildCacheableDecisionPrompt(buildContext());
-    const [, perAgentEnd, episodesEnd] = cacheBreakpoints;
-    const perEpisode = text.slice(perAgentEnd, episodesEnd);
-    expect(perEpisode).toContain("## People you know");
-    expect(perEpisode).toContain("## Short-term goals");
+    const [, perAgentEnd, heldEnd] = cacheBreakpoints;
+    const held = text.slice(perAgentEnd, heldEnd);
+    expect(held).toContain("## People you know");
+    expect(held).toContain("## Short-term goals");
+    expect(held).toContain("## Places you have seen");
     expect(text.slice(0, perAgentEnd)).toContain("## Long-term goals");
   });
 
@@ -302,7 +303,7 @@ describe("buildDecisionPrompt", () => {
     expect(empty).toContain(config.memory.streamTexts.empty);
   });
 
-  it("shows each level of memory under its own title, oldest level first", () => {
+  it("shows every level of memory and then the stream together, oldest first", () => {
     const { text, cacheBreakpoints } = buildCacheableDecisionPrompt(
       buildContext({
         history: "[Day 1, 6:00 am to Day 2, 11:50 pm] I settled in.",
@@ -311,15 +312,17 @@ describe("buildDecisionPrompt", () => {
         episodes: ["[Day 4, 5:41 am to 6:05 am] I lit the oven."],
       }),
     );
-    const [, olderEnd, episodesEnd] = cacheBreakpoints;
+    const [, , heldEnd, memoryEnd] = cacheBreakpoints;
     const titles = config.memory.promptTitles;
-    const order = [titles.history, titles.daySummary, titles.chronicles, titles.episodes].map(
-      (title) => text.indexOf(`## ${title}\n- [Day`),
-    );
+    const order = [titles.history, titles.daySummary, titles.chronicles, titles.episodes]
+      .map((title) => text.indexOf(`## ${title}\n- [Day`))
+      .concat(text.indexOf("## Just now"));
     expect(order.every((position) => position > 0)).toBe(true);
     expect([...order].sort((first, second) => first - second)).toEqual(order);
-    expect(text.slice(0, olderEnd)).toContain("I slept.");
-    expect(text.slice(olderEnd, episodesEnd)).toContain("I lit the oven.");
+    const memory = text.slice(heldEnd, memoryEnd);
+    expect(memory).toContain("I settled in.");
+    expect(memory).toContain("I lit the oven.");
+    expect(text.slice(memoryEnd).startsWith("## Just now")).toBe(true);
   });
 
   it("leaves out the title of a memory level that holds nothing", () => {
@@ -542,14 +545,14 @@ describe("places you have seen", () => {
 describe("buildCacheableDecisionPrompt", () => {
   it("puts what is the same for every agent before the first cache breakpoint", () => {
     const { text, cacheBreakpoints } = buildCacheableDecisionPrompt(buildContext());
-    const [sharedEnd, perAgentEnd, episodesEnd, placesEnd] = cacheBreakpoints;
+    const [sharedEnd, perAgentEnd, heldEnd, memoryEnd] = cacheBreakpoints;
     expect(cacheBreakpoints).toHaveLength(4);
     expect(text.slice(0, sharedEnd)).toContain("## What you can do");
     expect(text.slice(0, sharedEnd)).toContain("## Reply");
     expect(text.slice(0, sharedEnd)).not.toContain("## Who you are");
     expect(text.slice(sharedEnd, perAgentEnd)).toContain("## Long-term goals");
-    expect(text.slice(episodesEnd, placesEnd)).toContain("## Places you have seen");
-    expect(text.slice(placesEnd)).toContain("## Now");
+    expect(text.slice(perAgentEnd, heldEnd)).toContain("## Places you have seen");
+    expect(text.slice(memoryEnd)).toContain("## Now");
     expect(text).not.toContain("<<<cache>>>");
   });
 
