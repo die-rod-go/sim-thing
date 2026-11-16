@@ -1,4 +1,7 @@
+import type { WorldEvent } from "@village/shared";
+import { config } from "../config";
 import { pruneConversationLog } from "../memory/conversation";
+import { ATTACK_KINDS } from "./event-broadcast";
 import { applyDecisionPlan } from "./action-executor";
 import { BackgroundWork } from "./background-work";
 import { carryBodiesAlong } from "./carried-bodies";
@@ -23,6 +26,24 @@ function listIdleAgentIds(state: WorldState): string[] {
   return listLivingAgents(state)
     .filter((agent) => agent.currentAction === null)
     .map((agent) => agent.id);
+}
+
+/** Remembers, per world, the last tick an attack or miss happened, to tell whether a fight is on. */
+function createFightWatch() {
+  const lastAttackTickByWorld = new WeakMap<WorldState, number>();
+  return {
+    noteAttacks(state: WorldState, events: readonly WorldEvent[]): void {
+      if (events.some((event) => ATTACK_KINDS.includes(event.kind))) {
+        lastAttackTickByWorld.set(state, state.tick);
+      }
+    },
+    isFightOn(state: WorldState): boolean {
+      const lastAttackTick = lastAttackTickByWorld.get(state);
+      return (
+        lastAttackTick !== undefined && state.tick - lastAttackTick <= config.combat.fightTicks
+      );
+    },
+  };
 }
 
 /**
@@ -53,12 +74,15 @@ function listIdleAgentIds(state: WorldState): string[] {
  * interrupted mid-action keeps doing what it was doing until its decision lands, so a slow call
  * doesn't stall the village, while idle agents (and the replies they give) never fall behind the
  * clock. Summaries and passes (step 6) never hold it: each is applied on the first tick after it returns.
+ * While a fight is on (an attack or miss within `combat.fightTicks`) and
+ * `shouldCallLlmInBackgroundDuringFight` is false, every decision in flight holds the clock, uncapped.
  */
 export function createDecisionStrategy(dependencies: SimDependencies): AdvanceTick {
   const runMemoryWork = createMemoryWork(dependencies);
   const backgroundDecisions = dependencies.shouldCallLlmInBackground
     ? new BackgroundWork<DecisionPlan>("decision")
     : null;
+  const fightWatch = createFightWatch();
   const decide = (state: WorldState, request: DecisionRequest) =>
     runDecision(state, dependencies, request);
   return async (state) => {
@@ -80,11 +104,18 @@ export function createDecisionStrategy(dependencies: SimDependencies): AdvanceTi
       for (const request of requests) {
         backgroundDecisions.start(state, request.agentId, () => decide(state, request));
       }
-      await backgroundDecisions.waitFor(
-        state,
-        listIdleAgentIds(state),
-        dependencies.idleDecisionWaitMs,
-      );
+      fightWatch.noteAttacks(state, context.result.events);
+      const isHeldByFight =
+        dependencies.shouldCallLlmInBackgroundDuringFight === false && fightWatch.isFightOn(state);
+      if (isHeldByFight) {
+        await backgroundDecisions.waitForAll(state);
+      } else {
+        await backgroundDecisions.waitFor(
+          state,
+          listIdleAgentIds(state),
+          dependencies.idleDecisionWaitMs,
+        );
+      }
       for (const plan of backgroundDecisions.collectFinished(state)) {
         applyDecisionPlan(context, plan);
       }
@@ -93,6 +124,7 @@ export function createDecisionStrategy(dependencies: SimDependencies): AdvanceTi
       const plans = await Promise.all(requests.map((request) => decide(state, request)));
       for (const plan of plans) applyDecisionPlan(context, plan);
     }
+    fightWatch.noteAttacks(state, context.result.events);
     await runMemoryWork(state, context.result);
     state.conversationLog = pruneConversationLog(state.conversationLog, state.tick);
     return context.result;

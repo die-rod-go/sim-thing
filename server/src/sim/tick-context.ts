@@ -16,6 +16,11 @@ export interface SimDependencies {
    * first tick after it returns. Off (each tick waits for all of them) keeps runs reproducible, e.g. in tests.
    */
   shouldCallLlmInBackground?: boolean;
+  /**
+   * With `shouldCallLlmInBackground`, false makes every decision hold the clock while a fight is on.
+   * Omitted, fights change nothing.
+   */
+  shouldCallLlmInBackgroundDuringFight?: boolean;
   /** With `shouldCallLlmInBackground`, caps how long idle agents' decisions hold a tick; no cap when omitted. */
   idleDecisionWaitMs?: number;
 }

@@ -150,6 +150,7 @@ async function run(): Promise<void> {
     callStructured: llm.callStructured,
     isReplySchemaStable: environment.LLM_PROVIDER === "anthropic",
     shouldCallLlmInBackground: config.decision.shouldCallLlmInBackground,
+    shouldCallLlmInBackgroundDuringFight: config.decision.shouldCallLlmInBackgroundDuringFight,
     idleDecisionWaitMs: config.decision.idleDecisionWaitMs,
     recordPersonalityChange: (change) => {
       appendPersonalityChange(database, change);

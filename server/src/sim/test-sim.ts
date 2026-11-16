@@ -182,6 +182,8 @@ export interface TestSimOptions {
   recordPersonalityChange?: (change: Omit<PersonalityChange, "id">) => void;
   /** Runs LLM calls in the background, as the live sim does; off (each tick waits) when omitted. */
   shouldCallLlmInBackground?: boolean;
+  /** False makes every decision hold the clock while a fight is on; fights change nothing when omitted. */
+  shouldCallLlmInBackgroundDuringFight?: boolean;
   /** Caps how long idle agents' decisions hold a tick; no cap when omitted. */
   idleDecisionWaitMs?: number;
 }
@@ -214,6 +216,7 @@ export function createTestSim(options: TestSimOptions): TestSim {
   const advanceTick = createDecisionStrategy({
     callStructured: llm.callStructured,
     shouldCallLlmInBackground: options.shouldCallLlmInBackground,
+    shouldCallLlmInBackgroundDuringFight: options.shouldCallLlmInBackgroundDuringFight,
     idleDecisionWaitMs: options.idleDecisionWaitMs,
     recordPersonalityChange: options.recordPersonalityChange,
   });

@@ -459,6 +459,8 @@ export const config = {
     strengthMidpoint: 0.5,
     /** Ticks an agent keeps following a moving target, beyond the first path there, before giving up. */
     chaseTicks: 10,
+    /** Ticks after the last attack or miss anywhere in the village during which a fight is on. */
+    fightTicks: 10,
     /** The event for damage that isn't an attack. Its subject is the actor. */
     hurtDescription: "was hurt",
     /** What onlookers learn of a failed attempt. `{attempt}` is the act, `{reason}` why it failed. */
@@ -661,6 +663,11 @@ export const config = {
      * agents' decisions still hold it. Tests always wait for every call.
      */
     shouldCallLlmInBackground: false,
+    /**
+     * Whether decisions stay in the background while a fight is on (`combat.fightTicks`). Off, every
+     * decision holds the clock until it lands, so a fight doesn't run ahead of the fighters' replies.
+     */
+    shouldCallLlmInBackgroundDuringFight: false,
     /**
      * Longest an idle agent's decision holds the clock in real time; past it the tick goes on and
      * the plan lands on a later tick, so one slow call can't stall the village.

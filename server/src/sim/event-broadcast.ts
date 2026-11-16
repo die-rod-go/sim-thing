@@ -78,7 +78,7 @@ function applyConversationSocial(
   }
 }
 
-const ATTACK_KINDS: readonly WorldEvent["kind"][] = ["attacked", "missed"];
+export const ATTACK_KINDS: readonly WorldEvent["kind"][] = ["attacked", "missed"];
 /** The one an offer, its acceptance or its refusal is aimed at gets its decision from the offer itself. */
 const OFFER_KINDS: readonly WorldEvent["kind"][] = ["offered", "gave", "declined"];
 
