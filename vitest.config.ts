@@ -12,6 +12,10 @@ export default defineConfig({
     // Sim tests and the full item-editor render pass in a few seconds alone but run up to ten
     // times slower when the whole suite shares the CPU.
     testTimeout: 60000,
-    include: ["shared/src/**/*.test.ts", "server/src/**/*.test.ts", "client/src/**/*.test.ts"],
+    include: [
+      "shared/tests/**/*.test.ts",
+      "server/tests/**/*.test.ts",
+      "client/tests/**/*.test.ts",
+    ],
   },
 });

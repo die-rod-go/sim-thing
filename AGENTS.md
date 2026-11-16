@@ -97,6 +97,9 @@ on the entity: no creature settings in the config, and no creature state kept by
   decay, each step type, the verb runner,
   rules, matchers, `items.json` validation, `give` and creature instincts.
 - Name tests by behavior: `"muffles speech heard through a closed door"`.
+- Tests live in each workspace's `tests/` folder (`server/tests`, `client/tests`, `shared/tests`),
+  mirroring the layout of its `src/`. Test-only helpers live there too; helpers that runtime code
+  also uses (the fake LLM client, `test-sim` for the soak) stay in `src/`.
 
 ## Errors and logging
 
