@@ -66,7 +66,7 @@ describe("perceiving events", () => {
   });
 
   it("muffles speech heard through a closed door", () => {
-    const asciiWorld = buildAsciiWorld("#a..D..b#");
+    const asciiWorld = buildAsciiWorld("#a...D...b#");
     const event = buildSpeech(requireMarker(asciiWorld, "a"), "Secret plans");
     const [perception] = perceiveEvent(asciiWorld.world, event, [
       buildPerceiver("bob", requireMarker(asciiWorld, "b")),
@@ -105,7 +105,7 @@ describe("perceiving events", () => {
   });
 
   it("sleeping agent does not hear its name beyond muffled reach", () => {
-    const asciiWorld = buildAsciiWorld("#a..............b#");
+    const asciiWorld = buildAsciiWorld("#a................b#");
     const event = buildSpeech(requireMarker(asciiWorld, "a"), "Where is Bob?");
     const sleeper = buildPerceiver("bob", requireMarker(asciiWorld, "b"), true);
     expect(perceiveEvent(asciiWorld.world, event, [sleeper])).toEqual([]);

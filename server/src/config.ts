@@ -72,7 +72,7 @@ export const config = {
     /** A diagonal step costs this much more than a straight one, so earshot is roughly round. */
     diagonalSoundCostMultiplier: Math.SQRT2,
     muffledReachMultiplier: 1.5,
-    speechLoudness: { whisper: 2, normal: 8, shout: 20 } satisfies Record<Volume, number>,
+    speechLoudness: { whisper: 2, normal: 10, shout: 24 } satisfies Record<Volume, number>,
     /** Sleepers only hear their own name or sounds at least this loud. */
     sleeperHearingLoudness: 20,
     /** A perception interrupt gives an agent a new decision at most this often. */
@@ -602,7 +602,7 @@ export const config = {
      * The running sim lets the clock go on while an agent interrupted mid-action decides; idle
      * agents' decisions still hold it. Tests always wait for every call.
      */
-    shouldCallLlmInBackground: true,
+    shouldCallLlmInBackground: false,
     /**
      * Longest an idle agent's decision holds the clock in real time; past it the tick goes on and
      * the plan lands on a later tick, so one slow call can't stall the village.

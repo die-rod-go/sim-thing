@@ -13,7 +13,7 @@ describe("obvious listeners", () => {
   it("lists agents in sight within speech reach, marking who would hear a whisper", () => {
     const asciiWorld = buildAsciiWorld(`
       ###############
-      #sw...n....f..#
+      #sw...n.....f.#
       #####z#########
       #####h#########`);
     const at = (marker: string) => requireMarker(asciiWorld, marker);
