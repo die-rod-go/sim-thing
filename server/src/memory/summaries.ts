@@ -229,6 +229,22 @@ export function findDuePass(memory: AgentMemory): PassName | null {
   return isShortTermDue ? "shortTermGoals" : null;
 }
 
+/**
+ * Both goals passes are owed now rather than after the usual number of episodes, so news that
+ * changes everything can change the plans at once instead of hours later.
+ */
+export function oweGoalsPasses(memory: AgentMemory): AgentMemory {
+  const { passes } = memory;
+  const episodesSinceShortTermGoals = Math.max(
+    passes.episodesSinceShortTermGoals,
+    config.goals.shortTermEveryEpisodes,
+  );
+  return {
+    ...memory,
+    passes: { ...passes, isLongTermGoalsOwed: true, episodesSinceShortTermGoals },
+  };
+}
+
 /** The memory once a pass has run: that pass is no longer owed. */
 export function markPassDone(memory: AgentMemory, pass: PassName): AgentMemory {
   const { passes } = memory;

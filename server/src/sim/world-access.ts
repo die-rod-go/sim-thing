@@ -145,10 +145,15 @@ export function getAgentMemory(state: WorldState, agentId: string): AgentMemory 
 }
 
 /** Appends one event, in the agent's own words, to its stream at the current tick. */
-export function appendToStream(state: WorldState, agentId: string, text: string): void {
+export function appendToStream(
+  state: WorldState,
+  agentId: string,
+  text: string,
+  maxChars?: number,
+): void {
   const memory = getAgentMemory(state, agentId);
   const sentCount = state.streamEntriesInSummary[agentId] ?? 0;
   const canMergeIntoLast = memory.stream.length > sentCount;
-  const stream = appendStreamEntry(memory.stream, text, state.tick, canMergeIntoLast);
+  const stream = appendStreamEntry(memory.stream, text, state.tick, canMergeIntoLast, maxChars);
   state.agentMemories[agentId] = { ...memory, stream };
 }

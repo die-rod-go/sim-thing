@@ -28,8 +28,9 @@ export function appendStreamEntry(
   text: string,
   tick: number,
   canMergeIntoLast = true,
+  maxChars: number = config.memory.streamEntryMaxChars,
 ): StreamEntry[] {
-  const entryText = truncateEntryText(text);
+  const entryText = truncateEntryText(text, maxChars);
   const last = stream[stream.length - 1];
   if (last === undefined || last.text !== entryText || !canMergeIntoLast) {
     return [...stream, { text: entryText, tick }];

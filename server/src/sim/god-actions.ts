@@ -19,6 +19,7 @@ import {
 } from "../items/entity-store";
 import { createThingEvent, type ThingRef } from "../items/things";
 import { describePlace } from "../memory/filing";
+import { oweGoalsPasses } from "../memory/summaries";
 import { isDead } from "../status/health";
 import { findPlaceAt } from "../world/map-loader";
 import { isWalkable } from "../world/pathfinding";
@@ -32,6 +33,7 @@ import {
   appendToStream,
   buildWalkingGridFor,
   findAgent,
+  getAgentMemory,
   listLivingAgents,
   markAgentChanged,
   markEntityChanged,
@@ -201,9 +203,10 @@ function deleteEntity(context: TickContext, entityId: string): string | null {
 }
 
 /**
- * Every living agent hears the viewer's words, wherever they are and even asleep, and decides at
- * once. It goes straight into each stream rather than through perception: the voice has no
- * speaker in the world, so there is no one to see, hear from a direction, or talk back to.
+ * Every living agent hears the viewer's words, wherever they are and even asleep, decides at once
+ * with the words as the reason, and owes its goals passes so its plans can change too. It goes
+ * straight into each stream rather than through perception: the voice has no speaker in the
+ * world, so there is no one to see, hear from a direction, or talk back to.
  */
 function speakToAll(context: TickContext, words: string): string | null {
   const { state, result } = context;
@@ -211,10 +214,12 @@ function speakToAll(context: TickContext, words: string): string | null {
   if (spoken === "") return "Say something first";
   const godWords = config.godMode;
   const heard = godWords.voiceHeardDescription.split("{words}").join(spoken);
+  const reason = godWords.voiceDecisionReason.split("{words}").join(spoken);
   for (const agent of listLivingAgents(state)) {
-    appendToStream(state, agent.id, heard);
+    appendToStream(state, agent.id, heard, godWords.voiceHeardMaxChars);
+    state.agentMemories[agent.id] = oweGoalsPasses(getAgentMemory(state, agent.id));
     markAgentChanged(result, agent.id);
-    requestDecision(getAgentRuntime(state, agent.id), godWords.voiceDecisionReason, true);
+    requestDecision(getAgentRuntime(state, agent.id), reason, true);
   }
   return null;
 }

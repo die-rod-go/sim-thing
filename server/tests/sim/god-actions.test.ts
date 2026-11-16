@@ -5,7 +5,10 @@ import {
   findEntityIfPresent,
   locateInside,
 } from "../../src/items/entity-store";
+import { config } from "../../src/config";
+import { findDuePass } from "../../src/memory/summaries";
 import { getAgentRuntime } from "../../src/sim/agent-runtime";
+import { getAgentMemory } from "../../src/sim/world-access";
 import {
   BESIDE_SQUARE,
   buildCombatSim,
@@ -166,9 +169,26 @@ describe("god mode: speaking from the sky", () => {
     for (const agentId of ["mara", "tobias"]) {
       expect(memoryTexts(sim, agentId)).toContain('A booming voice from the sky said: "Repent!"');
       expect(getAgentRuntime(sim.state, agentId).pendingDecision).toEqual({
-        reason: "a booming voice spoke from the sky",
+        reason: 'a booming voice from the sky said: "Repent!"',
         isUrgent: true,
       });
+    }
+  });
+
+  it("is heard whole, however long, where an ordinary stream entry would be cut", () => {
+    const sim = buildCombatSim();
+    place(sim, { mara: SQUARE, tobias: COTTAGE });
+    const words = "Prepare. ".repeat(config.memory.streamEntryMaxChars / 4).trim();
+    applyGodAction(contextOf(sim), { kind: "speak", words });
+    expect(memoryTexts(sim, "mara")).toContain(`A booming voice from the sky said: "${words}"`);
+  });
+
+  it("makes everyone alive rethink their goals at once", () => {
+    const sim = buildCombatSim();
+    place(sim, { mara: SQUARE, tobias: COTTAGE });
+    applyGodAction(contextOf(sim), { kind: "speak", words: "Goblins are coming" });
+    for (const agentId of ["mara", "tobias"]) {
+      expect(findDuePass(getAgentMemory(sim.state, agentId))).toBe("longTermGoals");
     }
   });
 

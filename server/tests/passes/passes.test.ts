@@ -2,7 +2,12 @@ import type { PersonalityChange } from "@village/shared";
 import { describe, expect, it } from "vitest";
 import { config } from "../../src/config";
 import { makeAgent } from "../economy/test-fixtures";
-import { createAgentMemory, findDuePass, markPassDone } from "../../src/memory/summaries";
+import {
+  createAgentMemory,
+  findDuePass,
+  markPassDone,
+  oweGoalsPasses,
+} from "../../src/memory/summaries";
 import {
   createTestSim,
   decisionReply,
@@ -58,6 +63,16 @@ describe("what is due", () => {
       memory = markPassDone(memory, pass);
     }
     expect(order).toEqual(["identity", "longTermGoals", "people"]);
+  });
+
+  it("owes both goals passes at once when told to, without waiting for episodes", () => {
+    const order: string[] = [];
+    let memory = oweGoalsPasses(settled);
+    for (let pass = findDuePass(memory); pass !== null; pass = findDuePass(memory)) {
+      order.push(pass);
+      memory = markPassDone(memory, pass);
+    }
+    expect(order).toEqual(["longTermGoals", "shortTermGoals"]);
   });
 });
 
