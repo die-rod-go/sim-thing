@@ -28,7 +28,7 @@ A small village on a grid of tiles. Time passes minute by minute. Everything in 
 - At zero health a person dies, and the body stays where it fell.
 
 ### When something fails
-When {{name}} tries something and it fails, the reason is meant literally. "There was no wolf here" means the wolf was not within reach from where {{name}} stood, not that it was never there or was an illusion. "Isn't something they can do" means no such action exists.
+When {{name}} tries something and it fails, the reason is meant literally. "There was no wolf here" means the wolf was not within reach from where {{name}} stood.
 
 ## Places
 {{places}}
