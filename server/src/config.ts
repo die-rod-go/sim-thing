@@ -6,6 +6,7 @@ import type {
   TraitName,
   Volume,
 } from "@village/shared";
+import type { LlmEffort } from "./llm/types";
 
 /**
  * Every global tunable in the sim lives here: rates, caps, weights, loudness and budgets. Item
@@ -705,6 +706,18 @@ export const config = {
      * it the thinking could use up the room meant for the reply. A ceiling, billed only if used.
      */
     thinkingTokenAllowance: 8000,
+    /**
+     * Effort per call kind, sent as Anthropic's `output_config.effort` (low, medium, high, xhigh,
+     * max); kinds left out use the model's default, `medium` on Claude Haiku 5.5. Not sent to
+     * OpenAI-compatible providers.
+     */
+    effortByKind: {
+      people: "high",
+      short_term_goals: "high",
+      identity: "high",
+      long_term_goals: "high",
+      reality: "high",
+    } as Partial<Record<LlmCallKind, LlmEffort>>,
     dailyTokenBudget: 100_000_000,
     /**
      * Tries per call, the first included. A rejected reply (bad JSON, failed validation, too long)

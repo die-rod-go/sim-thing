@@ -2,6 +2,9 @@ import type { LlmCallRecord } from "@village/shared";
 
 export type JsonSchema = { [key: string]: unknown };
 
+/** Anthropic's `output_config.effort`: how much thinking and care the model spends. */
+export type LlmEffort = "low" | "medium" | "high" | "xhigh" | "max";
+
 export interface LlmMessage {
   role: "system" | "user" | "assistant";
   content: string;
@@ -16,6 +19,8 @@ interface LlmRequestOptions {
   model?: string;
   /** Keeps the model's thinking on for this call even when the client has thinking disabled. */
   shouldThink?: boolean;
+  /** How hard the model works on this call; left out when undefined, so the model default applies. */
+  effort?: LlmEffort;
   /** Left out of the request when undefined, so the provider default applies. */
   temperature?: number;
   /** Character offsets into the prompt after which a provider with prompt caching may cache the prefix. */

@@ -93,6 +93,24 @@ describe("AnthropicClient", () => {
     expect(sentBody(fetchStub)).not.toHaveProperty("thinking");
   });
 
+  it("sends a call's effort alongside its reply schema, and none when not given", async () => {
+    const effortStub = stubFetch(message);
+    const client = new AnthropicClient(settings);
+    await client.complete({
+      prompt: "Hm.",
+      jsonSchema: replySchema,
+      maxTokens: 50,
+      effort: "high",
+    });
+    expect(sentBody(effortStub).output_config).toEqual({
+      format: { type: "json_schema", schema: replySchema },
+      effort: "high",
+    });
+    const plainStub = stubFetch(message);
+    await client.complete({ prompt: "Hm.", maxTokens: 50 });
+    expect(sentBody(plainStub)).not.toHaveProperty("output_config");
+  });
+
   it("reports total input tokens and the cache split", async () => {
     stubFetch(message);
     const response = await new AnthropicClient(settings).complete({ prompt: "hi", maxTokens: 50 });

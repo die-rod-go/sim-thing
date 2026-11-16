@@ -124,15 +124,17 @@ export class AnthropicClient implements LlmClient {
           : entry.content,
     }));
     const isStrictSchema = this.settings.isStructuredOutputEnabled && request.jsonSchema;
+    const outputConfig = {
+      ...(isStrictSchema ? { format: { type: "json_schema", schema: request.jsonSchema } } : {}),
+      ...(request.effort === undefined ? {} : { effort: request.effort }),
+    };
     return {
       model: request.model ?? this.model,
       max_tokens: request.maxTokens,
       ...(systemText ? { system: systemText } : {}),
       messages,
       ...(request.temperature === undefined ? {} : { temperature: request.temperature }),
-      ...(isStrictSchema
-        ? { output_config: { format: { type: "json_schema", schema: request.jsonSchema } } }
-        : {}),
+      ...(Object.keys(outputConfig).length > 0 ? { output_config: outputConfig } : {}),
       ...(this.settings.isThinkingDisabled && !request.shouldThink
         ? { thinking: { type: "disabled" } }
         : {}),

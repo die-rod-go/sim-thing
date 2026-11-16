@@ -78,6 +78,10 @@ describe("callStructured with a reflection model", () => {
     await callStructured({ ...request, kind: "reality" });
     await callStructured(request);
     expect(client.requests.map((sent) => sent.shouldThink)).toEqual([true, false]);
+    expect(client.requests.map((sent) => sent.effort)).toEqual([
+      config.llm.effortByKind.reality,
+      config.llm.effortByKind.decision,
+    ]);
     expect(client.requests.map((sent) => sent.maxTokens)).toEqual([
       config.llm.maxReplyTokens.reality + config.llm.thinkingTokenAllowance,
       config.llm.maxReplyTokens.decision,

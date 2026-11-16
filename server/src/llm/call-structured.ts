@@ -175,6 +175,7 @@ async function attemptCall<Value>(
       maxTokens: findMaxTokens(request),
       model,
       shouldThink: shouldThink(request.kind),
+      effort: config.llm.effortByKind[request.kind],
       temperature: request.temperature ?? config.llm.temperature ?? undefined,
       cacheBreakpoints: request.cacheBreakpoints,
     });
