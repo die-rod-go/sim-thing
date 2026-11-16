@@ -662,7 +662,7 @@ export const config = {
      * The running sim lets the clock go on while an agent interrupted mid-action decides; idle
      * agents' decisions still hold it. Tests always wait for every call.
      */
-    shouldCallLlmInBackground: false,
+    shouldCallLlmInBackground: true,
     /**
      * Whether decisions stay in the background while a fight is on (`combat.fightTicks`). Off, every
      * decision holds the clock until it lands, so a fight doesn't run ahead of the fighters' replies.
@@ -672,7 +672,7 @@ export const config = {
      * Longest an idle agent's decision holds the clock in real time; past it the tick goes on and
      * the plan lands on a later tick, so one slow call can't stall the village.
      */
-    idleDecisionWaitMs: 2000,
+    idleDecisionWaitMs: 3000,
     /**
      * What an agent remembers when a reply named something that isn't there (the reply was rejected
      * and asked again). `{name}` is the name as the reply wrote it.

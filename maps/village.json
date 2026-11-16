@@ -11,7 +11,7 @@
  "tilewidth": 16,
  "tileheight": 16,
  "nextlayerid": 7,
- "nextobjectid": 268,
+ "nextobjectid": 277,
  "layers": [
   {
    "id": 1,
@@ -532,7 +532,7 @@
      "visible": true,
      "x": 720,
      "y": 320,
-     "width": 192,
+     "width": 112,
      "height": 128,
      "properties": [
       {
@@ -863,6 +863,150 @@
        "name": "isIndoor",
        "type": "bool",
        "value": true
+      }
+     ]
+    },
+    {
+     "id": 268,
+     "name": "tavern room 1",
+     "type": "",
+     "rotation": 0,
+     "visible": true,
+     "x": 832,
+     "y": 320,
+     "width": 80,
+     "height": 64,
+     "properties": [
+      {
+       "name": "isIndoor",
+       "type": "bool",
+       "value": true
+      }
+     ]
+    },
+    {
+     "id": 269,
+     "name": "tavern room 2",
+     "type": "",
+     "rotation": 0,
+     "visible": true,
+     "x": 832,
+     "y": 384,
+     "width": 80,
+     "height": 64,
+     "properties": [
+      {
+       "name": "isIndoor",
+       "type": "bool",
+       "value": true
+      }
+     ]
+    },
+    {
+     "id": 271,
+     "name": "north road",
+     "type": "",
+     "rotation": 0,
+     "visible": true,
+     "x": 560,
+     "y": 160,
+     "width": 32,
+     "height": 192,
+     "properties": [
+      {
+       "name": "isIndoor",
+       "type": "bool",
+       "value": false
+      }
+     ]
+    },
+    {
+     "id": 272,
+     "name": "east road",
+     "type": "",
+     "rotation": 0,
+     "visible": true,
+     "x": 688,
+     "y": 448,
+     "width": 336,
+     "height": 32,
+     "properties": [
+      {
+       "name": "isIndoor",
+       "type": "bool",
+       "value": false
+      }
+     ]
+    },
+    {
+     "id": 273,
+     "name": "south road",
+     "type": "",
+     "rotation": 0,
+     "visible": true,
+     "x": 560,
+     "y": 576,
+     "width": 32,
+     "height": 192,
+     "properties": [
+      {
+       "name": "isIndoor",
+       "type": "bool",
+       "value": false
+      }
+     ]
+    },
+    {
+     "id": 274,
+     "name": "west road",
+     "type": "",
+     "rotation": 0,
+     "visible": true,
+     "x": 208,
+     "y": 448,
+     "width": 256,
+     "height": 32,
+     "properties": [
+      {
+       "name": "isIndoor",
+       "type": "bool",
+       "value": false
+      }
+     ]
+    },
+    {
+     "id": 275,
+     "name": "lakeside road",
+     "type": "",
+     "rotation": 0,
+     "visible": true,
+     "x": 688,
+     "y": 768,
+     "width": 32,
+     "height": 288,
+     "properties": [
+      {
+       "name": "isIndoor",
+       "type": "bool",
+       "value": false
+      }
+     ]
+    },
+    {
+     "id": 276,
+     "name": "woodcutter's trail",
+     "type": "",
+     "rotation": 0,
+     "visible": true,
+     "x": 240,
+     "y": 480,
+     "width": 16,
+     "height": 128,
+     "properties": [
+      {
+       "name": "isIndoor",
+       "type": "bool",
+       "value": false
       }
      ]
     }
