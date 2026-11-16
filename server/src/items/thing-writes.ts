@@ -172,11 +172,12 @@ export function replaceDefinition(
   context: TickContext,
   entityId: string,
   definitionId: string,
-): void {
+): boolean {
   const { state, result } = context;
   const entity = findEntityIfPresent(state, entityId);
-  if (!entity) return;
+  if (!entity) return false;
   findDefinition(state.items, definitionId);
   replaceEntity(state, { ...entity, definitionId, label: null, changes: {} });
   markEntityChanged(result, entityId);
+  return true;
 }

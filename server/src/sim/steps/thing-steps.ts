@@ -123,15 +123,16 @@ export const transformStep: StepHandler<"transform"> = {
     const definitionId = resolveDefinitionId(scopeOf(run), step.into);
     const things = findStepThings(run, step.on ?? "self");
     if (run.verbRun !== null) refreshSnapshots(run.context.state, run.verbRun);
-    for (const thing of things) {
-      if (thing.kind === "agent") replaceBody(run.context, thing.agentId, definitionId);
-      else replaceDefinition(run.context, thing.entityId, definitionId);
-    }
+    const count = things.filter((thing) =>
+      thing.kind === "agent"
+        ? replaceBody(run.context, thing.agentId, definitionId)
+        : replaceDefinition(run.context, thing.entityId, definitionId),
+    ).length;
     recordTouched(
       run,
       things.flatMap((thing) => (thing.kind === "entity" ? [thing.entityId] : [])),
     );
-    return DONE;
+    return { kind: "done", made: { definitionId, count } };
   },
 };
 

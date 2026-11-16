@@ -50,10 +50,10 @@ export function destroyEntities(run: StepRun, entities: readonly Entity[]): void
  * with its death and memories. A body that is gone leaves everyone's sight at once. A living body,
  * or one already replaced, is left as it is.
  */
-export function replaceBody(context: TickContext, agentId: string, definitionId: string): void {
+export function replaceBody(context: TickContext, agentId: string, definitionId: string): boolean {
   const { state, result } = context;
   const agent = findAgent(state, agentId);
-  if (!isDead(agent) || agent.bodyReplacedById !== null) return;
+  if (!isDead(agent) || agent.bodyReplacedById !== null) return false;
   const tile: EntityLocation = {
     kind: "tile",
     place: findPlaceAt(state.map, agent.pos),
@@ -68,4 +68,5 @@ export function replaceBody(context: TickContext, agentId: string, definitionId:
     const runtime = getAgentRuntime(state, other.id);
     runtime.visibleAgentIds = runtime.visibleAgentIds.filter((visibleId) => visibleId !== agentId);
   }
+  return true;
 }

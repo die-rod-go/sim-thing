@@ -264,6 +264,15 @@ describe("transform and destroy", () => {
     expect(result.run.verbRun?.touchedIds).toEqual([jar.entityId]);
   });
 
+  it("says what a transform made, so the finish reads like the paper became a note", () => {
+    const sim = setUpSteps();
+    const jar = placeThing(sim, "jar", OPEN_GROUND);
+    const result = runSteps(sim, [{ step: "transform", on: "target", into: "shards" }], {
+      target: jar,
+    });
+    expect(result.made).toEqual({ definitionId: "shards", count: 1 });
+  });
+
   it("destroys an entity and lets what was inside fall where it stood", () => {
     const sim = setUpSteps();
     const chest = createEntity(sim.state, "chest", { kind: "tile", place: "x", pos: OPEN_GROUND });
