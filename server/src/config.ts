@@ -602,9 +602,9 @@ export const config = {
     /** New episodes between runs of the reality pass. */
     everyEpisodes: 2,
     /** Length limit of the thought it gives the agent; see `llm.replyTextSlack`. */
-    thoughtMaxChars: 400,
+    thoughtMaxChars: 1000,
     /** Length limit of its note for the prompt viewer, which the agent never sees. */
-    noticedMaxChars: 300,
+    noticedMaxChars: 1000,
     /** How the thought enters the agent's stream, in the agent's own voice. */
     thoughtStreamText: "It dawned on me: {thought}",
     placeJoiner: ", ",
@@ -718,7 +718,7 @@ export const config = {
       long_term_goals: "high",
       reality: "high",
     } as Partial<Record<LlmCallKind, LlmEffort>>,
-    dailyTokenBudget: 100_000_000,
+    dailyTokenBudget: 999_999_999,
     /**
      * Tries per call, the first included. A rejected reply (bad JSON, failed validation, too long)
      * is retried with the error added to the prompt; after the last try the caller falls back.
