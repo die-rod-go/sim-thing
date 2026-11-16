@@ -69,6 +69,8 @@ export const config = {
     sightRangeTiles: 24,
     openTileSoundCost: 1,
     closedDoorSoundCost: 4,
+    /** A diagonal step costs this much more than a straight one, so earshot is roughly round. */
+    diagonalSoundCostMultiplier: Math.SQRT2,
     muffledReachMultiplier: 1.5,
     speechLoudness: { whisper: 2, normal: 8, shout: 20 } satisfies Record<Volume, number>,
     /** Sleepers only hear their own name or sounds at least this loud. */

@@ -28,8 +28,66 @@ describe("sound", () => {
       requireMarker(asciiWorld, "a"),
       normalLoudness,
     );
-    expect(readSoundCost(costs, grid, requireMarker(asciiWorld, "c"))).toBe(8);
+    expect(readSoundCost(costs, grid, requireMarker(asciiWorld, "c"))).toBeCloseTo(
+      4 + 2 * Math.SQRT2,
+    );
     expect(readSoundCost(costs, grid, requireMarker(asciiWorld, "b"))).toBe(Infinity);
+  });
+
+  it("spreads diagonally at the diagonal cost, so earshot is roughly round", () => {
+    const asciiWorld = buildAsciiWorld(`
+      a...
+      ....
+      ....
+      ...b`);
+    const costs = computeSoundCosts(asciiWorld.world, requireMarker(asciiWorld, "a"), 10);
+    const listener = requireMarker(asciiWorld, "b");
+    expect(readSoundCost(costs, asciiWorld.world.grid, listener)).toBeCloseTo(
+      3 * config.perception.diagonalSoundCostMultiplier,
+    );
+  });
+
+  it("squeezes past a single wall corner", () => {
+    const asciiWorld = buildAsciiWorld(`
+      a#
+      .b`);
+    const costs = computeSoundCosts(asciiWorld.world, requireMarker(asciiWorld, "a"), 10);
+    const listener = requireMarker(asciiWorld, "b");
+    expect(readSoundCost(costs, asciiWorld.world.grid, listener)).toBeCloseTo(Math.SQRT2);
+  });
+
+  it("no sound between two touching diagonal walls", () => {
+    const asciiWorld = buildAsciiWorld(`
+      a#
+      #b`);
+    const costs = computeSoundCosts(asciiWorld.world, requireMarker(asciiWorld, "a"), 10);
+    const listener = requireMarker(asciiWorld, "b");
+    expect(readSoundCost(costs, asciiWorld.world.grid, listener)).toBe(Infinity);
+  });
+
+  it("can't step diagonally around a closed door beside a wall", () => {
+    const asciiWorld = buildAsciiWorld(`
+      a#
+      Db`);
+    const costs = computeSoundCosts(asciiWorld.world, requireMarker(asciiWorld, "a"), 10);
+    const listener = requireMarker(asciiWorld, "b");
+    const throughDoor = config.perception.closedDoorSoundCost + config.perception.openTileSoundCost;
+    expect(readSoundCost(costs, asciiWorld.world.grid, listener)).toBe(throughDoor);
+  });
+
+  it("refills when a door only diagonal sound can reach opens", () => {
+    const asciiWorld = buildAsciiWorld(`
+      a...
+      ....
+      ...D`);
+    const source = requireMarker(asciiWorld, "a");
+    const first = computeSoundCosts(asciiWorld.world, source, 4);
+    const openedWorld = { ...asciiWorld.world, muffledTiles: new Set<number>() };
+    const opened = computeSoundCosts(openedWorld, source, 4);
+    expect(opened).not.toBe(first);
+    expect(readSoundCost(opened, asciiWorld.world.grid, { x: 3, y: 2 })).toBeLessThan(
+      readSoundCost(first, asciiWorld.world.grid, { x: 3, y: 2 }),
+    );
   });
 
   it("a closed door costs more to pass than an open tile", () => {

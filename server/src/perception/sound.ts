@@ -12,6 +12,10 @@ const NEIGHBOR_OFFSETS: readonly Position[] = [
   { x: -1, y: 0 },
   { x: 0, y: 1 },
   { x: 0, y: -1 },
+  { x: 1, y: 1 },
+  { x: 1, y: -1 },
+  { x: -1, y: 1 },
+  { x: -1, y: -1 },
 ];
 
 const soundCostCache = new WeakMap<TileGrid, Map<string, SoundCosts>>();
@@ -26,13 +30,33 @@ export function readSoundCost(costs: SoundCosts, grid: TileGrid, position: Posit
   return costs.get(tileIndex(grid, position)) ?? Infinity;
 }
 
-function computeEnteringCost(world: PerceptionWorld, index: number): number {
-  return world.muffledTiles.has(index)
+function computeEnteringCost(world: PerceptionWorld, index: number, isDiagonal: boolean): number {
+  const tileCost = world.muffledTiles.has(index)
     ? config.perception.closedDoorSoundCost
     : config.perception.openTileSoundCost;
+  return isDiagonal ? tileCost * config.perception.diagonalSoundCostMultiplier : tileCost;
 }
 
-/** How many steps sound can travel at most before its cost runs past `maxCost`. */
+function isSoundBlockingCornerSide(world: PerceptionWorld, position: Position): boolean {
+  if (!isInsideGrid(world.grid, position)) return true;
+  const index = tileIndex(world.grid, position);
+  return world.grid.isWall[index] === true || world.muffledTiles.has(index);
+}
+
+/**
+ * A diagonal step squeezes past a corner only when at least one tile beside it is open, as sight
+ * does, so two touching walls seal the gap and a closed door can't be stepped around.
+ */
+function canPassCorner(world: PerceptionWorld, from: Position, offset: Position): boolean {
+  const isSideXBlocking = isSoundBlockingCornerSide(world, { x: from.x + offset.x, y: from.y });
+  const isSideYBlocking = isSoundBlockingCornerSide(world, { x: from.x, y: from.y + offset.y });
+  return !(isSideXBlocking && isSideYBlocking);
+}
+
+/**
+ * How many steps sound can travel at most before its cost runs past `maxCost`. Each step moves at
+ * most one tile along each axis, so this bounds the larger of the two axis distances.
+ */
 function computeReachSteps(maxCost: number): number {
   const cheapestStep = Math.min(
     config.perception.openTileSoundCost,
@@ -47,8 +71,10 @@ function buildCacheKey(world: PerceptionWorld, source: Position, maxCost: number
   const reachSteps = computeReachSteps(maxCost);
   const doorsInReach = [...world.muffledTiles]
     .filter((index) => {
-      const distance =
-        Math.abs((index % width) - source.x) + Math.abs(Math.floor(index / width) - source.y);
+      const distance = Math.max(
+        Math.abs((index % width) - source.x),
+        Math.abs(Math.floor(index / width) - source.y),
+      );
       return distance <= reachSteps;
     })
     .sort((first, second) => first - second);
@@ -56,7 +82,7 @@ function buildCacheKey(world: PerceptionWorld, source: Position, maxCost: number
 }
 
 /**
- * Shortest sound path cost from the source over open tiles; walls block. Relaxation with a work
+ * Shortest sound path cost from the source over open tiles, in eight directions; walls block. Relaxation with a work
  * queue over only the tiles within reach: costs are non-negative, so this settles quickly.
  */
 function fillSoundCosts(world: PerceptionWorld, source: Position, maxCost: number): SoundCosts {
@@ -73,7 +99,9 @@ function fillSoundCosts(world: PerceptionWorld, source: Position, maxCost: numbe
       if (!isInsideGrid(grid, neighbor)) continue;
       const neighborIndex = tileIndex(grid, neighbor);
       if (grid.isWall[neighborIndex] === true) continue;
-      const candidateCost = currentCost + computeEnteringCost(world, neighborIndex);
+      const isDiagonal = offset.x !== 0 && offset.y !== 0;
+      if (isDiagonal && !canPassCorner(world, current, offset)) continue;
+      const candidateCost = currentCost + computeEnteringCost(world, neighborIndex, isDiagonal);
       if (candidateCost > maxCost || candidateCost >= (costs.get(neighborIndex) ?? Infinity)) {
         continue;
       }
