@@ -712,9 +712,9 @@ export const config = {
      * OpenAI-compatible providers.
      */
     effortByKind: {
-      people: "high",
-      short_term_goals: "high",
-      identity: "high",
+      people: "medium",
+      short_term_goals: "medium",
+      identity: "medium",
       long_term_goals: "high",
       reality: "high",
     } as Partial<Record<LlmCallKind, LlmEffort>>,
