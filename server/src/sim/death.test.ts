@@ -210,7 +210,7 @@ describe("death", () => {
     waitWithoutInterrupts(sim, "ilsa");
     sim.placeAgent("ilsa", NEXT_TO_SQUARE);
     const [result] = await sim.advance();
-    expect(sim.streamTexts("ilsa")).toContain("I saw Mara's body again in the town square");
+    expect(sim.streamTexts("ilsa")).toContain("I saw Mara's body in the town square");
     expect(sim.streamTexts("ilsa").join("\n")).not.toContain("I found");
     expect(result?.decidedAgentIds).not.toContain("ilsa");
   });
