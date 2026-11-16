@@ -437,6 +437,10 @@
   font-size: 11px;
 }
 
+.hover-card-need:first-child {
+  grid-column: 1 / -1;
+}
+
 .hover-card-need-name {
   width: 42px;
 }

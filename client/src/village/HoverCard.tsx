@@ -1,5 +1,17 @@
-import { NEED_NAMES, type Agent, type SimTimeSettings, type ThingCatalog } from "@village/shared";
-import { describeActivity, describeDeath, describeNeed } from "../format/character-sheet";
+import {
+  NEED_NAMES,
+  readAgentHealth,
+  type Agent,
+  type SimTimeSettings,
+  type ThingCatalog,
+} from "@village/shared";
+import {
+  describeActivity,
+  describeDeath,
+  describeHealth,
+  describeNeed,
+  type NeedLevel,
+} from "../format/character-sheet";
 import { listVisibleBodyComponents } from "../format/conditions";
 
 const PERCENT = 100;
@@ -12,23 +24,35 @@ interface HoverCardProps {
   cardRef: (element: HTMLElement | null) => void;
 }
 
-function NeedBars({ agent }: { agent: Agent }) {
+function StatusBar({ label, level, value }: { label: string; level: NeedLevel; value: number }) {
+  const clampedValue = Math.min(Math.max(value, 0), 1);
+  return (
+    <div className="hover-card-need" title={`${label}: ${level.word}`}>
+      <span className="hover-card-need-name">{label}</span>
+      <span className="hover-card-need-track">
+        <span
+          className={`hover-card-need-fill level-${level.levelIndex}`}
+          style={{ width: `${clampedValue * PERCENT}%` }}
+        />
+      </span>
+    </div>
+  );
+}
+
+/** Health first, then needs, matching the Status section of the character sheet. */
+function StatusBars({ agent, catalog }: { agent: Agent; catalog: ThingCatalog }) {
+  const health = readAgentHealth(catalog, agent);
   return (
     <div className="hover-card-needs">
-      {NEED_NAMES.map((needName) => {
-        const level = describeNeed(needName, agent.needs[needName]);
-        return (
-          <div key={needName} className="hover-card-need" title={`${needName}: ${level.word}`}>
-            <span className="hover-card-need-name">{needName}</span>
-            <span className="hover-card-need-track">
-              <span
-                className={`hover-card-need-fill level-${level.levelIndex}`}
-                style={{ width: `${agent.needs[needName] * PERCENT}%` }}
-              />
-            </span>
-          </div>
-        );
-      })}
+      <StatusBar label="health" level={describeHealth(health)} value={health} />
+      {NEED_NAMES.map((needName) => (
+        <StatusBar
+          key={needName}
+          label={needName}
+          level={describeNeed(needName, agent.needs[needName])}
+          value={agent.needs[needName]}
+        />
+      ))}
     </div>
   );
 }
@@ -51,7 +75,7 @@ export function HoverCard({ agent, catalog, color, timeSettings, cardRef }: Hove
             {describeActivity(agent.currentAction, timeSettings)} · feeling <em>{agent.mood}</em>
           </div>
           {agent.intention && <div className="hover-card-intention">→ {agent.intention}</div>}
-          <NeedBars agent={agent} />
+          <StatusBars agent={agent} catalog={catalog} />
         </>
       )}
       {visibleComponents.length > 0 && (
