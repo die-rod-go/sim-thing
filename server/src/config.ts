@@ -591,7 +591,7 @@ export const config = {
     maxSteps: 5,
     /** Length limit of each short-term goal text (goal, reason, each step, progress). */
     shortTermFieldMaxChars: 200,
-    maxLongTerm: 5,
+    maxLongTerm: 2,
     /** Length limit of each long-term goal text (goal, reason, progress). */
     longTermFieldMaxChars: 250,
     noLongTermText: "No long-term goals right now.",
