@@ -1,4 +1,4 @@
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import type { ItemDefinition } from "@village/shared";
 import { describeGodTool, type GodTool } from "./god-mode";
 import type { GodMode } from "./use-god-mode";
@@ -9,9 +9,11 @@ interface GodPanelProps {
   /** The agents' body definition, which can't be placed as an item. */
   agentBodyId: string;
   refusal: string | null;
+  /** Whether a god action was sent and the server has not answered yet. */
+  isActionPending: boolean;
   onPause: () => void;
-  /** Says the words to every living agent, as a voice from the sky. */
-  onSpeak: (words: string) => void;
+  /** Says the words to every living agent, as a voice from the sky; false if nothing was sent. */
+  onSpeak: (words: string) => boolean;
 }
 
 const TOOL_BUTTONS: { label: string; tool: GodTool }[] = [
@@ -72,14 +74,43 @@ function DefinitionPicker({
   );
 }
 
-function SpeakForm({ onSpeak }: { onSpeak: (words: string) => void }) {
+interface SpeakDraft {
+  words: string;
+  setWords: (words: string) => void;
+  isAwaitingAnswer: boolean;
+  isDisconnected: boolean;
+  speak: () => void;
+}
+
+/**
+ * The words stay in the box until the server says they were spoken, so nothing typed is lost to a
+ * dropped connection or to the sim resuming while the words waited for the minute in progress.
+ */
+function useSpeakDraft(
+  isActionPending: boolean,
+  refusal: string | null,
+  onSpeak: (words: string) => boolean,
+): SpeakDraft {
   const [words, setWords] = useState("");
-  const canSpeak = words.trim() !== "";
+  const [isAwaitingAnswer, setIsAwaitingAnswer] = useState(false);
+  const [isDisconnected, setIsDisconnected] = useState(false);
+  useEffect(() => {
+    if (!isAwaitingAnswer || isActionPending) return;
+    setIsAwaitingAnswer(false);
+    if (refusal === null) setWords("");
+  }, [isAwaitingAnswer, isActionPending, refusal]);
   const speak = () => {
-    if (!canSpeak) return;
-    onSpeak(words.trim());
-    setWords("");
+    if (words.trim() === "" || isActionPending) return;
+    const isSent = onSpeak(words.trim());
+    setIsDisconnected(!isSent);
+    setIsAwaitingAnswer(isSent);
   };
+  return { words, setWords, isAwaitingAnswer, isDisconnected, speak };
+}
+
+function SpeakForm({ draft }: { draft: SpeakDraft }) {
+  const { words, setWords, isAwaitingAnswer, isDisconnected, speak } = draft;
+  const canSpeak = words.trim() !== "" && !isAwaitingAnswer;
   return (
     <form
       className="god-speak"
@@ -104,6 +135,12 @@ function SpeakForm({ onSpeak }: { onSpeak: (words: string) => void }) {
       <button type="submit" disabled={!canSpeak}>
         Speak
       </button>
+      {isAwaitingAnswer && (
+        <p className="god-hint">Waiting for the minute in progress to finish before speaking…</p>
+      )}
+      {isDisconnected && (
+        <p className="god-refusal">Not connected to the sim, so nothing was said.</p>
+      )}
     </form>
   );
 }
@@ -114,10 +151,12 @@ export function GodPanel({
   itemDefinitions,
   agentBodyId,
   refusal,
+  isActionPending,
   onPause,
   onSpeak,
 }: GodPanelProps) {
   const { tool, setTool } = godMode;
+  const speakDraft = useSpeakDraft(isActionPending, refusal, onSpeak);
   const placeable = useMemo(
     () => itemDefinitions.filter((definition) => definition.id !== agentBodyId),
     [itemDefinitions, agentBodyId],
@@ -170,10 +209,10 @@ export function GodPanel({
               onChoose={(definitionId) => setTool({ kind: "place", definitionId })}
             />
           )}
-          <SpeakForm onSpeak={onSpeak} />
-          {refusal !== null && <p className="god-refusal">{refusal}</p>}
+          <SpeakForm draft={speakDraft} />
         </>
       )}
+      {refusal !== null && <p className="god-refusal">{refusal}</p>}
     </div>
   );
 }

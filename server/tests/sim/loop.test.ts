@@ -121,6 +121,27 @@ describe("SimLoop", () => {
     expect(counter.ticksSeen).toEqual([0, 100]);
   });
 
+  it("answers without editing when the sim resumes before the tick an edit waited on ends", async () => {
+    let releaseTick: () => void = () => undefined;
+    const advanceTick: AdvanceTick = (state) =>
+      new Promise((resolveTick) => {
+        releaseTick = () => resolveTick(createEmptyTickResult(state.tick));
+      });
+    const { loop, scheduler } = buildLoop(advanceTick);
+    loop.start();
+    await scheduler.advance(0);
+    loop.pause();
+    let isEdited = false;
+    const answer = loop.editWhilePaused(() => {
+      isEdited = true;
+      return { result: createEmptyTickResult(0), answer: "edited" };
+    }, "resumed");
+    loop.resume();
+    releaseTick();
+    expect(await answer).toBe("resumed");
+    expect(isEdited).toBe(false);
+  });
+
   it("pauses with a reason when a tick fails", async () => {
     const { loop, scheduler } = buildLoop(() => Promise.reject(new Error("llm exploded")));
     const reasons: (string | null)[] = [];

@@ -54,7 +54,7 @@ async function applyGodActionWhilePaused(
     };
     const refusal = applyGodAction(tickContext, action);
     return { result: tickContext.result, answer: refusal };
-  });
+  }, "The sim was resumed before the minute in progress finished, so nothing changed");
 }
 
 async function resetAndAnnounce(dependencies: ControlDependencies): Promise<void> {

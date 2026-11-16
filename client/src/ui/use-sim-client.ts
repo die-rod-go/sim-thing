@@ -1,16 +1,27 @@
 import { useCallback, useEffect, useReducer, useRef, useState } from "react";
 import type { ClientMessage, ServerMessage } from "@village/shared";
 import { buildSocketUrl, SimConnection, type ConnectionStatus } from "../net/sim-connection";
-import { applyServerMessage, selectInspectedAgent } from "../state/apply-server-message";
+import {
+  applyServerMessage,
+  markGodActionSent,
+  selectInspectedAgent,
+} from "../state/apply-server-message";
 import { initialClientState, type ClientState } from "../state/client-state";
 
 type ClientAction =
-  { kind: "server"; message: ServerMessage } | { kind: "select"; agentId: string | null };
+  | { kind: "server"; message: ServerMessage }
+  | { kind: "select"; agentId: string | null }
+  | { kind: "god_action_sent" };
 
 function reduceClientAction(state: ClientState, action: ClientAction): ClientState {
-  return action.kind === "server"
-    ? applyServerMessage(state, action.message)
-    : selectInspectedAgent(state, action.agentId);
+  switch (action.kind) {
+    case "server":
+      return applyServerMessage(state, action.message);
+    case "select":
+      return selectInspectedAgent(state, action.agentId);
+    case "god_action_sent":
+      return markGodActionSent(state);
+  }
 }
 
 export interface SimClient {
@@ -19,7 +30,8 @@ export interface SimClient {
   protocolError: string | null;
   isDebugOverlayOn: boolean;
   setDebugOverlayOn: (isOn: boolean) => void;
-  sendControl: (message: ClientMessage) => void;
+  /** Returns false when the connection is down and nothing was sent. */
+  sendControl: (message: ClientMessage) => boolean;
   selectAgent: (agentId: string | null) => void;
 }
 
@@ -37,7 +49,9 @@ export function useSimClient(): SimClient {
   }, [state]);
 
   const sendControl = useCallback((message: ClientMessage) => {
-    connectionRef.current?.send(message);
+    const isSent = connectionRef.current?.send(message) ?? false;
+    if (isSent && message.type === "god_action") dispatch({ kind: "god_action_sent" });
+    return isSent;
   }, []);
 
   const selectAgent = useCallback((agentId: string | null) => {

@@ -36,6 +36,7 @@ export function applyServerMessage(state: ClientState, message: ServerMessage): 
       return {
         ...state,
         hasSnapshot: true,
+        isGodActionPending: false,
         clock: message.clock,
         stats: message.stats,
         timeSettings: message.timeSettings,
@@ -115,7 +116,7 @@ export function applyServerMessage(state: ClientState, message: ServerMessage): 
       return { ...state, agents, agentDetail: isInspected ? message : state.agentDetail };
     }
     case "god_action_result":
-      return { ...state, godRefusal: message.refusal };
+      return { ...state, godRefusal: message.refusal, isGodActionPending: false };
     case "voice_spoke":
       return { ...state, lastVoice: { words: message.words, tick: message.tick } };
     case "seed_file":
@@ -136,4 +137,9 @@ export function selectInspectedAgent(state: ClientState, agentId: string | null)
     inspectedAgentId: agentId,
     agentDetail: isSameAgent ? state.agentDetail : null,
   };
+}
+
+/** A god mode action is on its way; its answer clears this, and so does a fresh snapshot. */
+export function markGodActionSent(state: ClientState): ClientState {
+  return { ...state, isGodActionPending: true, godRefusal: null };
 }

@@ -7,7 +7,11 @@ import {
   makeSampleMoment,
   makeSampleSnapshot,
 } from "../../src/fixtures/sample-data";
-import { applyServerMessage, selectInspectedAgent } from "../../src/state/apply-server-message";
+import {
+  applyServerMessage,
+  markGodActionSent,
+  selectInspectedAgent,
+} from "../../src/state/apply-server-message";
 import { initialClientState, type ClientState } from "../../src/state/client-state";
 
 const ada = makeSampleAgent("ada", "Ada", 3, 4);
@@ -244,5 +248,31 @@ describe("applyServerMessage catalog", () => {
       tick: 42,
     });
     expect(state.lastVoice).toEqual({ words: "Be kind", tick: 42 });
+  });
+
+  it("waits for the answer to a sent god action and forgets the last refusal", () => {
+    const refused = applyServerMessage(loadedState(), {
+      type: "god_action_result",
+      refusal: "Pause the sim to use god mode",
+    });
+    const sent = markGodActionSent(refused);
+    expect(sent.isGodActionPending).toBe(true);
+    expect(sent.godRefusal).toBeNull();
+  });
+
+  it("stops waiting once the god action is answered", () => {
+    const answered = applyServerMessage(markGodActionSent(loadedState()), {
+      type: "god_action_result",
+      refusal: null,
+    });
+    expect(answered.isGodActionPending).toBe(false);
+  });
+
+  it("stops waiting for a god action answer after reconnecting", () => {
+    const reconnected = applyServerMessage(
+      markGodActionSent(loadedState()),
+      makeSampleSnapshot([ada, bob]),
+    );
+    expect(reconnected.isGodActionPending).toBe(false);
   });
 });

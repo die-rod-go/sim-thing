@@ -46,6 +46,8 @@ export interface ClientState {
   agentDetail: AgentDetailMessage | null;
   /** Why the server turned down the last god mode action; null once one went through. */
   godRefusal: string | null;
+  /** Whether a god mode action was sent and its answer has not come back yet. */
+  isGodActionPending: boolean;
   /** The last words spoken from the sky, for the banner; null until something is said. */
   lastVoice: { words: string; tick: number } | null;
 }
@@ -71,6 +73,7 @@ export const initialClientState: ClientState = {
   inspectedAgentId: null,
   agentDetail: null,
   godRefusal: null,
+  isGodActionPending: false,
   lastVoice: null,
 };
 

@@ -35,7 +35,7 @@ interface VillageViewProps {
   state: ClientState;
   isDebugOverlayOn: boolean;
   onSelectAgent: (agentId: string) => void;
-  sendControl: (message: ClientMessage) => void;
+  sendControl: (message: ClientMessage) => boolean;
   cameraFocus?: CameraFocus | null;
   highlightedAgentIds?: readonly string[];
 }
@@ -210,6 +210,7 @@ export function VillageView({
           itemDefinitions={state.itemDefinitions}
           agentBodyId={state.catalog.world.agentBody}
           refusal={state.godRefusal}
+          isActionPending={state.isGodActionPending}
           onPause={() => sendControl({ type: "pause" })}
           onSpeak={(words) => sendControl({ type: "god_action", action: { kind: "speak", words } })}
         />
