@@ -24,7 +24,16 @@ import {
   setField,
 } from "./combat-test-kit";
 import { buildDecisionContext } from "../../src/sim/context-builder";
-import { ALWAYS, NEVER, TOBIAS, hasComponentNow, placeThing, setUpRules } from "./rule-test-kit";
+import {
+  ALWAYS,
+  NEVER,
+  OPEN_GROUND,
+  TOBIAS,
+  hasComponentNow,
+  placeThing,
+  setUpRules,
+} from "./rule-test-kit";
+import { actForTicks } from "./creature-test-kit";
 import type { TestSim } from "../../src/sim/test-sim";
 
 /*
@@ -461,5 +470,18 @@ describe("inspecting", () => {
     setField(sim, field, "stock.amount", 6);
     doVerb(sim, "mara", "inspect", "wheat field");
     expect(memoryTexts(sim, "mara")).toContain("I inspected the wheat field: 6 left");
+  });
+});
+
+describe("goblins", () => {
+  it("hunts the nearest person and scratches them, leaving them poisoned for a while", () => {
+    const sim = setUpVillage(ALWAYS);
+    placeThing(sim, "goblin", OPEN_GROUND);
+    const scratch = actForTicks(sim, 10)
+      .flatMap((result) => result.events)
+      .find((event) => event.kind === "attacked");
+    const victimId = scratch?.targetId ?? "";
+    expect(sim.streamTexts(victimId)).toContain("The goblin scratched me");
+    expect(typeof poisonEndOf(sim, victimId)).toBe("number");
   });
 });

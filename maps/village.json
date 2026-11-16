@@ -11,7 +11,7 @@
  "tilewidth": 16,
  "tileheight": 16,
  "nextlayerid": 7,
- "nextobjectid": 254,
+ "nextobjectid": 256,
  "layers": [
   {
    "id": 1,
@@ -5209,6 +5209,52 @@
        "name": "definition",
        "type": "string",
        "value": "wolf_den"
+      }
+     ]
+    },
+    {
+     "id": 254,
+     "name": "goblin warren",
+     "type": "",
+     "rotation": 0,
+     "visible": true,
+     "x": 1184,
+     "y": 1120,
+     "width": 16,
+     "height": 16,
+     "properties": [
+      {
+       "name": "name",
+       "type": "string",
+       "value": "goblin warren"
+      },
+      {
+       "name": "definition",
+       "type": "string",
+       "value": "goblin_warren"
+      }
+     ]
+    },
+    {
+     "id": 255,
+     "name": "goblin",
+     "type": "",
+     "rotation": 0,
+     "visible": true,
+     "x": 1168,
+     "y": 1104,
+     "width": 16,
+     "height": 16,
+     "properties": [
+      {
+       "name": "name",
+       "type": "string",
+       "value": "goblin"
+      },
+      {
+       "name": "definition",
+       "type": "string",
+       "value": "goblin"
       }
      ]
     },

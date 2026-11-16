@@ -566,6 +566,24 @@
         }
       }
     },
+    "claws": {
+      "description": "Scratches with poisoned claws.",
+      "fields": {
+        "damage": {
+          "type": "range",
+          "description": "Health one scratch takes, before strength."
+        },
+        "hitChance": {
+          "type": "number",
+          "description": "Chance to scratch someone as nimble."
+        },
+        "poisonMinutes": {
+          "type": "number",
+          "description": "How long a scratch keeps its victim poisoned.",
+          "min": 0
+        }
+      }
+    },
     "drops": {
       "description": "What it leaves behind when it dies.",
       "fields": {
@@ -1876,6 +1894,46 @@
       }
     },
     {
+      "id": "goblin",
+      "name": "goblin",
+      "plural": "goblins",
+      "glyph": {
+        "index": 103,
+        "color": "#7aa83a"
+      },
+      "components": {
+        "alive": {},
+        "flesh": {},
+        "creature": {
+          "sightTiles": 10,
+          "wanderChance": 0.35
+        },
+        "health": {
+          "max": 0.5,
+          "current": 0.5
+        },
+        "predator": {
+          "fleeRadius": 6,
+          "fleeBelowHealth": 0.25
+        },
+        "claws": {
+          "damage": {
+            "min": 0.03,
+            "max": 0.08
+          },
+          "hitChance": 0.7,
+          "poisonMinutes": 120
+        },
+        "stats": {
+          "strength": 0.4,
+          "agility": 0.8
+        },
+        "defensive": {
+          "grudgeMinutes": 90
+        }
+      }
+    },
+    {
       "id": "wolf_den",
       "name": "wolf den",
       "plural": "wolf dens",
@@ -1894,6 +1952,28 @@
         },
         "spawns": {
           "item": "wolf"
+        }
+      }
+    },
+    {
+      "id": "goblin_warren",
+      "name": "goblin warren",
+      "plural": "goblin warrens",
+      "glyph": {
+        "index": 127,
+        "color": "#6a8a3a",
+        "background": "#1c2414"
+      },
+      "components": {
+        "stock": {
+          "capacity": 1,
+          "amount": 0
+        },
+        "regrows": {
+          "perHour": 0.02
+        },
+        "spawns": {
+          "item": "goblin"
         }
       }
     },
@@ -5294,6 +5374,77 @@
       }
     },
     {
+      "name": "scratch",
+      "appliesTo": {
+        "allOf": [
+          {
+            "has": "claws"
+          },
+          {
+            "where": "self"
+          }
+        ]
+      },
+      "target": {
+        "allOf": [
+          {
+            "field": "health.current",
+            "above": 0
+          },
+          {
+            "has": "flesh"
+          },
+          {
+            "not": {
+              "where": "self"
+            }
+          }
+        ]
+      },
+      "steps": [
+        {
+          "step": "wait",
+          "minutes": 1,
+          "loudness": 5
+        },
+        {
+          "step": "roll_hit",
+          "chance": {
+            "from": "item.claws.hitChance"
+          }
+        },
+        {
+          "step": "damage",
+          "on": "target",
+          "field": "health.current",
+          "amount": {
+            "from": "item.claws.damage"
+          },
+          "scaledByStrength": true
+        },
+        {
+          "step": "send",
+          "on": "target",
+          "stimulus": "cut"
+        },
+        {
+          "step": "add",
+          "on": "target",
+          "component": "poisoned",
+          "minutes": {
+            "from": "item.claws.poisonMinutes"
+          }
+        }
+      ],
+      "phrases": {
+        "ongoing": "clawing at {target}",
+        "hit": "scratched {target}",
+        "missed": "swiped at {target} and missed",
+        "killed": "clawed to death by {actor}",
+        "attempt": "scratch {target}"
+      }
+    },
+    {
       "name": "graze",
       "appliesTo": {
         "allOf": [
@@ -5939,6 +6090,24 @@
             "has": "creature"
           },
           {
+            "has": "provoked"
+          }
+        ]
+      },
+      "verb": "scratch",
+      "range": {
+        "from": "self.creature.sightTiles"
+      },
+      "sourceOf": "provoked"
+    },
+    {
+      "do": "verb",
+      "appliesTo": {
+        "allOf": [
+          {
+            "has": "creature"
+          },
+          {
             "has": "grazer"
           },
           {
@@ -6000,6 +6169,31 @@
         ]
       },
       "verb": "bite",
+      "target": {
+        "definition": "person"
+      },
+      "range": {
+        "from": "self.creature.sightTiles"
+      }
+    },
+    {
+      "do": "verb",
+      "appliesTo": {
+        "allOf": [
+          {
+            "has": "creature"
+          },
+          {
+            "has": "predator"
+          },
+          {
+            "not": {
+              "has": "sated"
+            }
+          }
+        ]
+      },
+      "verb": "scratch",
       "target": {
         "definition": "person"
       },
