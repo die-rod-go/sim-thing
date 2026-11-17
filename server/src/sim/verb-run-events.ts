@@ -112,6 +112,7 @@ export function announceStarted(run: StepRun, verb: Verb): void {
     ...phrases,
     ...describeRunTarget(verbRun),
     loudness: computeLoudness(run, verb),
+    verb: verb.name,
   });
   broadcastEvent(state, event, result);
 }
@@ -145,6 +146,7 @@ export function announceFinished(run: StepRun, verb: Verb): void {
     ...phrases,
     ...describeRunTarget(verbRun),
     loudness: run.isInPassing ? computeLoudness(run, verb) : null,
+    verb: verb.name,
   });
   broadcastEvent(state, event, result);
 }

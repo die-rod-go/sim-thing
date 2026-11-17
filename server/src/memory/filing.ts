@@ -147,8 +147,9 @@ function draftForSpeechPerceiver(
   }
   if (perception.hearing === "muffled") {
     const where = describePlace(context.nameLocation(event.place, event.pos));
+    const heard = volume === "shout" ? `${speakerLabel} shout` : `${speakerLabel}'s voice`;
     const text =
-      `I heard ${speakerLabel}'s voice from ${where}` +
+      `I heard ${heard} from ${where}` +
       `${describeDirection(perception.direction)} but couldn't make out the words`;
     return { agentId: perception.agentId, text };
   }

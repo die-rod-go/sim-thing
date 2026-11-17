@@ -1,5 +1,6 @@
 import { PERSON_ENTRY_FIELDS, type LongTermGoal, type ShortTermGoal } from "@village/shared";
 import { config } from "../config";
+import { truncateEntryText } from "../memory/stream";
 import { fillStatusWords } from "../status/impairment";
 import type {
   CurrentActionSummary,
@@ -85,7 +86,7 @@ function describeSeenPlace(place: SeenPlaceLine): string {
     .join(place.entityNames.length > 0 ? place.entityNames.join(", ") : texts.nothingThere);
 }
 
-/** The bullet list under "Places you have seen". */
+/** The bullet list under "Places you know". */
 export function describeSeenPlaces(places: SeenPlaceLine[]): string {
   return bulletList(places.map(describeSeenPlace), config.places.promptTexts.noneSeen);
 }
@@ -120,12 +121,41 @@ export function describeStream(stream: string[]): string {
   return bulletList(stream, config.memory.streamTexts.empty);
 }
 
+/** "Beckett (she/her)", or the bare name when no pronouns are known. */
+export function describeNameWithPronouns(name: string, pronouns: string): string {
+  return pronouns.trim() === "" ? name : `${name} (${pronouns.trim()})`;
+}
+
 function describePerson(person: KnownPerson): string[] {
+  const name = describeNameWithPronouns(person.name, person.pronouns);
   const lines = PERSON_ENTRY_FIELDS.filter((field) => person.entry[field].trim() !== "").map(
     (field) => `${NESTED_INDENT}${config.people.fieldLabels[field]}: ${person.entry[field]}`,
   );
-  if (lines.length === 0) return [`- ${person.name}: ${config.people.emptyEntryText}`];
-  return [`- ${person.name}`, ...lines];
+  if (lines.length === 0) return [`- ${name}: ${config.people.emptyEntryText}`];
+  return [`- ${name}`, ...lines];
+}
+
+/** "- Tom (he/him): Fair, but slow to pay.": one short line per person the agent knows. */
+export function describePersonLines(people: readonly KnownPerson[]): string {
+  if (people.length === 0) return config.people.nobodyKnownText;
+  return people
+    .map((person) => {
+      const name = describeNameWithPronouns(person.name, person.pronouns);
+      const opinion = person.entry.whatIThinkOfThem.trim();
+      const summary =
+        opinion === ""
+          ? config.people.emptyEntryText
+          : truncateEntryText(opinion, config.people.summaryMaxChars);
+      return `- ${name}: ${summary}`;
+    })
+    .join("\n");
+}
+
+/** The full entries of the people on the agent's mind, under their title; empty when none. */
+export function describePeopleOnMind(people: readonly KnownPerson[]): string {
+  if (people.length === 0) return "";
+  const entries = people.flatMap(describePerson).join("\n");
+  return `## ${config.people.onMindTitle}\n${config.people.onMindIntro}\n${entries}`;
 }
 
 /** Everyone the agent knows, each with the fields of their entry that hold something. */

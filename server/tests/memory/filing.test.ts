@@ -138,6 +138,35 @@ describe("fileEvent", () => {
     );
   });
 
+  it("files a muffled shout as a shout, still without the words", () => {
+    const event = makeSpeech("Help!", { speech: { words: "Help!", volume: "shout" } });
+    const muffled = makePerception("clara", {
+      isInSight: false,
+      hearing: "muffled",
+      via: "heard_muffled",
+    });
+    const context = makeContext({ knownAgentIdsByListener: { clara: ["bob"] } });
+    const memory = memoryFor(fileEvent({ event, perceptions: [muffled] }, context), "clara");
+    expect(memory.text).toBe("I heard Bob shout from the bakery but couldn't make out the words");
+  });
+
+  it("names a spot outside every place after the place it is by", () => {
+    const event = makeSpeech("Hello", { place: "village road" });
+    const muffled = makePerception("clara", {
+      isInSight: false,
+      hearing: "muffled",
+      via: "heard_muffled",
+    });
+    const context = makeContext({
+      knownAgentIdsByListener: { clara: ["bob"] },
+      nameLocation: () => "the road by the smithy",
+    });
+    const memory = memoryFor(fileEvent({ event, perceptions: [muffled] }, context), "clara");
+    expect(memory.text).toBe(
+      "I heard Bob's voice from the road by the smithy but couldn't make out the words",
+    );
+  });
+
   it("files another agent's action in sight as seen", () => {
     const memories = fileEvent(
       { event: makeEvent(), perceptions: [makePerception("bob")] },

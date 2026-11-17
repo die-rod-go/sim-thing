@@ -213,4 +213,14 @@ describe("creatures coming into view", () => {
     updateSight(contextOf(sim));
     expect(runtime.pendingDecision).toBeNull();
   });
+
+  it("lets a creature the world settings don't single out come into view unremarked", () => {
+    const sim = buildCreatureSim(NEVER);
+    updateSight(contextOf(sim));
+    const runtime = getAgentRuntime(sim.state, "mara");
+    runtime.pendingDecision = null;
+    placeCreature(sim, "deer", FIELD_EDGE);
+    updateSight(contextOf(sim));
+    expect(runtime.pendingDecision).toBeNull();
+  });
 });

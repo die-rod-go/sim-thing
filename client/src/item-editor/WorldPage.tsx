@@ -19,7 +19,64 @@ const MATCHER_SETTING_DESCRIPTIONS: Record<WorldMatcherSetting, string> = {
     'Prompts: a matching entity on a tile reads as lying "on the floor", so a dropped knife is told apart from a placed oven.',
   closedSupply:
     "Validation only: warns when a verb or rule could make or destroy a matching thing.",
+  noticeOnSight:
+    "Attention: a creature matching this catches an agent's eye as it comes into view and gives it a decision; others are only seen.",
+  placeListingOmits:
+    'Prompts: things a place lists in "Places you know" leave out what matches (doors, windows, benches).',
 };
+
+/** The verbs whose doing turns the heads of whoever sees or hears it. */
+function NoticedVerbsSetting({
+  file,
+  problems,
+  onEdit,
+}: {
+  file: ItemFile;
+  problems: readonly ItemProblem[];
+  onEdit: (file: ItemFile) => void;
+}) {
+  const noticed = file.world.noticedVerbs ?? [];
+  const others = [...new Set(file.verbs.map((verb) => verb.name))].filter(
+    (name) => !noticed.includes(name),
+  );
+  const setNoticed = (names: string[]) => onEdit(setWorldSetting(file, "noticedVerbs", names));
+  return (
+    <section className="form-section">
+      <h4>noticedVerbs</h4>
+      <p className="field-hint">
+        Attention: someone doing one of these verbs interrupts whoever sees or hears it. Other
+        people&apos;s verbs are only remembered.
+      </p>
+      {noticed.map((name) => (
+        <InlineField key={name} label={name}>
+          <button
+            className="icon-button"
+            title={`Stop noticing ${name}`}
+            onClick={() => setNoticed(noticed.filter((candidate) => candidate !== name))}
+          >
+            Ã—
+          </button>
+        </InlineField>
+      ))}
+      <InlineField label="add">
+        <select
+          value=""
+          onChange={(event) => {
+            if (event.target.value !== "") setNoticed([...noticed, event.target.value]);
+          }}
+        >
+          <option value="">a verbâ€¦</option>
+          {others.map((name) => (
+            <option key={name} value={name}>
+              {name}
+            </option>
+          ))}
+        </select>
+      </InlineField>
+      <ItemProblemList problems={selectSettingProblems(problems, "noticedVerbs")} />
+    </section>
+  );
+}
 
 function selectSettingProblems(problems: readonly ItemProblem[], setting: string): ItemProblem[] {
   return selectProblemsUnder(problems, `world.${setting}`);
@@ -74,8 +131,8 @@ function CreatureStatSettings({
 }
 
 /**
- * The settings the physics reads: seven matchers, the agent's body and its health field, and the
- * fields that are a creature's stats.
+ * The settings the engine reads: its matchers, the verbs that catch the eye, the agent's body and
+ * its health field, and the fields that are a creature's stats.
  */
 export function WorldPage({
   file,
@@ -103,6 +160,7 @@ export function WorldPage({
           <ItemProblemList problems={selectSettingProblems(problems, setting)} />
         </section>
       ))}
+      <NoticedVerbsSetting file={file} problems={problems} onEdit={onEdit} />
       <section className="form-section">
         <h4>agentBody</h4>
         <p className="field-hint">The definition of every agent&apos;s body.</p>

@@ -7,5 +7,5 @@ You are {{name}}. Another day is passing into your history. Rewrite your history
 {{material}}
 
 ## Reply
-Write your whole history anew, in the first person and the past tense, with this day taken in: one account of everything that came before yesterday. Older things may fade to make room; keep what still matters to you. At most {{maxChars}} characters.
+Write your whole history anew, in the first person and the past tense, with this day taken in: one account of everything that came before yesterday. Keep what still matters to you: what you did and why, the people in your life and what is between you, what changed you, and what is still unsettled. Older things may fade to make room. No clock times. At most {{maxChars}} characters.
 Reply with only a JSON object with one field: summary.

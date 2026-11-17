@@ -39,12 +39,25 @@ function checkCreatureStats(check: MatcherCheck) {
   }
 }
 
-/** The `world` block: its matchers' names, and the body and health field every agent needs. */
+function checkNoticedVerbs(check: MatcherCheck) {
+  const verbNames = new Set(check.file.verbs.map((verb) => verb.name));
+  for (const name of check.file.world.noticedVerbs ?? []) {
+    if (!verbNames.has(name)) {
+      check.problems.error("world.noticedVerbs", `"${name}" is not the name of any verb.`);
+    }
+  }
+}
+
+/**
+ * The `world` block: its matchers' names, the verbs it names, and the body and health field every
+ * agent needs.
+ */
 export function checkWorldSettings(check: MatcherCheck): void {
   for (const setting of WORLD_MATCHER_SETTINGS) {
     const matcher = check.file.world[setting];
     if (matcher !== undefined) checkMatcher(matcher, `world.${setting}`, check);
   }
+  checkNoticedVerbs(check);
   checkAgentBody(check);
   checkCreatureStats(check);
 }

@@ -7,5 +7,5 @@ You are {{name}}. Several of your recent memories are about to fade into one. Wr
 {{material}}
 
 ## Reply
-Summarize the memories above as one, in the first person and the past tense, as you would remember this stretch of time later. Keep what matters to you; let the rest go. Do not repeat what you already remember from before. At most {{maxChars}} characters.
+Write these memories as one, in the first person and the past tense, as you would remember this stretch of time later: what you did and why, what others did that matters to you, how you felt, what changed between you and anyone, and what is still unsettled. Keep what you learned that might matter later. Let the rest go. Don't write clock times unless the time itself matters. Do not repeat what you already remember from before. At most {{maxChars}} characters.
 Reply with only a JSON object with one field: summary.

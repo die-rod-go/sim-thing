@@ -109,6 +109,7 @@ function buildAgent(
   return {
     id: seed.id,
     name: seed.name.trim(),
+    pronouns: seed.pronouns?.trim() ?? "",
     place: findPlaceAt(map, pos),
     pos,
     personality: {

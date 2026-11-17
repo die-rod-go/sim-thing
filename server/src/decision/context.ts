@@ -47,6 +47,7 @@ export interface PromptEntityGroup {
 export interface AwarenessEntry {
   agentId: string;
   name: string;
+  pronouns: string;
   via: AwarenessVia;
   place: string;
   doing: string;
@@ -77,10 +78,11 @@ export interface AroundYou {
 /** One person the agent knows, with what it holds about them. */
 export interface KnownPerson {
   name: string;
+  pronouns: string;
   entry: PersonEntry;
 }
 
-/** One entry of "Places you have seen". */
+/** One entry of "Places you know". */
 export interface SeenPlaceLine {
   name: string;
   /** What was there when last seen; null when the agent has not looked into the place yet. */
@@ -130,6 +132,9 @@ export interface OwnOfferSummary {
 /** Everything step 1 of a decision puts in front of the agent. Filled by the tick loop. */
 export interface DecisionContext extends HeldKnowledge {
   name: string;
+  pronouns: string;
+  /** How the world works and everything that can exist: the same for every agent. */
+  worldKnowledge: string;
   profession: string;
   personality: Personality;
   mood: string;
@@ -159,6 +164,8 @@ export interface DecisionContext extends HeldKnowledge {
   offer: OfferSummary | null;
   /** What the agent is offering someone, waiting for their answer. */
   ownOffer: OwnOfferSummary | null;
+  /** The people whose full entries the decision shows: in the conversation, in sight, named. */
+  peopleOnMind: KnownPerson[];
   validTargets: DecisionTargets;
   validItems: ValidItem[];
   /** Things the agent can see into that hold something: what `from` may name. */

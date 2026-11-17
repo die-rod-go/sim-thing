@@ -28,7 +28,7 @@ import {
 import { describeTraitWord } from "../decision/words";
 import { renderTemplate } from "../llm/templates";
 import type { PassName } from "../memory/summaries";
-import { describeWorldCatalog } from "./world-catalog";
+import { describeWorldKnowledge } from "./world-knowledge";
 
 const CONTEXT_TEMPLATE = "pass-context";
 
@@ -101,12 +101,13 @@ function listQuestionValues(
   pass: PassName,
   held: HeldKnowledge,
   world: PassWorld,
+  promptsDirectory?: string,
 ): Record<string, string> {
   switch (pass) {
     case "reality":
       return {
         places: world.placeNames.join(config.realityPass.placeJoiner),
-        catalog: describeWorldCatalog(world.items),
+        worldKnowledge: describeWorldKnowledge(world.items, promptsDirectory),
         maxChars: String(config.realityPass.thoughtMaxChars),
       };
     case "people":
@@ -146,7 +147,7 @@ export function buildPassPrompt(
     {
       name: agent.name,
       context: buildPassContext(agent, held, promptsDirectory),
-      ...listQuestionValues(pass, held, world),
+      ...listQuestionValues(pass, held, world, promptsDirectory),
     },
     promptsDirectory,
   );

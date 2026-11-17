@@ -8,9 +8,12 @@ import {
 } from "../../src/decision/decision-prompt";
 import { describeStats, describeStatus, describeTraits } from "../../src/decision/words";
 
+const WORLD_KNOWLEDGE = "## How the world works\nA small village.";
+
 function buildContext(overrides: Partial<DecisionContext> = {}): DecisionContext {
   return {
     name: "Mara",
+    pronouns: "",
     profession: "baker; works at the bakery",
     personality: {
       traits: {
@@ -41,6 +44,7 @@ function buildContext(overrides: Partial<DecisionContext> = {}): DecisionContext
     people: [
       {
         name: "Tom",
+        pronouns: "",
         entry: {
           whatIThinkOfThem: "Fair, but slow to pay.",
           whatTheyThinkOfMe: "",
@@ -51,6 +55,7 @@ function buildContext(overrides: Partial<DecisionContext> = {}): DecisionContext
       },
       {
         name: "Clara",
+        pronouns: "",
         entry: {
           whatIThinkOfThem: "",
           whatTheyThinkOfMe: "",
@@ -91,6 +96,8 @@ function buildContext(overrides: Partial<DecisionContext> = {}): DecisionContext
     lastFailure: null,
     offer: null,
     ownOffer: null,
+    peopleOnMind: [],
+    worldKnowledge: WORLD_KNOWLEDGE,
     validTargets: { places: ["bakery", "farm"], agents: ["Tom"], entities: ["oven"], aimOnly: [] },
     validItems: [{ name: "coin", plural: "coins" }, { name: "bread" }],
     validHolders: [],
@@ -216,7 +223,6 @@ describe("buildDecisionPrompt", () => {
   it("offers continue only when interrupted mid-action", () => {
     const calm = buildDecisionPrompt(buildContext());
     expect(calm).toMatch(/^Actions: walk_to, interact, give, wait$/m);
-    expect(calm).not.toMatch(/^- continue:/m);
     const interrupted = buildDecisionPrompt(
       buildContext({
         currentAction: {
@@ -228,7 +234,6 @@ describe("buildDecisionPrompt", () => {
       }),
     );
     expect(interrupted).toMatch(/^Actions: .*continue$/m);
-    expect(interrupted).toMatch(/^- continue:/m);
     expect(interrupted).toContain("You are in the middle of: baking bread at the oven");
   });
 
@@ -262,19 +267,54 @@ describe("buildDecisionPrompt", () => {
     );
   });
 
-  it("lists everyone the agent knows with the fields it holds, and says when it holds nothing", () => {
+  it("lists everyone the agent knows in one line each, and says when it holds nothing", () => {
     const prompt = buildDecisionPrompt(buildContext());
     expect(prompt).toContain(
-      [
-        "- Tom",
-        "  What I think of them: Fair, but slow to pay.",
-        "  What I want from them: The 3 coins he owes me.",
-        `- Clara: ${config.people.emptyEntryText}`,
-      ].join("\n"),
+      ["- Tom: Fair, but slow to pay.", `- Clara: ${config.people.emptyEntryText}`].join("\n"),
     );
+    expect(prompt).not.toContain("What I want from them");
     expect(buildDecisionPrompt(buildContext({ people: [] }))).toContain(
       config.people.nobodyKnownText,
     );
+  });
+
+  it("cuts a person's line short, and shows pronouns beside the name", () => {
+    const [tom] = buildContext().people;
+    if (tom === undefined) throw new Error("the context should know Tom");
+    const opinion = "Slow to pay. ".repeat(20);
+    const prompt = buildDecisionPrompt(
+      buildContext({
+        people: [
+          { ...tom, pronouns: "he/him", entry: { ...tom.entry, whatIThinkOfThem: opinion } },
+        ],
+      }),
+    );
+    const prefix = "- Tom (he/him): ";
+    const line = prompt.split("\n").find((candidate) => candidate.startsWith(prefix));
+    expect(line?.length).toBeLessThanOrEqual(prefix.length + config.people.summaryMaxChars);
+  });
+
+  it("shows the full entries of the people on the agent's mind, and no section when none", () => {
+    const [tom] = buildContext().people;
+    if (tom === undefined) throw new Error("the context should know Tom");
+    const prompt = buildDecisionPrompt(buildContext({ peopleOnMind: [tom] }));
+    expect(prompt).toContain(
+      [
+        `## ${config.people.onMindTitle}`,
+        config.people.onMindIntro,
+        "- Tom",
+        "  What I think of them: Fair, but slow to pay.",
+        "  What I want from them: The 3 coins he owes me.",
+      ].join("\n"),
+    );
+    expect(buildDecisionPrompt(buildContext())).not.toContain(`## ${config.people.onMindTitle}`);
+  });
+
+  it("names the agent with its pronouns", () => {
+    expect(buildDecisionPrompt(buildContext({ pronouns: "she/her" }))).toContain(
+      "You are Mara (she/her).",
+    );
+    expect(buildDecisionPrompt(buildContext())).toMatch(/^You are Mara\.$/m);
   });
 
   it("shows short-term goals with their steps as a numbered plan", () => {
@@ -291,14 +331,14 @@ describe("buildDecisionPrompt", () => {
     );
   });
 
-  it("puts people, short-term goals and seen places in their own cached part", () => {
+  it("puts who the agent is, its goals and the people it knows in the second cached part", () => {
     const { text, cacheBreakpoints } = buildCacheableDecisionPrompt(buildContext());
-    const [, perAgentEnd, heldEnd] = cacheBreakpoints;
-    const held = text.slice(perAgentEnd, heldEnd);
-    expect(held).toContain("## People you know");
-    expect(held).toContain("## Short-term goals");
-    expect(held).toContain("## Places you have seen");
-    expect(text.slice(0, perAgentEnd)).toContain("## Long-term goals");
+    const [sharedEnd, whoEnd] = cacheBreakpoints;
+    const who = text.slice(sharedEnd, whoEnd);
+    for (const title of ["Who you are", "Long-term goals", "Short-term goals", "People you know"]) {
+      expect(who).toContain(`## ${title}`);
+    }
+    expect(text.slice(whoEnd)).toContain("## Places you know");
   });
 
   it("shows the whole stream, oldest first, and says so when it is empty", () => {
@@ -322,17 +362,16 @@ describe("buildDecisionPrompt", () => {
         episodes: ["[Day 4, 5:41 am to 6:05 am] I lit the oven."],
       }),
     );
-    const [, , heldEnd, memoryEnd] = cacheBreakpoints;
+    const [, whoEnd, olderEnd, episodesEnd] = cacheBreakpoints;
     const titles = config.memory.promptTitles;
     const order = [titles.history, titles.daySummary, titles.chronicles, titles.episodes]
       .map((title) => text.indexOf(`## ${title}\n- [Day`))
       .concat(text.indexOf("## Just now"));
     expect(order.every((position) => position > 0)).toBe(true);
     expect([...order].sort((first, second) => first - second)).toEqual(order);
-    const memory = text.slice(heldEnd, memoryEnd);
-    expect(memory).toContain("I settled in.");
-    expect(memory).toContain("I lit the oven.");
-    expect(text.slice(memoryEnd).startsWith("## Just now")).toBe(true);
+    expect(text.slice(whoEnd, olderEnd)).toContain("I settled in.");
+    expect(text.slice(olderEnd, episodesEnd)).toContain("I lit the oven.");
+    expect(text.slice(episodesEnd).startsWith("## Places you know")).toBe(true);
   });
 
   it("leaves out the title of a memory level that holds nothing", () => {
@@ -359,6 +398,7 @@ describe("describeAroundYou", () => {
         {
           agentId: "bob",
           name: "Bob",
+          pronouns: "",
           via: "saw",
           place: "bakery",
           doing: "kneading dough",
@@ -374,6 +414,7 @@ describe("describeAroundYou", () => {
         {
           agentId: "clara",
           name: "Clara",
+          pronouns: "",
           via: "saw",
           place: "bakery",
           doing: "",
@@ -389,6 +430,7 @@ describe("describeAroundYou", () => {
         {
           agentId: "dave",
           name: "Dave",
+          pronouns: "",
           via: "saw",
           place: "bakery",
           doing: "walking into the back room",
@@ -404,6 +446,7 @@ describe("describeAroundYou", () => {
         {
           agentId: "ed",
           name: "Ed",
+          pronouns: "",
           via: "heard",
           place: "the street",
           doing: "talking",
@@ -419,6 +462,7 @@ describe("describeAroundYou", () => {
         {
           agentId: "fay",
           name: "Fay",
+          pronouns: "",
           via: "saw",
           place: "farm",
           doing: "",
@@ -453,6 +497,7 @@ describe("describeAroundYou", () => {
           ...base,
           agentId: "bob",
           name: "Bob",
+          pronouns: "",
           doing: "sitting",
           isDead: false,
           holding: null,
@@ -465,6 +510,7 @@ describe("describeAroundYou", () => {
           ...base,
           agentId: "mara",
           name: "Mara",
+          pronouns: "",
           doing: "lying dead",
           isDead: true,
           holding: null,
@@ -493,6 +539,7 @@ describe("describeAroundYou", () => {
           ...base,
           agentId: "tobias",
           name: "Tobias",
+          pronouns: "",
           doing: "",
           isDead: false,
           holding: null,
@@ -505,6 +552,7 @@ describe("describeAroundYou", () => {
           ...base,
           agentId: "mara",
           name: "Mara",
+          pronouns: "",
           doing: "lying dead",
           isDead: true,
           holding: null,
@@ -532,14 +580,14 @@ describe("describeAroundYou", () => {
   });
 });
 
-describe("places you have seen", () => {
+describe("places you know", () => {
   it("lists each seen place with what it held, and one not looked into by name alone", () => {
     const prompt = buildDecisionPrompt(buildContext());
     expect(prompt).toContain(
       [
-        "## Places you have seen",
+        "## Places you know",
         "- bakery: oven, 2 bread",
-        "- farm: nothing",
+        `- farm: ${config.places.promptTexts.nothingThere}`,
         "- town square",
         "",
       ].join("\n"),
@@ -548,22 +596,69 @@ describe("places you have seen", () => {
 
   it("says so when no place has been seen", () => {
     const prompt = buildDecisionPrompt(buildContext({ seenPlaces: [] }));
-    expect(prompt).toContain("## Places you have seen\nNone yet.");
+    expect(prompt).toContain("## Places you know\nNone yet.");
+  });
+});
+
+describe("not seen lately", () => {
+  const away = {
+    agentId: "cobb",
+    name: "Cobb",
+    pronouns: "",
+    via: "saw" as const,
+    place: "quarry",
+    doing: "mining",
+    isInSight: false,
+    isDead: false,
+    holding: null,
+    distanceTiles: null,
+    healthAsSeen: null,
+    visibleCarried: [],
+    visibleConditions: [],
+  };
+
+  it("lists those out of sight past the window with how long ago and where", () => {
+    const entries = [
+      { ...away, minutesAgo: 540 },
+      { ...away, agentId: "tom", name: "Tom", minutesAgo: 5 },
+    ];
+    const prompt = buildDecisionPrompt(
+      buildContext({ aroundYou: { entries, normalHearerIds: [], whisperHearerIds: [] } }),
+    );
+    expect(prompt).toContain(
+      `## ${config.perception.notSeenLatelyTitle}\n- Cobb: seen 9 h ago at the quarry, mining`,
+    );
+    expect(prompt).not.toContain("- Tom: seen");
+  });
+
+  it("has no section when everyone was perceived lately", () => {
+    const prompt = buildDecisionPrompt(buildContext());
+    expect(prompt).not.toContain(`## ${config.perception.notSeenLatelyTitle}`);
   });
 });
 
 describe("buildCacheableDecisionPrompt", () => {
   it("puts what is the same for every agent before the first cache breakpoint", () => {
-    const { text, cacheBreakpoints } = buildCacheableDecisionPrompt(buildContext());
-    const [sharedEnd, perAgentEnd, heldEnd, memoryEnd] = cacheBreakpoints;
-    expect(cacheBreakpoints).toHaveLength(4);
-    expect(text.slice(0, sharedEnd)).toContain("## What you can do");
-    expect(text.slice(0, sharedEnd)).toContain("## Reply");
-    expect(text.slice(0, sharedEnd)).not.toContain("## Who you are");
-    expect(text.slice(sharedEnd, perAgentEnd)).toContain("## Long-term goals");
-    expect(text.slice(perAgentEnd, heldEnd)).toContain("## Places you have seen");
-    expect(text.slice(memoryEnd)).toContain("## Now");
+    const { text, cacheBreakpoints } = buildCacheableDecisionPrompt(
+      buildContext({ episodes: ["[Day 1, 6:00 am to 6:30 am] I lit the oven."] }),
+    );
+    const [sharedEnd, whoEnd, episodesEnd] = cacheBreakpoints;
+    expect(cacheBreakpoints).toHaveLength(3);
+    const shared = text.slice(0, sharedEnd);
+    for (const part of [WORLD_KNOWLEDGE, "## What you can do", "## Being a person here"]) {
+      expect(shared).toContain(part);
+    }
+    expect(shared).toContain("## Reply");
+    expect(shared).not.toContain("Mara");
+    expect(text.slice(sharedEnd, whoEnd)).toContain("## Long-term goals");
+    expect(text.slice(episodesEnd)).toContain("## Now");
     expect(text).not.toContain("<<<cache>>>");
+  });
+
+  it("leaves out the breakpoint of a cached part that holds nothing yet", () => {
+    const { text, cacheBreakpoints } = buildCacheableDecisionPrompt(buildContext());
+    expect(cacheBreakpoints).toHaveLength(2);
+    expect(text).not.toMatch(/\n{3,}/);
   });
 
   it("keeps the shared part identical between mid-action interrupts and calm decisions", () => {

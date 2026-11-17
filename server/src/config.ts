@@ -5,6 +5,7 @@ import type {
   StatName,
   TraitName,
   Volume,
+  WorldEventKind,
 } from "@village/shared";
 import type { LlmEffort } from "./llm/types";
 
@@ -85,8 +86,9 @@ export const config = {
     outdoorPlaceText: "the road by the {place}",
     /** A perception interrupt gives an agent a new decision at most this often. */
     interruptCooldownTicks: 20,
-    /** "Around you" lists agents perceived within this many sim-minutes. */
+    /** "Around you" lists agents perceived within this many sim-minutes; "Not seen lately" the rest. */
     awarenessPromptWindowMinutes: 60,
+    notSeenLatelyTitle: "Not seen lately",
     /**
      * How far off someone in sight reads in "Around you". Within `economy.giveReachTiles` they are
      * in reach (to hand things to, and for most verbs); within `nearTiles` they are near.
@@ -101,6 +103,28 @@ export const config = {
     contentsReachTiles: 1,
     /** Sound fills cached per source tile, muffling state and reach; the cache clears when full. */
     soundCacheMaxEntries: 512,
+  },
+
+  /**
+   * What turns an awake agent's head. Urgent events always give a decision; notable ones do
+   * within `perception.interruptCooldownTicks`; background ones never do. Every event the agent
+   * perceives is still filed in its stream, so it is there at the next decision.
+   */
+  attention: {
+    /**
+     * Others' events of these kinds are background, unless aimed at the agent or what it carries,
+     * an arrival where it is, a verb in `world.noticedVerbs`, or loud enough to turn heads.
+     */
+    backgroundEventKinds: [
+      "walk_started",
+      "arrived",
+      "action_started",
+      "action_finished",
+    ] as WorldEventKind[],
+    /** A sound at least this loud turns heads even muffled: as loud as wakes a sleeper. */
+    noticeLoudness: 20,
+    /** The decision reason for a notable event. */
+    notableReason: "something new caught my attention",
   },
 
   needs: {
@@ -535,13 +559,13 @@ export const config = {
     /** How labelled things that differ only by a trailing number read together: "tree ×32". */
     numberedLabelsText: "{label} ×{count}",
     /**
-     * The lines of "Places you have seen". A line changes only when what the place holds changes,
-     * so the section stays in the provider's cache while the agent walks about.
+     * The lines of "Places you know": each place seen, with what of use it held when last looked
+     * into ("nothing of use" when that was nothing).
      */
     promptTexts: {
       noneSeen: "None yet.",
       lookedInto: "{place}: {entities}",
-      nothingThere: "nothing",
+      nothingThere: "nothing of use",
     },
     /** Why a `walk_to` fails when nothing in the village goes by a name like its target. */
     unknownWalkTargetReason: "nothing in the village goes by that name",
@@ -640,6 +664,16 @@ export const config = {
     emptyEntryText: "nothing yet beyond what you see.",
     /** The section's text when the agent knows no one. */
     nobodyKnownText: "No one yet.",
+    /** Length of a person's one line under "People you know": what the agent thinks of them. */
+    summaryMaxChars: 120,
+    /**
+     * Most full entries in "People on your mind": people in the conversation, then in sight, then
+     * named in the agent's intention.
+     */
+    fullEntriesMax: 4,
+    onMindTitle: "People on your mind",
+    onMindIntro:
+      "What you hold about the people around you or on your mind. What they think and want is your own reading, and may be wrong.",
   },
 
   goals: {
@@ -667,21 +701,25 @@ export const config = {
     /** How the thought enters the agent's stream, in the agent's own voice. */
     thoughtStreamText: "It dawned on me: {thought}",
     placeJoiner: ", ",
-    /** How `items.json` reads in the prompt: each thing with the verbs a person can use on it. */
-    catalog: {
-      thingWithVerbs: "{name}: {verbs}",
-      creatureName: "{name} (an animal)",
-      verbWithDetails: "{verb} ({details})",
-      needsText: "needs {things}",
-      usesText: "uses {things}",
-      makesText: "makes {things}",
-      carriedThings: "Anything that can be carried can also be used with: {verbs}",
-      bareHanded: "Done bare-handed, at someone or something: {verbs}",
-      verbJoiner: "; ",
-      partJoiner: "; ",
-      listJoiner: ", ",
-      alternativesJoiner: " or ",
-    },
+  },
+
+  /**
+   * How `items.json` reads in "Everything that can exist", which every decision, plan and pass
+   * shows: each thing with the verbs a person can use on it.
+   */
+  worldCatalog: {
+    thingWithVerbs: "{name}: {verbs}",
+    creatureName: "{name} (an animal)",
+    verbWithDetails: "{verb} ({details})",
+    needsText: "needs {things}",
+    usesText: "uses {things}",
+    makesText: "makes {things}",
+    carriedThings: "Anything that can be carried can also be used with: {verbs}",
+    bareHanded: "Done bare-handed, at someone or something: {verbs}",
+    verbJoiner: "; ",
+    partJoiner: "; ",
+    listJoiner: ", ",
+    alternativesJoiner: " or ",
   },
 
   decision: {
@@ -776,6 +814,7 @@ export const config = {
      * OpenAI-compatible providers.
      */
     effortByKind: {
+      decision: "low",
       people: "medium",
       short_term_goals: "medium",
       identity: "medium",

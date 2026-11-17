@@ -4,6 +4,7 @@ export function makeAgent(overrides: Partial<Agent> = {}): Agent {
   return {
     id: "mara",
     name: "Mara",
+    pronouns: "",
     place: "bakery",
     pos: { x: 5, y: 5 },
     personality: {

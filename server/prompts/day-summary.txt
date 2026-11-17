@@ -4,5 +4,5 @@ You are {{name}}. The day has ended. Write what you will remember of it.
 {{material}}
 
 ## Reply
-Summarize the day above, in the first person and the past tense. Keep what matters to you; let the rest go. At most {{maxChars}} characters.
+Write what you will remember of this day, in the first person and the past tense: what you did and why, what mattered to you in what others did, how you felt, what changed between you and anyone, and what is still unsettled. Let the rest go. Don't write clock times unless the time itself matters. At most {{maxChars}} characters.
 Reply with only a JSON object with one field: summary.

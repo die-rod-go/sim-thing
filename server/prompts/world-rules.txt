@@ -1,0 +1,35 @@
+## How the world works
+A small village on a grid of tiles. Time passes minute by minute. Everything in it is a person, an animal, or one of the things listed further down. Nothing else exists: no other materials, tools, buildings, animals, shops, magic or ways of doing things.
+
+### What a person can perceive
+- Sight: what is in a clear line from them and not far off. Walls and closed doors block it. They see people, what those people are doing, what they carry in plain view, and things lying around.
+- Of another person's body they see only this: how hurt someone looks once the harm is serious, whether they are bleeding, wet or on fire, and whether they are asleep or dead. Nothing more. There are no bite marks, scars, bruises or wounds to look at. Looking closer, rolling up sleeves or "checking" someone shows nothing new. Poison does not show at all.
+- Sound bends around corners and through doorways, and fades with distance and closed doors. A whisper reaches only someone right beside you. Talk carries across a room or part of the square. A shout carries across much of the village. From farther off a voice comes muffled: you know someone spoke, not what they said.
+- What is inside a chest stays unknown until someone looks in it.
+- Nobody knows anything they did not see, hear or read themselves. What others say may be wrong or a lie.
+
+### What a person can do
+- Walk to a place, a fixed thing, or a person in sight.
+- Speak: whisper, talk or shout, while doing anything else. Speaking is the only way to talk.
+- Wait a little while.
+- Give things they carry, coins included, to someone within reach.
+- Use the verbs that things offer, listed below. A verb works only with the thing within reach, and with what it uses up in hand.
+- That is everything. There is no "examine", "check", "wake", "search", "guard", "log" or "record" beyond the verbs listed.
+- Writing on paper makes a note. A note, a carving, or a notice pinned to the board is the only record that exists outside someone's memory. Saying "log it" or "write that down" aloud records nothing anywhere.
+- People can agree on rules, but a rule is only words: nothing enforces it, and nothing breaks if it is broken.
+
+### Bodies and needs
+- Hunger, energy, social and fun fall over time. Food fixes hunger, sleep fixes energy, company and talk fix social, and drink, music and games fix fun. Starving and exhaustion do harm.
+- Health falls from blows, bites, bleeding, burning, poison and starvation. It comes back slowly by itself, faster while asleep, and only when not hungry. Bleeding stops by itself after a while. Healing potions and antidotes help.
+- A bite or a blow does only that harm, and sometimes bleeding. There is no infection, no turning into anything, no curse.
+- At zero health a person dies, and the body stays where it fell.
+
+### When something fails
+When someone tries something and it fails, the reason is meant literally. "There was no wolf here" means the wolf was not within reach from where they stood.
+
+### Social
+Seeing a dead body is usually a big deal. Not telling people you found a body is usually a big deal. Finding out someone died tends to trigger strong reactions. The reaction depends on the person's temperament, but no matter what, it should matter.
+
+## Everything that can exist
+Each thing, with the verbs it offers. What a verb uses up has to be carried; what it makes ends up in hand. Anything not in this list does not exist in this world.
+{{catalog}}

@@ -138,6 +138,12 @@ export const worldSettingsSchema = z.strictObject({
   lyingWhenOnTile: matcherSchema.optional(),
   /** Validation warns when a verb or rule could make or destroy a matching thing. */
   closedSupply: matcherSchema.optional(),
+  /** A creature matching this catches the eye as it comes into view: it gives a decision. */
+  noticeOnSight: matcherSchema.optional(),
+  /** Things the places an agent knows leave out of what they list (doors, windows, benches). */
+  placeListingOmits: matcherSchema.optional(),
+  /** Verbs, by name, that turn the head of whoever sees or hears someone do them. */
+  noticedVerbs: z.array(z.string().trim().min(1)).optional(),
   /** The definition of every agent's body. */
   agentBody: identifierSchema,
   /** The number field that is an agent's health. */
@@ -156,6 +162,8 @@ export const WORLD_MATCHER_SETTINGS = [
   "shownWhenCarried",
   "lyingWhenOnTile",
   "closedSupply",
+  "noticeOnSight",
+  "placeListingOmits",
 ] as const satisfies readonly (keyof WorldSettings)[];
 
 export const itemFileSchema = z.strictObject({

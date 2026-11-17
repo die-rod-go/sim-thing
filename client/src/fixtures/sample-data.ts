@@ -17,6 +17,7 @@ export function makeSampleAgent(id: string, name: string, x: number, y: number):
   return {
     id,
     name,
+    pronouns: "",
     place: "square",
     pos: { x, y },
     personality: {

@@ -99,6 +99,8 @@ export interface AgentDeath {
 export interface Agent {
   id: string;
   name: string;
+  /** How others refer to them ("she/her"); empty when the seed gives none. */
+  pronouns: string;
   place: string;
   pos: Position;
   personality: Personality;
@@ -311,6 +313,8 @@ export interface WorldEvent {
   holderId?: string;
   /** The description as the carrying agent files it ("my pickaxe broke"). */
   holderDescription?: string;
+  /** The verb being done, for a verb's start and finish ("pour into"). */
+  verb?: string;
 }
 
 export type LlmCallKind =

@@ -3,7 +3,7 @@ import { config } from "../config";
 import { fillTemplate, loadTemplate } from "../llm/templates";
 import { describePlace } from "../memory/filing";
 import type { TemplateValues } from "../llm/templates";
-import { describeAroundYou } from "./around-you";
+import { describeAroundYou, describeNotSeenLately } from "./around-you";
 import type { DecisionContext } from "./context";
 import {
   describeBelongings,
@@ -14,7 +14,9 @@ import {
   describeNearbyEntities,
   describeOlderMemory,
   describeLongTermGoals,
-  describePeople,
+  describeNameWithPronouns,
+  describePeopleOnMind,
+  describePersonLines,
   describeShortTermGoals,
   describeSeenPlaces,
   describeStream,
@@ -57,7 +59,8 @@ function buildTemplateValues(
           PRESSING_NEEDS_TEMPLATE,
         );
   return {
-    name: context.name,
+    worldKnowledge: context.worldKnowledge,
+    identity: `You are ${describeNameWithPronouns(context.name, context.pronouns)}.`,
     profession: context.profession,
     traits: describeTraits(personality.traits),
     core: personality.core,
@@ -68,7 +71,8 @@ function buildTemplateValues(
     pressingNeeds,
     longTermGoals: describeLongTermGoals(context.longTermGoals),
     shortTermGoals: describeShortTermGoals(context.shortTermGoals),
-    people: describePeople(context.people),
+    people: describePersonLines(context.people),
+    peopleOnMind: describePeopleOnMind(context.peopleOnMind),
     simTime: context.simTime,
     intention: context.intention || "nothing in particular",
     currentAction: describeCurrentAction(context.currentAction, context.isMidActionInterrupt),
@@ -94,6 +98,7 @@ function buildTemplateValues(
     here: describeNearbyEntities(context.nearbyEntities),
     seenPlaces: describeSeenPlaces(context.seenPlaces),
     aroundYou: describeAroundYou(context.aroundYou),
+    notSeenLately: describeNotSeenLately(context.aroundYou),
     belongings: describeBelongings(context.belongings, context.itemlessVerbs),
     olderMemory: describeOlderMemory(context.history, context.daySummary, context.chronicles),
     episodes: describeEpisodes(context.episodes),
@@ -106,20 +111,27 @@ function buildTemplateValues(
 
 export interface DecisionPrompt {
   text: string;
-  /** Offsets into `text` ending the part shared by all agents and the part stable per agent. */
+  /**
+   * Offsets into `text` ending each cached part: the part shared by all agents, who the agent is,
+   * its older memory and its episodes. A part with nothing in it has no breakpoint.
+   */
   cacheBreakpoints: number[];
 }
 
-/** Removes the markers from a filled template and returns where each one was. */
+/**
+ * Removes the markers from a filled template and returns where each one was. A part holding only
+ * blank lines (no memory yet) is dropped with its marker, so no cached block is empty.
+ */
 export function extractCacheBreakpoints(filledTemplate: string): DecisionPrompt {
   const pieces = filledTemplate.split(CACHE_BREAKPOINT_MARKER);
   const cacheBreakpoints: number[] = [];
-  let length = 0;
+  let text = "";
   for (const piece of pieces.slice(0, -1)) {
-    length += piece.length;
-    cacheBreakpoints.push(length);
+    if (piece.trim() === "") continue;
+    text += piece;
+    cacheBreakpoints.push(text.length);
   }
-  return { text: pieces.join(""), cacheBreakpoints };
+  return { text: text + (pieces[pieces.length - 1] ?? ""), cacheBreakpoints };
 }
 
 /** Renders `decision.txt` for one agent. */

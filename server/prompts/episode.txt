@@ -7,5 +7,5 @@ You are {{name}}. Your memory of the last while is about to fade into a summary.
 {{material}}
 
 ## Reply
-Summarize what happened above, in the first person and the past tense, as you would remember it later. Keep what matters to you; let the rest go. Do not repeat what you already remember from before. At most {{maxChars}} characters.
+Write what you will remember of this, in the first person and the past tense: what you did and why, what others did and said that matters to you, how you felt, what changed between you and anyone, and what is still unsettled. Keep anything you saw or overheard that might matter later: who was where, who has what, plans and secrets you learned. Leave out routine comings and goings and whatever didn't matter to you. Don't write clock times unless the time itself matters. Do not repeat what you already remember from before. At most {{maxChars}} characters.
 Reply with only a JSON object with one field: summary.

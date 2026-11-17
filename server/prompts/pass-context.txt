@@ -6,7 +6,7 @@
 The latest things you did, saw and heard, word for word, oldest first.
 {{stream}}
 
-## Places you have seen
+## Places you know
 {{seenPlaces}}
 
 ## Who you are

@@ -1,6 +1,8 @@
 import { config } from "../config";
+import { describePlace } from "../memory/filing";
 import { describeBodyName } from "../status/health";
 import type { AroundYou, AwarenessEntry } from "./context";
+import { describeNameWithPronouns } from "./sections";
 
 const MINUTES_PER_HOUR = 60;
 const HOURS_PER_DAY = 24;
@@ -23,9 +25,9 @@ export function describeDistance(distanceTiles: number): string {
 }
 
 /**
- * "Tobias, next to you, looks in poor shape, carrying a knife (chopping wood)", or "Mara's body, a few
- * steps away" for someone lying dead in sight ("Mara's body, next to you, carried by Tobias, on
- * fire").
+ * "Tobias (he/him), next to you, looks in poor shape, carrying a knife (chopping wood)", or "Mara's
+ * body, a few steps away" for someone lying dead in sight ("Mara's body, next to you, carried by
+ * Tobias, on fire").
  */
 function describeInSight(entry: AwarenessEntry): string {
   const distance = entry.distanceTiles === null ? null : describeDistance(entry.distanceTiles);
@@ -36,7 +38,13 @@ function describeInSight(entry: AwarenessEntry): string {
   }
   const carrying =
     entry.visibleCarried.length > 0 ? `carrying ${entry.visibleCarried.join(" and ")}` : null;
-  const name = [entry.name, distance, entry.healthAsSeen, ...entry.visibleConditions, carrying]
+  const name = [
+    describeNameWithPronouns(entry.name, entry.pronouns),
+    distance,
+    entry.healthAsSeen,
+    ...entry.visibleConditions,
+    carrying,
+  ]
     .filter(Boolean)
     .join(", ");
   return entry.doing ? `${name} (${entry.doing})` : name;
@@ -96,4 +104,28 @@ export function describeAroundYou(aroundYou: AroundYou): string {
   ];
   const presentLines = lines.filter((line): line is string => line !== null);
   return presentLines.length > 0 ? presentLines.join("\n") : "No one else is around.";
+}
+
+function describeLastPerceived(entry: AwarenessEntry): string {
+  const when = formatMinutesAgo(entry.minutesAgo);
+  const where = describePlace(entry.place);
+  if (entry.via === "saw") {
+    return entry.doing ? `seen ${when} at ${where}, ${entry.doing}` : `seen ${when} at ${where}`;
+  }
+  const muffled = entry.via === "heard_muffled" ? "muffled, " : "";
+  return `heard ${muffled}${when} from ${where}`;
+}
+
+/**
+ * Everyone the agent has perceived, but not within `perception.awarenessPromptWindowMinutes`, with
+ * how long ago and where: "- Cobb: seen 9 h ago at the quarry, mining". Empty when there is no one.
+ */
+export function describeNotSeenLately(aroundYou: AroundYou): string {
+  const window = config.perception.awarenessPromptWindowMinutes;
+  const lines = aroundYou.entries
+    .filter((entry) => !entry.isInSight && entry.minutesAgo > window)
+    .sort((first, second) => first.minutesAgo - second.minutesAgo)
+    .map((entry) => `- ${entry.name}: ${describeLastPerceived(entry)}`);
+  if (lines.length === 0) return "";
+  return `## ${config.perception.notSeenLatelyTitle}\n${lines.join("\n")}`;
 }

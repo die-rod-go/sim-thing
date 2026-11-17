@@ -214,6 +214,7 @@ export function buildCreatureSim(roll = 0.99): TestSim {
         ...file.world,
         creatureStrength: "stats.strength",
         creatureAgility: "stats.agility",
+        noticeOnSight: { anyOf: [{ definition: "boar" }, { definition: "wolf" }] },
       },
       components: { ...file.components, ...CREATURE_COMPONENTS },
       definitions: [...file.definitions, ...CREATURE_DEFINITIONS],

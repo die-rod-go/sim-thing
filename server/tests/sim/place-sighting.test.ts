@@ -1,4 +1,6 @@
+import { buildItemCatalog, parseItemFile } from "@village/shared";
 import { describe, expect, it } from "vitest";
+import { listPlaceEntityNames } from "../../src/sim/place-sighting";
 import { getAgentRuntime } from "../../src/sim/agent-runtime";
 import {
   createTestSim,
@@ -30,6 +32,16 @@ function removeEntity(sim: TestSim, label: string): void {
 }
 
 describe("seen places", () => {
+  it("leaves out of a place's list what the world settings omit, and what offers nothing", () => {
+    const sim = createTestSim({ agentIds: ["mara"], responder: scriptByAgent({}) });
+    const file = sim.state.items.file;
+    sim.state.items = buildItemCatalog(
+      parseItemFile({ ...file, world: { ...file.world, placeListingOmits: { has: "door" } } }),
+    );
+    expect(listPlaceEntityNames(sim.state, "rose cottage")).not.toContain("rose cottage door");
+    expect(listPlaceEntityNames(sim.state, "rose cottage")).toContain("rose cottage bed");
+  });
+
   it("starts a seeded place with what is really there at tick 0", () => {
     const sim = createTestSim({ agentIds: ["mara"], responder: scriptByAgent({}) });
     expect(findSeenPlace(sim, "town square")).toEqual({

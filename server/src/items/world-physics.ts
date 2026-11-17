@@ -38,6 +38,16 @@ export function mufflesSound(world: EntityWorld, entity: Entity): boolean {
   return matchesWhileOnTile(world, entity, world.items.world.soundMuffledBy);
 }
 
+/** Whether a creature catches the eye as it comes into view, so it gives a decision. */
+export function isNoticedOnSight(world: EntityWorld, entity: Entity): boolean {
+  return matchesEntity(world, entity, world.items.world.noticeOnSight);
+}
+
+/** Whether a place's listing in "Places you know" leaves the entity out. */
+export function isOmittedFromPlaceListing(world: EntityWorld, entity: Entity): boolean {
+  return matchesEntity(world, entity, world.items.world.placeListingOmits);
+}
+
 /** Whether others see the entity when an agent carries it ("Tobias, carrying a knife"). */
 export function isShownWhenCarried(world: EntityWorld, entity: Entity): boolean {
   return matchesEntity(world, entity, world.items.world.shownWhenCarried);

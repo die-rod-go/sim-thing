@@ -17,7 +17,9 @@ import {
   isDead,
   trackStarvation,
 } from "../status/health";
+import { findEntityIfPresent } from "../items/entity-store";
 import { writeField } from "../items/thing-writes";
+import { isNoticedOnSight } from "../items/world-physics";
 import { wakeAgent } from "./action-stopping";
 import { WAIT_ACTION, WALK_ACTION, describeDoing } from "./action-phrases";
 import { getAgentRuntime, requestDecision } from "./agent-runtime";
@@ -194,7 +196,10 @@ function noticeBodies(context: TickContext, viewer: Agent, newlyVisibleIds: stri
   requestDecision(getAgentRuntime(state, viewer.id), reason, true);
 }
 
-/** A creature newly in view gives a decision, as a person coming into view does. */
+/**
+ * A creature newly in view that `world.noticeOnSight` matches gives a decision, as a person coming
+ * into view does; others come and go unremarked.
+ */
 function noticeCreatures(
   context: TickContext,
   world: PerceptionWorld,
@@ -206,8 +211,12 @@ function noticeCreatures(
   const visibleIds = listVisibleCreatureIds(state, world, agent, creatures);
   const newlyVisible = detectNewPerceptions(runtime.visibleCreatureIds, visibleIds);
   runtime.visibleCreatureIds = visibleIds;
-  if (newlyVisible.length === 0) return;
-  const names = newlyVisible
+  const noticed = newlyVisible.filter((entityId) => {
+    const creature = findEntityIfPresent(state, entityId);
+    return creature !== undefined && isNoticedOnSight(state, creature);
+  });
+  if (noticed.length === 0) return;
+  const names = noticed
     .map((entityId) => describeThingName(state, { kind: "entity", entityId }))
     .join(", ");
   requestDecision(runtime, `${names} came into view`, false);

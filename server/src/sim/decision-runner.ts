@@ -67,6 +67,7 @@ async function askForDecision(
     request.agentId,
     request.isMidActionInterrupt,
     request.reason,
+    dependencies.promptsDirectory,
   );
   const { text: prompt, cacheBreakpoints } = buildCacheableDecisionPrompt(
     context,

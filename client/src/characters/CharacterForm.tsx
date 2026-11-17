@@ -78,6 +78,20 @@ function IdentitySection({ agent, rules, problems, onChange, onRename }: Section
         </Field>
       </div>
       <Field
+        label="Pronouns"
+        hint="Shown beside their name wherever another agent's prompt names them. Leave empty if unsure."
+        problems={selectFieldProblems(problems, "pronouns")}
+      >
+        {(inputId) => (
+          <TextInput
+            id={inputId}
+            value={agent.pronouns ?? ""}
+            placeholder="they/them"
+            onChange={(pronouns) => onChange({ ...agent, pronouns })}
+          />
+        )}
+      </Field>
+      <Field
         label="Work"
         hint="Their trade and where they do it. Agents only see this as words."
         problems={selectFieldProblems(problems, "profession")}

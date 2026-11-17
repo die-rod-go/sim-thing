@@ -7,6 +7,8 @@ const traitValueSchema = z.number();
 export const seedAgentSchema = z.object({
   id: z.string(),
   name: z.string(),
+  /** How others refer to them ("she/her"), shown beside their name in prompts; optional. */
+  pronouns: z.string().optional(),
   profession: z.string(),
   traits: z.object({
     extraversion: traitValueSchema,

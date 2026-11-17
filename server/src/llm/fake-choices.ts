@@ -132,7 +132,7 @@ export function readDecisionChoices(schema: JsonSchema, prompt: string): Decisio
     items,
     holders: readEnum(schema, "from"),
     insideThings: [...hereThings, ...carriedThings].filter((thing) => thing.from !== null),
-    places: readBulletNames(prompt, "## Places you have seen").filter((name) => targets.has(name)),
+    places: readBulletNames(prompt, "## Places you know").filter((name) => targets.has(name)),
     currentPlace: (readLine(prompt, "You are at ") ?? "").replace(/^the /, "").replace(/\.$/, ""),
     objects: groupVerbsByName(hereThings),
     heldItems: groupVerbsByName(carriedThings),

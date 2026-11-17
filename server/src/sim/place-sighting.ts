@@ -1,7 +1,9 @@
-import type { Agent } from "@village/shared";
+import type { Agent, Entity } from "@village/shared";
 import { config } from "../config";
 import { isAsleep } from "../economy/sleep";
 import { getDefinition, listTileEntitiesAt, type EntityWorld } from "../items/entity-store";
+import { buildEntityView, listVerbsForView } from "../items/verb-offers";
+import { isLyingWhenOnTile, isOmittedFromPlaceListing } from "../items/world-physics";
 import {
   collapseEntityNames,
   mergeSeenPlaces,
@@ -12,10 +14,24 @@ import {
 import type { PerceptionWorld } from "../perception/types";
 import type { WorldState } from "./world-state";
 
-/** What a place holds, as a seen place lists it: placed objects and items on the ground. */
+/**
+ * Whether a seen place lists the entity: something a person can do something with, or a loose
+ * item, unless `world.placeListingOmits` leaves it out (doors, windows, benches).
+ */
+function isWorthListing(world: EntityWorld, entity: Entity): boolean {
+  if (isOmittedFromPlaceListing(world, entity)) return false;
+  if (isLyingWhenOnTile(world, entity)) return true;
+  const view = { ...buildEntityView(world, "", entity), where: "here" as const };
+  return listVerbsForView(world, view).length > 0;
+}
+
+/** What a place holds that is worth knowing, as a seen place lists it. */
 export function listPlaceEntityNames(world: EntityWorld, placeName: string): string[] {
+  const worthListing = listTileEntitiesAt(world, placeName).filter((entity) =>
+    isWorthListing(world, entity),
+  );
   return collapseEntityNames(
-    listTileEntitiesAt(world, placeName).map((entity) => ({
+    worthListing.map((entity) => ({
       label: entity.label,
       definition: getDefinition(world, entity),
     })),

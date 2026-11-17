@@ -2,12 +2,14 @@ import { formatSimTime, readAgentHealth, type Agent } from "@village/shared";
 import { config } from "../config";
 import type { AwarenessEntry, DecisionContext, DecisionTargets } from "../decision/context";
 import { computeChebyshevDistance } from "../economy/give";
+import { describeWorldKnowledge } from "../passes/world-knowledge";
 import { findObviousListeners } from "../perception/listeners";
 import { listBodyWords } from "../status/conditions";
 import { computeStarvationDamage, describeHealthAsSeen, isDead } from "../status/health";
 import { describeDoing } from "./action-phrases";
 import { getAgentRuntime } from "./agent-runtime";
 import { findOwnOffer } from "./offers";
+import { listPeopleOnMind } from "./people-on-mind";
 import { buildHeldKnowledge } from "./held-knowledge";
 import { describeBodyHolding } from "./prompt-lines";
 import {
@@ -46,6 +48,7 @@ function buildAwarenessEntries(state: WorldState, agent: Agent): AwarenessEntry[
       {
         agentId: entry.agentId,
         name: other.name,
+        pronouns: other.pronouns,
         via: entry.via,
         place: entry.place,
         doing: entry.doing,
@@ -84,6 +87,7 @@ export function buildDecisionContext(
   agentId: string,
   isMidActionInterrupt: boolean,
   decisionReason: string | null = null,
+  promptsDirectory?: string,
 ): DecisionContext {
   const agent = findAgent(state, agentId);
   const runtime = getAgentRuntime(state, agentId);
@@ -100,6 +104,8 @@ export function buildDecisionContext(
   const action = agent.currentAction;
   return {
     name: agent.name,
+    pronouns: agent.pronouns,
+    worldKnowledge: describeWorldKnowledge(state.items, promptsDirectory),
     profession: agent.profession,
     personality: agent.personality,
     mood: agent.mood,
@@ -140,6 +146,7 @@ export function buildDecisionContext(
             itemText: runtime.pendingOffer.itemText,
           },
     ownOffer: findOwnOffer(state, agentId),
+    peopleOnMind: listPeopleOnMind(state, agent, [agent.intention]),
     validTargets: buildValidTargets(state, agent),
     validItems: listValidItems(state, agent),
     validHolders: listValidHolders(state, agent),

@@ -245,8 +245,8 @@ export function createThingEvent(
     ...(fields.targetDescription === undefined
       ? {}
       : { targetDescription: fields.targetDescription }),
+    ...(fields.verb === undefined ? {} : { verb: fields.verb }),
     isActorThing: true,
-
     ...describeCarried(state, thing, fields.description),
   };
 }

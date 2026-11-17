@@ -82,7 +82,7 @@ function describeAlternatives(
   definitions: readonly ItemDefinition[],
   count: number | null,
 ): string {
-  const words = config.realityPass.catalog;
+  const words = config.worldCatalog;
   return definitions
     .map((definition) => describeAmount(definition, count))
     .join(words.alternativesJoiner);
@@ -112,7 +112,7 @@ function addStepUse(catalog: ItemCatalog, use: VerbUse, step: Step, view: ThingV
 
 /** "bake bread (uses 1 wheat, 1 water; makes 2 bread)". */
 function describeVerbUse(catalog: ItemCatalog, verb: Verb, view: ThingView): string {
-  const words = config.realityPass.catalog;
+  const words = config.worldCatalog;
   const use: VerbUse = { needs: [], uses: [], makes: [] };
   for (const step of verb.steps) addStepUse(catalog, use, step, view);
   const parts = [
@@ -183,7 +183,7 @@ function describeEntry(
   entry: CatalogEntry,
   sharedVerbNames: readonly string[],
 ): string {
-  const words = config.realityPass.catalog;
+  const words = config.worldCatalog;
   const { definition } = entry;
   const name = isCreatureDefinition(catalog.file, definition)
     ? fillText(words.creatureName, { name: definition.name })
@@ -207,7 +207,7 @@ export function describeWorldCatalog(catalog: ItemCatalog): string {
 }
 
 function buildWorldCatalogText(catalog: ItemCatalog): string {
-  const words = config.realityPass.catalog;
+  const words = config.worldCatalog;
   const entries = catalog.file.definitions
     .filter((definition) => !isAgentBody(catalog, definition))
     .map((definition) => buildCatalogEntry(catalog, definition));

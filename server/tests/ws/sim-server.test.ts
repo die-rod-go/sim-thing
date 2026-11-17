@@ -23,6 +23,7 @@ import { startSimServer, WEBSOCKET_PATH, type SimServer } from "../../src/ws/sim
 const agent = {
   id: "mara",
   name: "Mara",
+  pronouns: "",
   place: "bakery",
   pos: { x: 0, y: 0 },
   personality: {

@@ -10,6 +10,7 @@ import { perceiveEvent } from "../perception/perceive-event";
 import { describeLocation } from "../world/place-names";
 import type { EventPerception } from "../perception/types";
 import { getAgentRuntime, requestDecision } from "./agent-runtime";
+import { isNotable } from "./attention";
 import {
   buildPerceptionWorld,
   findAgent,
@@ -94,8 +95,9 @@ function isOwnNameHeard(event: WorldEvent, perception: EventPerception, name: st
 }
 
 /**
- * Flags decisions for those who perceived the event; the decision phase applies the cooldown.
- * Being attacked, seeing an attack or a death, and clearly hearing one's own name skip it.
+ * Flags decisions for those who perceived the event. Being attacked, seeing an attack or a death,
+ * clearly hearing one's own name and a sound loud enough to reach a sleeper are urgent; anything
+ * else notable waits on the cooldown, which the decision phase applies; background flags nothing.
  */
 function flagDecisions(state: WorldState, event: WorldEvent, perceptions: EventPerception[]): void {
   const isAttack = ATTACK_KINDS.includes(event.kind);
@@ -118,8 +120,8 @@ function flagDecisions(state: WorldState, event: WorldEvent, perceptions: EventP
       requestDecision(runtime, reason, true);
     } else if (toPerceiver(perceiver).isAsleep) {
       requestDecision(runtime, "a loud sound reached me in my sleep", true);
-    } else {
-      requestDecision(runtime, "something new caught my attention", false);
+    } else if (isNotable(state, event, perception, perceiver)) {
+      requestDecision(runtime, config.attention.notableReason, false);
     }
   }
 }
