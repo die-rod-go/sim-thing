@@ -8,13 +8,7 @@ import {
 } from "@village/shared";
 import { config } from "../config";
 import { resolveName, type NamedCandidate } from "../decision/resolve-name";
-import type {
-  IdentityReply,
-  LongTermGoalsReply,
-  PeopleReply,
-  RealityReply,
-  ShortTermGoalsReply,
-} from "./pass-prompts";
+import type { IdentityReply, LongTermGoalsReply, PeopleReply, RealityReply } from "./pass-prompts";
 
 export type PersonalityChangeDraft = Omit<PersonalityChange, "id">;
 
@@ -55,10 +49,6 @@ export function describeRealityThought(reply: RealityReply): string | null {
   const thought = reply.thought?.trim() ?? "";
   if (thought.length === 0) return null;
   return config.realityPass.thoughtStreamText.split("{thought}").join(thought);
-}
-
-export function applyShortTermGoalsReply(agent: Agent, reply: ShortTermGoalsReply): Agent {
-  return { ...agent, shortTermGoals: reply.goals.map((goal) => ({ ...goal })) };
 }
 
 export function applyLongTermGoalsReply(agent: Agent, reply: LongTermGoalsReply): Agent {

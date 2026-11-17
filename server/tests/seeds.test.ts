@@ -150,12 +150,12 @@ describe("seeds", () => {
     expect(world.agents.find((agent) => agent.id === "ilsa")?.people).toEqual({});
   });
 
-  it("starts the seed's goals as long-term goals, with no short-term goals yet", () => {
+  it("starts the seed's goals as long-term goals, with nothing planned for today yet", () => {
     const mara = world.agents.find((agent) => agent.id === "mara");
     expect(mara?.longTermGoals).toEqual([
       { goal: "Bake every day", reason: "It is my job", progress: "Not started" },
     ]);
-    expect(mara?.shortTermGoals).toEqual([]);
+    expect(mara?.agenda).toEqual([]);
   });
 
   it("rejects a seed note about someone who is not in the village", () => {

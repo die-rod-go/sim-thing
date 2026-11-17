@@ -5,7 +5,7 @@ import type {
   Needs,
   Personality,
   PersonEntry,
-  ShortTermGoal,
+  AgendaItem,
 } from "@village/shared";
 
 /** Names the agent may use as an action `target` right now. */
@@ -111,7 +111,8 @@ export interface HeldKnowledge {
   stream: string[];
   seenPlaces: SeenPlaceLine[];
   longTermGoals: LongTermGoal[];
-  shortTermGoals: ShortTermGoal[];
+  /** Today: the agent's plan, numbered. */
+  agenda: AgendaItem[];
   /** Everyone the agent has a person entry for. */
   people: KnownPerson[];
 }
@@ -127,6 +128,13 @@ export interface OfferSummary {
 export interface OwnOfferSummary {
   recipientName: string;
   itemText: string;
+}
+
+/** Where the agent is and who is around it, for plans and passes as well as decisions. */
+export interface Situation {
+  /** The name the agent's spot goes by. */
+  place: string;
+  aroundYou: AroundYou;
 }
 
 /** Everything step 1 of a decision puts in front of the agent. Filled by the tick loop. */

@@ -1,0 +1,7 @@
+## Where you are
+It is {{simTime}}. You are at {{place}}.
+
+## Around you
+{{aroundYou}}
+
+{{notSeenLately}}

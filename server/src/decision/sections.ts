@@ -1,4 +1,4 @@
-import { PERSON_ENTRY_FIELDS, type LongTermGoal, type ShortTermGoal } from "@village/shared";
+import { PERSON_ENTRY_FIELDS, type LongTermGoal } from "@village/shared";
 import { config } from "../config";
 import { truncateEntryText } from "../memory/stream";
 import { fillStatusWords } from "../status/impairment";
@@ -21,17 +21,6 @@ export function describeLongTermGoals(goals: readonly LongTermGoal[]): string {
     goals.map((goal) => `${goal.goal} (why: ${goal.reason}; so far: ${goal.progress})`),
     config.goals.noLongTermText,
   );
-}
-
-/** Each short-term goal with its reason and progress, then its steps as a numbered plan. */
-export function describeShortTermGoals(goals: readonly ShortTermGoal[]): string {
-  if (goals.length === 0) return config.goals.noShortTermText;
-  return goals
-    .flatMap((goal) => [
-      `- ${goal.goal} (why: ${goal.reason}; so far: ${goal.progress})`,
-      ...goal.steps.map((step, stepIndex) => `${NESTED_INDENT}${stepIndex + 1}. ${step}`),
-    ])
-    .join("\n");
 }
 
 const NESTED_INDENT = "  ";

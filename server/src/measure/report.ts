@@ -1,5 +1,6 @@
 import { formatDuration, formatSimTime } from "@village/shared";
 import { config } from "../config";
+import { summarizeAgendaDays } from "./agenda-measures";
 import { listUnpricedModels, summarizeCostsByKind } from "./costs";
 import {
   measureDeathNotice,
@@ -140,6 +141,24 @@ function describeTalk(records: SaveRecords): string {
   ].join("\n");
 }
 
+function describeAgenda(records: SaveRecords): string {
+  const rows = summarizeAgendaDays(records).map((row) => [
+    row.day,
+    row.dayPlans,
+    row.finished,
+    row.dropped,
+    row.leftStanding,
+    row.reminders,
+    row.remindersKept,
+    row.remindersMissed,
+  ]);
+  if (rows.length === 0) return "None.";
+  return formatTable(
+    ["Day", "Day plans", "Finished", "Dropped", "Left open", "Reminders", "Kept", "Missed asleep"],
+    rows,
+  );
+}
+
 function describeFailures(records: SaveRecords): string {
   const rows = summarizeFailures(records).map((row) => [row.reason, row.count]);
   return `${records.failures.length} failed acts.\n\n${formatTable(["Reason", "Count"], rows)}`;
@@ -209,6 +228,7 @@ export function buildReport(records: SaveRecords, savePath: string): string {
       formatSection("Cost by call kind", describeCosts(records)),
       formatSection("Decision prompt by section", describeSections(records)),
       formatSection("Talk", describeTalk(records)),
+      formatSection("Today", describeAgenda(records)),
       formatSection("Failed acts", describeFailures(records)),
       formatSection("Merged repeats", describeMergedRepeats(records)),
       formatSection("Deaths", describeDeaths(records)),

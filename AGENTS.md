@@ -97,7 +97,8 @@ on the entity: no creature settings in the config, and no creature state kept by
   filing, the stream (appending, merging repeats), summaries (what is due, the midnight steps), passes (what is due, applying replies), needs
   decay, each step type, the verb runner,
   rules, matchers, `items.json` validation, `give`, creature instincts, place names, attention,
-  the people on an agent's mind and the measurement script's measures.
+  the people on an agent's mind, the agenda (numbering, done, dropped, added, reminders), the day
+  plan and the measurement script's measures.
 - Name tests by behavior: `"muffles speech heard through a closed door"`.
 - Tests live in each workspace's `tests/` folder (`server/tests`, `client/tests`, `shared/tests`),
   mirroring the layout of its `src/`. Test-only helpers live there too; helpers that runtime code
@@ -130,8 +131,10 @@ on the entity: no creature settings in the config, and no creature state kept by
 | history         | One summary of everything before the day summary                                            |
 | pass            | An LLM call that rewrites part of what the agent holds (people, goals, identity)            |
 | person entry    | What the agent holds about one person it knows: five written fields                         |
-| long-term goal  | A goal with a reason and progress, rewritten when a chronicle forms                         |
-| short-term goal | A goal with a reason, steps and progress, rewritten every few episodes                      |
+| long-term goal  | A goal with a reason and progress, rewritten when a chronicle forms or by a day plan        |
+| agenda          | Today: the agent's own numbered list of outcomes for the day, kept by its decisions         |
+| day plan        | The LLM call that writes the agenda on waking from a long sleep, and at the start           |
+| reminder        | The urgent decision an agenda item with an hour gives when that hour comes                  |
 | reality pass    | A pass that checks the agent against the world's rules and may give it one thought          |
 | awareness       | The structured record of when each other agent was last perceived                           |
 | earshot         | Whether the sound simulation lets a listener hear a sound                                   |

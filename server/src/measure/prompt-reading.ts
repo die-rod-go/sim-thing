@@ -10,6 +10,13 @@ export interface DecisionPromptFacts {
   totalChars: number;
   /** The stream as the prompt showed it. */
   streamLines: { tick: number; text: string; count: number }[];
+  /** Today's items as the prompt showed them. */
+  today: AgendaLine[];
+}
+
+export interface AgendaLine {
+  number: number;
+  text: string;
 }
 
 const SECTION_PREFIX = "## ";
@@ -18,6 +25,21 @@ const STREAM_SECTION_TITLE = "Just now";
 export const TOP_SECTION = "(top)";
 const STREAM_LINE_PATTERN =
   /^- \[(Day \d+, \d{1,2}:\d{2} [ap]m)(?: to [^\]]+)?\] (.*?)(?: \(×(\d+)\))?$/;
+/** The title of the section that holds the agenda in `decision.txt`. */
+const TODAY_SECTION_TITLE = "Today";
+const AGENDA_LINE_PATTERN = /^(\d+)\. (?:\d{1,2}:\d{2} [ap]m: )?(.*)$/;
+
+function readToday(lines: readonly string[]): AgendaLine[] {
+  const start = lines.indexOf(`${SECTION_PREFIX}${TODAY_SECTION_TITLE}`);
+  if (start === -1) return [];
+  const today: AgendaLine[] = [];
+  for (const line of lines.slice(start + 1)) {
+    const match = AGENDA_LINE_PATTERN.exec(line);
+    if (match === null) break;
+    today.push({ number: Number(match[1]), text: match[2] ?? "" });
+  }
+  return today;
+}
 
 function readSectionChars(lines: readonly string[], nameTitle: (title: string) => string) {
   const sectionChars: Record<string, number> = {};
@@ -60,11 +82,25 @@ export function readDecisionPrompt(
     sectionChars: readSectionChars(lines, nameTitle),
     totalChars: prompt.length,
     streamLines: readStreamLines(lines),
+    today: readToday(lines),
   };
 }
 
 function isRecord(value: unknown): value is Record<string, unknown> {
   return typeof value === "object" && value !== null && !Array.isArray(value);
+}
+
+function readNumbers(parsed: Record<string, unknown>, key: string): number[] {
+  const value = parsed[key];
+  return Array.isArray(value)
+    ? value.filter((entry): entry is number => typeof entry === "number")
+    : [];
+}
+
+/** The agenda items a decision reply marked finished and given up, by number. */
+export function readAgendaMarks(parsed: unknown): { done: number[]; dropped: number[] } {
+  if (!isRecord(parsed)) return { done: [], dropped: [] };
+  return { done: readNumbers(parsed, "done"), dropped: readNumbers(parsed, "dropped") };
 }
 
 /** The act a decision reply settled on ("wait", "walk_to"); "unreadable" when it has none. */

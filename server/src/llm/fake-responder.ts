@@ -68,15 +68,12 @@ function buildBuiltInAnswers(hitRollVerbs: ReadonlySet<string>): Record<string, 
       minutes: null,
     }),
     people_reply: () => ({ people: [] }),
-    short_term_goals_reply: (_request, random) => ({
-      goals: [
-        {
-          goal: "Get on with the day's work",
-          reason: "It keeps me fed",
-          steps: [random.pick(config.llm.fakeResponder.lines)],
-          progress: "",
-        },
+    day_plan_reply: (_request, random) => ({
+      agenda: [
+        { text: "Get on with the day's work", hour: null },
+        { text: random.pick(config.llm.fakeResponder.lines), hour: null },
       ],
+      longTermGoals: null,
     }),
     identity_reply: (_request, random) => ({
       traitChanges: [

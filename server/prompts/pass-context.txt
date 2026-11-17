@@ -19,8 +19,8 @@ Your traits, each from -1 to 1:
 ## Long-term goals
 {{longTermGoals}}
 
-## Short-term goals
-{{shortTermGoals}}
+## Today
+{{today}}
 
 ## People you know
 {{people}}

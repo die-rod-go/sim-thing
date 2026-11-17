@@ -1,4 +1,4 @@
-import type { LlmCallKind, LlmCallRecord } from "@village/shared";
+import { formatTimeOfDay, type LlmCallKind, type LlmCallRecord } from "@village/shared";
 
 /** One labeled piece of a reply, e.g. { label: "said", text: "Morning, Bob!" }. */
 export interface ThoughtPart {
@@ -120,6 +120,19 @@ function summarizeGoals(fields: ReplyFields): Pick<ThoughtEntry, "headline" | "p
   };
 }
 
+/** A day plan: each item of Today, with its hour when it has one, then any rewritten goals. */
+function summarizeDayPlan(fields: ReplyFields): Pick<ThoughtEntry, "headline" | "parts"> {
+  const items = readRecords(fields, "agenda").flatMap((item) => {
+    const hour = readNumber(item, "hour");
+    const label = hour === null ? "today" : `at ${formatTimeOfDay({ hour, minute: 0 })}`;
+    return part(label, readText(item, "text"));
+  });
+  const goals = readRecords(fields, "longTermGoals").flatMap((goal) =>
+    part("goal", describeGoal(goal)),
+  );
+  return { headline: null, parts: [...items, ...goals] };
+}
+
 function summarizeIdentity(fields: ReplyFields): Pick<ThoughtEntry, "headline" | "parts"> {
   const traitChanges = readRecords(fields, "traitChanges").flatMap((change) => {
     const delta = readNumber(change, "delta");
@@ -158,7 +171,8 @@ function summarizeReply(
       return { headline: readText(fields, "summary"), parts: [] };
     case "people":
       return summarizePeople(fields);
-    case "short_term_goals":
+    case "day_plan":
+      return summarizeDayPlan(fields);
     case "long_term_goals":
       return summarizeGoals(fields);
     case "identity":

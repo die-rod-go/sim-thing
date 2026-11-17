@@ -13,8 +13,8 @@ import {
   findDueCompression,
   findDueDayEnd,
   findDuePass,
+  isDayPlanDue,
   markPassDone,
-  oweShortTermGoalsPass,
   settleMidnight,
   type PassName,
   type SummaryJob,
@@ -23,7 +23,6 @@ import {
   applyIdentityReply,
   applyLongTermGoalsReply,
   applyPeopleReply,
-  applyShortTermGoalsReply,
   describeRealityThought,
 } from "../passes/apply-pass";
 import {
@@ -33,6 +32,8 @@ import {
   type PassReplies,
 } from "../passes/pass-prompts";
 import { BackgroundWork } from "./background-work";
+import { planDay } from "./day-plan-job";
+import type { JobOutcome } from "./memory-job";
 import { buildHeldKnowledge } from "./held-knowledge";
 import { buildGoalMoments, buildPersonalityMoments, recordMoments } from "./moments";
 import type { SimDependencies } from "./tick-context";
@@ -48,16 +49,6 @@ import {
 import type { TickResult, WorldState } from "./world-state";
 
 const logger = createLogger("memory");
-
-/** What one finished job does to the world; false when its call failed and it changed nothing. */
-type ApplyJob = (state: WorldState, result: TickResult) => boolean;
-
-interface JobOutcome {
-  agentId: string;
-  /** For the log: "episode", "people pass". */
-  jobName: string;
-  apply: ApplyJob;
-}
 
 export type RunMemoryWork = (state: WorldState, result: TickResult) => Promise<void>;
 
@@ -82,9 +73,6 @@ function applyPassReply<Pass extends PassName>(
   if (replies.people) {
     replaceAgent(state, applyPeopleReply(agent, replies.people, listOthersAsSeen(state, agentId)));
   }
-  if (replies.shortTermGoals) {
-    replaceAgent(state, applyShortTermGoalsReply(agent, replies.shortTermGoals));
-  }
   if (replies.longTermGoals) {
     const updated = applyLongTermGoalsReply(agent, replies.longTermGoals);
     replaceAgent(state, updated);
@@ -102,17 +90,15 @@ function applyPassReply<Pass extends PassName>(
   }
   if (replies.reality) {
     const thought = describeRealityThought(replies.reality);
-    if (thought === null) return;
-    appendToStream(state, agentId, thought);
-    setMemory(state, agentId, oweShortTermGoalsPass(getAgentMemory(state, agentId)));
+    if (thought !== null) appendToStream(state, agentId, thought);
   }
 }
 
 /**
  * Builds the end-of-tick memory step. For every living agent it starts whatever is due, one job
- * per agent at a time, in this order: episode, chronicle, the identity, long-term goals, people
- * and short-term goals passes, then at midnight the day summary and the history, so the passes
- * read the day before it is compressed. Each result is applied in agent order on the first tick
+ * per agent at a time, in this order: the day plan, episode, chronicle, the identity, long-term
+ * goals, people and reality passes, then at midnight the day summary and the history, so the
+ * passes read the day before it is compressed. Each result is applied in agent order on the first tick
  * after it returns. What is due is read from the saved memory, so a failed call or a restart
  * loses nothing; a failed call leaves everything in place and is tried again after
  * `retryAfterTicks`. Without `shouldCallLlmInBackground` the tick waits until nothing more is due.
@@ -200,6 +186,10 @@ export function createMemoryWork(dependencies: SimDependencies): RunMemoryWork {
 
   /** Starts the agent's next due job; false when nothing is due. */
   function startDueJob(state: WorldState, agentId: string, memory: AgentMemory): boolean {
+    if (isDayPlanDue(memory)) {
+      work.start(state, agentId, () => planDay(dependencies, state, agentId));
+      return true;
+    }
     const compression = findDueCompression(memory);
     if (compression !== null) {
       if (compression.level === "episode") {

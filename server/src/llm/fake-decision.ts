@@ -116,6 +116,9 @@ export function buildDecisionReply(
     minutes: null,
     mood: null,
     offer: choices.hasOffer ? answerOffer(random) : null,
+    done: null,
+    dropped: null,
+    added: null,
   };
   const meal = findMealToEat(choices);
   if (meal !== null) {

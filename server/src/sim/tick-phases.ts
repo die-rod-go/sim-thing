@@ -23,6 +23,7 @@ import { isNoticedOnSight } from "../items/world-physics";
 import { wakeAgent } from "./action-stopping";
 import { WAIT_ACTION, WALK_ACTION, describeDoing } from "./action-phrases";
 import { getAgentRuntime, requestDecision } from "./agent-runtime";
+import { isWaitingForDayPlan } from "./agenda-reminders";
 import { EMPTY_PERSON_ENTRY } from "../passes/apply-pass";
 import { lookAtPlaces } from "./place-sighting";
 import { NO_RULE_CAUSE } from "./rule-cause";
@@ -243,9 +244,10 @@ export interface DecisionRequest {
 
 /**
  * Phase 5a: who decides this tick. No action means a decision; otherwise an urgent flag (own
- * name, conversation, woken, need, offered something) or a perception flag outside the cooldown.
- * Every flag is consumed here, so flags raised later in the tick count for the next tick. An agent
- * still waiting on a decision is skipped and keeps its flag for after that decision lands.
+ * name, conversation, woken, need, offered something, an agenda item's hour) or a notable flag
+ * outside the cooldown. Every flag is consumed here, so flags raised later in the tick count for
+ * the next tick. An agent still waiting on a decision, or lying awake waiting for its day plan with
+ * nothing urgent, is skipped and keeps its flag for later.
  */
 export function selectDecisionRequests(
   context: TickContext,
@@ -256,6 +258,7 @@ export function selectDecisionRequests(
   for (const agent of listLivingAgents(state)) {
     if (isAgentDeciding(agent.id)) continue;
     const runtime = getAgentRuntime(state, agent.id);
+    if (isWaitingForDayPlan(state, agent.id) && !runtime.pendingDecision?.isUrgent) continue;
     const pending = runtime.pendingDecision;
     runtime.pendingDecision = null;
     const isMidActionInterrupt = agent.currentAction !== null;

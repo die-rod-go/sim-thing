@@ -35,13 +35,12 @@ export interface LongTermGoal {
   progress: string;
 }
 
-/** A goal for the coming hours, with the plan to reach it; rewritten every few episodes. */
-export interface ShortTermGoal {
-  goal: string;
-  reason: string;
-  /** The plan, in order. */
-  steps: string[];
-  progress: string;
+/** One line of the agent's plan for today: an outcome, with the number it keeps while it lasts. */
+export interface AgendaItem {
+  number: number;
+  text: string;
+  /** The hour of day (0–23) it has to happen at, which brings a reminder; null when it has none. */
+  hour: number | null;
 }
 
 /** What the agent holds about one person it knows. Each field is the agent's own reading. */
@@ -128,7 +127,12 @@ export interface Agent {
   bodyHolderId: string | null;
   mood: string;
   longTermGoals: LongTermGoal[];
-  shortTermGoals: ShortTermGoal[];
+  /** Today: the agent's own plan, written on waking and kept by its decisions. */
+  agenda: AgendaItem[];
+  /** The number the next agenda item gets, so a number is never used twice. */
+  nextAgendaNumber: number;
+  /** Goes up whenever the agenda changes, so a plan written against an older one can tell. */
+  agendaRevision: number;
   intention: string;
   currentAction: CurrentAction | null;
   awareness: Record<string, Awareness>;
@@ -211,15 +215,14 @@ export interface AgentMemory {
   /** After a summary or pass failed: the tick from which the agent's memory work is tried again. */
   retryAtTick: number | null;
   passes: PassProgress;
+  /** Since when the agent has owed a day plan (it woke, or the sim began); null when it owes none. */
+  dayPlanOwedSinceTick: number | null;
 }
 
 /** Which passes an agent owes, counted from the episodes and chronicles that have formed. */
 export interface PassProgress {
   episodesSincePeople: number;
-  episodesSinceShortTermGoals: number;
   episodesSinceReality: number;
-  /** True until the first short-term goals pass has run. */
-  isFirstShortTermGoalsOwed: boolean;
   /** A chronicle has formed since the identity pass last ran. */
   isIdentityOwed: boolean;
   /** A chronicle has formed since the long-term goals pass last ran. */
@@ -248,6 +251,12 @@ export interface DecisionReply {
   minutes?: number;
   mood?: string;
   offer?: OfferAnswer;
+  /** Numbers of agenda items finished. */
+  done?: number[];
+  /** Numbers of agenda items given up. */
+  dropped?: number[];
+  /** New agenda items. */
+  added?: { text: string; hour: number | null }[];
 }
 
 export interface EventSpeech {
@@ -325,7 +334,7 @@ export type LlmCallKind =
   | "day_summary"
   | "history"
   | "people"
-  | "short_term_goals"
+  | "day_plan"
   | "identity"
   | "long_term_goals"
   | "reality";

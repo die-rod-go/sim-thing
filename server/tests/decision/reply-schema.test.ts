@@ -32,6 +32,9 @@ const nullReply = {
   minutes: null,
   mood: null,
   offer: null,
+  done: null,
+  dropped: null,
+  added: null,
 };
 
 describe("buildDecisionReplySchema", () => {

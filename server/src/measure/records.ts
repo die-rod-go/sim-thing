@@ -1,4 +1,5 @@
 import type { LlmCallKind } from "@village/shared";
+import type { AgendaLine } from "./prompt-reading";
 
 /*
  * What the measurement reads out of a save, reduced to the little each measure needs, so a run's
@@ -31,6 +32,11 @@ export interface DecisionRecord {
   /** Characters per prompt section, by section title; text before the first title is "(top)". */
   sectionChars: Record<string, number>;
   totalChars: number;
+  /** Today's items as the prompt showed them. */
+  today: AgendaLine[];
+  /** The items the reply marked finished and given up, by number. */
+  done: number[];
+  dropped: number[];
 }
 
 /** A stream entry as some prompt showed it, once per agent, time and text. */

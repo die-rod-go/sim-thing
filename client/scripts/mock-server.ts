@@ -96,11 +96,10 @@ function buildDetail(agent: Agent): AgentDetailMessage {
       lastMidnightDay: 1,
       midnight: null,
       retryAtTick: null,
+      dayPlanOwedSinceTick: null,
       passes: {
         episodesSincePeople: 0,
-        episodesSinceShortTermGoals: 0,
         episodesSinceReality: 0,
-        isFirstShortTermGoalsOwed: false,
         isIdentityOwed: false,
         isLongTermGoalsOwed: false,
       },

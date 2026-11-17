@@ -22,10 +22,10 @@ import {
   describeOlderMemory,
   describePeople,
   describeSeenPlaces,
-  describeShortTermGoals,
   describeStream,
 } from "../decision/sections";
 import { describeTraitWord } from "../decision/words";
+import { describeAgenda } from "../agenda/agenda";
 import { renderTemplate } from "../llm/templates";
 import type { PassName } from "../memory/summaries";
 import { describeWorldKnowledge } from "./world-knowledge";
@@ -45,7 +45,6 @@ interface PassSettings {
 
 const PASS_SETTINGS: Record<PassName, PassSettings> = {
   people: { callKind: "people", templateName: "people-pass" },
-  shortTermGoals: { callKind: "short_term_goals", templateName: "short-term-goals-pass" },
   identity: { callKind: "identity", templateName: "identity-pass" },
   longTermGoals: { callKind: "long_term_goals", templateName: "long-term-goals-pass" },
   reality: { callKind: "reality", templateName: "reality-pass" },
@@ -77,7 +76,11 @@ function describeTraitValues(traits: Record<TraitName, number>): string {
  * What every pass reads, the same text for each. Passes are not cached: each sends its own reply
  * schema and the stream moves on between them, so no pass could read another's cached prompt.
  */
-function buildPassContext(agent: Agent, held: HeldKnowledge, promptsDirectory?: string): string {
+export function buildPassContext(
+  agent: Agent,
+  held: HeldKnowledge,
+  promptsDirectory?: string,
+): string {
   return renderTemplate(
     CONTEXT_TEMPLATE,
     {
@@ -90,7 +93,7 @@ function buildPassContext(agent: Agent, held: HeldKnowledge, promptsDirectory?: 
       selfImage: agent.personality.selfImage,
       traits: describeTraitValues(agent.personality.traits),
       longTermGoals: describeLongTermGoals(held.longTermGoals),
-      shortTermGoals: describeShortTermGoals(held.shortTermGoals),
+      today: describeAgenda(held.agenda),
       people: describePeople(held.people),
     },
     promptsDirectory,
@@ -114,12 +117,6 @@ function listQuestionValues(
       return {
         personNames: held.people.map((person) => person.name).join(", "),
         maxChars: String(config.people.fieldMaxChars),
-      };
-    case "shortTermGoals":
-      return {
-        maxGoals: String(config.goals.maxShortTerm),
-        maxSteps: String(config.goals.maxSteps),
-        maxChars: String(config.goals.shortTermFieldMaxChars),
       };
     case "longTermGoals":
       return {
@@ -175,26 +172,12 @@ const peopleReplySchema = z.object({
   ),
 });
 
-const shortTermText = writtenText(config.goals.shortTermFieldMaxChars);
-const shortTermGoalsReplySchema = z.object({
-  goals: z
-    .array(
-      z.object({
-        goal: shortTermText.min(1),
-        reason: shortTermText,
-        steps: z.array(shortTermText.min(1)).max(config.goals.maxSteps),
-        progress: shortTermText,
-      }),
-    )
-    .max(config.goals.maxShortTerm),
-});
-
 const longTermText = writtenText(config.goals.longTermFieldMaxChars);
-const longTermGoalsReplySchema = z.object({
-  goals: z
-    .array(z.object({ goal: longTermText.min(1), reason: longTermText, progress: longTermText }))
-    .max(config.goals.maxLongTerm),
-});
+/** The full list of long-term goals, as the passes and the day plan rewrite it. */
+export const longTermGoalListSchema = z
+  .array(z.object({ goal: longTermText.min(1), reason: longTermText, progress: longTermText }))
+  .max(config.goals.maxLongTerm);
+const longTermGoalsReplySchema = z.object({ goals: longTermGoalListSchema });
 
 const identityReplySchema = z.preprocess(
   dropEmptyFields,
@@ -221,7 +204,6 @@ const realityReplySchema = z.object({
 
 export type PeopleReply = z.infer<typeof peopleReplySchema>;
 export type RealityReply = z.infer<typeof realityReplySchema>;
-export type ShortTermGoalsReply = z.infer<typeof shortTermGoalsReplySchema>;
 export type LongTermGoalsReply = z.infer<typeof longTermGoalsReplySchema>;
 export interface IdentityReply {
   traitChanges: { trait: TraitName; delta: number; reason: string }[];
@@ -232,7 +214,6 @@ export interface IdentityReply {
 
 export interface PassReplies {
   people: PeopleReply;
-  shortTermGoals: ShortTermGoalsReply;
   longTermGoals: LongTermGoalsReply;
   identity: IdentityReply;
   reality: RealityReply;
@@ -243,6 +224,11 @@ const TEXT = { type: "string" };
 function jsonList(items: Record<string, unknown>): Record<string, unknown> {
   return { type: "array", items };
 }
+
+/** The JSON schema of `longTermGoalListSchema`. */
+export const LONG_TERM_GOAL_LIST_JSON = jsonList(
+  strictJsonObject({ goal: TEXT, reason: TEXT, progress: TEXT }),
+);
 
 const JSON_SCHEMAS: Record<PassName, Record<string, unknown>> = {
   people: strictJsonObject({
@@ -257,14 +243,7 @@ const JSON_SCHEMAS: Record<PassName, Record<string, unknown>> = {
       }),
     ),
   }),
-  shortTermGoals: strictJsonObject({
-    goals: jsonList(
-      strictJsonObject({ goal: TEXT, reason: TEXT, steps: jsonList(TEXT), progress: TEXT }),
-    ),
-  }),
-  longTermGoals: strictJsonObject({
-    goals: jsonList(strictJsonObject({ goal: TEXT, reason: TEXT, progress: TEXT })),
-  }),
+  longTermGoals: strictJsonObject({ goals: LONG_TERM_GOAL_LIST_JSON }),
   identity: strictJsonObject({
     traitChanges: jsonList(
       strictJsonObject({
@@ -282,7 +261,6 @@ const JSON_SCHEMAS: Record<PassName, Record<string, unknown>> = {
 
 const ZOD_SCHEMAS: { [Pass in PassName]: z.ZodType<PassReplies[Pass]> } = {
   people: peopleReplySchema,
-  shortTermGoals: shortTermGoalsReplySchema,
   longTermGoals: longTermGoalsReplySchema,
   identity: identityReplySchema,
   reality: realityReplySchema,

@@ -4,7 +4,8 @@ import { measureDeathNotice } from "../../src/measure/deaths";
 import { NO_REASON, summarizeReasons } from "../../src/measure/decisions";
 import { buildNameGrouper } from "../../src/measure/grouping";
 import { readDecisionOutcome, readDecisionPrompt } from "../../src/measure/prompt-reading";
-import type { CallRecord, SaveRecords } from "../../src/measure/records";
+import { readReminderItem, summarizeAgendaDays } from "../../src/measure/agenda-measures";
+import type { CallRecord, DecisionRecord, SaveRecords } from "../../src/measure/records";
 import {
   measureConversations,
   measureNearRepeats,
@@ -32,6 +33,22 @@ function buildRecords(overrides: Partial<SaveRecords>): SaveRecords {
     speech: [],
     failures: [],
     deaths: [],
+    ...overrides,
+  };
+}
+
+function buildDecision(overrides: Partial<DecisionRecord>): DecisionRecord {
+  return {
+    agentId: "mara",
+    tick: 0,
+    reason: null,
+    isMidAction: false,
+    outcome: "wait",
+    sectionChars: {},
+    totalChars: 0,
+    today: [],
+    done: [],
+    dropped: [],
     ...overrides,
   };
 }
@@ -91,15 +108,9 @@ describe("grouping reasons", () => {
     const group = buildNameGrouper(["Tom", "Tomas"]);
     expect(group("Tomas is offering me 3 coins")).toBe("{name} is offering me # coins");
     const records = buildRecords({
-      decisions: [null, "Tom came into view", "Cobb came into view"].map((reason, index) => ({
-        agentId: "mara",
-        tick: index,
-        reason,
-        isMidAction: false,
-        outcome: "wait",
-        sectionChars: {},
-        totalChars: 0,
-      })),
+      decisions: [null, "Tom came into view", "Cobb came into view"].map((reason, index) =>
+        buildDecision({ tick: index, reason }),
+      ),
     });
     expect(summarizeReasons(records).map((row) => [row.reason, row.count])).toEqual([
       ["{name} came into view", 2],
@@ -132,6 +143,37 @@ describe("measuring talk", () => {
       { speakerId: "mara", tick: 9, place: "bakery", words: "Cobb owes Tom ten coins, I hear" },
     ];
     expect(measurePassedOn(streamLines, retold)).toEqual({ overheard: 1, passedOn: 1 });
+  });
+});
+
+describe("measuring Today", () => {
+  const bake = { number: 1, text: "Bake bread" };
+  const dice = { number: 2, text: "Dice at the tavern" };
+
+  it("counts items finished and dropped, and those left open at the day's end", () => {
+    const records = buildRecords({
+      decisions: [
+        buildDecision({ tick: 10, today: [bake, dice], done: [1] }),
+        buildDecision({ tick: 20, today: [dice] }),
+      ],
+    });
+    expect(summarizeAgendaDays(records)).toEqual([
+      expect.objectContaining({ day: 1, finished: 1, dropped: 0, leftStanding: 1 }),
+    ]);
+  });
+
+  it("counts a reminder kept when its item is marked done within the hour", () => {
+    const reason = "it is 7:00 pm: Dice at the tavern";
+    expect(readReminderItem(reason)).toBe("Dice at the tavern");
+    const records = buildRecords({
+      decisions: [
+        buildDecision({ tick: 100, reason, today: [dice] }),
+        buildDecision({ tick: 130, today: [dice], done: [2] }),
+      ],
+    });
+    expect(summarizeAgendaDays(records)).toEqual([
+      expect.objectContaining({ reminders: 1, remindersKept: 1 }),
+    ]);
   });
 });
 

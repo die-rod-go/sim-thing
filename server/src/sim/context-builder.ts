@@ -1,6 +1,12 @@
 import { formatSimTime, readAgentHealth, type Agent } from "@village/shared";
 import { config } from "../config";
-import type { AwarenessEntry, DecisionContext, DecisionTargets } from "../decision/context";
+import type {
+  AroundYou,
+  AwarenessEntry,
+  DecisionContext,
+  DecisionTargets,
+  Situation,
+} from "../decision/context";
 import { computeChebyshevDistance } from "../economy/give";
 import { describeWorldKnowledge } from "../passes/world-knowledge";
 import { findObviousListeners } from "../perception/listeners";
@@ -78,6 +84,31 @@ export function buildValidTargets(state: WorldState, agent: Agent): DecisionTarg
   };
 }
 
+/** Who is around the agent, who would hear it, and everyone it has perceived before. */
+export function buildAroundYou(state: WorldState, agent: Agent): AroundYou {
+  const listeners = findObviousListeners(
+    buildPerceptionWorld(state),
+    toPerceiver(agent),
+    listLivingAgents(state)
+      .filter((other) => other.id !== agent.id)
+      .map(toPerceiver),
+  );
+  return {
+    entries: buildAwarenessEntries(state, agent),
+    normalHearerIds: listeners.wouldHearNormal,
+    whisperHearerIds: listeners.wouldHearWhisper,
+  };
+}
+
+/** Where the agent is and who is around, as plans and passes read it. */
+export function buildSituation(state: WorldState, agentId: string): Situation {
+  const agent = findAgent(state, agentId);
+  return {
+    place: describeLocation(state.map, agent.place, agent.pos),
+    aroundYou: buildAroundYou(state, agent),
+  };
+}
+
 /**
  * Step 1 of a decision: everything the agent knows right now, from its own state, its awareness,
  * and everything it remembers and holds. `decisionReason` is what flagged the decision, as perceived.
@@ -91,15 +122,6 @@ export function buildDecisionContext(
 ): DecisionContext {
   const agent = findAgent(state, agentId);
   const runtime = getAgentRuntime(state, agentId);
-  const world = buildPerceptionWorld(state);
-  const listeners = findObviousListeners(
-    world,
-    toPerceiver(agent),
-    listLivingAgents(state)
-      .filter((other) => other.id !== agentId)
-      .map(toPerceiver),
-  );
-  const aroundYouEntries = buildAwarenessEntries(state, agent);
   const nearbyEntities = buildHere(state, agent);
   const action = agent.currentAction;
   return {
@@ -118,11 +140,7 @@ export function buildDecisionContext(
     simTime: formatSimTime(state.tick, config.clock),
     place: describeLocation(state.map, agent.place, agent.pos),
     nearbyEntities,
-    aroundYou: {
-      entries: aroundYouEntries,
-      normalHearerIds: listeners.wouldHearNormal,
-      whisperHearerIds: listeners.wouldHearWhisper,
-    },
+    aroundYou: buildAroundYou(state, agent),
     belongings: buildBelongings(state, agent),
     itemlessVerbs: listItemlessVerbNames(state),
     ...buildHeldKnowledge(state, agent),
@@ -146,7 +164,10 @@ export function buildDecisionContext(
             itemText: runtime.pendingOffer.itemText,
           },
     ownOffer: findOwnOffer(state, agentId),
-    peopleOnMind: listPeopleOnMind(state, agent, [agent.intention]),
+    peopleOnMind: listPeopleOnMind(state, agent, [
+      agent.intention,
+      ...agent.agenda.map((item) => item.text),
+    ]),
     validTargets: buildValidTargets(state, agent),
     validItems: listValidItems(state, agent),
     validHolders: listValidHolders(state, agent),

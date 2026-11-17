@@ -28,9 +28,7 @@ const midnightProgressSchema = z.object({
 
 const passProgressSchema = z.object({
   episodesSincePeople: z.number().int().nonnegative(),
-  episodesSinceShortTermGoals: z.number().int().nonnegative(),
   episodesSinceReality: z.number().int().nonnegative(),
-  isFirstShortTermGoalsOwed: z.boolean(),
   isIdentityOwed: z.boolean(),
   isLongTermGoalsOwed: z.boolean(),
 });
@@ -45,4 +43,5 @@ export const agentMemorySchema: z.ZodType<AgentMemory> = z.object({
   midnight: midnightProgressSchema.nullable(),
   retryAtTick: tickSchema.nullable(),
   passes: passProgressSchema,
+  dayPlanOwedSinceTick: tickSchema.nullable(),
 });

@@ -3,6 +3,7 @@ import { config } from "../config";
 import { endSleep, isAsleep, type WakeReason } from "../economy/sleep";
 import { findEntityIfPresent } from "../items/entity-store";
 import { getAgentRuntime } from "./agent-runtime";
+import { takeInWaking } from "./agenda-reminders";
 import { broadcastEvent } from "./event-broadcast";
 import { createEvent } from "./event-factory";
 import type { TickContext } from "./tick-context";
@@ -30,7 +31,8 @@ function fillWakeWords(words: string, placeName: string | null, sleptMinutes: nu
 }
 
 /**
- * Wakes a sleeping agent, frees what it slept in and broadcasts `woke`.
+ * Wakes a sleeping agent, frees what it slept in and broadcasts `woke`; then it takes in what it
+ * slept through, and after a long enough sleep owes a day plan.
  * A `reason` is given when the sleep ended on its own. The sleeper's own memory of waking says how
  * long it slept and why it ended, so it can tell whether lying down again would do any good.
  */
@@ -47,6 +49,7 @@ export function wakeAgent(context: TickContext, agentId: string, reason?: WakeRe
     actorDescription: fillWakeWords(words.own, placeName, sleptMinutes),
   });
   broadcastEvent(state, event, context.result);
+  takeInWaking(state, agentId, sleptMinutes);
 }
 
 /**

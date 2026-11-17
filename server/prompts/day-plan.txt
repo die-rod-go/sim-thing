@@ -1,0 +1,20 @@
+You are {{name}}. Below is how the world works, everything you remember and hold, and where you are now, and after it a question.
+
+{{worldKnowledge}}
+
+{{context}}
+
+{{situation}}
+
+## The question: today
+You have just woken. Plan today as {{name}}: what you mean to get done, who you mean to see and why, and something for yourself. Think about what you want in life, what happened yesterday, what is unsettled between you and others, and what your body will need.
+Make sure each thing can be done: what it uses, where it is done, and who has what you need.
+Write 3 to {{maxItems}} items in the order you expect to do them, each one line with roughly when.
+Write outcomes, not lines to say: "Get wheat from Wil for tomorrow's bread", not "Ask Wil about wheat".
+Give an item an hour only if it has to happen then, like a meeting: at that hour you will be reminded.
+If what has happened changes what you are working toward over days and weeks, rewrite your long-term goals too.
+
+## Reply
+Reply with only a JSON object, fields in this order:
+- agenda: the list, each {"text", "hour"}: text at most {{maxChars}} characters; hour from 0 to 23, or null.
+- longTermGoals: the full new list, each {"goal", "reason", "progress"}, at most {{maxGoals}}, every text at most {{goalMaxChars}} characters; or null to keep them as they are.

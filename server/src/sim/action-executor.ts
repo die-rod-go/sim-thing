@@ -1,4 +1,5 @@
 import type { Agent, AgentThought, DecisionReply } from "@village/shared";
+import { applyAgendaChanges } from "../agenda/agenda";
 import { config } from "../config";
 import { computeChebyshevDistance } from "../economy/give";
 import { isDead } from "../status/health";
@@ -30,17 +31,26 @@ function chooseLastThought(agent: Agent, reply: DecisionReply, tick: number): Ag
   return text ? { text, tick } : agent.lastThought;
 }
 
-/** intention and mood: free mental acts that ride along with any action. */
+/**
+ * intention, mood and the agenda's done, dropped and added: free mental acts that ride along with
+ * any action. A finished or dropped item goes into the stream in the agent's own words.
+ */
 function applyFreeActs(context: TickContext, agentId: string, decided: DecidedReply): void {
   const { state } = context;
   const { reply } = decided;
   const agent = findAgent(state, agentId);
+  const planned = applyAgendaChanges(agent, {
+    done: reply.done ?? [],
+    dropped: reply.dropped ?? [],
+    added: reply.added ?? [],
+  });
   replaceAgent(state, {
-    ...agent,
+    ...planned.agent,
     intention: reply.intention || agent.intention,
     mood: reply.mood ?? agent.mood,
     lastThought: chooseLastThought(agent, reply, state.tick),
   });
+  for (const text of planned.streamTexts) appendToStream(state, agentId, text);
 }
 
 function startWait(context: TickContext, agentId: string, minutes: number): void {

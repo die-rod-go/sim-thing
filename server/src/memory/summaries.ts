@@ -14,7 +14,11 @@ export type SummaryJob =
   | { level: "daySummary"; chronicles: Summary[] }
   | { level: "history"; daySummary: Summary; history: Summary | null };
 
-export function createAgentMemory(day: number): AgentMemory {
+/** A blank memory; `dayPlanOwedSinceTick` is set for an agent who should plan its day first. */
+export function createAgentMemory(
+  day: number,
+  dayPlanOwedSinceTick: number | null = null,
+): AgentMemory {
   return {
     stream: [],
     episodes: [],
@@ -26,12 +30,11 @@ export function createAgentMemory(day: number): AgentMemory {
     retryAtTick: null,
     passes: {
       episodesSincePeople: 0,
-      episodesSinceShortTermGoals: 0,
       episodesSinceReality: 0,
-      isFirstShortTermGoalsOwed: true,
       isIdentityOwed: false,
       isLongTermGoalsOwed: false,
     },
+    dayPlanOwedSinceTick,
   };
 }
 
@@ -183,7 +186,6 @@ export function applySummary(memory: AgentMemory, job: SummaryJob, text: string)
         passes: {
           ...memory.passes,
           episodesSincePeople: memory.passes.episodesSincePeople + 1,
-          episodesSinceShortTermGoals: memory.passes.episodesSinceShortTermGoals + 1,
           episodesSinceReality: memory.passes.episodesSinceReality + 1,
         },
       },
@@ -217,41 +219,29 @@ export function applySummary(memory: AgentMemory, job: SummaryJob, text: string)
   return finishMidnight({ ...memory, history: summary }, midnight);
 }
 
-export type PassName = "identity" | "longTermGoals" | "people" | "reality" | "shortTermGoals";
+export type PassName = "identity" | "longTermGoals" | "people" | "reality";
 
-/**
- * The next pass the agent owes, from slowest-changing to fastest. Null when none is due. The
- * reality pass comes just before the short-term goals pass, so plans can take up its thought.
- */
+/** The next pass the agent owes, from slowest-changing to fastest. Null when none is due. */
 export function findDuePass(memory: AgentMemory): PassName | null {
   const { passes } = memory;
   if (passes.isIdentityOwed) return "identity";
   if (passes.isLongTermGoalsOwed) return "longTermGoals";
   if (passes.episodesSincePeople >= config.people.everyEpisodes) return "people";
   if (passes.episodesSinceReality >= config.realityPass.everyEpisodes) return "reality";
-  const isShortTermDue =
-    passes.isFirstShortTermGoalsOwed ||
-    passes.episodesSinceShortTermGoals >= config.goals.shortTermEveryEpisodes;
-  return isShortTermDue ? "shortTermGoals" : null;
-}
-
-/** The short-term goals pass is owed now rather than after the usual number of episodes. */
-export function oweShortTermGoalsPass(memory: AgentMemory): AgentMemory {
-  const { passes } = memory;
-  const episodesSinceShortTermGoals = Math.max(
-    passes.episodesSinceShortTermGoals,
-    config.goals.shortTermEveryEpisodes,
-  );
-  return { ...memory, passes: { ...passes, episodesSinceShortTermGoals } };
+  return null;
 }
 
 /**
- * Both goals passes are owed now rather than after the usual number of episodes, so news that
- * changes everything can change the plans at once instead of hours later.
+ * The long-term goals pass is owed now rather than when a chronicle forms, so news that changes
+ * everything can change the agent's aims at once instead of hours later.
  */
-export function oweGoalsPasses(memory: AgentMemory): AgentMemory {
-  const owed = oweShortTermGoalsPass(memory);
-  return { ...owed, passes: { ...owed.passes, isLongTermGoalsOwed: true } };
+export function oweLongTermGoalsPass(memory: AgentMemory): AgentMemory {
+  return { ...memory, passes: { ...memory.passes, isLongTermGoalsOwed: true } };
+}
+
+/** Whether the agent owes a day plan. */
+export function isDayPlanDue(memory: AgentMemory): boolean {
+  return memory.dayPlanOwedSinceTick !== null;
 }
 
 /** The memory once a pass has run: that pass is no longer owed. */
@@ -266,10 +256,5 @@ export function markPassDone(memory: AgentMemory, pass: PassName): AgentMemory {
       return { ...memory, passes: { ...passes, episodesSincePeople: 0 } };
     case "reality":
       return { ...memory, passes: { ...passes, episodesSinceReality: 0 } };
-    case "shortTermGoals":
-      return {
-        ...memory,
-        passes: { ...passes, episodesSinceShortTermGoals: 0, isFirstShortTermGoalsOwed: false },
-      };
   }
 }

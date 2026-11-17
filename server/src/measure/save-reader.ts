@@ -2,7 +2,7 @@ import BetterSqlite3 from "better-sqlite3";
 import { z } from "zod";
 import type { LlmCallKind } from "@village/shared";
 import { config } from "../config";
-import { readDecisionOutcome, readDecisionPrompt } from "./prompt-reading";
+import { readAgendaMarks, readDecisionOutcome, readDecisionPrompt } from "./prompt-reading";
 import type {
   CallRecord,
   DecisionRecord,
@@ -40,6 +40,9 @@ const callRowSchema = z.object({
   cache_write_tokens: z.number().nullable(),
   error: z.string().nullable(),
 });
+
+/** How a missed reminder starts in the stream: "I slept through: ". */
+export const MISSED_PREFIX = config.agenda.missedText.split("{item}")[0] ?? "";
 
 /** What sits between `{attempt}` and `{reason}` in a failure onlookers see: ", but ". */
 const FAILURE_SEPARATOR = (() => {
@@ -121,7 +124,10 @@ function readCallRecords(
   const records: CallRecords = { calls: [], decisions: [], streamLines: [] };
   const linesByKey = new Map<string, StreamLine>();
   const isLineKept = (text: string, count: number) =>
-    count > 1 || text.startsWith("I overheard ") || deadNames.some((name) => text.includes(name));
+    count > 1 ||
+    text.startsWith("I overheard ") ||
+    text.startsWith(MISSED_PREFIX) ||
+    deadNames.some((name) => text.includes(name));
   const statement = database.prepare(
     `SELECT agent_id, tick, kind, model, prompt, parsed, prompt_tokens, completion_tokens,
        cache_read_tokens, cache_write_tokens, error FROM llm_calls ORDER BY id`,
@@ -140,14 +146,17 @@ function readCallRecords(
     });
     if (row.kind !== "decision" || row.error !== null) continue;
     const facts = readDecisionPrompt(row.prompt, nameTitle);
+    const parsed = parseJsonOrNull(row.parsed);
     records.decisions.push({
       agentId: row.agent_id,
       tick: row.tick,
       reason: facts.reason,
       isMidAction: facts.isMidAction,
-      outcome: readDecisionOutcome(parseJsonOrNull(row.parsed)),
+      outcome: readDecisionOutcome(parsed),
       sectionChars: facts.sectionChars,
       totalChars: facts.totalChars,
+      today: facts.today,
+      ...readAgendaMarks(parsed),
     });
     for (const line of facts.streamLines) {
       if (!isLineKept(line.text, line.count)) continue;

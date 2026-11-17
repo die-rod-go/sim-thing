@@ -43,14 +43,12 @@ export function makeSampleAgent(id: string, name: string, x: number, y: number):
     longTermGoals: [
       { goal: "Sell more bread", reason: "Coins buy ale", progress: "Sold two loaves" },
     ],
-    shortTermGoals: [
-      {
-        goal: "Sell this morning's loaves",
-        reason: "The square is busy before noon",
-        steps: ["carry the bread to the square", "call out the price"],
-        progress: "",
-      },
+    agenda: [
+      { number: 1, text: "Sell this morning's loaves on the square", hour: null },
+      { number: 2, text: "Dice at the tavern", hour: 19 },
     ],
+    nextAgendaNumber: 3,
+    agendaRevision: 1,
     intention: "Find someone who wants bread",
     currentAction: { kind: "walk_to", target: "square", endsAtTick: null },
     awareness: {},

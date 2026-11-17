@@ -128,6 +128,10 @@ const agentRuntimeSchema = z.object({
   lastFailure: z.string().nullable(),
   pendingDecision: pendingDecisionSchema.nullable(),
   pendingOffer: pendingOfferSchema.nullable(),
+  /** Agenda items whose hour has come, by number, so each reminds only once. */
+  firedReminderNumbers: z.array(z.number().int()),
+  /** Of those, the ones that came while the agent slept, filed when it wakes. */
+  missedReminderNumbers: z.array(z.number().int()),
 });
 
 /** The verb a creature is in the middle of. Everything else about it is in its components. */
@@ -178,6 +182,8 @@ export function createAgentRuntime(): AgentRuntime {
     lastFailure: null,
     pendingDecision: null,
     pendingOffer: null,
+    firedReminderNumbers: [],
+    missedReminderNumbers: [],
   };
 }
 

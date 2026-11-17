@@ -1,5 +1,6 @@
 import type { DecisionAction } from "@village/shared";
 import { config } from "../config";
+import { describeAgenda } from "../agenda/agenda";
 import { fillTemplate, loadTemplate } from "../llm/templates";
 import { describePlace } from "../memory/filing";
 import type { TemplateValues } from "../llm/templates";
@@ -17,7 +18,6 @@ import {
   describeNameWithPronouns,
   describePeopleOnMind,
   describePersonLines,
-  describeShortTermGoals,
   describeSeenPlaces,
   describeStream,
 } from "./sections";
@@ -70,7 +70,8 @@ function buildTemplateValues(
     status: status.otherWords.length === 0 ? "" : `You are ${joinWithAnd(status.otherWords)}.`,
     pressingNeeds,
     longTermGoals: describeLongTermGoals(context.longTermGoals),
-    shortTermGoals: describeShortTermGoals(context.shortTermGoals),
+    today: describeAgenda(context.agenda),
+    maxAgendaAdded: String(config.agenda.maxAddedPerDecision),
     people: describePersonLines(context.people),
     peopleOnMind: describePeopleOnMind(context.peopleOnMind),
     simTime: context.simTime,

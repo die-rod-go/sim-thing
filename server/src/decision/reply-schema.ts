@@ -1,5 +1,6 @@
 import type { DecisionAction, DecisionReply, OfferAnswer, Volume } from "@village/shared";
 import { z } from "zod";
+import { PLANNED_ITEM_JSON, plannedItemSchema } from "../agenda/agenda-schema";
 import type { JsonSchema } from "../llm/types";
 import type { DecisionTargets, ValidItem } from "./context";
 import { listOfferedActions } from "./decision-prompt";
@@ -12,12 +13,14 @@ import {
   looseEnum,
   nullableJsonEnum,
   nullableJsonInteger,
+  nullableJsonObject,
   nullableJsonString,
   nullableJsonStringOffering,
   strictJsonObject,
 } from "./schema-fields";
 
 const VOLUMES: readonly [Volume, ...Volume[]] = ["whisper", "normal", "shout"];
+const NUMBER_LIST_JSON: JsonSchema = { type: "array", items: { type: "integer" } };
 const OFFER_ANSWERS: readonly [OfferAnswer, ...OfferAnswer[]] = ["accept", "decline"];
 const ACTIONS_NEEDING_TARGET: readonly DecisionAction[] = ["walk_to", "give"];
 
@@ -65,6 +68,9 @@ function buildDecisionJsonSchema(
     minutes: nullableJsonInteger(),
     mood: nullableJsonString(),
     offer: nullableJsonEnum(OFFER_ANSWERS),
+    done: nullableJsonObject(NUMBER_LIST_JSON),
+    dropped: nullableJsonObject(NUMBER_LIST_JSON),
+    added: nullableJsonObject({ type: "array", items: PLANNED_ITEM_JSON }),
   });
 }
 
@@ -142,6 +148,9 @@ export function buildDecisionReplySchema(
       minutes: z.number().positive().optional(),
       mood: z.string().trim().optional(),
       offer: looseEnum(OFFER_ANSWERS).optional(),
+      done: z.array(z.number().int()).optional(),
+      dropped: z.array(z.number().int()).optional(),
+      added: z.array(plannedItemSchema).optional(),
     })
     .superRefine(requireFieldsForAction)
     .superRefine(targetCheck.refine)

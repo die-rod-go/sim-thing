@@ -2,6 +2,7 @@ import {
   NEED_NAMES,
   buildDefinitionNamer,
   formatSimTime,
+  formatTimeOfDay,
   listComponentWords,
   readAgentHealth,
   resolveBodyComponents,
@@ -91,20 +92,16 @@ export function OverviewTab({ agent }: { agent: Agent }) {
           </div>
         ))}
       </PanelSection>
-      <PanelSection title="Short-term goals">
-        {agent.shortTermGoals.length === 0 && <EmptyNote>None yet.</EmptyNote>}
-        {agent.shortTermGoals.map((goal, goalIndex) => (
-          <div key={goalIndex} className="goal">
-            <div className="goal-text">{goal.goal}</div>
-            {goal.reason && <div className="goal-why">because {goal.reason}</div>}
-            {goal.steps.length > 0 && (
-              <ol className="bullet-list">
-                {goal.steps.map((step, stepIndex) => (
-                  <li key={stepIndex}>{step}</li>
-                ))}
-              </ol>
+      <PanelSection title="Today">
+        {agent.agenda.length === 0 && <EmptyNote>Nothing planned.</EmptyNote>}
+        {agent.agenda.map((item) => (
+          <div key={item.number} className="goal">
+            <div className="goal-text">
+              {item.number}. {item.text}
+            </div>
+            {item.hour !== null && (
+              <div className="goal-why">at {formatTimeOfDay({ hour: item.hour, minute: 0 })}</div>
             )}
-            {goal.progress && <div className="goal-progress">▸ {goal.progress}</div>}
           </div>
         ))}
       </PanelSection>

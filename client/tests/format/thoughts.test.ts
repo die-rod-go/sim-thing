@@ -70,14 +70,21 @@ describe("summarizeLlmCall", () => {
     expect(summarizeLlmCall(call).parts).toEqual([{ label: "Bob: thinks", text: "Grumpy." }]);
   });
 
-  it("lists a goals pass's goals with their steps", () => {
+  it("lists a day plan's items, each with its hour when it has one", () => {
     const call = {
       ...makeSampleLlmCall(6, "ada", 9),
-      kind: "short_term_goals" as const,
-      parsed: { goals: [{ goal: "Sell bread", steps: ["go to the square", "call out"] }] },
+      kind: "day_plan" as const,
+      parsed: {
+        agenda: [
+          { text: "Sell bread on the square", hour: null },
+          { text: "Dice at the tavern", hour: 19 },
+        ],
+        longTermGoals: null,
+      },
     };
     expect(summarizeLlmCall(call).parts).toEqual([
-      { label: "goal", text: "Sell bread: go to the square; call out" },
+      { label: "today", text: "Sell bread on the square" },
+      { label: "at 7:00 pm", text: "Dice at the tavern" },
     ]);
   });
 

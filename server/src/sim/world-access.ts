@@ -139,9 +139,16 @@ export function listVisibleAgentIds(
     .map((other) => other.id);
 }
 
-/** What the agent remembers; empty for an agent that has taken nothing in yet. */
+/**
+ * What the agent remembers; empty for an agent that has taken nothing in yet, which owes a day
+ * plan before it decides anything.
+ */
 export function getAgentMemory(state: WorldState, agentId: string): AgentMemory {
-  return state.agentMemories[agentId] ?? createAgentMemory(toSimTime(state.tick, config.clock).day);
+  const existing = state.agentMemories[agentId];
+  if (existing !== undefined) return existing;
+  const created = createAgentMemory(toSimTime(state.tick, config.clock).day, state.tick);
+  state.agentMemories[agentId] = created;
+  return created;
 }
 
 /** Appends one event, in the agent's own words, to its stream at the current tick. */

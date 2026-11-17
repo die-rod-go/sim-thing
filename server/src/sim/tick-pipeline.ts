@@ -3,6 +3,7 @@ import { config } from "../config";
 import { pruneConversationLog } from "../memory/conversation";
 import { ATTACK_KINDS } from "./event-broadcast";
 import { applyDecisionPlan } from "./action-executor";
+import { flagReminders } from "./agenda-reminders";
 import { BackgroundWork } from "./background-work";
 import { carryBodiesAlong } from "./carried-bodies";
 import { runDecision, type DecisionPlan } from "./decision-runner";
@@ -58,13 +59,15 @@ function createFightWatch() {
  * 3. sight: awareness of everyone in view and seen places are refreshed; someone newly in view
  *    flags a decision;
  * 3b. offers lapse: withdrawn when the giver left reach, unanswered after their time is up;
- * 4. needs that crossed the decision threshold flag a decision;
+ * 4. needs that crossed the decision threshold flag a decision, and so does an agenda item whose
+ *    hour has come (a sleeper finds it missed on waking);
  * 5. decisions: everyone who needs one gets it, all in parallel through the limiter; the tick
  *    waits for all of them, then applies them in agent order (speech first, the answer to an
  *    offer, then the act), so
  *    the result doesn't depend on which LLM call returned first;
- * 6. memory: each agent's due summary (episode, chronicle, and at midnight the day summary and
- *    history) or pass (identity, long-term goals, people, short-term goals) is started or applied;
+ * 6. memory: each agent's due day plan, summary (episode, chronicle, and at midnight the day
+ *    summary and history) or pass (identity, long-term goals, people, reality) is started or
+ *    applied; an agent waiting for its day plan makes no decision but an urgent one;
  * 7. upkeep: the conversation log is pruned.
  * Events from step 5 flag decisions for the next tick, like a reply to what was just said.
  *
@@ -94,6 +97,7 @@ export function createDecisionStrategy(dependencies: SimDependencies): AdvanceTi
     updateSight(context);
     lapseOffers(context);
     flagCrossedNeeds(context, needsBefore);
+    flagReminders(context);
     if (backgroundDecisions) {
       for (const plan of backgroundDecisions.collectFinished(state)) {
         applyDecisionPlan(context, plan);

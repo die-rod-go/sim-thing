@@ -677,18 +677,38 @@ export const config = {
   },
 
   goals: {
-    /** New episodes between runs of the short-term goals pass. */
-    shortTermEveryEpisodes: 3,
-    maxShortTerm: 3,
-    /** Most steps per short-term goal. */
-    maxSteps: 5,
-    /** Length limit of each short-term goal text (goal, reason, each step, progress). */
-    shortTermFieldMaxChars: 200,
     maxLongTerm: 2,
     /** Length limit of each long-term goal text (goal, reason, progress). */
     longTermFieldMaxChars: 250,
     noLongTermText: "No long-term goals right now.",
-    noShortTermText: "No short-term goals yet.",
+  },
+
+  /**
+   * Today: the agent's own plan, a short list of outcomes it writes on waking (the day plan) and
+   * keeps with its decisions, each item numbered for as long as it lasts.
+   */
+  agenda: {
+    maxItems: 6,
+    /** Length limit of one item; see `llm.replyTextSlack`. */
+    itemMaxChars: 160,
+    /** Most items one decision may add. */
+    maxAddedPerDecision: 2,
+    /** A sleep at least this long ends in a day plan; so does the start of the sim. */
+    dayPlanMinSleepHours: 3,
+    /** Longest a waking agent lies awake waiting for its day plan before deciding anyway. */
+    dayPlanMaxWaitTicks: 30,
+    /** Today when the agenda is empty. */
+    nothingPlannedText: "Nothing planned for the rest of today.",
+    /** How an item reads in Today: its number, its hour when it has one, and its text. */
+    itemText: "{number}. {text}",
+    itemWithHourText: "{number}. {time}: {text}",
+    /** How a finished or dropped item enters the stream, in the agent's own voice. */
+    finishedText: "I finished: {item}",
+    droppedText: "I gave up on: {item}",
+    /** The decision reason when an item's hour comes; `{time}` is the hour. */
+    reminderReasonText: "it is {time}: {item}",
+    /** Filed on waking for an item whose hour passed in sleep. */
+    missedText: "I slept through: {item}",
   },
 
   realityPass: {
@@ -782,7 +802,7 @@ export const config = {
       // Each pass's largest possible reply: every text at its limit with the slack. The people
       // pass allows for a village of about a dozen people rewritten at once.
       people: 16000,
-      short_term_goals: 6500,
+      day_plan: 5000,
       identity: 3000,
       long_term_goals: 6000,
       reality: 1500,
@@ -790,7 +810,7 @@ export const config = {
     /** Calls of these kinds use `LLM_REFLECTION_MODEL` when it is set. */
     reflectionKinds: [
       "people",
-      "short_term_goals",
+      "day_plan",
       "identity",
       "long_term_goals",
       "reality",
@@ -798,7 +818,7 @@ export const config = {
     /** Calls of these kinds keep the model's thinking on even with `LLM_DISABLE_THINKING=true`. */
     thinkingKinds: [
       "people",
-      "short_term_goals",
+      "day_plan",
       "identity",
       "long_term_goals",
       "reality",
@@ -816,7 +836,7 @@ export const config = {
     effortByKind: {
       decision: "low",
       people: "medium",
-      short_term_goals: "medium",
+      day_plan: "high",
       identity: "medium",
       long_term_goals: "high",
       reality: "high",

@@ -33,13 +33,9 @@ function buildContext(overrides: Partial<DecisionContext> = {}): DecisionContext
     conditionWords: [],
     body: { sleepRecoveryPerHour: 0.15, strength: 0.7, agility: 0.3 },
     longTermGoals: [{ goal: "Bake every day", reason: "people rely on me", progress: "on track" }],
-    shortTermGoals: [
-      {
-        goal: "Sell today's bread",
-        reason: "I need coins for wheat",
-        steps: ["carry the bread to the square", "call out the price"],
-        progress: "baked 4 loaves",
-      },
+    agenda: [
+      { number: 1, text: "Morning: two batches of bread", hour: null },
+      { number: 3, text: "Dice at the tavern", hour: 19 },
     ],
     people: [
       {
@@ -317,17 +313,18 @@ describe("buildDecisionPrompt", () => {
     expect(buildDecisionPrompt(buildContext())).toMatch(/^You are Mara\.$/m);
   });
 
-  it("shows short-term goals with their steps as a numbered plan", () => {
-    const prompt = buildDecisionPrompt(buildContext());
-    expect(prompt).toContain(
-      [
-        "- Sell today's bread (why: I need coins for wheat; so far: baked 4 loaves)",
-        "  1. carry the bread to the square",
-        "  2. call out the price",
-      ].join("\n"),
-    );
-    expect(buildDecisionPrompt(buildContext({ shortTermGoals: [] }))).toContain(
-      config.goals.noShortTermText,
+  it("shows Today numbered, with an item's hour, first in the volatile part", () => {
+    const { text, cacheBreakpoints } = buildCacheableDecisionPrompt(buildContext());
+    const volatile = text.slice(cacheBreakpoints.at(-1) ?? 0);
+    expect(
+      volatile.startsWith(
+        ["## Today", "1. Morning: two batches of bread", "3. 7:00 pm: Dice at the tavern"].join(
+          "\n",
+        ),
+      ),
+    ).toBe(true);
+    expect(buildDecisionPrompt(buildContext({ agenda: [] }))).toContain(
+      `## Today\n${config.agenda.nothingPlannedText}`,
     );
   });
 
@@ -335,7 +332,7 @@ describe("buildDecisionPrompt", () => {
     const { text, cacheBreakpoints } = buildCacheableDecisionPrompt(buildContext());
     const [sharedEnd, whoEnd] = cacheBreakpoints;
     const who = text.slice(sharedEnd, whoEnd);
-    for (const title of ["Who you are", "Long-term goals", "Short-term goals", "People you know"]) {
+    for (const title of ["Who you are", "Long-term goals", "People you know"]) {
       expect(who).toContain(`## ${title}`);
     }
     expect(text.slice(whoEnd)).toContain("## Places you know");
@@ -371,7 +368,7 @@ describe("buildDecisionPrompt", () => {
     expect([...order].sort((first, second) => first - second)).toEqual(order);
     expect(text.slice(whoEnd, olderEnd)).toContain("I settled in.");
     expect(text.slice(olderEnd, episodesEnd)).toContain("I lit the oven.");
-    expect(text.slice(episodesEnd).startsWith("## Places you know")).toBe(true);
+    expect(text.slice(episodesEnd).startsWith("## Today")).toBe(true);
   });
 
   it("leaves out the title of a memory level that holds nothing", () => {

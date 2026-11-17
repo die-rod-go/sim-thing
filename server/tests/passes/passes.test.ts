@@ -6,8 +6,7 @@ import {
   createAgentMemory,
   findDuePass,
   markPassDone,
-  oweGoalsPasses,
-  oweShortTermGoalsPass,
+  oweLongTermGoalsPass,
 } from "../../src/memory/summaries";
 import {
   createTestSim,
@@ -31,24 +30,17 @@ const OTHERS = [
 ];
 
 describe("what is due", () => {
-  const settled = markPassDone(createAgentMemory(1), "shortTermGoals");
+  const settled = createAgentMemory(1);
 
-  it("owes the short-term goals pass once at the start", () => {
-    expect(findDuePass(createAgentMemory(1))).toBe("shortTermGoals");
+  it("owes no pass at the start", () => {
     expect(findDuePass(settled)).toBeNull();
   });
 
-  it("owes the people pass, then the short-term goals pass, after enough new episodes", () => {
-    const passes = {
-      ...settled.passes,
-      episodesSincePeople: config.people.everyEpisodes,
-      episodesSinceShortTermGoals: config.goals.shortTermEveryEpisodes,
-    };
+  it("owes the people pass after enough new episodes", () => {
+    const passes = { ...settled.passes, episodesSincePeople: config.people.everyEpisodes };
     const due = { ...settled, passes };
     expect(findDuePass(due)).toBe("people");
-    const afterPeople = markPassDone(due, "people");
-    expect(findDuePass(afterPeople)).toBe("shortTermGoals");
-    expect(findDuePass(markPassDone(afterPeople, "shortTermGoals"))).toBeNull();
+    expect(findDuePass(markPassDone(due, "people"))).toBeNull();
   });
 
   it("puts identity and long-term goals first once a chronicle has formed", () => {
@@ -67,35 +59,17 @@ describe("what is due", () => {
     expect(order).toEqual(["identity", "longTermGoals", "people"]);
   });
 
-  it("owes both goals passes at once when told to, without waiting for episodes", () => {
-    const order: string[] = [];
-    let memory = oweGoalsPasses(settled);
-    for (let pass = findDuePass(memory); pass !== null; pass = findDuePass(memory)) {
-      order.push(pass);
-      memory = markPassDone(memory, pass);
-    }
-    expect(order).toEqual(["longTermGoals", "shortTermGoals"]);
+  it("owes the long-term goals pass at once when told to, without waiting for a chronicle", () => {
+    const memory = oweLongTermGoalsPass(settled);
+    expect(findDuePass(memory)).toBe("longTermGoals");
+    expect(findDuePass(markPassDone(memory, "longTermGoals"))).toBeNull();
   });
 
-  it("owes the reality pass after enough new episodes, just before the short-term goals pass", () => {
-    const passes = {
-      ...settled.passes,
-      episodesSinceReality: config.realityPass.everyEpisodes,
-      episodesSinceShortTermGoals: config.goals.shortTermEveryEpisodes,
-    };
-    const order: string[] = [];
-    let memory = { ...settled, passes };
-    for (let pass = findDuePass(memory); pass !== null; pass = findDuePass(memory)) {
-      order.push(pass);
-      memory = markPassDone(memory, pass);
-    }
-    expect(order).toEqual(["reality", "shortTermGoals"]);
-  });
-
-  it("owes only the short-term goals pass when told to", () => {
-    const memory = oweShortTermGoalsPass(settled);
-    expect(findDuePass(memory)).toBe("shortTermGoals");
-    expect(findDuePass(markPassDone(memory, "shortTermGoals"))).toBeNull();
+  it("owes the reality pass after enough new episodes", () => {
+    const passes = { ...settled.passes, episodesSinceReality: config.realityPass.everyEpisodes };
+    const memory = { ...settled, passes };
+    expect(findDuePass(memory)).toBe("reality");
+    expect(findDuePass(markPassDone(memory, "reality"))).toBeNull();
   });
 });
 
@@ -190,15 +164,13 @@ describe("applyIdentityReply", () => {
 });
 
 describe("pass reply schemas", () => {
-  it("rejects more goals or steps than allowed and text well past its limit", () => {
-    const { schema } = buildPassReplySchema("shortTermGoals");
-    const goal = { goal: "Sell bread", reason: "coins", steps: ["go"], progress: "" };
+  it("rejects more long-term goals than allowed and text well past its limit", () => {
+    const { schema } = buildPassReplySchema("longTermGoals");
+    const goal = { goal: "Sell bread", reason: "coins", progress: "" };
     expect(schema.safeParse({ goals: [goal] }).success).toBe(true);
-    const tooManyGoals = Array.from({ length: config.goals.maxShortTerm + 1 }, () => goal);
+    const tooManyGoals = Array.from({ length: config.goals.maxLongTerm + 1 }, () => goal);
     expect(schema.safeParse({ goals: tooManyGoals }).success).toBe(false);
-    const tooManySteps = Array.from({ length: config.goals.maxSteps + 1 }, () => "go");
-    expect(schema.safeParse({ goals: [{ ...goal, steps: tooManySteps }] }).success).toBe(false);
-    const tooLong = "x".repeat(config.goals.shortTermFieldMaxChars * 2);
+    const tooLong = "x".repeat(config.goals.longTermFieldMaxChars * 2);
     expect(schema.safeParse({ goals: [{ ...goal, goal: tooLong }] }).success).toBe(false);
   });
 
@@ -240,34 +212,6 @@ describe("passes in the sim", () => {
     sim.placeAgent("ilsa", { x: SQUARE.x + 1, y: SQUARE.y });
     await sim.advance();
     expect(sim.agent("mara").people).toEqual({ ilsa: EMPTY_PERSON_ENTRY });
-  });
-
-  it("runs the short-term goals pass once at tick 0 and shows its goals to the next decision", async () => {
-    const sim = createTestSim({
-      agentIds: ["mara"],
-      shouldRunFirstGoalsPass: true,
-      responder: (request) => {
-        if (request.schemaName !== findPassSchemaName("shortTermGoals")) {
-          return decisionReply({ action: "wait", minutes: 1 });
-        }
-        return JSON.stringify({
-          goals: [
-            { goal: "Bake bread", reason: "to sell", steps: ["light the oven"], progress: "" },
-          ],
-        });
-      },
-    });
-    await sim.advance();
-    expect(sim.records.map((record) => record.kind)).toEqual(["decision", "short_term_goals"]);
-    expect(sim.agent("mara").shortTermGoals).toEqual([
-      { goal: "Bake bread", reason: "to sell", steps: ["light the oven"], progress: "" },
-    ]);
-    const passPrompt = sim.records[1]?.prompt ?? "";
-    expect(passPrompt.indexOf("## Just now")).toBeLessThan(passPrompt.indexOf("## Who you are"));
-    expect(passPrompt).toContain("## The question: your short-term goals");
-    await sim.advance(3);
-    expect(sim.records.filter((record) => record.kind === "short_term_goals")).toHaveLength(1);
-    expect(sim.records.at(-1)?.prompt).toContain("- Bake bread (why: to sell; so far: )");
   });
 
   it("runs identity then long-term goals when a chronicle forms, recording changes and moments", async () => {
@@ -352,10 +296,10 @@ describe("passes in the sim", () => {
     return sim.records.map((record) => record.kind).filter((kind) => kind !== "decision");
   }
 
-  it("files the reality pass's thought in the stream, then rewrites the short-term goals", async () => {
+  it("files the reality pass's thought in the stream", async () => {
     const sim = createRealitySim("Nobody can see a bite under a sleeve.");
     await sim.advance();
-    expect(listPassKinds(sim)).toEqual(["reality", "short_term_goals"]);
+    expect(listPassKinds(sim)).toEqual(["reality"]);
     expect(sim.streamTexts("mara")).toContain(
       describeRealityThought({ noticed: "", thought: "Nobody can see a bite under a sleeve." }),
     );
@@ -385,18 +329,22 @@ describe("passes in the sim", () => {
     let shouldFail = true;
     const sim = createTestSim({
       agentIds: ["mara"],
-      shouldRunFirstGoalsPass: true,
       responder: (request) => {
-        if (request.schemaName !== findPassSchemaName("shortTermGoals")) {
+        if (request.schemaName !== findPassSchemaName("people")) {
           return decisionReply({ action: "wait", minutes: config.decision.maxWaitMinutes });
         }
-        return shouldFail ? "not json" : JSON.stringify({ goals: [] });
+        return shouldFail ? "not json" : JSON.stringify({ people: [] });
       },
     });
+    const memory = getAgentMemory(sim.state, "mara");
+    sim.state.agentMemories.mara = {
+      ...memory,
+      passes: { ...memory.passes, episodesSincePeople: config.people.everyEpisodes },
+    };
     await sim.advance();
-    expect(getAgentMemory(sim.state, "mara").passes.isFirstShortTermGoalsOwed).toBe(true);
+    expect(findDuePass(getAgentMemory(sim.state, "mara"))).toBe("people");
     shouldFail = false;
     await sim.advance(config.memory.retryAfterTicks);
-    expect(getAgentMemory(sim.state, "mara").passes.isFirstShortTermGoalsOwed).toBe(false);
+    expect(findDuePass(getAgentMemory(sim.state, "mara"))).toBeNull();
   });
 });

@@ -21,7 +21,7 @@ export function buildHeldKnowledge(state: WorldState, agent: Agent): HeldKnowled
       entityNames: seenPlace.entities?.names ?? null,
     })),
     longTermGoals: agent.longTermGoals,
-    shortTermGoals: agent.shortTermGoals,
+    agenda: agent.agenda,
     people: state.agents.flatMap((other) => {
       const entry = agent.people[other.id];
       return entry === undefined ? [] : [{ name: other.name, pronouns: other.pronouns, entry }];
