@@ -61,7 +61,7 @@ describe("callStructured with a reflection model", () => {
     expect(records.map((record) => record.model)).toEqual(["stronger-model", "fake-model"]);
   });
 
-  it("sends the reality pass to its own model, and other reflection calls to theirs", async () => {
+  it("sends the reality pass to its own model, and the day plan to the reflection model", async () => {
     const { client, callStructured, request } = setUp(
       ['{"answer":"a"}', '{"answer":"b"}'],
       1_000_000,
@@ -69,7 +69,7 @@ describe("callStructured with a reflection model", () => {
       "reality-model",
     );
     await callStructured({ ...request, kind: "reality" });
-    await callStructured({ ...request, kind: "people" });
+    await callStructured({ ...request, kind: "day_plan" });
     expect(client.requests.map((sent) => sent.model)).toEqual(["reality-model", "stronger-model"]);
   });
 

@@ -1,6 +1,7 @@
 import { toSimTime, type AgentMemory } from "@village/shared";
 import { config } from "../config";
 import { createLogger } from "../logger";
+import { isReflectionDue } from "../memory/reflection-progress";
 import {
   buildSummaryPrompt,
   buildSummaryReplySchema,
@@ -12,41 +13,18 @@ import {
   canApplySummary,
   findDueCompression,
   findDueDayEnd,
-  findDuePass,
   isDayPlanDue,
-  markPassDone,
   settleMidnight,
-  type PassName,
   type SummaryJob,
 } from "../memory/summaries";
-import {
-  applyIdentityReply,
-  applyLongTermGoalsReply,
-  applyPeopleReply,
-  describeRealityThought,
-} from "../passes/apply-pass";
-import {
-  buildPassPrompt,
-  buildPassReplySchema,
-  findPassCallKind,
-  type PassReplies,
-} from "../passes/pass-prompts";
 import { BackgroundWork } from "./background-work";
 import { planDay } from "./day-plan-job";
 import { addKeyMemoryCandidate } from "./key-memories";
 import type { JobOutcome } from "./memory-job";
-import { buildHeldKnowledge } from "./held-knowledge";
-import { buildGoalMoments, buildPersonalityMoments, recordMoments } from "./moments";
+import { checkReality } from "./reality-job";
+import { reflect } from "./reflection-job";
 import type { SimDependencies } from "./tick-context";
-import {
-  appendToStream,
-  findAgent,
-  getAgentMemory,
-  listLivingAgents,
-  listOthersAsSeen,
-  markAgentChanged,
-  replaceAgent,
-} from "./world-access";
+import { findAgent, getAgentMemory, listLivingAgents, markAgentChanged } from "./world-access";
 import type { TickResult, WorldState } from "./world-state";
 
 const logger = createLogger("memory");
@@ -58,51 +36,13 @@ function setMemory(state: WorldState, agentId: string, memory: AgentMemory): voi
 }
 
 /**
- * Writes one pass's reply into the agent as it is now. Each pass writes only the fields it owns,
- * since the reply was asked for some ticks ago.
- */
-function applyPassReply<Pass extends PassName>(
-  dependencies: SimDependencies,
-  state: WorldState,
-  result: TickResult,
-  agentId: string,
-  pass: Pass,
-  reply: PassReplies[Pass],
-): void {
-  const agent = findAgent(state, agentId);
-  const replies = { [pass]: reply } as Partial<PassReplies>;
-  if (replies.people) {
-    replaceAgent(state, applyPeopleReply(agent, replies.people, listOthersAsSeen(state, agentId)));
-  }
-  if (replies.longTermGoals) {
-    const updated = applyLongTermGoalsReply(agent, replies.longTermGoals);
-    replaceAgent(state, updated);
-    recordMoments(
-      state,
-      result,
-      buildGoalMoments(agent, state.tick, agent.longTermGoals, updated.longTermGoals),
-    );
-  }
-  if (replies.identity) {
-    const identity = applyIdentityReply(agent, replies.identity, state.tick);
-    replaceAgent(state, identity.agent);
-    for (const change of identity.changes) dependencies.recordPersonalityChange?.(change);
-    recordMoments(state, result, buildPersonalityMoments(agent, identity.changes));
-  }
-  if (replies.reality) {
-    const thought = describeRealityThought(replies.reality);
-    if (thought !== null) appendToStream(state, agentId, thought);
-  }
-}
-
-/**
  * Builds the end-of-tick memory step. For every living agent it starts whatever is due, one job
- * per agent at a time, in this order: the day plan, episode, chronicle, the identity, long-term
- * goals, people and reality passes, then at midnight the day summary and the history, so the
- * passes read the day before it is compressed. Each result is applied in agent order on the first tick
- * after it returns. What is due is read from the saved memory, so a failed call or a restart
- * loses nothing; a failed call leaves everything in place and is tried again after
- * `retryAfterTicks`. Without `shouldCallLlmInBackground` the tick waits until nothing more is due.
+ * per agent at a time, in this order: the day plan, an episode or chronicle, the reality pass,
+ * the reflection, then at midnight the day summary and the history, so a reflection reads the
+ * day before it is compressed. Each result is applied in agent order on the first tick after it
+ * returns. What is due is read from the saved memory, so a failed call or a restart loses nothing;
+ * a failed call leaves everything in place and is tried again after `retryAfterTicks`. Without
+ * `shouldCallLlmInBackground` the tick waits until nothing more is due.
  */
 export function createMemoryWork(dependencies: SimDependencies): RunMemoryWork {
   const work = new BackgroundWork<JobOutcome>("memory work");
@@ -133,38 +73,6 @@ export function createMemoryWork(dependencies: SimDependencies): RunMemoryWork {
         setMemory(current, agentId, settleMidnight(applySummary(memory, job, reply.value.summary)));
         const keyMemory = reply.value.keyMemory?.trim() ?? "";
         if (keyMemory !== "") addKeyMemoryCandidate(current, agentId, keyMemory);
-        return true;
-      },
-    };
-  }
-
-  async function runPass<Pass extends PassName>(
-    state: WorldState,
-    agentId: string,
-    pass: Pass,
-  ): Promise<JobOutcome> {
-    const agent = findAgent(state, agentId);
-    const prompt = buildPassPrompt(
-      pass,
-      agent,
-      buildHeldKnowledge(state, agent),
-      { items: state.items, placeNames: state.map.places.map((place) => place.name) },
-      dependencies.promptsDirectory,
-    );
-    const reply = await dependencies.callStructured({
-      kind: findPassCallKind(pass),
-      agentId,
-      tick: state.tick,
-      prompt,
-      ...buildPassReplySchema(pass),
-    });
-    return {
-      agentId,
-      jobName: `${pass} pass`,
-      apply: (current, result) => {
-        if (!reply.ok) return false;
-        applyPassReply(dependencies, current, result, agentId, pass, reply.value);
-        setMemory(current, agentId, markPassDone(getAgentMemory(current, agentId), pass));
         return true;
       },
     };
@@ -201,9 +109,12 @@ export function createMemoryWork(dependencies: SimDependencies): RunMemoryWork {
       work.start(state, agentId, () => summarize(state, agentId, compression));
       return true;
     }
-    const pass = findDuePass(memory);
-    if (pass !== null) {
-      work.start(state, agentId, () => runPass(state, agentId, pass));
+    if (memory.isRealityPassOwed) {
+      work.start(state, agentId, () => checkReality(dependencies, state, agentId));
+      return true;
+    }
+    if (isReflectionDue(memory, state.tick)) {
+      work.start(state, agentId, () => reflect(dependencies, state, agentId));
       return true;
     }
     const dayEnd = findDueDayEnd(memory);

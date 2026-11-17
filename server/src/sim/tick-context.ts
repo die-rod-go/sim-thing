@@ -5,7 +5,7 @@ import type { TickResult, WorldState } from "./world-state";
 /** What the decision strategy needs from outside the world. */
 export interface SimDependencies {
   callStructured: StructuredCaller;
-  /** Stores one change the identity pass made, for the personality history. */
+  /** Stores one change a reflection made to who an agent is, for the personality history. */
   recordPersonalityChange?: (change: Omit<PersonalityChange, "id">) => void;
   /** Overrides `config.server.promptsDirectory`, e.g. in tests. */
   promptsDirectory?: string;

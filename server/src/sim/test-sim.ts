@@ -17,7 +17,8 @@ import { InMemoryTokenUsageStore } from "../llm/token-budget";
 import type { LlmRequest } from "../llm/types";
 import { buildDayPlanReplySchema } from "../agenda/day-plan";
 import { SUMMARY_SCHEMA_NAMES } from "../memory/summary-prompts";
-import { findPassSchemaName } from "../passes/pass-prompts";
+import { buildRealityReplySchema } from "../passes/pass-prompts";
+import { buildReflectionReplySchema } from "../passes/reflection";
 import { buildSeededWorld, loadSeedFile, type SeededWorld } from "../seeds";
 import { findPlaceAt, loadWorldMap } from "../world/map-loader";
 import { getAgentRuntime, requestDecision } from "./agent-runtime";
@@ -118,17 +119,20 @@ export type AgentScript = (request: LlmRequest, callIndex: number) => string | u
 
 export const DEFAULT_SUMMARY = "I went about my day.";
 
-/** What each pass answers when a test doesn't script it: nothing changes. */
+/** What each plan and pass answers when a test doesn't script it: nothing changes. */
 export const DEFAULT_PASS_REPLIES: Record<string, unknown> = {
-  [findPassSchemaName("people")]: { people: [] },
   [buildDayPlanReplySchema().schemaName]: { agenda: [], longTermGoals: null },
-  [findPassSchemaName("identity")]: {
+  [buildReflectionReplySchema().schemaName]: {
+    people: [],
+    longTermGoals: null,
     traitChanges: [],
     profession: null,
     core: null,
     selfImage: null,
+    keyMemories: null,
+    agenda: null,
   },
-  [findPassSchemaName("reality")]: { noticed: "", thought: null },
+  [buildRealityReplySchema().schemaName]: { noticed: "", thought: null },
 };
 
 /**
@@ -178,7 +182,7 @@ export interface TestSimOptions {
    * decisions see only decision calls from the first tick.
    */
   shouldRunFirstDayPlan?: boolean;
-  /** Receives each change the identity pass makes; dropped when omitted. */
+  /** Receives each change a reflection makes to who an agent is; dropped when omitted. */
   recordPersonalityChange?: (change: Omit<PersonalityChange, "id">) => void;
   /** Runs LLM calls in the background, as the live sim does; off (each tick waits) when omitted. */
   shouldCallLlmInBackground?: boolean;

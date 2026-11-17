@@ -115,7 +115,7 @@ describe("talking and perception", () => {
     const cooldown = config.perception.interruptCooldownTicks;
     await sim.advance(2 * cooldown + 5);
     const maraTicks = sim.records
-      .filter((record) => record.agentId === "mara")
+      .filter((record) => record.agentId === "mara" && record.kind === "decision")
       .map((record) => record.tick);
     expect(maraTicks).toEqual([0, 1, 1 + cooldown, 1 + 2 * cooldown]);
   });

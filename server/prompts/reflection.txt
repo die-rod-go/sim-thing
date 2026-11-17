@@ -1,0 +1,27 @@
+You are {{name}}. Below is how the world works, everything you remember and hold, and where you are now, and after it a question.
+
+{{worldKnowledge}}
+
+{{context}}
+
+{{candidates}}
+
+{{situation}}
+
+## The question: taking stock
+You have a quiet moment to think things over, as {{name}}. Bring up to date only what has changed, and leave the rest as it is.
+- people: for each person something has changed with, what you now carry in your head about them: feelings, what has passed between you, what they want, what you suspect. Not a log: no clock times, no lists of payments. Write only what you have reason to believe from what you saw, heard and were told; what they think and want is your own reading. The people you may write about: {{personNames}}.
+- longTermGoals: if what you are working toward over days and weeks has changed or moved on, the full list, each with where it stands now in a sentence or two; otherwise null.
+- traitChanges: people change slowly, through what they actually do and feel, not through what they wish. Change a trait only if what you did and felt lately clearly shows it, by at most {{maxDelta}}.
+- core and selfImage: if something has changed who you are or what you live for, rewrite them to say so; otherwise null. profession: your work from now on, only if what you did shows you have taken up other work or left your own; otherwise null.
+- keyMemories: the moments you will never forget, at most {{maxKeyMemories}}. Keep the ones you have. Add one of the moments you marked to remember only if it truly matters that much, and drop an old one only to make room for something that matters more. Null if nothing changes.
+- agenda: the rest of today, only if your plans no longer fit; otherwise null.
+
+## Reply
+Reply with only a JSON object with these fields, in this order:
+- people: a list of {"person", "whatIThinkOfThem", "whatTheyThinkOfMe", "whatIWantFromThem", "whatTheyWantFromMe", "misc"}. person is one of the names above; each other field is at most {{personMaxChars}} characters, or null to keep it as it is; misc is anything else you hold about them. An empty list if no one changed.
+- longTermGoals: the full list of {"goal", "reason", "progress"}, at most {{maxGoals}}, every text at most {{goalMaxChars}} characters; or null.
+- traitChanges: a list of {"trait", "delta", "reason"}; trait is one of {{traitNames}}; reason names what you did or felt that shows it. An empty list if none changed.
+- profession, core, selfImage: the new text, or null.
+- keyMemories: the full list of {"day", "text"}, each text one sentence of at most {{keyMemoryMaxChars}} characters; or null.
+- agenda: a list of {"text", "hour"} for the rest of today, hour from 0 to 23 or null; or null.

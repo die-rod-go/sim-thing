@@ -1,21 +1,10 @@
-import {
-  TRAIT_NAMES,
-  type Agent,
-  type ItemCatalog,
-  type LlmCallKind,
-  type TraitName,
-} from "@village/shared";
+import { TRAIT_NAMES, type Agent, type ItemCatalog, type TraitName } from "@village/shared";
 import { z } from "zod";
+import { describeAgenda } from "../agenda/agenda";
 import { config } from "../config";
 import type { HeldKnowledge } from "../decision/context";
 import type { ReplySchemas } from "../decision/reply-schema";
-import {
-  dropEmptyFields,
-  looseEnum,
-  nullableJsonString,
-  strictJsonObject,
-  writtenText,
-} from "../decision/schema-fields";
+import { nullableJsonString, strictJsonObject, writtenText } from "../decision/schema-fields";
 import {
   describeEpisodes,
   describeKeyMemories,
@@ -26,37 +15,16 @@ import {
   describeStream,
 } from "../decision/sections";
 import { describeTraitWord } from "../decision/words";
-import { describeAgenda } from "../agenda/agenda";
 import { renderTemplate } from "../llm/templates";
-import type { PassName } from "../memory/summaries";
 import { describeWorldKnowledge } from "./world-knowledge";
 
 const CONTEXT_TEMPLATE = "pass-context";
+const REALITY_TEMPLATE = "reality-pass";
 
 /** What a pass may know of the world itself: its rules and place names, never where things are. */
 export interface PassWorld {
   items: ItemCatalog;
   placeNames: readonly string[];
-}
-
-interface PassSettings {
-  callKind: LlmCallKind;
-  templateName: string;
-}
-
-const PASS_SETTINGS: Record<PassName, PassSettings> = {
-  people: { callKind: "people", templateName: "people-pass" },
-  identity: { callKind: "identity", templateName: "identity-pass" },
-  longTermGoals: { callKind: "long_term_goals", templateName: "long-term-goals-pass" },
-  reality: { callKind: "reality", templateName: "reality-pass" },
-};
-
-export function findPassCallKind(pass: PassName): LlmCallKind {
-  return PASS_SETTINGS[pass].callKind;
-}
-
-export function findPassSchemaName(pass: PassName): string {
-  return `${PASS_SETTINGS[pass].callKind}_reply`;
 }
 
 function describeTraitValues(traits: Record<TraitName, number>): string {
@@ -74,8 +42,9 @@ function describeTraitValues(traits: Record<TraitName, number>): string {
 }
 
 /**
- * What every pass reads, the same text for each. Passes are not cached: each sends its own reply
- * schema and the stream moves on between them, so no pass could read another's cached prompt.
+ * What the day plan, the reflection and the reality pass read of the agent: everything it
+ * remembers and holds. Not cached: each call sends its own reply schema and the stream moves on
+ * between them.
  */
 export function buildPassContext(
   agent: Agent,
@@ -102,178 +71,51 @@ export function buildPassContext(
   );
 }
 
-function listQuestionValues(
-  pass: PassName,
-  held: HeldKnowledge,
-  world: PassWorld,
-  promptsDirectory?: string,
-): Record<string, string> {
-  switch (pass) {
-    case "reality":
-      return {
-        places: world.placeNames.join(config.realityPass.placeJoiner),
-        worldKnowledge: describeWorldKnowledge(world.items, promptsDirectory),
-        maxChars: String(config.realityPass.thoughtMaxChars),
-      };
-    case "people":
-      return {
-        personNames: held.people.map((person) => person.name).join(", "),
-        maxChars: String(config.people.fieldMaxChars),
-      };
-    case "longTermGoals":
-      return {
-        maxGoals: String(config.goals.maxLongTerm),
-        maxChars: String(config.goals.longTermFieldMaxChars),
-      };
-    case "identity":
-      return {
-        maxDelta: String(config.traits.passDeltaClamp),
-        traitNames: TRAIT_NAMES.join(", "),
-      };
-  }
-}
-
-/** One pass's prompt: who it speaks to, the shared context, then that pass's question. */
-export function buildPassPrompt(
-  pass: PassName,
+/** The reality pass's prompt: the world's rules, its places, then everything the agent holds. */
+export function buildRealityPrompt(
   agent: Agent,
   held: HeldKnowledge,
   world: PassWorld,
   promptsDirectory?: string,
 ): string {
   return renderTemplate(
-    PASS_SETTINGS[pass].templateName,
+    REALITY_TEMPLATE,
     {
       name: agent.name,
       context: buildPassContext(agent, held, promptsDirectory),
-      ...listQuestionValues(pass, held, world, promptsDirectory),
+      places: world.placeNames.join(config.realityPass.placeJoiner),
+      worldKnowledge: describeWorldKnowledge(world.items, promptsDirectory),
+      maxChars: String(config.realityPass.thoughtMaxChars),
     },
     promptsDirectory,
   );
 }
 
-const TRAIT_ENUM = TRAIT_NAMES as readonly [TraitName, ...TraitName[]];
-
-function nullableText(maxChars: number) {
-  return writtenText(maxChars).optional();
-}
-
-const peopleReplySchema = z.object({
-  people: z.array(
-    z.preprocess(
-      dropEmptyFields,
-      z.object({
-        person: z.string().trim().min(1),
-        whatIThinkOfThem: nullableText(config.people.fieldMaxChars),
-        whatTheyThinkOfMe: nullableText(config.people.fieldMaxChars),
-        whatIWantFromThem: nullableText(config.people.fieldMaxChars),
-        whatTheyWantFromMe: nullableText(config.people.fieldMaxChars),
-        misc: nullableText(config.people.fieldMaxChars),
-      }),
-    ),
-  ),
-});
-
 const longTermText = writtenText(config.goals.longTermFieldMaxChars);
-/** The full list of long-term goals, as the passes and the day plan rewrite it. */
+/** The full list of long-term goals, as the day plan and the reflection rewrite it. */
 export const longTermGoalListSchema = z
   .array(z.object({ goal: longTermText.min(1), reason: longTermText, progress: longTermText }))
   .max(config.goals.maxLongTerm);
-const longTermGoalsReplySchema = z.object({ goals: longTermGoalListSchema });
 
-const identityReplySchema = z.preprocess(
-  dropEmptyFields,
-  z.object({
-    traitChanges: z
-      .array(
-        z.object({
-          trait: looseEnum(TRAIT_ENUM),
-          delta: z.number(),
-          reason: z.string().trim(),
-        }),
-      )
-      .default([]),
-    profession: z.string().trim().optional(),
-    core: z.string().trim().optional(),
-    selfImage: z.string().trim().optional(),
-  }),
-);
+const TEXT = { type: "string" };
+
+/** The JSON schema of `longTermGoalListSchema`. */
+export const LONG_TERM_GOAL_LIST_JSON = {
+  type: "array",
+  items: strictJsonObject({ goal: TEXT, reason: TEXT, progress: TEXT }),
+};
 
 const realityReplySchema = z.object({
   noticed: writtenText(config.realityPass.noticedMaxChars),
   thought: writtenText(config.realityPass.thoughtMaxChars).nullable(),
 });
 
-export type PeopleReply = z.infer<typeof peopleReplySchema>;
 export type RealityReply = z.infer<typeof realityReplySchema>;
-export type LongTermGoalsReply = z.infer<typeof longTermGoalsReplySchema>;
-export interface IdentityReply {
-  traitChanges: { trait: TraitName; delta: number; reason: string }[];
-  profession?: string | undefined;
-  core?: string | undefined;
-  selfImage?: string | undefined;
-}
 
-export interface PassReplies {
-  people: PeopleReply;
-  longTermGoals: LongTermGoalsReply;
-  identity: IdentityReply;
-  reality: RealityReply;
-}
-
-const TEXT = { type: "string" };
-
-function jsonList(items: Record<string, unknown>): Record<string, unknown> {
-  return { type: "array", items };
-}
-
-/** The JSON schema of `longTermGoalListSchema`. */
-export const LONG_TERM_GOAL_LIST_JSON = jsonList(
-  strictJsonObject({ goal: TEXT, reason: TEXT, progress: TEXT }),
-);
-
-const JSON_SCHEMAS: Record<PassName, Record<string, unknown>> = {
-  people: strictJsonObject({
-    people: jsonList(
-      strictJsonObject({
-        person: TEXT,
-        whatIThinkOfThem: nullableJsonString(),
-        whatTheyThinkOfMe: nullableJsonString(),
-        whatIWantFromThem: nullableJsonString(),
-        whatTheyWantFromMe: nullableJsonString(),
-        misc: nullableJsonString(),
-      }),
-    ),
-  }),
-  longTermGoals: strictJsonObject({ goals: LONG_TERM_GOAL_LIST_JSON }),
-  identity: strictJsonObject({
-    traitChanges: jsonList(
-      strictJsonObject({
-        trait: { type: "string", enum: [...TRAIT_NAMES] },
-        delta: { type: "number" },
-        reason: TEXT,
-      }),
-    ),
-    profession: nullableJsonString(),
-    core: nullableJsonString(),
-    selfImage: nullableJsonString(),
-  }),
-  reality: strictJsonObject({ noticed: TEXT, thought: nullableJsonString() }),
-};
-
-const ZOD_SCHEMAS: { [Pass in PassName]: z.ZodType<PassReplies[Pass]> } = {
-  people: peopleReplySchema,
-  longTermGoals: longTermGoalsReplySchema,
-  identity: identityReplySchema,
-  reality: realityReplySchema,
-};
-
-export function buildPassReplySchema<Pass extends PassName>(
-  pass: Pass,
-): ReplySchemas<PassReplies[Pass]> {
+export function buildRealityReplySchema(): ReplySchemas<RealityReply> {
   return {
-    schema: ZOD_SCHEMAS[pass],
-    jsonSchema: JSON_SCHEMAS[pass],
-    schemaName: findPassSchemaName(pass),
+    schema: realityReplySchema,
+    jsonSchema: strictJsonObject({ noticed: TEXT, thought: nullableJsonString() }),
+    schemaName: "reality_reply",
   };
 }

@@ -1,4 +1,4 @@
-import { PERSON_ENTRY_FIELDS, toSimTime, type KeyMemory, type LongTermGoal } from "@village/shared";
+import { PERSON_ENTRY_FIELDS, type KeyMemory, type LongTermGoal } from "@village/shared";
 import { config } from "../config";
 import { truncateEntryText } from "../memory/stream";
 import { fillStatusWords } from "../status/impairment";
@@ -110,16 +110,22 @@ export function describeStream(stream: string[]): string {
   return bulletList(stream, config.memory.streamTexts.empty);
 }
 
+/** "Day 2: Beckett died in the square": a key memory with the day it happened. */
+export function describeKeyMemory(keyMemory: KeyMemory): string {
+  return config.memory.keyMemoryText
+    .split("{day}")
+    .join(String(keyMemory.day))
+    .split("{text}")
+    .join(keyMemory.text);
+}
+
 /**
  * "## Things you will never forget" over one line per key memory, each with the day it happened;
  * empty when there are none.
  */
 export function describeKeyMemories(keyMemories: readonly KeyMemory[]): string {
   if (keyMemories.length === 0) return "";
-  const lines = keyMemories.map((keyMemory) => {
-    const day = String(toSimTime(keyMemory.tick, config.clock).day);
-    return `- ${config.memory.keyMemoryText.split("{day}").join(day).split("{text}").join(keyMemory.text)}`;
-  });
+  const lines = keyMemories.map((keyMemory) => `- ${describeKeyMemory(keyMemory)}`);
   return `## ${config.memory.keyMemoriesTitle}\n${lines.join("\n")}`;
 }
 

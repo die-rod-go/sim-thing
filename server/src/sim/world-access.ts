@@ -12,6 +12,7 @@ import type { NamedCandidate } from "../decision/resolve-name";
 import { isAsleep } from "../economy/sleep";
 import { isPassableInPassing } from "../items/verb-offers";
 import { blocksMovement, blocksSight, mufflesSound } from "../items/world-physics";
+import { noteRepeatCount, noteStreamEntry } from "../memory/reflection-progress";
 import { appendStreamEntry } from "../memory/stream";
 import { createAgentMemory } from "../memory/summaries";
 import { canSee } from "../perception/sight";
@@ -161,7 +162,8 @@ export interface StreamEntryOptions {
 
 /**
  * Appends one event, in the agent's own words, to its stream at the current tick; a repeat of a
- * recent entry merges with it, unless that one went to a running summary.
+ * recent entry merges with it, unless that one went to a running summary. A repeat grown large
+ * owes a reality pass.
  */
 export function appendToStream(
   state: WorldState,
@@ -173,5 +175,7 @@ export function appendToStream(
   const sentCount = state.streamEntriesInSummary[agentId] ?? 0;
   const entry = { text, ...(options.speech ? { speech: options.speech } : {}) };
   const stream = appendStreamEntry(memory.stream, entry, state.tick, sentCount, options.maxChars);
-  state.agentMemories[agentId] = { ...memory, stream };
+  const repeats = stream[stream.length - 1]?.count ?? 1;
+  const noted = noteRepeatCount(noteStreamEntry(memory), repeats);
+  state.agentMemories[agentId] = { ...noted, stream };
 }

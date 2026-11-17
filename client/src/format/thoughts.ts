@@ -113,10 +113,18 @@ function describeGoal(goal: ReplyFields): string | null {
   return steps.length === 0 ? text : `${text}: ${steps.join("; ")}`;
 }
 
-function summarizeGoals(fields: ReplyFields): Pick<ThoughtEntry, "headline" | "parts"> {
+/** A reflection: what it rewrote of who the agent is, its goals, the people it knows, its key memories. */
+function summarizeReflection(fields: ReplyFields): Pick<ThoughtEntry, "headline" | "parts"> {
+  const identity = summarizeIdentity(fields);
+  const goals = readRecords(fields, "longTermGoals").flatMap((goal) =>
+    part("goal", describeGoal(goal)),
+  );
+  const keyMemories = readRecords(fields, "keyMemories").flatMap((keyMemory) =>
+    part("never forget", readText(keyMemory, "text")),
+  );
   return {
-    headline: null,
-    parts: readRecords(fields, "goals").flatMap((goal) => part("goal", describeGoal(goal))),
+    headline: identity.headline,
+    parts: [...identity.parts, ...goals, ...summarizePeople(fields).parts, ...keyMemories],
   };
 }
 
@@ -170,14 +178,10 @@ function summarizeReply(
     case "day_summary":
     case "history":
       return { headline: readText(fields, "summary"), parts: [] };
-    case "people":
-      return summarizePeople(fields);
     case "day_plan":
       return summarizeDayPlan(fields);
-    case "long_term_goals":
-      return summarizeGoals(fields);
-    case "identity":
-      return summarizeIdentity(fields);
+    case "reflection":
+      return summarizeReflection(fields);
     case "reality":
       return {
         headline: readText(fields, "thought"),

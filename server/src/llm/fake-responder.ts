@@ -67,7 +67,6 @@ function buildBuiltInAnswers(hitRollVerbs: ReadonlySet<string>): Record<string, 
       text: random.pick(config.llm.fakeResponder.lines),
       minutes: null,
     }),
-    people_reply: () => ({ people: [] }),
     day_plan_reply: (_request, random) => ({
       agenda: [
         { text: "Get on with the day's work", hour: null },
@@ -75,7 +74,11 @@ function buildBuiltInAnswers(hitRollVerbs: ReadonlySet<string>): Record<string, 
       ],
       longTermGoals: null,
     }),
-    identity_reply: (_request, random) => ({
+    reflection_reply: (_request, random) => ({
+      people: [],
+      longTermGoals: [
+        { goal: "Keep my work going", reason: "It is my living", progress: "Steady." },
+      ],
       traitChanges: [
         {
           trait: random.pick(TRAIT_NAMES),
@@ -86,14 +89,13 @@ function buildBuiltInAnswers(hitRollVerbs: ReadonlySet<string>): Record<string, 
       profession: null,
       core: null,
       selfImage: null,
+      keyMemories: null,
+      agenda: null,
     }),
     reality_reply: () => ({ noticed: "", thought: null }),
     episode_reply: (_request, random) => ({
       summary: random.pick(config.llm.fakeResponder.lines),
       keyMemory: null,
-    }),
-    long_term_goals_reply: () => ({
-      goals: [{ goal: "Keep my work going", reason: "It is my living", progress: "Steady." }],
     }),
   };
 }

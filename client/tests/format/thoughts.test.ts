@@ -59,15 +59,20 @@ describe("summarizeLlmCall", () => {
     expect(summarizeLlmCall(call)).toMatchObject({ headline: "I baked all morning.", parts: [] });
   });
 
-  it("lists what a people pass rewrote, person by person", () => {
+  it("lists what a reflection rewrote: people, person by person, and key memories", () => {
     const call = {
       ...makeSampleLlmCall(5, "ada", 9),
-      kind: "people" as const,
+      kind: "reflection" as const,
       parsed: {
         people: [{ person: "Bob", whatIThinkOfThem: "Grumpy.", whatTheyWantFromMe: null }],
+        traitChanges: [],
+        keyMemories: [{ day: 2, text: "Bob saved my life." }],
       },
     };
-    expect(summarizeLlmCall(call).parts).toEqual([{ label: "Bob: thinks", text: "Grumpy." }]);
+    expect(summarizeLlmCall(call).parts).toEqual([
+      { label: "Bob: thinks", text: "Grumpy." },
+      { label: "never forget", text: "Bob saved my life." },
+    ]);
   });
 
   it("lists a day plan's items, each with its hour when it has one", () => {

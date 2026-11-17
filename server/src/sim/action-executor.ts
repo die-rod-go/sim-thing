@@ -1,6 +1,6 @@
 import type { Agent, AgentThought, DecisionReply } from "@village/shared";
 import { applyAgendaChanges, replaceAgenda } from "../agenda/agenda";
-import { oweTakingStock } from "../memory/summaries";
+import { oweReflection } from "../memory/reflection-progress";
 import { config } from "../config";
 import { computeChebyshevDistance } from "../economy/give";
 import { isDead } from "../status/health";
@@ -38,7 +38,7 @@ function chooseLastThought(agent: Agent, reply: DecisionReply, tick: number): Ag
  * intention, mood, the agenda (a reckoning's whole new list, then done, dropped and added) and
  * remember: free mental acts that ride along with any action. A finished or dropped item and a
  * moment to remember go into the stream in the agent's own words. After a reckoning the agent
- * owes taking stock.
+ * owes a reflection.
  */
 function applyFreeActs(context: TickContext, plan: DecisionPlan): void {
   const { state } = context;
@@ -61,7 +61,7 @@ function applyFreeActs(context: TickContext, plan: DecisionPlan): void {
   for (const text of planned.streamTexts) appendToStream(state, agentId, text);
   if (reply.remember !== undefined) markToRemember(state, agentId, reply.remember);
   if (plan.isReckoning) {
-    state.agentMemories[agentId] = oweTakingStock(getAgentMemory(state, agentId));
+    state.agentMemories[agentId] = oweReflection(getAgentMemory(state, agentId));
   }
 }
 

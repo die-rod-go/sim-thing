@@ -94,7 +94,7 @@ on the entity: no creature settings in the config, and no creature state kept by
 
 - Tests never call a real LLM. Use the fake LLM client with fixed replies.
 - Cover the code-driven core with unit tests: perception (sight and sound), seen places, event
-  filing, the stream (appending, merging repeats), summaries (what is due, the midnight steps), passes (what is due, applying replies), needs
+  filing, the stream (appending, merging repeats), summaries (what is due, the midnight steps), reflections (what is due, applying replies), the reality pass's signals, needs
   decay, each step type, the verb runner,
   rules, matchers, `items.json` validation, `give`, creature instincts, place names, attention,
   the people on an agent's mind, the agenda (numbering, done, dropped, added, reminders), the day
@@ -119,46 +119,47 @@ on the entity: no creature settings in the config, and no creature state kept by
 
 ## Glossary
 
-| Term            | Meaning                                                                                     |
-| --------------- | ------------------------------------------------------------------------------------------- |
-| tick            | One step of the sim clock (1 sim-minute by default)                                         |
-| decision        | One LLM call that returns a `DecisionReply`                                                 |
-| intention       | The agent's current one-line goal, carried between decisions                                |
-| stream          | The agent's most recent events, in time order, word for word                                |
-| episode         | A summary of the events that left the stream, with a time range                             |
-| chronicle       | A summary of several episodes, with a time range                                            |
-| day summary     | A summary of one day's chronicles. An agent has at most one: the last full day              |
-| history         | One summary of everything before the day summary                                            |
-| pass            | An LLM call that rewrites part of what the agent holds (people, goals, identity)            |
-| person entry    | What the agent holds about one person it knows: five written fields                         |
-| long-term goal  | A goal with a reason and progress, rewritten when a chronicle forms or by a day plan        |
-| agenda          | Today: the agent's own numbered list of outcomes for the day, kept by its decisions         |
-| day plan        | The LLM call that writes the agenda on waking from a long sleep, and at the start           |
-| reminder        | The urgent decision an agenda item with an hour gives when that hour comes                  |
-| reckoning       | A decision flagged by something significant, ending in "Something has happened"             |
-| key memory      | A moment the agent will never forget: never compressed, kept or dropped by taking stock     |
-| remember        | A decision's one sentence marking a moment; it waits as a key memory candidate              |
-| reality pass    | A pass that checks the agent against the world's rules and may give it one thought          |
-| awareness       | The structured record of when each other agent was last perceived                           |
-| earshot         | Whether the sound simulation lets a listener hear a sound                                   |
-| attention       | Whether something perceived interrupts: urgent, notable (within the cooldown) or background |
-| world knowledge | How the world works and everything that can exist: the same for every agent                 |
-| seen place      | A place the agent has seen, with the entities it held when last looked into                 |
-| needs           | Hunger, energy, social, fun (0–1, 1 = satisfied)                                            |
-| component       | A named set of typed fields declared in `items.json`. With no fields it is a tag            |
-| definition      | A template in `seeds/items.json`: id, name, glyph and components with field values          |
-| entity          | One instance of a definition in the world, with its own id, location and changes            |
-| body            | An agent's physical presence: an instance of the `agentBody` definition                     |
-| thing           | An entity or a body. Rules and steps work on things                                         |
-| verb            | Something an agent can do: an `appliesTo` matcher, an optional `target`, and steps          |
-| step            | One hardcoded behavior with settings (`use_up`, `wait`, `damage`). The only item code       |
-| rule            | Steps that run on a trigger: `every`, `stimulus` or `becomes`                               |
-| matcher         | The expression that says "which things" (`has`, `definition`, `field`, `where`)             |
-| stimulus        | A named message a `send` step delivers to a thing (`fire`, `impact`, `cut`)                 |
-| world settings  | The `world` block of `items.json`: matchers and names the engine's physics reads            |
-| health          | 0–1, 1 = unhurt. At 0 the agent dies                                                        |
-| stats           | `strength` and `agility`, 0–1, set per character in the seeds                               |
-| status          | The UI section showing health, needs and visible components together                        |
-| glyph           | How a tile or item is drawn: a CP437 index in the glyph sheet, a color, a background        |
-| creature        | An entity some instinct applies to: an animal that acts with no LLM                         |
-| instinct        | A creature's scripted behavior in `items.json`: `verb`, `flee` or `wander`                  |
+| Term            | Meaning                                                                                      |
+| --------------- | -------------------------------------------------------------------------------------------- |
+| tick            | One step of the sim clock (1 sim-minute by default)                                          |
+| decision        | One LLM call that returns a `DecisionReply`                                                  |
+| intention       | The agent's current one-line goal, carried between decisions                                 |
+| stream          | The agent's most recent events, in time order, word for word                                 |
+| episode         | A summary of the events that left the stream, with a time range                              |
+| chronicle       | A summary of several episodes, with a time range                                             |
+| day summary     | A summary of one day's chronicles. An agent has at most one: the last full day               |
+| history         | One summary of everything before the day summary                                             |
+| pass            | An LLM call about what the agent holds: the reflection, or the reality pass                  |
+| reflection      | The pass in which the agent takes stock and rewrites what changed (people, goals, identity)  |
+| person entry    | What the agent holds about one person it knows: five written fields                          |
+| long-term goal  | A goal with a reason and progress, rewritten by a day plan or a reflection                   |
+| agenda          | Today: the agent's own numbered list of outcomes for the day, kept by its decisions          |
+| day plan        | The LLM call that writes the agenda on waking from a long sleep, and at the start            |
+| reminder        | The urgent decision an agenda item with an hour gives when that hour comes                   |
+| reckoning       | A decision flagged by something significant, ending in "Something has happened"              |
+| key memory      | A moment the agent will never forget: never compressed, kept or dropped by taking stock      |
+| remember        | A decision's one sentence marking a moment; it waits as a key memory candidate               |
+| reality pass    | A pass, run when the agent seems stuck, that may give it one thought about the world's rules |
+| awareness       | The structured record of when each other agent was last perceived                            |
+| earshot         | Whether the sound simulation lets a listener hear a sound                                    |
+| attention       | Whether something perceived interrupts: urgent, notable (within the cooldown) or background  |
+| world knowledge | How the world works and everything that can exist: the same for every agent                  |
+| seen place      | A place the agent has seen, with the entities it held when last looked into                  |
+| needs           | Hunger, energy, social, fun (0–1, 1 = satisfied)                                             |
+| component       | A named set of typed fields declared in `items.json`. With no fields it is a tag             |
+| definition      | A template in `seeds/items.json`: id, name, glyph and components with field values           |
+| entity          | One instance of a definition in the world, with its own id, location and changes             |
+| body            | An agent's physical presence: an instance of the `agentBody` definition                      |
+| thing           | An entity or a body. Rules and steps work on things                                          |
+| verb            | Something an agent can do: an `appliesTo` matcher, an optional `target`, and steps           |
+| step            | One hardcoded behavior with settings (`use_up`, `wait`, `damage`). The only item code        |
+| rule            | Steps that run on a trigger: `every`, `stimulus` or `becomes`                                |
+| matcher         | The expression that says "which things" (`has`, `definition`, `field`, `where`)              |
+| stimulus        | A named message a `send` step delivers to a thing (`fire`, `impact`, `cut`)                  |
+| world settings  | The `world` block of `items.json`: matchers and names the engine's physics reads             |
+| health          | 0–1, 1 = unhurt. At 0 the agent dies                                                         |
+| stats           | `strength` and `agility`, 0–1, set per character in the seeds                                |
+| status          | The UI section showing health, needs and visible components together                         |
+| glyph           | How a tile or item is drawn: a CP437 index in the glyph sheet, a color, a background         |
+| creature        | An entity some instinct applies to: an animal that acts with no LLM                          |
+| instinct        | A creature's scripted behavior in `items.json`: `verb`, `flee` or `wander`                   |

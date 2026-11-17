@@ -2,6 +2,7 @@ import type { StepOfType } from "@village/shared";
 import { config } from "../../config";
 import { findSleepBlocker, isAsleep, startSleep } from "../../economy/sleep";
 import { readComponents } from "../../items/things";
+import { oweReflection } from "../../memory/reflection-progress";
 import { findMissingChoiceName, readThingName, resolveNumber, scopeOf } from "../../items/values";
 import { computeHitChance, type Defender } from "../../status/combat";
 import { broadcastEvent } from "../event-broadcast";
@@ -10,7 +11,7 @@ import { stretchWaitMinutes } from "../verb-slowdown";
 import { isCreatureId } from "../creatures/creature-instincts";
 import { readUserStats, requireUserAgent } from "../verb-user";
 
-import { findAgent, markAgentChanged, replaceAgent } from "../world-access";
+import { findAgent, getAgentMemory, markAgentChanged, replaceAgent } from "../world-access";
 import { findRoleThing, requireVerbRun } from "./step-roles";
 import { DONE, type StepHandler, type StepOutcome, type StepRun } from "./step-run";
 
@@ -56,6 +57,10 @@ export const sleepStep: StepHandler<"sleep"> = {
     if (!slept.isSuccess) throw new Error(`sleep started despite its check: ${slept.reason}`);
     replaceAgent(state, slept.agent);
     markAgentChanged(result, verbRun.userId);
+    if (resolveNapMinutes(run, step) === undefined) {
+      // Falling asleep for the night, not for a nap, is when the day is taken stock of.
+      state.agentMemories[verbRun.userId] = oweReflection(getAgentMemory(state, verbRun.userId));
+    }
     const place = findRoleThing(run, "item");
     const event = createEvent(state, slept.agent, {
       kind: "fell_asleep",

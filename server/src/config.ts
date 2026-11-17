@@ -423,7 +423,7 @@ export const config = {
     } satisfies Record<TraitName, string[]>,
     /** Upper bounds of the bands that select each word above. */
     wordBands: [-0.6, -0.2, 0.2, 0.6, Infinity],
-    /** Most a trait moves in one identity pass. */
+    /** Most a trait moves in one reflection. */
     passDeltaClamp: 0.003,
     /** Trait values are rounded to this many decimals after a change. */
     traitValueDecimals: 3,
@@ -656,6 +656,8 @@ export const config = {
     /** How a key memory reads in prompts, under its title. */
     keyMemoryText: "Day {day}: {text}",
     keyMemoriesTitle: "Things you will never forget",
+    /** What the reflection reads of the moments waiting for it. */
+    keyMemoryCandidatesTitle: "Moments you marked to remember",
     /** How a summary reads in a prompt: the absolute span it covers, then its text. */
     summaryText: "[{time} to {endTime}] {text}",
     /** Shown to a summarizer that has no earlier summary to build on. */
@@ -670,8 +672,6 @@ export const config = {
   },
 
   people: {
-    /** New episodes between runs of the people pass. */
-    everyEpisodes: 3,
     /** Length limit of each of a person entry's fields; see `llm.replyTextSlack`. */
     fieldMaxChars: 200,
     /** How each field of a person entry is labelled in prompts. */
@@ -743,9 +743,25 @@ export const config = {
     attackCooldownTicks: 60,
   },
 
+  /**
+   * The reflection: one call in which the agent takes stock and rewrites what has changed of what
+   * it holds (people, long-term goals, who it is, key memories, the rest of today). It runs on the
+   * agent's own clock, not the memory's.
+   */
+  reflection: {
+    /** Sim-hours awake between reflections, once enough has happened. */
+    everyHoursAwake: 4,
+    /** Stream entries since the last reflection that make one worth running. */
+    minNewEntries: 15,
+    /** Least time between two reflections, however much is owed. */
+    minGapTicks: 60,
+  },
+
   realityPass: {
-    /** New episodes between runs of the reality pass. */
-    everyEpisodes: 2,
+    /** A merged repeat this large owes a reality pass. */
+    repeatCountSignal: 3,
+    /** This many acts failing in a row owe a reality pass. */
+    failureCountSignal: 3,
     /** Length limit of the thought it gives the agent; see `llm.replyTextSlack`. */
     thoughtMaxChars: 1000,
     /** Length limit of its note for the prompt viewer, which the agent never sees. */
@@ -832,31 +848,19 @@ export const config = {
       chronicle: 1730,
       day_summary: 1730,
       history: 2550,
-      // Each pass's largest possible reply: every text at its limit with the slack. The people
-      // pass allows for a village of about a dozen people rewritten at once.
-      people: 16000,
+      // Each pass's largest possible reply: every text at its limit with the slack. The
+      // reflection allows for a village of about a dozen people rewritten at once.
       day_plan: 5000,
-      identity: 3000,
-      long_term_goals: 6000,
+      reflection: 24000,
       reality: 1500,
     },
-    /** Calls of these kinds use `LLM_REFLECTION_MODEL` when it is set. */
-    reflectionKinds: [
-      "people",
-      "day_plan",
-      "identity",
-      "long_term_goals",
-      "reality",
-    ] as LlmCallKind[],
+    /**
+     * Calls of these kinds use `LLM_REFLECTION_MODEL` when it is set: the day plan alone, so a
+     * stronger model can be tried where long-range plans are made.
+     */
+    reflectionKinds: ["day_plan"] as LlmCallKind[],
     /** Calls of these kinds keep the model's thinking on even with `LLM_DISABLE_THINKING=true`. */
-    thinkingKinds: [
-      "reckoning",
-      "people",
-      "day_plan",
-      "identity",
-      "long_term_goals",
-      "reality",
-    ] as LlmCallKind[],
+    thinkingKinds: ["reckoning", "day_plan", "reflection", "reality"] as LlmCallKind[],
     /**
      * Added to `maxReplyTokens` for those kinds: thinking counts against `max_tokens`, so without
      * it the thinking could use up the room meant for the reply. A ceiling, billed only if used.
@@ -870,10 +874,8 @@ export const config = {
     effortByKind: {
       decision: "low",
       reckoning: "medium",
-      people: "medium",
       day_plan: "high",
-      identity: "medium",
-      long_term_goals: "high",
+      reflection: "medium",
       reality: "high",
     } as Partial<Record<LlmCallKind, LlmEffort>>,
     dailyTokenBudget: 999_999_999,

@@ -3,7 +3,8 @@ import { getAgentRuntime } from "./agent-runtime";
 import { broadcastEvent } from "./event-broadcast";
 import { createEvent } from "./event-factory";
 import { buildFailureMoment, recordMoments } from "./moments";
-import { findAgent, markAgentChanged, replaceAgent } from "./world-access";
+import { noteFailedAct } from "../memory/reflection-progress";
+import { findAgent, getAgentMemory, markAgentChanged, replaceAgent } from "./world-access";
 import type { TickResult, WorldState } from "./world-state";
 
 /** "The oven is empty" reads as "the oven is empty" mid-sentence; names and "I" stay as they are. */
@@ -44,6 +45,7 @@ export function failAction(
   const runtime = getAgentRuntime(state, agentId);
   runtime.walk = null;
   runtime.verbRun = null;
+  state.agentMemories[agentId] = noteFailedAct(getAgentMemory(state, agentId));
   const actorDescription = `tried to ${attempt} but ${continueSentence(reason)}`;
   runtime.lastFailure = `I ${actorDescription}`;
   const description = config.combat.failedAttemptDescription

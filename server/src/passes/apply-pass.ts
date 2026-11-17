@@ -8,12 +8,21 @@ import {
 } from "@village/shared";
 import { config } from "../config";
 import { resolveName, type NamedCandidate } from "../decision/resolve-name";
-import type { IdentityReply, LongTermGoalsReply, PeopleReply, RealityReply } from "./pass-prompts";
+import type { RealityReply } from "./pass-prompts";
+import type { PersonChange, TraitChange as ReflectedTraitChange } from "./reflection";
+
+/** What a reflection may change of who the agent is; null leaves a text as it is. */
+export interface IdentityChanges {
+  traitChanges: readonly ReflectedTraitChange[];
+  profession: string | null;
+  core: string | null;
+  selfImage: string | null;
+}
 
 export type PersonalityChangeDraft = Omit<PersonalityChange, "id">;
 
 /** The reply gives no reason for prose changes; the history shows where they came from. */
-const PROSE_CHANGE_REASON = "identity pass";
+const PROSE_CHANGE_REASON = "reflection";
 
 export const EMPTY_PERSON_ENTRY: PersonEntry = {
   whatIThinkOfThem: "",
@@ -27,13 +36,13 @@ export const EMPTY_PERSON_ENTRY: PersonEntry = {
  * Rewrites the entries of the people the reply names; everyone else is untouched. A name that is
  * no one the agent has an entry for is ignored: only seeing or hearing someone makes an entry.
  */
-export function applyPeopleReply(
+export function applyPeopleChanges(
   agent: Agent,
-  reply: PeopleReply,
+  changes: readonly PersonChange[],
   others: readonly NamedCandidate[],
 ): Agent {
   const people = { ...agent.people };
-  for (const rewritten of reply.people) {
+  for (const rewritten of changes) {
     const personId = resolveName(rewritten.person, others);
     const existing = personId === null ? undefined : people[personId];
     if (personId === null || existing === undefined) continue;
@@ -49,10 +58,6 @@ export function describeRealityThought(reply: RealityReply): string | null {
   const thought = reply.thought?.trim() ?? "";
   if (thought.length === 0) return null;
   return config.realityPass.thoughtStreamText.split("{thought}").join(thought);
-}
-
-export function applyLongTermGoalsReply(agent: Agent, reply: LongTermGoalsReply): Agent {
-  return { ...agent, longTermGoals: reply.goals.map((goal) => ({ ...goal })) };
 }
 
 function clamp(value: number, min: number, max: number): number {
@@ -73,7 +78,7 @@ interface TraitChange {
 /** Clamps each delta and the resulting value; only the first change per trait counts. */
 function applyTraitChanges(
   traits: Personality["traits"],
-  traitChanges: IdentityReply["traitChanges"],
+  traitChanges: readonly ReflectedTraitChange[],
 ): { traits: Personality["traits"]; changes: TraitChange[] } {
   const { passDeltaClamp, min, max } = config.traits;
   const newTraits = { ...traits };
@@ -95,9 +100,9 @@ function applyTraitChanges(
 function proseChange(
   field: "profession" | "core" | "selfImage",
   oldValue: string,
-  newValue: string | undefined,
+  newValue: string | null,
 ): Omit<PersonalityChangeDraft, "agentId" | "tick"> | null {
-  if (newValue === undefined || newValue === oldValue) return null;
+  if (newValue === null || newValue === oldValue) return null;
   return { field, oldValue, newValue, reason: PROSE_CHANGE_REASON };
 }
 
@@ -107,10 +112,10 @@ export interface IdentityResult {
   changes: PersonalityChangeDraft[];
 }
 
-/** Applies the reply to `agent` as it is now; `tick` stamps the personality changes. */
-export function applyIdentityReply(
+/** Applies the changes to `agent` as it is now; `tick` stamps the personality changes. */
+export function applyIdentityChanges(
   agent: Agent,
-  reply: IdentityReply,
+  reply: IdentityChanges,
   tick: number,
 ): IdentityResult {
   const { personality } = agent;

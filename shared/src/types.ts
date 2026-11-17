@@ -28,7 +28,7 @@ export interface Personality {
   selfImage: string;
 }
 
-/** A goal the agent holds over days; rewritten when a chronicle forms. */
+/** A goal the agent holds over days; rewritten by its day plans and reflections. */
 export interface LongTermGoal {
   goal: string;
   reason: string;
@@ -178,7 +178,8 @@ export interface StreamEntry {
 
 /** A moment the agent will never forget, or one waiting for its reflection to decide. */
 export interface KeyMemory {
-  tick: number;
+  /** The day it happened on, as the agent remembers it. */
+  day: number;
   text: string;
 }
 
@@ -222,7 +223,12 @@ export interface AgentMemory {
   midnight: MidnightProgress | null;
   /** After a summary or pass failed: the tick from which the agent's memory work is tried again. */
   retryAtTick: number | null;
-  passes: PassProgress;
+  /** When the agent last took stock in a reflection, and what has piled up since. */
+  reflection: ReflectionProgress;
+  /** Something (a loop of repeats, failures in a row) owes a reality pass. */
+  isRealityPassOwed: boolean;
+  /** Acts that failed one after another, with none done in between. */
+  failedActsInARow: number;
   /** Since when the agent has owed a day plan (it woke, or the sim began); null when it owes none. */
   dayPlanOwedSinceTick: number | null;
   /** A few moments that are never compressed, oldest first; written only by the reflection. */
@@ -233,14 +239,16 @@ export interface AgentMemory {
   lastAttackReckoningTick: number | null;
 }
 
-/** Which passes an agent owes, counted from the episodes and chronicles that have formed. */
-export interface PassProgress {
-  episodesSincePeople: number;
-  episodesSinceReality: number;
-  /** A chronicle has formed since the identity pass last ran. */
-  isIdentityOwed: boolean;
-  /** A chronicle has formed since the long-term goals pass last ran. */
-  isLongTermGoalsOwed: boolean;
+/** What decides when an agent next reflects: on its own clock, and when something owes it. */
+export interface ReflectionProgress {
+  /** The tick of the last reflection; null before the first. */
+  lastTick: number | null;
+  /** Ticks spent awake since then. */
+  awakeTicksSince: number;
+  /** Stream entries added since then. */
+  streamEntriesSince: number;
+  /** Falling asleep for the night, a reckoning or a moment to remember owes one. */
+  isOwed: boolean;
 }
 
 export type Volume = "whisper" | "normal" | "shout";
@@ -352,10 +360,8 @@ export type LlmCallKind =
   | "chronicle"
   | "day_summary"
   | "history"
-  | "people"
   | "day_plan"
-  | "identity"
-  | "long_term_goals"
+  | "reflection"
   | "reality";
 
 /** The prompt is plain text; lines starting with "## " open a section the prompt viewer can collapse. */

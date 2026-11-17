@@ -196,7 +196,7 @@ describe("god mode: speaking from the sky", () => {
     expect(sim.records.find((record) => record.kind === "reckoning")?.prompt).toContain(
       "## Something has happened",
     );
-    expect(sim.records.map((record) => record.kind)).toContain("long_term_goals");
+    expect(sim.records.map((record) => record.kind)).toContain("reflection");
   });
 
   it("is not heard by the dead", () => {

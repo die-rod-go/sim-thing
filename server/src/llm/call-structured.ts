@@ -54,7 +54,7 @@ export interface StructuredCallerDependencies {
   recordLlmCall: LlmCallSink;
   /** Waits between attempts; injectable so tests don't sleep. */
   pause?: (milliseconds: number) => Promise<void>;
-  /** Used instead of the client's model for the reflection passes (`config.llm.reflectionKinds`). */
+  /** Used instead of the client's model for the kinds in `config.llm.reflectionKinds`. */
   reflectionModel?: string;
   /** Used for the reality pass instead of either; it falls back to the reflection model. */
   realityModel?: string;
@@ -65,9 +65,7 @@ function chooseModel(
   dependencies: StructuredCallerDependencies,
   kind: LlmCallKind,
 ): string | undefined {
-  if (kind === "reality" && dependencies.realityModel !== undefined) {
-    return dependencies.realityModel;
-  }
+  if (kind === "reality") return dependencies.realityModel ?? dependencies.reflectionModel;
   return config.llm.reflectionKinds.includes(kind) ? dependencies.reflectionModel : undefined;
 }
 

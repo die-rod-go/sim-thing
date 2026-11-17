@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 import { config } from "../../src/config";
-import { findDuePass } from "../../src/memory/summaries";
+
 import { getAgentRuntime, requestDecision } from "../../src/sim/agent-runtime";
 import {
   createTestSim,
@@ -41,7 +41,7 @@ describe("a reckoning", () => {
     expect(sim.agent("mara").agenda).toEqual([
       { number: 2, text: "Bury Cobb at sunset", hour: 18 },
     ]);
-    expect(findDuePass(getAgentMemory(sim.state, "mara"))).not.toBeNull();
+    expect(sim.records.map((record) => record.kind)).toContain("reflection");
   });
 
   it("ignores a whole new agenda from an ordinary decision", async () => {
@@ -59,7 +59,7 @@ describe("a reckoning", () => {
 });
 
 describe("remembering", () => {
-  it("files a moment to remember, keeps it as a candidate, and owes taking stock", async () => {
+  it("files a moment to remember and puts it before the reflection it owes", async () => {
     const sim = createTestSim({
       agentIds: ["mara"],
       responder: scriptByAgent({
@@ -71,9 +71,10 @@ describe("remembering", () => {
     });
     await sim.advance();
     expect(sim.streamTexts("mara")).toContain("This I will remember: Ilsa told me she loves me.");
-    const memory = getAgentMemory(sim.state, "mara");
-    expect(memory.keyMemoryCandidates).toEqual([{ tick: 0, text: "Ilsa told me she loves me." }]);
-    expect(memory.passes.isLongTermGoalsOwed).toBe(true);
+    const reflection = sim.records.find((record) => record.kind === "reflection");
+    expect(reflection?.prompt).toContain(
+      `## ${config.memory.keyMemoryCandidatesTitle}\n- Day 1: Ilsa told me she loves me.`,
+    );
   });
 
   it("keeps an episode's key memory as a candidate", async () => {
@@ -97,7 +98,7 @@ describe("remembering", () => {
     const sim = createTestSim({ agentIds: ["mara"], responder: scriptByAgent({}) });
     sim.state.agentMemories.mara = {
       ...getAgentMemory(sim.state, "mara"),
-      keyMemories: [{ tick: 0, text: "My father died at sea." }],
+      keyMemories: [{ day: 1, text: "My father died at sea." }],
     };
     await sim.advance();
     expect(sim.records[0]?.prompt).toContain(

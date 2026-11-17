@@ -13,7 +13,7 @@ const streamEntrySchema = z.object({
   speech: z.object({ speakerId: z.string(), words: z.string() }).optional(),
 });
 
-const keyMemorySchema = z.object({ tick: tickSchema, text: z.string() });
+const keyMemorySchema = z.object({ day: z.number().int().positive(), text: z.string() });
 
 const summarySchema = z.object({
   level: summaryLevelSchema,
@@ -29,11 +29,11 @@ const midnightProgressSchema = z.object({
   chroniclesSummarized: z.number().int().nonnegative(),
 });
 
-const passProgressSchema = z.object({
-  episodesSincePeople: z.number().int().nonnegative(),
-  episodesSinceReality: z.number().int().nonnegative(),
-  isIdentityOwed: z.boolean(),
-  isLongTermGoalsOwed: z.boolean(),
+const reflectionProgressSchema = z.object({
+  lastTick: tickSchema.nullable(),
+  awakeTicksSince: z.number().int().nonnegative(),
+  streamEntriesSince: z.number().int().nonnegative(),
+  isOwed: z.boolean(),
 });
 
 export const agentMemorySchema: z.ZodType<AgentMemory> = z.object({
@@ -45,7 +45,9 @@ export const agentMemorySchema: z.ZodType<AgentMemory> = z.object({
   lastMidnightDay: z.number().int(),
   midnight: midnightProgressSchema.nullable(),
   retryAtTick: tickSchema.nullable(),
-  passes: passProgressSchema,
+  reflection: reflectionProgressSchema,
+  isRealityPassOwed: z.boolean(),
+  failedActsInARow: z.number().int().nonnegative(),
   dayPlanOwedSinceTick: tickSchema.nullable(),
   keyMemories: z.array(keyMemorySchema),
   keyMemoryCandidates: z.array(keyMemorySchema),

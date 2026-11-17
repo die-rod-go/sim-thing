@@ -5,6 +5,7 @@ import { isTakingPart, recordSpeech } from "../memory/conversation";
 import { fileEvent, type FilingContext } from "../memory/filing";
 import { EMPTY_PERSON_ENTRY } from "../passes/apply-pass";
 import { awarenessFromPerceptions, mergeAwareness } from "../perception/awareness";
+import { noteActDone } from "../memory/reflection-progress";
 import { isOwnNameMentioned } from "../perception/interrupts";
 import { perceiveEvent } from "../perception/perceive-event";
 import { describeLocation } from "../world/place-names";
@@ -88,6 +89,8 @@ function applyConversationSocial(
 export const ATTACK_KINDS: readonly WorldEvent["kind"][] = ["attacked", "missed"];
 /** The one an offer, its acceptance or its refusal is aimed at gets its decision from the offer itself. */
 const OFFER_KINDS: readonly WorldEvent["kind"][] = ["offered", "gave", "declined"];
+/** An agent's own events that mean an act of its went through, ending any run of failures. */
+const ACT_DONE_KINDS: readonly WorldEvent["kind"][] = ["arrived", "action_finished", "offered"];
 
 /**
  * Whether being attacked now is a reckoning: the first blow of a fight is, and later ones within
@@ -179,6 +182,9 @@ export function broadcastEvent(
     appendToStream(state, filed.agentId, filed.text, filed.speech ? { speech: filed.speech } : {});
   }
   if (event.kind === "said") applyConversationSocial(state, event, perceptions, result);
+  if (ACT_DONE_KINDS.includes(event.kind) && event.isActorThing !== true) {
+    state.agentMemories[event.actorId] = noteActDone(getAgentMemory(state, event.actorId));
+  }
   flagDecisions(state, event, perceptions);
   result.events.push(event);
 }

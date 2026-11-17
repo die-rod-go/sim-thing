@@ -6,7 +6,7 @@ export type ApplyJob = (state: WorldState, result: TickResult) => boolean;
 /** A memory job (summary, pass or plan) that has come back, ready to apply. */
 export interface JobOutcome {
   agentId: string;
-  /** For the log: "episode", "people pass", "day plan". */
+  /** For the log: "episode", "reflection", "day plan". */
   jobName: string;
   apply: ApplyJob;
 }

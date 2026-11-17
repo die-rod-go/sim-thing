@@ -9,6 +9,7 @@ import {
 import { config } from "../config";
 import { applyCrowdEffect, decayNeeds, findCrossedThresholds } from "../economy/needs";
 import { advanceSleep, findWakeReason, isAsleep } from "../economy/sleep";
+import { noteAwakeTick } from "../memory/reflection-progress";
 import { mergeAwareness, observeAgents } from "../perception/awareness";
 import { canInterrupt, detectNewPerceptions } from "../perception/interrupts";
 import {
@@ -43,6 +44,7 @@ import {
   buildPerceptionWorld,
   describeAgentAsSeen,
   findAgent,
+  getAgentMemory,
   listLivingAgents,
   listVisibleAgentIds,
   markAgentChanged,
@@ -85,6 +87,9 @@ export function applyMechanics(context: TickContext): Map<string, Needs> {
       : applyCrowdEffect(updated, listVisibleAgentIds(state, world, agent).length);
     updated = trackStarvation(updated, state.tick);
     replaceAgent(state, updated);
+    if (!isSleeping) {
+      state.agentMemories[agentId] = noteAwakeTick(getAgentMemory(state, agentId));
+    }
     changeHealth(
       context,
       agentId,

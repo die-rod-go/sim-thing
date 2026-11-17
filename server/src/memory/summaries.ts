@@ -28,12 +28,9 @@ export function createAgentMemory(
     lastMidnightDay: day,
     midnight: null,
     retryAtTick: null,
-    passes: {
-      episodesSincePeople: 0,
-      episodesSinceReality: 0,
-      isIdentityOwed: false,
-      isLongTermGoalsOwed: false,
-    },
+    reflection: { lastTick: null, awakeTicksSince: 0, streamEntriesSince: 0, isOwed: false },
+    isRealityPassOwed: false,
+    failedActsInARow: 0,
     dayPlanOwedSinceTick,
     keyMemories: [],
     keyMemoryCandidates: [],
@@ -122,7 +119,7 @@ export function findDueCompression(memory: AgentMemory): SummaryJob | null {
   return null;
 }
 
-/** At midnight, once the passes have read the day: the day summary, then the history. */
+/** At midnight, once the episodes and chronicles are done: the day summary, then the history. */
 export function findDueDayEnd(memory: AgentMemory): SummaryJob | null {
   const step = memory.midnight?.step ?? null;
   if (step === "daySummary" && memory.chronicles.length > 0) {
@@ -134,7 +131,7 @@ export function findDueDayEnd(memory: AgentMemory): SummaryJob | null {
   return null;
 }
 
-/** The next summary the agent owes, leaving the passes aside. Expects a settled memory. */
+/** The next summary the agent owes. Expects a settled memory. */
 export function findDueSummary(memory: AgentMemory): SummaryJob | null {
   return findDueCompression(memory) ?? findDueDayEnd(memory);
 }
@@ -191,11 +188,6 @@ export function applySummary(memory: AgentMemory, job: SummaryJob, text: string)
         ...memory,
         stream: memory.stream.slice(job.entries.length),
         episodes: [...memory.episodes, summary],
-        passes: {
-          ...memory.passes,
-          episodesSincePeople: memory.passes.episodesSincePeople + 1,
-          episodesSinceReality: memory.passes.episodesSinceReality + 1,
-        },
       },
       "episode",
     );
@@ -206,7 +198,6 @@ export function applySummary(memory: AgentMemory, job: SummaryJob, text: string)
         ...memory,
         episodes: memory.episodes.slice(job.episodes.length),
         chronicles: [...memory.chronicles, summary],
-        passes: { ...memory.passes, isIdentityOwed: true, isLongTermGoalsOwed: true },
       },
       "chronicle",
     );
@@ -227,50 +218,7 @@ export function applySummary(memory: AgentMemory, job: SummaryJob, text: string)
   return finishMidnight({ ...memory, history: summary }, midnight);
 }
 
-export type PassName = "identity" | "longTermGoals" | "people" | "reality";
-
-/** The next pass the agent owes, from slowest-changing to fastest. Null when none is due. */
-export function findDuePass(memory: AgentMemory): PassName | null {
-  const { passes } = memory;
-  if (passes.isIdentityOwed) return "identity";
-  if (passes.isLongTermGoalsOwed) return "longTermGoals";
-  if (passes.episodesSincePeople >= config.people.everyEpisodes) return "people";
-  if (passes.episodesSinceReality >= config.realityPass.everyEpisodes) return "reality";
-  return null;
-}
-
-/**
- * Something has changed the agent's life (a reckoning, a moment marked to remember): the passes
- * that rewrite its aims and what it holds about people are owed now, rather than when a chronicle
- * or enough episodes form, so it can take stock at once instead of hours later.
- */
-export function oweTakingStock(memory: AgentMemory): AgentMemory {
-  const episodesSincePeople = Math.max(
-    memory.passes.episodesSincePeople,
-    config.people.everyEpisodes,
-  );
-  return {
-    ...memory,
-    passes: { ...memory.passes, isLongTermGoalsOwed: true, episodesSincePeople },
-  };
-}
-
 /** Whether the agent owes a day plan. */
 export function isDayPlanDue(memory: AgentMemory): boolean {
   return memory.dayPlanOwedSinceTick !== null;
-}
-
-/** The memory once a pass has run: that pass is no longer owed. */
-export function markPassDone(memory: AgentMemory, pass: PassName): AgentMemory {
-  const { passes } = memory;
-  switch (pass) {
-    case "identity":
-      return { ...memory, passes: { ...passes, isIdentityOwed: false } };
-    case "longTermGoals":
-      return { ...memory, passes: { ...passes, isLongTermGoalsOwed: false } };
-    case "people":
-      return { ...memory, passes: { ...passes, episodesSincePeople: 0 } };
-    case "reality":
-      return { ...memory, passes: { ...passes, episodesSinceReality: 0 } };
-  }
 }
