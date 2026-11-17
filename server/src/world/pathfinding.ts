@@ -148,9 +148,38 @@ export function listArrivalTiles(
   return clearTiles.length > 0 ? clearTiles : tiles;
 }
 
+function listReachableIndexes(grid: TileGrid, from: Position): Set<number> {
+  if (!isInsideGrid(grid, from)) return new Set();
+  const queue: Position[] = [from];
+  const reachable = new Set<number>([tileIndex(grid, from)]);
+  for (let queueIndex = 0; queueIndex < queue.length; queueIndex++) {
+    const current = queue[queueIndex]!;
+    for (const offset of NEIGHBOR_OFFSETS) {
+      const neighbor = { x: current.x + offset.x, y: current.y + offset.y };
+      if (!isWalkable(grid, neighbor) || reachable.has(tileIndex(grid, neighbor))) continue;
+      reachable.add(tileIndex(grid, neighbor));
+      queue.push(neighbor);
+    }
+  }
+  return reachable;
+}
+
+function measureDistanceFromCenter(place: PlaceArea, tile: Position): number {
+  const centerX = place.x + (place.width - 1) / 2;
+  const centerY = place.y + (place.height - 1) / 2;
+  return (tile.x - centerX) ** 2 + (tile.y - centerY) ** 2;
+}
+
+/** The given tiles closest to the place's center; several when they tie. */
+function listMostCentralTiles(place: PlaceArea, tiles: readonly Position[]): Position[] {
+  const distances = tiles.map((tile) => measureDistanceFromCenter(place, tile));
+  const closestDistance = Math.min(...distances);
+  return tiles.filter((_tile, index) => distances[index] === closestDistance);
+}
+
 /**
- * Path to the nearest arrival tile inside the named place, kept `doorwayClearance` steps away
- * from its doorways when there is room; null for an unknown place.
+ * Path to the most central arrival tile inside the named place that can be reached, kept
+ * `doorwayClearance` steps away from its doorways when there is room; null for an unknown place.
  */
 export function findPathToPlace(
   map: WorldMap,
@@ -161,7 +190,12 @@ export function findPathToPlace(
 ): Position[] | null {
   const place = map.places.find((area) => area.name === placeName);
   if (!place) return null;
-  return findPathToAny(grid, from, listArrivalTiles(map, grid, place, doorwayClearance));
+  const reachable = listReachableIndexes(grid, from);
+  const reachableArrivals = listArrivalTiles(map, grid, place, doorwayClearance).filter((tile) =>
+    reachable.has(tileIndex(grid, tile)),
+  );
+  if (reachableArrivals.length === 0) return null;
+  return findPathToAny(grid, from, listMostCentralTiles(place, reachableArrivals));
 }
 
 /** Path onto the tile if it is walkable, otherwise to a walkable tile next to it. */

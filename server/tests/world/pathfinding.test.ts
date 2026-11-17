@@ -64,11 +64,18 @@ describe("findPath", () => {
 });
 
 describe("findPathToPlace", () => {
-  it("ends on the nearest walkable tile inside the place, not in its walls or doorway", () => {
+  it("ends on the most central walkable tile inside the place, not in its walls or doorway", () => {
     const map = buildRoomMap();
     const path = findPathToPlace(map, map.grid, { x: 4, y: 0 }, "hut");
+    expect(path?.at(-1)).toEqual({ x: 3, y: 2 });
+    expect(path).toHaveLength(3);
+  });
+
+  it("ends on the next most central tile when the center is taken", () => {
+    const map = buildRoomMap();
+    const grid = withBlockedTiles(map.grid, new Set([2 * map.grid.width + 3]));
+    const path = findPathToPlace(map, grid, { x: 4, y: 0 }, "hut");
     expect(path?.at(-1)).toEqual({ x: 4, y: 2 });
-    expect(path).toHaveLength(2);
   });
 
   it("stops away from the doorway when there is room further in", () => {
@@ -80,7 +87,7 @@ describe("findPathToPlace", () => {
   it("stops by the doorway when every tile is that close to it", () => {
     const map = buildRoomMap();
     const path = findPathToPlace(map, map.grid, { x: 4, y: 0 }, "hut", 3);
-    expect(path?.at(-1)).toEqual({ x: 4, y: 2 });
+    expect(path?.at(-1)).toEqual({ x: 3, y: 2 });
   });
 
   it("returns null for an unknown place", () => {
