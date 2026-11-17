@@ -90,6 +90,7 @@ function buildContext(overrides: Partial<DecisionContext> = {}): DecisionContext
     decisionReason: null,
     lastFailure: null,
     offer: null,
+    ownOffer: null,
     validTargets: { places: ["bakery", "farm"], agents: ["Tom"], entities: ["oven"], aimOnly: [] },
     validItems: [{ name: "coin", plural: "coins" }, { name: "bread" }],
     validHolders: [],

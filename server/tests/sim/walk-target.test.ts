@@ -8,6 +8,7 @@ import {
   scriptByAgent,
 } from "../../src/sim/test-sim";
 import { replaceAgent } from "../../src/sim/world-access";
+import { describeLocation } from "../../src/world/place-names";
 
 const SQUARE = { x: 19, y: 15 };
 const TAVERN_FLOOR = { x: 30, y: 14 };
@@ -74,6 +75,15 @@ describe("walk_to names", () => {
     expect(getAgentRuntime(sim.state, "mara").walk ?? null).toBeNull();
     expect(getAgentRuntime(sim.state, "mara").lastFailure).toContain(
       "nothing in the village goes by that name",
+    );
+  });
+
+  it("walks to the road by a place by the name it goes by", async () => {
+    const sim = createWalkSim("the road by the bakery");
+    await sim.advance(40);
+    expect(getAgentRuntime(sim.state, "mara").lastFailure).toBeNull();
+    expect(describeLocation(sim.state.map, sim.agent("mara").place, sim.agent("mara").pos)).toBe(
+      "the road by the bakery",
     );
   });
 });

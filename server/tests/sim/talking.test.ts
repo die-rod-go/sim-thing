@@ -206,4 +206,27 @@ describe("talking and perception", () => {
       endsAtTick: config.decision.sayWaitMinutes / config.clock.minutesPerTick,
     });
   });
+
+  it("gives an awake listener who hears its own name a decision, even in the cooldown", async () => {
+    const sim = createTestSim({
+      agentIds: ["mara", "ilsa"],
+      responder: scriptByAgent({
+        Ilsa: (_request, callIndex) =>
+          callIndex === 1
+            ? decisionReply({ say: "Mara, are you there?", action: "wait", minutes: 1 })
+            : decisionReply({ action: "wait", minutes: 1 }),
+        Mara: (request) => keepGoing(request),
+      }),
+    });
+    sim.placeAgent("mara", SQUARE);
+    sim.placeAgent("ilsa", { x: SQUARE.x + 2, y: SQUARE.y });
+    await sim.advance(4);
+    const maraReasons = sim.client.requests
+      .filter(
+        (request) =>
+          promptOf(request).startsWith("Decide") && /You are Mara\./.test(promptOf(request)),
+      )
+      .map((request) => /Just now: (.*)\./.exec(promptOf(request))?.[1] ?? null);
+    expect(maraReasons).toContain("Ilsa said my name");
+  });
 });

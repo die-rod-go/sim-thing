@@ -131,6 +131,7 @@ function describeWalkTarget(state: WorldState, runtime: AgentRuntime): string | 
   const destination = runtime.walk?.destination;
   if (!destination) return null;
   if (destination.kind === "place") return describePlace(destination.placeName);
+  if (destination.kind === "tile") return destination.name;
   if (destination.kind === "agent") {
     const other = state.agents.find((agent) => agent.id === destination.agentId);
     return other ? `towards ${other.name}` : null;

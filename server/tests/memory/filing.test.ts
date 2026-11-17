@@ -50,6 +50,7 @@ function makeContext(overrides: Partial<FilingContext> = {}): FilingContext {
   return {
     conversationLog: createConversationLog(),
     knownAgentIdsByListener: {},
+    nameLocation: (place) => place,
     ...overrides,
   };
 }

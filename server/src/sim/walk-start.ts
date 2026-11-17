@@ -7,7 +7,9 @@ import {
 } from "../items/entity-store";
 import { describePlace } from "../memory/filing";
 import { findPathToAny, findPathToPlace, findPathToTile } from "../world/pathfinding";
+import { tileIndex } from "../world/types";
 import { WALK_ACTION } from "./action-phrases";
+import { describeBlockingThing, listImpassableThings } from "./blocking-things";
 import { getAgentRuntime, type InteractRequest, type WalkDestination } from "./agent-runtime";
 import { broadcastEvent } from "./event-broadcast";
 import { createEvent } from "./event-factory";
@@ -27,13 +29,17 @@ const SURROUNDING_OFFSETS: readonly Position[] = [-1, 0, 1].flatMap((offsetY) =>
   [-1, 0, 1].map((offsetX) => ({ x: offsetX, y: offsetY })),
 );
 
-/** A path around other agents, or with `grid` given, one that only avoids walls and objects. */
+/**
+ * A path around other agents, or with `grid` given, one that only avoids walls and objects.
+ * `extraStepCosts` makes some tiles count as more than one step.
+ */
 export function computePath(
   state: WorldState,
   agentId: string,
   from: Position,
   destination: WalkDestination,
   grid: TileGrid = buildWalkingGridFor(state, agentId),
+  extraStepCosts?: ReadonlyMap<number, number>,
 ): Position[] | null {
   if (destination.kind === "place") {
     return findPathToPlace(
@@ -42,19 +48,53 @@ export function computePath(
       from,
       destination.placeName,
       config.walking.arrivalDoorwayClearanceTiles,
+      extraStepCosts,
     );
   }
+  if (destination.kind === "tile")
+    return findPathToTile(grid, from, destination.pos, extraStepCosts);
   if (destination.kind === "entity") {
     const entity = findEntityIfPresent(state, destination.entityId);
     const position = entity ? resolveEntityPosition(state, entity) : null;
-    return position ? findPathToTile(grid, from, position.pos) : null;
+    return position ? findPathToTile(grid, from, position.pos, extraStepCosts) : null;
   }
   const other = findAgent(state, destination.agentId);
   const goals = SURROUNDING_OFFSETS.map((offset) => ({
     x: other.pos.x + offset.x,
     y: other.pos.y + offset.y,
   }));
-  return findPathToAny(grid, from, goals);
+  return findPathToAny(grid, from, goals, extraStepCosts);
+}
+
+/**
+ * Why no way leads there: the way is looked for again past everything that stands in it, crossing
+ * as few of those things as it can, and the first one on it is named ("the bakery door is closed
+ * and locked"). With walls alone in the way, there is simply no way.
+ */
+export function explainMissingWay(
+  state: WorldState,
+  agentId: string,
+  destination: WalkDestination,
+): string {
+  const impassable = listImpassableThings(state);
+  const extraStepCosts = new Map(
+    [...impassable.keys()].map((index) => [index, config.walking.blockedTileExtraSteps]),
+  );
+  const from = findAgent(state, agentId).pos;
+  const path = computePath(state, agentId, from, destination, state.map.grid, extraStepCosts);
+  const blocker = (path ?? [])
+    .map((tile) => impassable.get(tileIndex(state.map.grid, tile)))
+    .find((thing) => thing !== undefined);
+  return blocker === undefined ? config.walking.noWayReason : describeBlockingThing(state, blocker);
+}
+
+/** A path there, letting agents in the way count as passable, since they may move on. */
+function findWalkPath(state: WorldState, agentId: string, destination: WalkDestination) {
+  const from = findAgent(state, agentId).pos;
+  return (
+    computePath(state, agentId, from, destination) ??
+    computePath(state, agentId, from, destination, buildWalkingGrid(state))
+  );
 }
 
 function describeEntityDestination(state: WorldState, entityId: string): string | null {
@@ -64,12 +104,14 @@ function describeEntityDestination(state: WorldState, entityId: string): string 
 
 export function describeDestination(state: WorldState, destination: WalkDestination): string {
   if (destination.kind === "place") return describePlace(destination.placeName);
+  if (destination.kind === "tile") return destination.name;
   if (destination.kind === "agent") return findAgent(state, destination.agentId).name;
   return `the ${describeEntityDestination(state, destination.entityId) ?? "spot"}`;
 }
 
 export function destinationName(state: WorldState, destination: WalkDestination): string {
   if (destination.kind === "place") return destination.placeName;
+  if (destination.kind === "tile") return destination.name;
   if (destination.kind === "agent") return findAgent(state, destination.agentId).name;
   return describeEntityDestination(state, destination.entityId) ?? "";
 }
@@ -86,13 +128,11 @@ export function startWalk(
 ): boolean {
   const { state, result } = context;
   const agent = findAgent(state, agentId);
-  // Agents in the way now may move on, so the walk starts if only they block it.
-  const path =
-    computePath(state, agentId, agent.pos, destination) ??
-    computePath(state, agentId, agent.pos, destination, buildWalkingGrid(state));
+  const path = findWalkPath(state, agentId, destination);
   const where = describeDestination(state, destination);
   if (path === null) {
-    failAction(state, result, agentId, `walk to ${where}`, "I couldn't find a way there");
+    const reason = explainMissingWay(state, agentId, destination);
+    failAction(state, result, agentId, `walk to ${where}`, reason);
     return false;
   }
   const name = destinationName(state, destination);
@@ -136,12 +176,11 @@ export function retargetWalk(
   const walk = getAgentRuntime(state, agentId).walk;
   if (!walk) return false;
   const agent = findAgent(state, agentId);
-  const path =
-    computePath(state, agentId, agent.pos, destination) ??
-    computePath(state, agentId, agent.pos, destination, buildWalkingGrid(state));
+  const path = findWalkPath(state, agentId, destination);
   if (path === null) {
     const where = describeDestination(state, destination);
-    failAction(state, result, agentId, `walk to ${where}`, "I couldn't find a way there");
+    const reason = explainMissingWay(state, agentId, destination);
+    failAction(state, result, agentId, `walk to ${where}`, reason);
     return false;
   }
   walk.destination = destination;

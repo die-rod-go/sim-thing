@@ -6,6 +6,7 @@
     "dev": "tsx src/main.ts",
     "reset": "tsx src/main.ts --reset-only",
     "soak": "tsx src/soak.ts",
+    "measure": "tsx src/measure.ts",
     "typecheck": "tsc -p tsconfig.json"
   },
   "dependencies": {

@@ -1,8 +1,10 @@
 import { describe, expect, it } from "vitest";
 import { config } from "../../src/config";
-import { countHeld } from "../../src/items/entity-store";
+import { countHeld, createEntity } from "../../src/items/entity-store";
+import { addComponent } from "../../src/items/thing-writes";
 import type { LlmRequest } from "../../src/llm/types";
 import { getAgentRuntime } from "../../src/sim/agent-runtime";
+import { makeOffer } from "../../src/sim/offers";
 import {
   createTestSim,
   decisionReply,
@@ -10,6 +12,7 @@ import {
   promptOf,
   scriptByAgent,
 } from "../../src/sim/test-sim";
+import { contextOf, entityThing } from "./combat-test-kit";
 
 const SQUARE = { x: 19, y: 15 };
 const NEXT_TO_SQUARE = { x: SQUARE.x + 1, y: SQUARE.y };
@@ -165,5 +168,47 @@ describe("offers", () => {
     await sim.advance();
     expect(sim.streamTexts("mara")).toContain("I tried to hand Ilsa 3 coins but Ilsa is asleep");
     expect(getAgentRuntime(sim.state, "ilsa").pendingOffer).toBeNull();
+  });
+
+  it("shows the giver its own offer while the answer is awaited", async () => {
+    const sim = createOfferSim({});
+    await sim.advance(2);
+    expect(decisionPromptsOf(sim, "Mara").at(-1)).toContain(
+      "You are offering Ilsa 3 coins; no answer yet.",
+    );
+  });
+
+  it("refuses a second offer to someone who hasn't answered the giver's first", async () => {
+    let maraCalls = 0;
+    const sim = createTestSim({
+      agentIds: ["mara", "ilsa"],
+      responder: scriptByAgent({
+        Mara: () => {
+          maraCalls += 1;
+          return maraCalls <= 2
+            ? decisionReply({ action: "give", target: "Ilsa", item: "coins", amount: 3 })
+            : undefined;
+        },
+      }),
+    });
+    sim.placeAgent("mara", SQUARE);
+    sim.placeAgent("ilsa", NEXT_TO_SQUARE);
+    await sim.advance(2);
+    expect(sim.streamTexts("mara")).toContain(
+      "I tried to hand Ilsa 3 coins but I was already offering Ilsa 3 coins",
+    );
+  });
+
+  it("can't hand anything to someone beside the giver across a wall", () => {
+    const sim = createOfferSim({}, ["mara", "ilsa"]);
+    for (const pos of [NEXT_TO_SQUARE, { x: SQUARE.x, y: SQUARE.y + 1 }]) {
+      const wall = createEntity(sim.state, "door", { kind: "tile", place: "town square", pos });
+      addComponent(contextOf(sim), entityThing(wall), "closed", { minutes: null });
+    }
+    sim.placeAgent("ilsa", { x: SQUARE.x + 1, y: SQUARE.y + 1 });
+    makeOffer(contextOf(sim), "mara", { kind: "give", target: "Ilsa", item: "coins", amount: 3 });
+    expect(sim.streamTexts("mara")).toContain(
+      "I tried to hand Ilsa 3 coins but I couldn't reach Ilsa from where I stood",
+    );
   });
 });

@@ -1,13 +1,8 @@
-import {
-  buildDefinitionNamer,
-  listComponentWords,
-  resolveEntityComponents,
-  type Entity,
-  type Position,
-} from "@village/shared";
-import { describeEntityName, findEntityIfPresent } from "../items/entity-store";
+import type { Entity, Position } from "@village/shared";
+import { findEntityIfPresent } from "../items/entity-store";
 import { listVerbsDoneInPassing } from "../items/verb-offers";
 import { blocksMovement } from "../items/world-physics";
+import { describeBlockingThing } from "./blocking-things";
 import type { TickContext } from "./tick-context";
 import { runVerbInPassing } from "./verb-runner";
 import type { WorldState } from "./world-state";
@@ -20,18 +15,6 @@ function listBlockersOnTile(state: WorldState, tile: Position): Entity[] {
       entity.location.pos.y === tile.y &&
       blocksMovement(state, entity),
   );
-}
-
-/** "tavern door (closed, locked)": the blocker with what can be seen of its state. */
-function describeBlocker(state: WorldState, blocker: Entity): string {
-  const name = describeEntityName(state, blocker);
-  const words = listComponentWords(
-    state.items.declarations,
-    resolveEntityComponents(state.items, blocker),
-    true,
-    buildDefinitionNamer(state.items),
-  );
-  return words.length > 0 ? `${name} (${words.join(", ")})` : name;
 }
 
 /**
@@ -47,12 +30,12 @@ export function clearTileInPassing(
   const { state } = context;
   for (const blocker of listBlockersOnTile(state, tile)) {
     const [verb] = listVerbsDoneInPassing(state, agentId, blocker);
-    if (!verb) return `the ${describeBlocker(state, blocker)} was in the way`;
+    if (!verb) return describeBlockingThing(state, blocker);
     const refusal = runVerbInPassing(context, agentId, state.items.verbs.indexOf(verb), blocker);
     if (refusal !== null) return refusal;
     const remaining = findEntityIfPresent(state, blocker.id);
     if (remaining && blocksMovement(state, remaining)) {
-      return `the ${describeBlocker(state, remaining)} was still in the way`;
+      return describeBlockingThing(state, remaining);
     }
   }
   return null;

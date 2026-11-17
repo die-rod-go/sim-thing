@@ -76,6 +76,13 @@ export const config = {
     speechLoudness: { whisper: 2, normal: 10, shout: 24 } satisfies Record<Volume, number>,
     /** Sleepers only hear their own name or sounds at least this loud. */
     sleeperHearingLoudness: 20,
+    /** Why an awake agent who clearly hears its own name gets an urgent decision. */
+    ownNameReason: "{speaker} said my name",
+    /**
+     * How a position outside every place on the map is named: after the nearest place. `walk_to`
+     * accepts the name, and leads to the outdoor tile nearest that place.
+     */
+    outdoorPlaceText: "the road by the {place}",
     /** A perception interrupt gives an agent a new decision at most this often. */
     interruptCooldownTicks: 20,
     /** "Around you" lists agents perceived within this many sim-minutes. */
@@ -433,6 +440,10 @@ export const config = {
       /** Why an offer to someone fails. */
       asleepReason: "{recipient} is asleep",
       alreadyOfferedReason: "{recipient} hasn't answered another offer yet",
+      /** Why a giver can't offer the same person something else before the first is answered. */
+      alreadyOfferingReason: "I was already offering {recipient} {what}",
+      /** Why an offer fails, or stops standing, when the recipient is close but out of sight. */
+      outOfSightReason: "I couldn't reach {recipient} from where I stood",
     },
   },
 
@@ -551,6 +562,22 @@ export const config = {
     /** Walkers arriving at an indoor place stop at least this many steps from its doorways. */
     arrivalDoorwayClearanceTiles: 2,
     blockedReason: "{agent} was in the way",
+    /** Why a walk fails when no way leads there, even past everything that stands in the way. */
+    noWayReason: "I couldn't find a way there",
+    /**
+     * Why a walk fails at something it can't get through (a locked door): `{thing}` is its name,
+     * `{state}` how it looks ("closed and locked"), or the plain text when nothing shows.
+     */
+    blockingThingWords: {
+      withState: "the {thing} is {state}",
+      plain: "the {thing} is in the way",
+      stateJoiner: " and ",
+    },
+    /**
+     * When no way leads somewhere, the way is looked for again with what stands in the way
+     * counted as this many extra steps, so it crosses as few of those things as it can.
+     */
+    blockedTileExtraSteps: 100,
   },
 
   memory: {
@@ -757,6 +784,14 @@ export const config = {
     } as Partial<Record<LlmCallKind, LlmEffort>>,
     dailyTokenBudget: 999_999_999,
     /**
+     * List prices in dollars per million tokens, for estimating spend. A model takes the first
+     * entry whose `model` appears in its id once dots read as dashes ("claude-haiku-5.5" too).
+     */
+    prices: [
+      { model: "haiku-5-5", input: 0.1, output: 0.5, cacheRead: 0.01, cacheWrite: 0.125 },
+      { model: "sonnet-5-5", input: 2, output: 10, cacheRead: 0.1, cacheWrite: 2.5 },
+    ],
+    /**
      * Tries per call, the first included. A rejected reply (bad JSON, failed validation, too long)
      * is retried with the error added to the prompt; after the last try the caller falls back.
      */
@@ -791,6 +826,22 @@ export const config = {
         "I'll pay two coins for that.",
       ],
     },
+  },
+
+  /** `npm run measure -w @village/server`: what a saved run did, read from its database. */
+  measure: {
+    /** A speaker's line is a near repeat when it overlaps one of its own last lines this much. */
+    nearRepeatLookbackLines: 6,
+    nearRepeatSimilarity: 0.5,
+    /** A line someone says passes on a line they overheard when it overlaps it this much. */
+    passedOnSimilarity: 0.3,
+    /** A line said this long after the last one at the same place starts a new conversation. */
+    conversationGapMinutes: 10,
+    /** How many of the commonest decision reasons and failure reasons are listed. */
+    topReasonCount: 15,
+    /** Stands in for a person's name, and for a number, when reasons are grouped. */
+    namePlaceholder: "{name}",
+    numberPlaceholder: "#",
   },
 };
 

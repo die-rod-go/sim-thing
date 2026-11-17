@@ -3,6 +3,7 @@ import { config } from "../config";
 import { resolveName } from "../decision/resolve-name";
 import { chooseEntitiesToGive, computeChebyshevDistance, executeGive } from "../economy/give";
 import { isAsleep } from "../economy/sleep";
+import { canSee } from "../perception/sight";
 import { isDead } from "../status/health";
 import { getAgentRuntime, requestDecision, type PendingOffer } from "./agent-runtime";
 import type { DecisionPlan, PlannedAction } from "./decision-runner";
@@ -12,6 +13,7 @@ import { failAction } from "./failure";
 import type { TickContext } from "./tick-context";
 import {
   appendToStream,
+  buildPerceptionWorld,
   describeAgentAsSeen,
   findAgent,
   listOthersAsSeen,
@@ -65,13 +67,54 @@ function findParties(state: WorldState, recipientId: string): OfferParties | nul
   };
 }
 
+/** Whether two hands can meet: the giver sees the recipient, so no wall is between them. */
+function canReachAcross(state: WorldState, giver: Agent, recipient: Agent): boolean {
+  return canSee(
+    buildPerceptionWorld(state),
+    giver.pos,
+    recipient.pos,
+    config.perception.sightRangeTiles,
+  );
+}
+
 /** Whether the giver is still alive and within reach, so the offer still stands. */
-function isOfferStanding(parties: OfferParties): boolean {
+function isOfferStanding(state: WorldState, parties: OfferParties): boolean {
   const { giver, recipient } = parties;
   return (
     !isDead(giver) &&
-    computeChebyshevDistance(giver.pos, recipient.pos) <= config.economy.giveReachTiles
+    computeChebyshevDistance(giver.pos, recipient.pos) <= config.economy.giveReachTiles &&
+    canReachAcross(state, giver, recipient)
   );
+}
+
+/** Why the giver can't offer this recipient anything now, or null when it can. */
+function findOfferBlocker(state: WorldState, giver: Agent, recipient: Agent): string | null {
+  const pending = getAgentRuntime(state, recipient.id).pendingOffer;
+  const phrase = isAsleep(recipient)
+    ? words.asleepReason
+    : pending?.giverId === giver.id
+      ? words.alreadyOfferingReason
+      : pending !== null
+        ? words.alreadyOfferedReason
+        : !canReachAcross(state, giver, recipient)
+          ? words.outOfSightReason
+          : null;
+  if (phrase === null) return null;
+  return fillOfferWords(phrase, { giver, recipient, offer: { itemText: pending?.itemText ?? "" } });
+}
+
+/** What the giver is offering someone, waiting for their answer; null when nothing. */
+export function findOwnOffer(
+  state: WorldState,
+  giverId: string,
+): { recipientName: string; itemText: string } | null {
+  for (const [recipientId, runtime] of Object.entries(state.agentRuntimes)) {
+    const offer = runtime.pendingOffer;
+    if (offer === null || offer.giverId !== giverId) continue;
+    const recipient = findAgent(state, recipientId);
+    return { recipientName: describeAgentAsSeen(recipient), itemText: offer.itemText };
+  }
+  return null;
 }
 
 function withdrawOffer(context: TickContext, parties: OfferParties): void {
@@ -118,14 +161,9 @@ export function makeOffer(
     return;
   }
   const recipientRuntime = getAgentRuntime(state, recipientId);
-  const blockingPhrase = isAsleep(recipient)
-    ? words.asleepReason
-    : recipientRuntime.pendingOffer !== null
-      ? words.alreadyOfferedReason
-      : null;
-  if (blockingPhrase !== null) {
-    const reason = blockingPhrase.split("{recipient}").join(recipient.name);
-    fail(`hand ${recipient.name} ${chosen.description}`, reason);
+  const blocker = findOfferBlocker(state, giver, recipient);
+  if (blocker !== null) {
+    fail(`hand ${recipient.name} ${chosen.description}`, blocker);
     return;
   }
   const parties = { giver, recipient, offer: { itemText: chosen.description } };
@@ -204,7 +242,7 @@ function declineOffer(context: TickContext, parties: OfferParties): void {
 export function answerOffer(context: TickContext, plan: DecisionPlan): void {
   const parties = findParties(context.state, plan.agentId);
   if (parties === null || parties.offer.eventId !== plan.offerEventId) return;
-  if (!isOfferStanding(parties)) {
+  if (!isOfferStanding(context.state, parties)) {
     withdrawOffer(context, parties);
     return;
   }
@@ -223,7 +261,7 @@ export function lapseOffers(context: TickContext): void {
   for (const recipientId of Object.keys(state.agentRuntimes)) {
     const parties = findParties(state, recipientId);
     if (parties === null) continue;
-    if (isDead(parties.recipient) || !isOfferStanding(parties)) {
+    if (isDead(parties.recipient) || !isOfferStanding(state, parties)) {
       withdrawOffer(context, parties);
     } else if (state.tick - parties.offer.offeredAtTick >= lapseTicks) {
       leaveOfferUnanswered(context, parties);

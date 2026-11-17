@@ -121,6 +121,12 @@ export interface OfferSummary {
   itemText: string;
 }
 
+/** What the agent is offering someone else, waiting for their answer. */
+export interface OwnOfferSummary {
+  recipientName: string;
+  itemText: string;
+}
+
 /** Everything step 1 of a decision puts in front of the agent. Filled by the tick loop. */
 export interface DecisionContext extends HeldKnowledge {
   name: string;
@@ -151,6 +157,8 @@ export interface DecisionContext extends HeldKnowledge {
   decisionReason: string | null;
   lastFailure: string | null;
   offer: OfferSummary | null;
+  /** What the agent is offering someone, waiting for their answer. */
+  ownOffer: OwnOfferSummary | null;
   validTargets: DecisionTargets;
   validItems: ValidItem[];
   /** Things the agent can see into that hold something: what `from` may name. */

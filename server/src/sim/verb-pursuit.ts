@@ -9,6 +9,7 @@ import { findAgent } from "./world-access";
 
 function isSameDestination(first: WalkDestination, second: WalkDestination): boolean {
   if (first.kind === "place" || second.kind === "place") return false;
+  if (first.kind === "tile" || second.kind === "tile") return false;
   if (first.kind === "agent") return second.kind === "agent" && first.agentId === second.agentId;
   return second.kind === "entity" && first.entityId === second.entityId;
 }

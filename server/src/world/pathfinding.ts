@@ -8,6 +8,8 @@ const NEIGHBOR_OFFSETS: readonly Position[] = [
   { x: -1, y: 0 },
 ];
 
+const NO_EXTRA_STEP_COSTS: ReadonlyMap<number, number> = new Map();
+
 export function isWalkable(grid: TileGrid, position: Position): boolean {
   return isInsideGrid(grid, position) && grid.isWall[tileIndex(grid, position)] === false;
 }
@@ -34,12 +36,13 @@ function rebuildPath(grid: TileGrid, cameFrom: Map<number, number>, endIndex: nu
  * A* on the 4-connected grid toward the nearest of several goal tiles. Walls block; gaps in
  * walls are plain floor in the grid. Returns the tiles to step
  * through, excluding `from` and ending on a goal; [] if `from` is already a goal; null if no goal
- * can be reached.
+ * can be reached. `extraStepCosts` makes stepping onto some tiles count as more than one step.
  */
 export function findPathToAny(
   grid: TileGrid,
   from: Position,
   goals: readonly Position[],
+  extraStepCosts: ReadonlyMap<number, number> = NO_EXTRA_STEP_COSTS,
 ): Position[] | null {
   const goalIndexes = new Set(
     goals.filter((goal) => isWalkable(grid, goal)).map((goal) => tileIndex(grid, goal)),
@@ -76,7 +79,7 @@ export function findPathToAny(
       const neighbor = { x: current.x + offset.x, y: current.y + offset.y };
       if (!isWalkable(grid, neighbor)) continue;
       const neighborIndex = tileIndex(grid, neighbor);
-      const tentativeCost = currentCost + 1;
+      const tentativeCost = currentCost + 1 + (extraStepCosts.get(neighborIndex) ?? 0);
       if (tentativeCost >= (costSoFar.get(neighborIndex) ?? Infinity)) continue;
       cameFrom.set(neighborIndex, currentIndex);
       costSoFar.set(neighborIndex, tentativeCost);
@@ -187,6 +190,7 @@ export function findPathToPlace(
   from: Position,
   placeName: string,
   doorwayClearance = 0,
+  extraStepCosts: ReadonlyMap<number, number> = NO_EXTRA_STEP_COSTS,
 ): Position[] | null {
   const place = map.places.find((area) => area.name === placeName);
   if (!place) return null;
@@ -194,18 +198,27 @@ export function findPathToPlace(
   const reachableArrivals = listArrivalTiles(map, grid, place, doorwayClearance).filter((tile) =>
     reachable.has(tileIndex(grid, tile)),
   );
-  if (reachableArrivals.length === 0) return null;
-  return findPathToAny(grid, from, listMostCentralTiles(place, reachableArrivals));
+  const freeArrivals = reachableArrivals.filter(
+    (tile) => !extraStepCosts.has(tileIndex(grid, tile)),
+  );
+  const arrivals = freeArrivals.length > 0 ? freeArrivals : reachableArrivals;
+  if (arrivals.length === 0) return null;
+  return findPathToAny(grid, from, listMostCentralTiles(place, arrivals), extraStepCosts);
 }
 
 /** Path onto the tile if it is walkable, otherwise to a walkable tile next to it. */
-export function findPathToTile(grid: TileGrid, from: Position, tile: Position): Position[] | null {
-  if (isWalkable(grid, tile)) return findPath(grid, from, tile);
+export function findPathToTile(
+  grid: TileGrid,
+  from: Position,
+  tile: Position,
+  extraStepCosts: ReadonlyMap<number, number> = NO_EXTRA_STEP_COSTS,
+): Position[] | null {
+  if (isWalkable(grid, tile)) return findPathToAny(grid, from, [tile], extraStepCosts);
   const adjacentTiles = NEIGHBOR_OFFSETS.map((offset) => ({
     x: tile.x + offset.x,
     y: tile.y + offset.y,
   }));
-  return findPathToAny(grid, from, adjacentTiles);
+  return findPathToAny(grid, from, adjacentTiles, extraStepCosts);
 }
 
 /** The walkable tile nearest to `start` (by steps) that isn't taken; `start` itself if free. */

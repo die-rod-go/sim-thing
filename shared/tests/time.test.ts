@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { formatSimTime, formatTimeOfDay, toSimTime } from "../src/time";
+import { formatSimTime, formatTimeOfDay, parseSimTime, toSimTime } from "../src/time";
 
 const settings = { minutesPerTick: 1, startHour: 6 };
 
@@ -19,5 +19,12 @@ describe("sim time", () => {
 
   it("shows afternoon hours on a twelve-hour clock", () => {
     expect(formatTimeOfDay({ hour: 14, minute: 32 })).toBe("2:32 pm");
+  });
+
+  it("reads back the tick of a time it wrote", () => {
+    for (const tick of [0, 359, 1080, 1440 + 17]) {
+      expect(parseSimTime(formatSimTime(tick, settings), settings)).toBe(tick);
+    }
+    expect(parseSimTime("noon", settings)).toBeNull();
   });
 });

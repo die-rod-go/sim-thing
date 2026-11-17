@@ -37,8 +37,14 @@ function describeHeardActivity(event: WorldEvent): string {
   return event.speech === undefined ? event.description : "talking";
 }
 
-/** Awareness of the actor for each perceiver who heard the event without seeing it. */
-export function awarenessFromPerceptions(perceivedEvent: PerceivedEvent): PerceiverAwareness[] {
+/**
+ * Awareness of the actor for each perceiver who heard the event without seeing it. `placeName`
+ * is the name the event's spot goes by.
+ */
+export function awarenessFromPerceptions(
+  perceivedEvent: PerceivedEvent,
+  placeName: string = perceivedEvent.event.place,
+): PerceiverAwareness[] {
   const { event, perceptions } = perceivedEvent;
   if (event.isActorThing === true) return [];
   return perceptions
@@ -49,7 +55,7 @@ export function awarenessFromPerceptions(perceivedEvent: PerceivedEvent): Percei
         agentId: event.actorId,
         tick: event.tick,
         via: perception.via,
-        place: event.place,
+        place: placeName,
         doing: describeHeardActivity(event),
       };
       return [{ perceiverId: perception.agentId, awareness }];

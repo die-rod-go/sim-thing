@@ -10,6 +10,7 @@ import { broadcastEvent } from "./event-broadcast";
 import { createSpeechEvent } from "./event-factory";
 import { failAction } from "./failure";
 import { answerOffer, makeOffer } from "./offers";
+import { describeLocation } from "../world/place-names";
 import { findWalkDestination } from "./walk-target";
 import type { TickContext } from "./tick-context";
 import { startOrApproachVerb } from "./verb-approach";
@@ -79,6 +80,13 @@ function executeWalk(context: TickContext, agentId: string, targetName: string):
       `walk to the ${destination.placeName}`,
       "I was already there",
     );
+    return;
+  }
+  const isAtSpot =
+    destination.kind === "tile" &&
+    describeLocation(state.map, agent.place, agent.pos) === destination.name;
+  if (isAtSpot) {
+    failAction(state, result, agentId, `walk to ${destination.name}`, "I was already there");
     return;
   }
   if (destination.kind === "agent") {

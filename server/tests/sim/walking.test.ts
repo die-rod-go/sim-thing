@@ -1,6 +1,13 @@
 import { describe, expect, it } from "vitest";
 import { getAgentRuntime } from "../../src/sim/agent-runtime";
-import { createTestSim, decisionReply, scriptByAgent } from "../../src/sim/test-sim";
+import { addComponent } from "../../src/items/thing-writes";
+import {
+  createTestSim,
+  decisionReply,
+  findEntityByLabel,
+  scriptByAgent,
+} from "../../src/sim/test-sim";
+import { contextOf, entityThing } from "./combat-test-kit";
 
 const ROSE_COTTAGE_INSIDE = { x: 4, y: 4 };
 const ROSE_COTTAGE_DOORWAY = { x: 4, y: 6 };
@@ -66,5 +73,23 @@ describe("walking", () => {
       y: ROSE_COTTAGE_DOORWAY.y - 1,
     });
     expect(sim.streamTexts("mara").join("\n")).not.toContain("was in the way");
+  });
+
+  it("names the locked door that stands in the only way in", async () => {
+    const sim = createTestSim({
+      agentIds: ["mara"],
+      responder: scriptByAgent({
+        Mara: (_request, callIndex) =>
+          callIndex === 0 ? decisionReply({ action: "walk_to", target: "bakery" }) : undefined,
+      }),
+    });
+    const door = entityThing(findEntityByLabel(sim.state, "bakery door"));
+    addComponent(contextOf(sim), door, "closed", { minutes: null });
+    addComponent(contextOf(sim), door, "locked", { minutes: null });
+    sim.placeAgent("mara", { x: 19, y: 15 });
+    await sim.advance();
+    expect(getAgentRuntime(sim.state, "mara").lastFailure).toBe(
+      "I tried to walk to the bakery but the bakery door is closed and locked",
+    );
   });
 });

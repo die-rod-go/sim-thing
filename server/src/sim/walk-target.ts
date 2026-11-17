@@ -4,6 +4,7 @@ import { scoreNameMatch } from "../decision/name-match";
 import { normalizeDisplayName, resolveName } from "../decision/resolve-name";
 import { computeChebyshevDistance } from "../economy/give";
 import { describeEntityName } from "../items/entity-store";
+import { listOutdoorSpots } from "../world/place-names";
 import type { PlaceArea } from "../world/types";
 import type { WalkDestination } from "./agent-runtime";
 import { isCreature } from "./creatures/creature-instincts";
@@ -67,7 +68,20 @@ function listCandidates(state: WorldState, agent: Agent): WalkCandidate[] {
   const entityCandidates = [...entities.values()].flatMap(
     (entity) => describeEntityCandidate(state, entity) ?? [],
   );
-  return [...state.map.places.map(describePlaceCandidate), ...entityCandidates];
+  return [
+    ...state.map.places.map(describePlaceCandidate),
+    ...listOutdoorSpotCandidates(state),
+    ...entityCandidates,
+  ];
+}
+
+function listOutdoorSpotCandidates(state: WorldState): WalkCandidate[] {
+  return listOutdoorSpots(state.map).map((spot) => ({
+    name: spot.name,
+    destination: { kind: "tile", pos: spot.pos, name: spot.name },
+    placeName: config.map.defaultOutdoorPlace,
+    pos: spot.pos,
+  }));
 }
 
 function compareRanked(first: RankedCandidate, second: RankedCandidate): number {
@@ -92,8 +106,9 @@ function findClosestNamed(state: WorldState, agent: Agent, wanted: string): Walk
 }
 
 /**
- * Where a `walk_to` name leads: a place, someone in sight, a thing here, then the place or map
- * object anywhere whose name is most like it. Null only when nothing goes by a name like it.
+ * Where a `walk_to` name leads: a place, a spot on the road by a place, someone in sight, a thing
+ * here, then the place, spot or map object anywhere whose name is most like it. Null only when
+ * nothing goes by a name like it.
  */
 export function findWalkDestination(
   state: WorldState,
@@ -104,6 +119,10 @@ export function findWalkDestination(
   if (wanted === "") return null;
   const place = state.map.places.find((area) => normalizeDisplayName(area.name) === wanted);
   if (place) return { kind: "place", placeName: place.name };
+  const spot = listOutdoorSpots(state.map).find(
+    (candidate) => normalizeDisplayName(candidate.name) === wanted,
+  );
+  if (spot) return { kind: "tile", pos: spot.pos, name: spot.name };
   const otherId = resolveName(targetName, listOthersAsSeen(state, agent.id));
   if (otherId) return { kind: "agent", agentId: otherId };
   const here = listHereEntities(state, agent).find(

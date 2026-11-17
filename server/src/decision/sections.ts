@@ -135,6 +135,11 @@ export function describePeople(people: readonly KnownPerson[]): string {
     : config.people.nobodyKnownText;
 }
 
+/** Opens the line saying what the agent is in the middle of. */
+export const CURRENT_ACTION_PREFIX = "You are in the middle of: ";
+/** Opens the line saying what flagged the decision. */
+export const DECISION_REASON_PREFIX = "Just now: ";
+
 export function describeCurrentAction(
   currentAction: CurrentActionSummary | null,
   isMidActionInterrupt: boolean,
@@ -147,11 +152,11 @@ export function describeCurrentAction(
     currentAction.minutesLeft === null ? null : `about ${currentAction.minutesLeft} min left`,
   ].filter((note) => note !== null);
   const aside = notes.length === 0 ? "" : ` (${notes.join(", ")})`;
-  return `You are in the middle of: ${currentAction.description}${aside}.`;
+  return `${CURRENT_ACTION_PREFIX}${currentAction.description}${aside}.`;
 }
 
 export function describeDecisionReason(reason: string | null): string {
-  return reason ? `Just now: ${reason}.` : "";
+  return reason ? `${DECISION_REASON_PREFIX}${reason}.` : "";
 }
 
 export function describeLastFailure(lastFailure: string | null): string {

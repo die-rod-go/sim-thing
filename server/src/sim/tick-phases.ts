@@ -33,6 +33,7 @@ import { listVisibleCreatureIds } from "./creatures/creature-sight";
 import { resumeRunningVerb } from "./verb-runner";
 
 import { describePlace } from "../memory/filing";
+import { describeLocation } from "../world/place-names";
 import { advanceWalk } from "./walking";
 import {
   appendToStream,
@@ -133,7 +134,7 @@ export function updateSight(context: TickContext): void {
   const observed = state.agents.filter(isBodyInWorld).map((agent) => ({
     agentId: agent.id,
     pos: agent.pos,
-    place: agent.place,
+    place: describeLocation(state.map, agent.place, agent.pos),
     doing: describeDoing(state, agent, getAgentRuntime(state, agent.id)),
   }));
   for (const agentId of listLivingAgents(state).map((agent) => agent.id)) {
@@ -183,7 +184,7 @@ function noticeBodies(context: TickContext, viewer: Agent, newlyVisibleIds: stri
       .split("{body}")
       .join(describeAgentAsSeen(body))
       .split("{place}")
-      .join(describePlace(body.place));
+      .join(describePlace(describeLocation(state.map, body.place, body.pos)));
     appendToStream(state, viewer.id, entry);
   }
   const foundBodies = visibleBodies.filter((body) => !isKnownDead(body));

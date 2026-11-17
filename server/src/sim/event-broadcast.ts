@@ -1,10 +1,13 @@
 import type { WorldEvent } from "@village/shared";
+import { config } from "../config";
 import { addConversationSocial } from "../economy/needs";
 import { isTakingPart, recordSpeech } from "../memory/conversation";
 import { fileEvent, type FilingContext } from "../memory/filing";
 import { EMPTY_PERSON_ENTRY } from "../passes/apply-pass";
 import { awarenessFromPerceptions, mergeAwareness } from "../perception/awareness";
+import { isOwnNameMentioned } from "../perception/interrupts";
 import { perceiveEvent } from "../perception/perceive-event";
+import { describeLocation } from "../world/place-names";
 import type { EventPerception } from "../perception/types";
 import { getAgentRuntime, requestDecision } from "./agent-runtime";
 import {
@@ -31,6 +34,7 @@ function buildFilingContext(state: WorldState): FilingContext {
   return {
     conversationLog: state.conversationLog,
     knownAgentIdsByListener: buildKnownVoices(state),
+    nameLocation: (place, pos) => describeLocation(state.map, place, pos),
   };
 }
 
@@ -41,7 +45,8 @@ function mergeHeardAwareness(
   perceptions: EventPerception[],
   result: TickResult,
 ) {
-  for (const entry of awarenessFromPerceptions({ event, perceptions })) {
+  const placeName = describeLocation(state.map, event.place, event.pos);
+  for (const entry of awarenessFromPerceptions({ event, perceptions }, placeName)) {
     const perceiver = findAgent(state, entry.perceiverId);
     const heardId = entry.awareness.agentId;
     const isFirstHeard = perceiver.people[heardId] === undefined;
@@ -82,9 +87,15 @@ export const ATTACK_KINDS: readonly WorldEvent["kind"][] = ["attacked", "missed"
 /** The one an offer, its acceptance or its refusal is aimed at gets its decision from the offer itself. */
 const OFFER_KINDS: readonly WorldEvent["kind"][] = ["offered", "gave", "declined"];
 
+/** Whether the perceiver clearly heard the event's words name it. */
+function isOwnNameHeard(event: WorldEvent, perception: EventPerception, name: string): boolean {
+  if (event.speech === undefined || perception.hearing !== "clear") return false;
+  return isOwnNameMentioned(event.speech.words, name);
+}
+
 /**
  * Flags decisions for those who perceived the event; the decision phase applies the cooldown.
- * Being attacked, and seeing an attack or a death, skip it.
+ * Being attacked, seeing an attack or a death, and clearly hearing one's own name skip it.
  */
 function flagDecisions(state: WorldState, event: WorldEvent, perceptions: EventPerception[]): void {
   const isAttack = ATTACK_KINDS.includes(event.kind);
@@ -102,6 +113,9 @@ function flagDecisions(state: WorldState, event: WorldEvent, perceptions: EventP
       );
     } else if (event.kind === "died" && perception.isInSight) {
       requestDecision(runtime, `I saw ${event.actorName} die`, true);
+    } else if (isOwnNameHeard(event, perception, perceiver.name)) {
+      const reason = config.perception.ownNameReason.split("{speaker}").join(event.actorName);
+      requestDecision(runtime, reason, true);
     } else if (toPerceiver(perceiver).isAsleep) {
       requestDecision(runtime, "a loud sound reached me in my sleep", true);
     } else {

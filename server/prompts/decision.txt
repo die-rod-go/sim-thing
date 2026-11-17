@@ -73,9 +73,10 @@ You were: {{intention}}
 {{decisionReason}}
 {{lastFailure}}
 {{offer}}
+{{ownOffer}}
 
 ## Where you are
-You are at the {{place}}.
+You are at {{place}}.
 Here:
 {{here}}
 

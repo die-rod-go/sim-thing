@@ -28,6 +28,18 @@ export function formatSimTime(tick: number, settings: SimTimeSettings): string {
   return `Day ${time.day}, ${formatTimeOfDay(time)}`;
 }
 
+/** The tick of a time as `formatSimTime` writes it ("Day 2, 8:13 pm"); null when it isn't one. */
+export function parseSimTime(text: string, settings: SimTimeSettings): number | null {
+  const match = /^Day (\d+), (\d{1,2}):(\d{2}) (am|pm)$/.exec(text.trim());
+  if (match === null) return null;
+  const [, day, twelveHour, minute, period] = match;
+  const hour =
+    (Number(twelveHour) % HOURS_PER_HALF_DAY) + (period === "pm" ? HOURS_PER_HALF_DAY : 0);
+  const totalMinutes =
+    (Number(day) - 1) * MINUTES_PER_DAY + hour * MINUTES_PER_HOUR + Number(minute);
+  return (totalMinutes - settings.startHour * MINUTES_PER_HOUR) / settings.minutesPerTick;
+}
+
 /** "6:05 am", "12:30 pm": twelve-hour clock time, without the day. */
 export function formatTimeOfDay(time: Pick<SimTime, "hour" | "minute">): string {
   const period = time.hour < HOURS_PER_HALF_DAY ? "am" : "pm";

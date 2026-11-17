@@ -7,6 +7,7 @@ import { listBodyWords } from "../status/conditions";
 import { computeStarvationDamage, describeHealthAsSeen, isDead } from "../status/health";
 import { describeDoing } from "./action-phrases";
 import { getAgentRuntime } from "./agent-runtime";
+import { findOwnOffer } from "./offers";
 import { buildHeldKnowledge } from "./held-knowledge";
 import { describeBodyHolding } from "./prompt-lines";
 import {
@@ -26,6 +27,7 @@ import {
   listLivingAgents,
   toPerceiver,
 } from "./world-access";
+import { describeLocation } from "../world/place-names";
 import type { WorldState } from "./world-state";
 
 const { minutesPerTick } = config.clock;
@@ -108,7 +110,7 @@ export function buildDecisionContext(
     body: agent.body,
     intention: agent.intention,
     simTime: formatSimTime(state.tick, config.clock),
-    place: agent.place,
+    place: describeLocation(state.map, agent.place, agent.pos),
     nearbyEntities,
     aroundYou: {
       entries: aroundYouEntries,
@@ -137,6 +139,7 @@ export function buildDecisionContext(
             giverName: describeAgentAsSeen(findAgent(state, runtime.pendingOffer.giverId)),
             itemText: runtime.pendingOffer.itemText,
           },
+    ownOffer: findOwnOffer(state, agentId),
     validTargets: buildValidTargets(state, agent),
     validItems: listValidItems(state, agent),
     validHolders: listValidHolders(state, agent),

@@ -1,6 +1,7 @@
 import type { DecisionAction } from "@village/shared";
 import { config } from "../config";
 import { fillTemplate, loadTemplate } from "../llm/templates";
+import { describePlace } from "../memory/filing";
 import type { TemplateValues } from "../llm/templates";
 import { describeAroundYou } from "./around-you";
 import type { DecisionContext } from "./context";
@@ -24,6 +25,7 @@ const DECISION_TEMPLATE = "decision";
 const CONTINUE_ACTION_TEMPLATE = "decision-continue";
 const PRESSING_NEEDS_TEMPLATE = "decision-pressing";
 const OFFER_TEMPLATE = "decision-offer";
+const OWN_OFFER_TEMPLATE = "decision-own-offer";
 /** Marks the end of a part of the template that is stable enough for the provider to cache. */
 const CACHE_BREAKPOINT_MARKER = "<<<cache>>>\n";
 const BASE_ACTIONS: readonly DecisionAction[] = ["walk_to", "interact", "give", "wait"];
@@ -37,6 +39,7 @@ interface OptionalTemplates {
   continueAction: string;
   pressingNeeds: string;
   offer: string;
+  ownOffer: string;
 }
 
 function buildTemplateValues(
@@ -79,7 +82,15 @@ function buildTemplateValues(
             { giver: context.offer.giverName, what: context.offer.itemText },
             OFFER_TEMPLATE,
           ),
-    place: context.place,
+    ownOffer:
+      context.ownOffer === null
+        ? ""
+        : fillTemplate(
+            optional.ownOffer,
+            { recipient: context.ownOffer.recipientName, what: context.ownOffer.itemText },
+            OWN_OFFER_TEMPLATE,
+          ),
+    place: describePlace(context.place),
     here: describeNearbyEntities(context.nearbyEntities),
     seenPlaces: describeSeenPlaces(context.seenPlaces),
     aroundYou: describeAroundYou(context.aroundYou),
@@ -121,6 +132,7 @@ export function buildCacheableDecisionPrompt(
     continueAction: loadTemplate(CONTINUE_ACTION_TEMPLATE, promptsDirectory).trim(),
     pressingNeeds: loadTemplate(PRESSING_NEEDS_TEMPLATE, promptsDirectory).trim(),
     offer: loadTemplate(OFFER_TEMPLATE, promptsDirectory).trim(),
+    ownOffer: loadTemplate(OWN_OFFER_TEMPLATE, promptsDirectory).trim(),
   };
   const filled = fillTemplate(template, buildTemplateValues(context, optional), DECISION_TEMPLATE);
   return extractCacheBreakpoints(filled);

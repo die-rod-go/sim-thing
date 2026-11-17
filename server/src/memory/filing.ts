@@ -1,4 +1,4 @@
-import type { Volume, WorldEvent } from "@village/shared";
+import type { Position, Volume, WorldEvent } from "@village/shared";
 import type { EventPerception, PerceivedEvent } from "../perception/types";
 import { isTakingPart, type ConversationLog } from "./conversation";
 
@@ -8,6 +8,8 @@ export interface FilingContext {
   conversationLog: ConversationLog;
   /** Per listener, the agent ids whose voices it recognizes without seeing them. */
   knownAgentIdsByListener: Readonly<Record<string, readonly string[]>>;
+  /** The name a spot goes by: its place, or the road by the nearest place outside every place. */
+  nameLocation: (place: string, pos: Position) => string;
 }
 
 /** One event as one agent took it in: the text that goes into that agent's stream. */
@@ -144,8 +146,9 @@ function draftForSpeechPerceiver(
     return { ...base, text };
   }
   if (perception.hearing === "muffled") {
+    const where = describePlace(context.nameLocation(event.place, event.pos));
     const text =
-      `I heard ${speakerLabel}'s voice from ${describePlace(event.place)}` +
+      `I heard ${speakerLabel}'s voice from ${where}` +
       `${describeDirection(perception.direction)} but couldn't make out the words`;
     return { agentId: perception.agentId, text };
   }
@@ -157,13 +160,15 @@ function draftForSpeechPerceiver(
 function draftForActionPerceiver(
   perception: EventPerception,
   event: WorldEvent,
+  context: FilingContext,
 ): FiledEvent | null {
   const agentId = perception.agentId;
   if (perception.isInSight) {
     const text = `I saw that ${event.actorName} ${event.description}`;
     return { agentId, text };
   }
-  const source = `${describePlace(event.place)}${describeDirection(perception.direction)}`;
+  const where = describePlace(context.nameLocation(event.place, event.pos));
+  const source = `${where}${describeDirection(perception.direction)}`;
   if (perception.hearing === "clear") {
     const text = `I heard sounds from ${source}: someone ${event.description}`;
     return { agentId, text };
@@ -189,7 +194,7 @@ function draftForPerceiver(
   }
   return isSpeech(event)
     ? draftForSpeechPerceiver(perception, event, context)
-    : draftForActionPerceiver(perception, event);
+    : draftForActionPerceiver(perception, event, context);
 }
 
 function draftsForPerceivers(

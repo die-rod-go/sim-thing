@@ -15,6 +15,7 @@ A browser-viewable village simulation: LLM-driven agents with memory, needs, goa
 | `make check`   | Typecheck and lint                         |
 | `make test`    | Run all tests                              |
 | `make soak`    | Full three-sim-day headless soak (minutes) |
+| `make measure` | Measure the saved run (`SAVE=<path>`)      |
 | `make reset`   | Wipe the saved sim and reseed              |
 
 `make check` and `make test` must pass before any task is considered done. Once they do, commit the
@@ -95,7 +96,8 @@ on the entity: no creature settings in the config, and no creature state kept by
 - Cover the code-driven core with unit tests: perception (sight and sound), seen places, event
   filing, the stream (appending, merging repeats), summaries (what is due, the midnight steps), passes (what is due, applying replies), needs
   decay, each step type, the verb runner,
-  rules, matchers, `items.json` validation, `give` and creature instincts.
+  rules, matchers, `items.json` validation, `give`, creature instincts, place names and the
+  measurement script's measures.
 - Name tests by behavior: `"muffles speech heard through a closed door"`.
 - Tests live in each workspace's `tests/` folder (`server/tests`, `client/tests`, `shared/tests`),
   mirroring the layout of its `src/`. Test-only helpers live there too; helpers that runtime code

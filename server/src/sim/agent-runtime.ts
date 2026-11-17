@@ -8,6 +8,8 @@ const walkDestinationSchema = z.discriminatedUnion("kind", [
   z.object({ kind: z.literal("place"), placeName: z.string() }),
   z.object({ kind: z.literal("agent"), agentId: z.string() }),
   z.object({ kind: z.literal("entity"), entityId: z.string() }),
+  /** A spot outside every place, by the name it goes by ("the road by the smithy"). */
+  z.object({ kind: z.literal("tile"), pos: positionSchema, name: z.string() }),
 ]);
 
 /**
