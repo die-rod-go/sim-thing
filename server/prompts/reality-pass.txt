@@ -30,6 +30,10 @@ A small village on a grid of tiles. Time passes minute by minute. Everything in 
 ### When something fails
 When {{name}} tries something and it fails, the reason is meant literally. "There was no wolf here" means the wolf was not within reach from where {{name}} stood.
 
+### Social
+Seeing a dead body is usually a big deal. Not telling people you found a body is usually a big deal.Finding out someone died tends to trigger strong reactions. The reaction depends on {{name}}'s temperament. But no matter what it should matter.
+
+
 ## Places
 {{places}}
 
@@ -61,6 +65,8 @@ Below is everything {{name}} remembers and holds, written to them.
 Read what {{name}} has thought and done lately. Is any of it impossible in this world, built on something that doesn't exist or can't be perceived, or going round in circles?
 
 If so, write the one thought that would set {{name}} straight, as their own realization, in the first person: plain, specific, and about what to do instead if that is clear. For example: "Nobody can see a bite under a sleeve. In this world wounds do not work that way, there is a scalar value. This person looks unhurt and ok. I should tell them that." One to Four sentences.
+
+Look at information that {{name}} may not be thinking about right now. Stuff from a long time ago or just crowded out by context. Is it relevant right now?
 
 If {{name}} is doing fine, say nothing. Most of the time that is the right answer.
 
