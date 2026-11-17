@@ -23,8 +23,9 @@ const SECTION_PREFIX = "## ";
 /** The title of the section that holds the stream in `decision.txt`. */
 const STREAM_SECTION_TITLE = "Just now";
 export const TOP_SECTION = "(top)";
-const STREAM_LINE_PATTERN =
-  /^- \[(Day \d+, \d{1,2}:\d{2} [ap]m)(?: to [^\]]+)?\] (.*?)(?: \(×(\d+)\))?$/;
+const STREAM_LINE_PATTERN = /^- \[(Day \d+, \d{1,2}:\d{2} [ap]m)(?: to [^\]]+)?\] (.*)$/;
+/** A merged repeat's count, after the text or before the words of speech. */
+const REPEAT_COUNT_PATTERN = / \(×(\d+)\)/;
 /** The title of the section that holds the agenda in `decision.txt`. */
 const TODAY_SECTION_TITLE = "Today";
 const AGENDA_LINE_PATTERN = /^(\d+)\. (?:\d{1,2}:\d{2} [ap]m: )?(.*)$/;
@@ -60,7 +61,10 @@ function readStreamLines(lines: readonly string[]): DecisionPromptFacts["streamL
     const match = STREAM_LINE_PATTERN.exec(line);
     const tick = match?.[1] === undefined ? null : parseSimTime(match[1], config.clock);
     if (match === null || tick === null) continue;
-    streamLines.push({ tick, text: match[2] ?? "", count: Number(match[3] ?? 1) });
+    const shown = match[2] ?? "";
+    const count = REPEAT_COUNT_PATTERN.exec(shown)?.[1];
+    const text = shown.replace(REPEAT_COUNT_PATTERN, "");
+    streamLines.push({ tick, text, count: count === undefined ? 1 : Number(count) });
   }
   return streamLines;
 }

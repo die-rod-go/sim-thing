@@ -172,6 +172,14 @@ export interface StreamEntry {
   /** For a merged repeat: how many times it happened, and the tick of the last time. */
   count?: number;
   endTick?: number;
+  /** For speech: who spoke and the words, so a near repeat of the same speaker can merge. */
+  speech?: { speakerId: string; words: string };
+}
+
+/** A moment the agent will never forget, or one waiting for its reflection to decide. */
+export interface KeyMemory {
+  tick: number;
+  text: string;
 }
 
 export type SummaryLevel = "episode" | "chronicle" | "daySummary" | "history";
@@ -217,6 +225,12 @@ export interface AgentMemory {
   passes: PassProgress;
   /** Since when the agent has owed a day plan (it woke, or the sim began); null when it owes none. */
   dayPlanOwedSinceTick: number | null;
+  /** A few moments that are never compressed, oldest first; written only by the reflection. */
+  keyMemories: KeyMemory[];
+  /** Moments marked to remember, by a decision or an episode, waiting for the reflection. */
+  keyMemoryCandidates: KeyMemory[];
+  /** The last tick being attacked gave a reckoning, so a fight is one reckoning, not one a blow. */
+  lastAttackReckoningTick: number | null;
 }
 
 /** Which passes an agent owes, counted from the episodes and chronicles that have formed. */
@@ -257,6 +271,10 @@ export interface DecisionReply {
   dropped?: number[];
   /** New agenda items. */
   added?: { text: string; hour: number | null }[];
+  /** One sentence the agent marks to remember for the rest of its life. */
+  remember?: string;
+  /** In a reckoning: the whole new agenda for Today. */
+  agenda?: { text: string; hour: number | null }[];
 }
 
 export interface EventSpeech {
@@ -328,6 +346,7 @@ export interface WorldEvent {
 
 export type LlmCallKind =
   | "decision"
+  | "reckoning"
   | "interact"
   | "episode"
   | "chronicle"

@@ -67,12 +67,21 @@ describe("attacking someone", () => {
     expect(missed?.description).toBe("swung a knife at Tobias and missed");
   });
 
-  it("gives the target an urgent decision on a hit or a miss", () => {
+  it("gives the target a reckoning on the first blow, hit or miss, then urgent decisions", () => {
     const sim = setUp();
     stabTobias(sim, ALWAYS_MISS);
-    expect(getAgentRuntime(sim.state, "tobias").pendingDecision).toEqual({
+    const runtime = getAgentRuntime(sim.state, "tobias");
+    expect(runtime.pendingDecision).toEqual({
       reason: "Mara attacked me",
       isUrgent: true,
+      isReckoning: true,
+    });
+    runtime.pendingDecision = null;
+    stabTobias(sim, ALWAYS_MISS);
+    expect(runtime.pendingDecision).toEqual({
+      reason: "Mara attacked me",
+      isUrgent: true,
+      isReckoning: false,
     });
   });
 
@@ -82,6 +91,7 @@ describe("attacking someone", () => {
     expect(getAgentRuntime(sim.state, "ilsa").pendingDecision).toEqual({
       reason: "I saw Mara attack Tobias",
       isUrgent: true,
+      isReckoning: false,
     });
   });
 

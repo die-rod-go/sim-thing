@@ -37,6 +37,9 @@ function makeDetail(agentId: string): AgentDetailMessage {
       midnight: null,
       retryAtTick: null,
       dayPlanOwedSinceTick: null,
+      keyMemories: [],
+      keyMemoryCandidates: [],
+      lastAttackReckoningTick: null,
       passes: {
         episodesSincePeople: 0,
         episodesSinceReality: 0,

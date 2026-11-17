@@ -18,6 +18,7 @@ import {
 } from "../decision/schema-fields";
 import {
   describeEpisodes,
+  describeKeyMemories,
   describeLongTermGoals,
   describeOlderMemory,
   describePeople,
@@ -94,6 +95,7 @@ export function buildPassContext(
       traits: describeTraitValues(agent.personality.traits),
       longTermGoals: describeLongTermGoals(held.longTermGoals),
       today: describeAgenda(held.agenda),
+      keyMemories: describeKeyMemories(held.keyMemories),
       people: describePeople(held.people),
     },
     promptsDirectory,

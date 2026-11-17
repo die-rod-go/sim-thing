@@ -103,6 +103,8 @@ const pendingDecisionSchema = z.object({
   reason: z.string(),
   /** Urgent reasons (own name, conversation, woken, offered something) skip the interrupt cooldown. */
   isUrgent: z.boolean(),
+  /** A significant reason makes the decision a reckoning; it is always urgent too. */
+  isReckoning: z.boolean(),
 });
 
 /** Something another agent is offering this one, until it is answered or lapses. */
@@ -205,8 +207,19 @@ export function getCreatureRuntime(state: WorldState, entityId: string): Creatur
   return created;
 }
 
-/** Flags a decision; an urgent reason replaces a non-urgent one, never the other way round. */
-export function requestDecision(runtime: AgentRuntime, reason: string, isUrgent: boolean): void {
-  if (runtime.pendingDecision?.isUrgent && !isUrgent) return;
-  runtime.pendingDecision = { reason, isUrgent };
+/**
+ * Flags a decision; a reckoning outranks an urgent reason, which outranks a notable one, and a
+ * lesser reason never replaces a greater.
+ */
+export function requestDecision(
+  runtime: AgentRuntime,
+  reason: string,
+  isUrgent: boolean,
+  isReckoning = false,
+): void {
+  const rank = (pending: PendingDecision) => (pending.isReckoning ? 2 : pending.isUrgent ? 1 : 0);
+  const requested = { reason, isUrgent: isUrgent || isReckoning, isReckoning };
+  const existing = runtime.pendingDecision;
+  if (existing !== null && rank(existing) > rank(requested)) return;
+  runtime.pendingDecision = requested;
 }

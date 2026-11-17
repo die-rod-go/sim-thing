@@ -1,6 +1,7 @@
 import type { DecisionAction, DecisionReply, OfferAnswer, Volume } from "@village/shared";
 import { z } from "zod";
 import { PLANNED_ITEM_JSON, plannedItemSchema } from "../agenda/agenda-schema";
+import { config } from "../config";
 import type { JsonSchema } from "../llm/types";
 import type { DecisionTargets, ValidItem } from "./context";
 import { listOfferedActions } from "./decision-prompt";
@@ -17,6 +18,7 @@ import {
   nullableJsonString,
   nullableJsonStringOffering,
   strictJsonObject,
+  writtenText,
 } from "./schema-fields";
 
 const VOLUMES: readonly [Volume, ...Volume[]] = ["whisper", "normal", "shout"];
@@ -38,15 +40,20 @@ export interface DecisionSchemaOptions {
    * schema that changes per call stops a provider's prompt cache from matching.
    */
   isReplySchemaStable?: boolean;
+  /** A reckoning may also write the whole new agenda. */
+  isReckoning?: boolean;
 }
+
+const AGENDA_JSON: JsonSchema = nullableJsonObject({ type: "array", items: PLANNED_ITEM_JSON });
 
 function buildDecisionJsonSchema(
   actions: readonly string[],
   targetNames: string[],
   itemNames: string[],
   holderNames: string[],
-  isStable: boolean,
+  options: DecisionSchemaOptions,
 ): JsonSchema {
+  const isStable = options.isReplySchemaStable ?? false;
   const nameField = (names: string[]) =>
     isStable ? nullableJsonString() : nullableJsonEnum(names);
   return strictJsonObject({
@@ -70,7 +77,9 @@ function buildDecisionJsonSchema(
     offer: nullableJsonEnum(OFFER_ANSWERS),
     done: nullableJsonObject(NUMBER_LIST_JSON),
     dropped: nullableJsonObject(NUMBER_LIST_JSON),
-    added: nullableJsonObject({ type: "array", items: PLANNED_ITEM_JSON }),
+    added: AGENDA_JSON,
+    remember: nullableJsonString(),
+    ...(options.isReckoning ? { agenda: AGENDA_JSON } : {}),
   });
 }
 
@@ -151,19 +160,18 @@ export function buildDecisionReplySchema(
       done: z.array(z.number().int()).optional(),
       dropped: z.array(z.number().int()).optional(),
       added: z.array(plannedItemSchema).optional(),
+      remember: writtenText(config.memory.keyMemoryMaxChars).min(1).optional(),
+      agenda: z
+        .array(plannedItemSchema)
+        .transform((items) => items.slice(0, config.agenda.maxItems))
+        .optional(),
     })
     .superRefine(requireFieldsForAction)
     .superRefine(targetCheck.refine)
     .transform(targetCheck.canonicalize);
   return {
     schema: z.preprocess(dropEmptyFields, replyObject),
-    jsonSchema: buildDecisionJsonSchema(
-      actions,
-      targetNames,
-      itemNames,
-      validHolders,
-      options.isReplySchemaStable ?? false,
-    ),
+    jsonSchema: buildDecisionJsonSchema(actions, targetNames, itemNames, validHolders, options),
     schemaName: "decision_reply",
   };
 }

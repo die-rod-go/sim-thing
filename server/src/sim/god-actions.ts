@@ -19,7 +19,6 @@ import {
 } from "../items/entity-store";
 import { createThingEvent, type ThingRef } from "../items/things";
 import { describePlace } from "../memory/filing";
-import { oweLongTermGoalsPass } from "../memory/summaries";
 import { isDead } from "../status/health";
 import { findPlaceAt } from "../world/map-loader";
 import { isWalkable } from "../world/pathfinding";
@@ -33,7 +32,6 @@ import {
   appendToStream,
   buildWalkingGridFor,
   findAgent,
-  getAgentMemory,
   listLivingAgents,
   markAgentChanged,
   markEntityChanged,
@@ -136,7 +134,9 @@ function moveAgent(context: TickContext, agentId: string, pos: Position): string
     description: words.appearedDescription,
     actorDescription: words.movedOwnDescription.split("{place}").join(describePlace(place)),
   });
-  if (isLiving) requestDecision(getAgentRuntime(state, agentId), words.movedDecisionReason, true);
+  if (isLiving) {
+    requestDecision(getAgentRuntime(state, agentId), words.movedDecisionReason, true, true);
+  }
   return null;
 }
 
@@ -203,10 +203,9 @@ function deleteEntity(context: TickContext, entityId: string): string | null {
 }
 
 /**
- * Every living agent hears the viewer's words, wherever they are and even asleep, decides at once
- * with the words as the reason, and owes its long-term goals pass so its aims can change too. It
- * goes straight into each stream rather than through perception: the voice has no speaker in the
- * world, so there is no one to see, hear from a direction, or talk back to.
+ * Every living agent hears the viewer's words, wherever they are and even asleep, and reckons with
+ * them at once. It goes straight into each stream rather than through perception: the voice has
+ * no speaker in the world, so there is no one to see, hear from a direction, or talk back to.
  */
 function speakToAll(context: TickContext, words: string): string | null {
   const { state, result } = context;
@@ -216,10 +215,9 @@ function speakToAll(context: TickContext, words: string): string | null {
   const heard = godWords.voiceHeardDescription.split("{words}").join(spoken);
   const reason = godWords.voiceDecisionReason.split("{words}").join(spoken);
   for (const agent of listLivingAgents(state)) {
-    appendToStream(state, agent.id, heard, godWords.voiceHeardMaxChars);
-    state.agentMemories[agent.id] = oweLongTermGoalsPass(getAgentMemory(state, agent.id));
+    appendToStream(state, agent.id, heard, { maxChars: godWords.voiceHeardMaxChars });
     markAgentChanged(result, agent.id);
-    requestDecision(getAgentRuntime(state, agent.id), reason, true);
+    requestDecision(getAgentRuntime(state, agent.id), reason, true, true);
   }
   return null;
 }

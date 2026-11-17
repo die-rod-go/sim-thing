@@ -1,0 +1,4 @@
+## Something has happened
+{{reason}}.
+Before you choose, take it in as {{name}}. What does it mean to you, given who you are and who they were to you? How do you feel? Who needs to know? Does it change what you want, today or beyond?
+If your day has changed, write agenda: the whole new list for Today, at most {{maxItems}} items, each with text and hour. If this is a moment you will remember for the rest of your life, write it in remember, in one sentence.

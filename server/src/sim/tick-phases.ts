@@ -194,7 +194,7 @@ function noticeBodies(context: TickContext, viewer: Agent, newlyVisibleIds: stri
   if (foundBodies.length === 0) return;
   const bodies = foundBodies.map(describeAgentAsSeen).join(", ");
   const reason = words.foundBodyReason.split("{bodies}").join(bodies);
-  requestDecision(getAgentRuntime(state, viewer.id), reason, true);
+  requestDecision(getAgentRuntime(state, viewer.id), reason, true, true);
 }
 
 /**
@@ -240,6 +240,8 @@ export interface DecisionRequest {
   isMidActionInterrupt: boolean;
   /** What flagged this decision ("Jess came into view"), or null when the agent simply had nothing to do. */
   reason: string | null;
+  /** Something significant flagged it: the decision is a reckoning. */
+  isReckoning: boolean;
 }
 
 /**
@@ -266,6 +268,7 @@ export function selectDecisionRequests(
       agentId: agent.id,
       isMidActionInterrupt,
       reason: pending?.reason ?? null,
+      isReckoning: pending?.isReckoning ?? false,
     });
     if (agent.currentAction === null || pending?.isUrgent) {
       requests.push(buildRequest());

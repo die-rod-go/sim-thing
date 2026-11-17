@@ -5,7 +5,7 @@ import { buildNameGrouper } from "./grouping";
 import type { CallRecord, DecisionRecord, SaveRecords } from "./records";
 
 const MINUTES_PER_HOUR = 60;
-const DECISION_KINDS: readonly LlmCallKind[] = ["decision", "interact"];
+export const DECISION_KINDS: readonly LlmCallKind[] = ["decision", "reckoning", "interact"];
 const SUMMARY_KINDS: readonly LlmCallKind[] = ["episode", "chronicle", "day_summary", "history"];
 /** The reason shown for a decision nothing flagged: the agent had nothing left to do. */
 export const NO_REASON = "(nothing to do)";

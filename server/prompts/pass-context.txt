@@ -19,6 +19,8 @@ Your traits, each from -1 to 1:
 ## Long-term goals
 {{longTermGoals}}
 
+{{keyMemories}}
+
 ## Today
 {{today}}
 

@@ -5,6 +5,7 @@ import {
   type AgentMemory,
   type Entity,
   type Position,
+  type StreamEntry,
 } from "@village/shared";
 import { config } from "../config";
 import type { NamedCandidate } from "../decision/resolve-name";
@@ -151,16 +152,26 @@ export function getAgentMemory(state: WorldState, agentId: string): AgentMemory 
   return created;
 }
 
-/** Appends one event, in the agent's own words, to its stream at the current tick. */
+export interface StreamEntryOptions {
+  /** For speech: who spoke and the words, so near repeats of a speaker merge. */
+  speech?: StreamEntry["speech"];
+  /** A longer length limit than usual (the voice from the sky, heard whole). */
+  maxChars?: number;
+}
+
+/**
+ * Appends one event, in the agent's own words, to its stream at the current tick; a repeat of a
+ * recent entry merges with it, unless that one went to a running summary.
+ */
 export function appendToStream(
   state: WorldState,
   agentId: string,
   text: string,
-  maxChars?: number,
+  options: StreamEntryOptions = {},
 ): void {
   const memory = getAgentMemory(state, agentId);
   const sentCount = state.streamEntriesInSummary[agentId] ?? 0;
-  const canMergeIntoLast = memory.stream.length > sentCount;
-  const stream = appendStreamEntry(memory.stream, text, state.tick, canMergeIntoLast, maxChars);
+  const entry = { text, ...(options.speech ? { speech: options.speech } : {}) };
+  const stream = appendStreamEntry(memory.stream, entry, state.tick, sentCount, options.maxChars);
   state.agentMemories[agentId] = { ...memory, stream };
 }

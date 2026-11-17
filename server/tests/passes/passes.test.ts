@@ -6,7 +6,7 @@ import {
   createAgentMemory,
   findDuePass,
   markPassDone,
-  oweLongTermGoalsPass,
+  oweTakingStock,
 } from "../../src/memory/summaries";
 import {
   createTestSim,
@@ -59,10 +59,14 @@ describe("what is due", () => {
     expect(order).toEqual(["identity", "longTermGoals", "people"]);
   });
 
-  it("owes the long-term goals pass at once when told to, without waiting for a chronicle", () => {
-    const memory = oweLongTermGoalsPass(settled);
-    expect(findDuePass(memory)).toBe("longTermGoals");
-    expect(findDuePass(markPassDone(memory, "longTermGoals"))).toBeNull();
+  it("owes the long-term goals and people passes at once when the agent must take stock", () => {
+    const order: string[] = [];
+    let memory = oweTakingStock(settled);
+    for (let pass = findDuePass(memory); pass !== null; pass = findDuePass(memory)) {
+      order.push(pass);
+      memory = markPassDone(memory, pass);
+    }
+    expect(order).toEqual(["longTermGoals", "people"]);
   });
 
   it("owes the reality pass after enough new episodes", () => {

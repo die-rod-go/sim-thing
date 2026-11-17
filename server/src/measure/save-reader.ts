@@ -144,7 +144,8 @@ function readCallRecords(
       cacheReadTokens: row.cache_read_tokens ?? 0,
       cacheWriteTokens: row.cache_write_tokens ?? 0,
     });
-    if (row.kind !== "decision" || row.error !== null) continue;
+    const isDecision = row.kind === "decision" || row.kind === "reckoning";
+    if (!isDecision || row.error !== null) continue;
     const facts = readDecisionPrompt(row.prompt, nameTitle);
     const parsed = parseJsonOrNull(row.parsed);
     records.decisions.push({

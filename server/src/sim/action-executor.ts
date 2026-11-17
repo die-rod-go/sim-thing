@@ -1,12 +1,13 @@
 import type { Agent, AgentThought, DecisionReply } from "@village/shared";
-import { applyAgendaChanges } from "../agenda/agenda";
+import { applyAgendaChanges, replaceAgenda } from "../agenda/agenda";
+import { oweTakingStock } from "../memory/summaries";
 import { config } from "../config";
 import { computeChebyshevDistance } from "../economy/give";
 import { isDead } from "../status/health";
 import { WAIT_ACTION } from "./action-phrases";
 import { stopCurrentAction } from "./action-stopping";
 import { getAgentRuntime } from "./agent-runtime";
-import type { DecidedReply, DecisionPlan, PlannedAction, PlannedSpeech } from "./decision-runner";
+import type { DecisionPlan, PlannedAction, PlannedSpeech } from "./decision-runner";
 import { broadcastEvent } from "./event-broadcast";
 import { createSpeechEvent } from "./event-factory";
 import { failAction } from "./failure";
@@ -15,10 +16,12 @@ import { describeLocation } from "../world/place-names";
 import { findWalkDestination } from "./walk-target";
 import type { TickContext } from "./tick-context";
 import { startOrApproachVerb } from "./verb-approach";
+import { markToRemember } from "./key-memories";
 import { startWalk } from "./walk-start";
 import {
   describeAgentAsSeen,
   findAgent,
+  getAgentMemory,
   markAgentChanged,
   appendToStream,
   replaceAgent,
@@ -32,14 +35,19 @@ function chooseLastThought(agent: Agent, reply: DecisionReply, tick: number): Ag
 }
 
 /**
- * intention, mood and the agenda's done, dropped and added: free mental acts that ride along with
- * any action. A finished or dropped item goes into the stream in the agent's own words.
+ * intention, mood, the agenda (a reckoning's whole new list, then done, dropped and added) and
+ * remember: free mental acts that ride along with any action. A finished or dropped item and a
+ * moment to remember go into the stream in the agent's own words. After a reckoning the agent
+ * owes taking stock.
  */
-function applyFreeActs(context: TickContext, agentId: string, decided: DecidedReply): void {
+function applyFreeActs(context: TickContext, plan: DecisionPlan): void {
   const { state } = context;
-  const { reply } = decided;
+  const { agentId } = plan;
+  const { reply } = plan.reply;
   const agent = findAgent(state, agentId);
-  const planned = applyAgendaChanges(agent, {
+  const replanned =
+    plan.isReckoning && reply.agenda !== undefined ? replaceAgenda(agent, reply.agenda) : agent;
+  const planned = applyAgendaChanges(replanned, {
     done: reply.done ?? [],
     dropped: reply.dropped ?? [],
     added: reply.added ?? [],
@@ -51,6 +59,10 @@ function applyFreeActs(context: TickContext, agentId: string, decided: DecidedRe
     lastThought: chooseLastThought(agent, reply, state.tick),
   });
   for (const text of planned.streamTexts) appendToStream(state, agentId, text);
+  if (reply.remember !== undefined) markToRemember(state, agentId, reply.remember);
+  if (plan.isReckoning) {
+    state.agentMemories[agentId] = oweTakingStock(getAgentMemory(state, agentId));
+  }
 }
 
 function startWait(context: TickContext, agentId: string, minutes: number): void {
@@ -150,7 +162,7 @@ export function applyDecisionPlan(context: TickContext, plan: DecisionPlan): voi
   const isContinuing =
     plan.action.kind === "continue" && findAgent(state, agentId).currentAction !== null;
   if (!isContinuing) stopCurrentAction(context, agentId);
-  applyFreeActs(context, agentId, plan.reply);
+  applyFreeActs(context, plan);
   const runtime = getAgentRuntime(state, agentId);
   runtime.lastFailure = null;
   for (const note of plan.unknownNameNotes) noteUnknownName(context, agentId, note);

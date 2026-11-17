@@ -12,6 +12,7 @@ import {
   describeDecisionReason,
   describeLastFailure,
   describeEpisodes,
+  describeKeyMemories,
   describeNearbyEntities,
   describeOlderMemory,
   describeLongTermGoals,
@@ -28,6 +29,7 @@ const CONTINUE_ACTION_TEMPLATE = "decision-continue";
 const PRESSING_NEEDS_TEMPLATE = "decision-pressing";
 const OFFER_TEMPLATE = "decision-offer";
 const OWN_OFFER_TEMPLATE = "decision-own-offer";
+const RECKONING_TEMPLATE = "decision-reckoning";
 /** Marks the end of a part of the template that is stable enough for the provider to cache. */
 const CACHE_BREAKPOINT_MARKER = "<<<cache>>>\n";
 const BASE_ACTIONS: readonly DecisionAction[] = ["walk_to", "interact", "give", "wait"];
@@ -42,6 +44,7 @@ interface OptionalTemplates {
   pressingNeeds: string;
   offer: string;
   ownOffer: string;
+  reckoning: string;
 }
 
 function buildTemplateValues(
@@ -74,6 +77,18 @@ function buildTemplateValues(
     maxAgendaAdded: String(config.agenda.maxAddedPerDecision),
     people: describePersonLines(context.people),
     peopleOnMind: describePeopleOnMind(context.peopleOnMind),
+    keyMemories: describeKeyMemories(context.keyMemories),
+    reckoning: context.isReckoning
+      ? fillTemplate(
+          optional.reckoning,
+          {
+            name: context.name,
+            reason: context.decisionReason ?? "",
+            maxItems: String(config.agenda.maxItems),
+          },
+          RECKONING_TEMPLATE,
+        )
+      : "",
     simTime: context.simTime,
     intention: context.intention || "nothing in particular",
     currentAction: describeCurrentAction(context.currentAction, context.isMidActionInterrupt),
@@ -146,6 +161,7 @@ export function buildCacheableDecisionPrompt(
     pressingNeeds: loadTemplate(PRESSING_NEEDS_TEMPLATE, promptsDirectory).trim(),
     offer: loadTemplate(OFFER_TEMPLATE, promptsDirectory).trim(),
     ownOffer: loadTemplate(OWN_OFFER_TEMPLATE, promptsDirectory).trim(),
+    reckoning: loadTemplate(RECKONING_TEMPLATE, promptsDirectory).trim(),
   };
   const filled = fillTemplate(template, buildTemplateValues(context, optional), DECISION_TEMPLATE);
   return extractCacheBreakpoints(filled);

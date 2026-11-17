@@ -10,7 +10,10 @@ const streamEntrySchema = z.object({
   tick: tickSchema,
   count: z.number().int().positive().optional(),
   endTick: tickSchema.optional(),
+  speech: z.object({ speakerId: z.string(), words: z.string() }).optional(),
 });
+
+const keyMemorySchema = z.object({ tick: tickSchema, text: z.string() });
 
 const summarySchema = z.object({
   level: summaryLevelSchema,
@@ -44,4 +47,7 @@ export const agentMemorySchema: z.ZodType<AgentMemory> = z.object({
   retryAtTick: tickSchema.nullable(),
   passes: passProgressSchema,
   dayPlanOwedSinceTick: tickSchema.nullable(),
+  keyMemories: z.array(keyMemorySchema),
+  keyMemoryCandidates: z.array(keyMemorySchema),
+  lastAttackReckoningTick: tickSchema.nullable(),
 });

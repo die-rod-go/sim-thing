@@ -628,12 +628,34 @@ export const config = {
     retryAfterTicks: 40,
     /** An agent takes part in a conversation if it spoke within earshot of the speaker this recently. */
     participationWindowTicks: 10,
-    /** How a stream entry reads in a prompt; `{time}` is absolute. A merged repeat shows its span and count. */
+    /**
+     * How a stream entry reads in a prompt; `{time}` is absolute. A merged repeat shows its span,
+     * and its count (`repeatCount`) before the words of speech or after anything else.
+     */
     streamTexts: {
       entry: "[{time}] {text}",
-      repeated: "[{time} to {endTime}] {text} (×{count})",
+      repeated: "[{time} to {endTime}] {text}",
+      repeatCount: "(×{count})",
       empty: "Nothing yet.",
     },
+    /**
+     * A new stream entry that repeats one of the agent's last `lookbackEntries` entries within
+     * `windowTicks` replaces it at the end of the stream, counted. Speech by the same speaker
+     * repeats when its words overlap at least `minimumSimilarity`; anything else only when it is
+     * the same text, so a sighting's details are never blurred.
+     */
+    repeatMerge: { lookbackEntries: 8, windowTicks: 90, minimumSimilarity: 0.6 },
+    /** Most key memories an agent holds; the reflection drops one to make room for another. */
+    keyMemoriesMax: 8,
+    /** Length limit of a key memory, and of a decision's `remember`. */
+    keyMemoryMaxChars: 200,
+    /** Most moments waiting for the reflection; the oldest go first. */
+    keyMemoryCandidatesMax: 8,
+    /** How a decision's `remember` enters the stream. */
+    rememberText: "This I will remember: {text}",
+    /** How a key memory reads in prompts, under its title. */
+    keyMemoryText: "Day {day}: {text}",
+    keyMemoriesTitle: "Things you will never forget",
     /** How a summary reads in a prompt: the absolute span it covers, then its text. */
     summaryText: "[{time} to {endTime}] {text}",
     /** Shown to a summarizer that has no earlier summary to build on. */
@@ -709,6 +731,16 @@ export const config = {
     reminderReasonText: "it is {time}: {item}",
     /** Filed on waking for an item whose hour passed in sleep. */
     missedText: "I slept through: {item}",
+  },
+
+  /**
+   * A reckoning: a decision flagged by something significant (a body found, a death seen, the
+   * voice from the sky, being moved by the viewer, being attacked), which ends with "Something has
+   * happened" and may rewrite the whole of Today.
+   */
+  reckoning: {
+    /** Least time between two reckonings for being attacked; other reasons always reckon. */
+    attackCooldownTicks: 60,
   },
 
   realityPass: {
@@ -793,6 +825,7 @@ export const config = {
      */
     maxReplyTokens: {
       decision: 1500,
+      reckoning: 3000,
       interact: 500,
       // Each summary's length limit with `replyTextSlack`, at about one token per character.
       episode: 520,
@@ -817,6 +850,7 @@ export const config = {
     ] as LlmCallKind[],
     /** Calls of these kinds keep the model's thinking on even with `LLM_DISABLE_THINKING=true`. */
     thinkingKinds: [
+      "reckoning",
       "people",
       "day_plan",
       "identity",
@@ -835,6 +869,7 @@ export const config = {
      */
     effortByKind: {
       decision: "low",
+      reckoning: "medium",
       people: "medium",
       day_plan: "high",
       identity: "medium",

@@ -16,6 +16,12 @@ export interface FilingContext {
 export interface FiledEvent {
   agentId: string;
   text: string;
+  /** For words the agent heard or said: who spoke them and what they were. */
+  speech?: { speakerId: string; words: string };
+}
+
+function describeWords(event: WorldEvent & { speech: NonNullable<WorldEvent["speech"]> }) {
+  return { speakerId: event.actorId, words: event.speech.words };
 }
 
 const UNKNOWN_SPEAKER = "someone";
@@ -99,6 +105,7 @@ function draftsForParticipants(
     ? {
         agentId: event.actorId,
         text: `I ${SPEECH_PAST_TENSE[event.speech.volume]}: "${event.speech.words}"`,
+        speech: describeWords(event),
       }
     : {
         agentId: event.actorId,
@@ -136,7 +143,7 @@ function draftForSpeechPerceiver(
   const isActorKnown = recognizesActor(perception, event, context);
   const speakerLabel = isActorKnown ? event.actorName : UNKNOWN_SPEAKER;
   const { words, volume } = event.speech;
-  const base = { agentId: perception.agentId };
+  const base = { agentId: perception.agentId, speech: describeWords(event) };
   if (perception.hearing === "clear") {
     if (isTakingPart(context.conversationLog, perception.agentId, event.actorId, event.tick)) {
       const text = `${capitalize(speakerLabel)} ${SPEECH_PAST_TENSE[volume]}: "${words}"`;

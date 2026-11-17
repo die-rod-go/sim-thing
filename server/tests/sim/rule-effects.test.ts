@@ -76,6 +76,7 @@ describe("announce", () => {
     expect(getAgentRuntime(sim.state, "tobias").pendingDecision).toEqual({
       reason: "I caught fire",
       isUrgent: true,
+      isReckoning: false,
     });
   });
 
@@ -92,6 +93,7 @@ describe("announce", () => {
     expect(getAgentRuntime(sim.state, "tobias").pendingDecision).toEqual({
       reason: "I was poisoned",
       isUrgent: true,
+      isReckoning: false,
     });
     expect(memoryTexts(sim, "mara")).toEqual(marasMemories);
     expect(sim.streamTexts("mara").at(-1) ?? "").not.toMatch(/poisoned/);

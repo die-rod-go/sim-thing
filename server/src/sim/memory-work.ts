@@ -33,6 +33,7 @@ import {
 } from "../passes/pass-prompts";
 import { BackgroundWork } from "./background-work";
 import { planDay } from "./day-plan-job";
+import { addKeyMemoryCandidate } from "./key-memories";
 import type { JobOutcome } from "./memory-job";
 import { buildHeldKnowledge } from "./held-knowledge";
 import { buildGoalMoments, buildPersonalityMoments, recordMoments } from "./moments";
@@ -130,6 +131,8 @@ export function createMemoryWork(dependencies: SimDependencies): RunMemoryWork {
         const memory = getAgentMemory(current, agentId);
         if (!canApplySummary(memory, job)) return false;
         setMemory(current, agentId, settleMidnight(applySummary(memory, job, reply.value.summary)));
+        const keyMemory = reply.value.keyMemory?.trim() ?? "";
+        if (keyMemory !== "") addKeyMemoryCandidate(current, agentId, keyMemory);
         return true;
       },
     };

@@ -93,6 +93,8 @@ function buildContext(overrides: Partial<DecisionContext> = {}): DecisionContext
     offer: null,
     ownOffer: null,
     peopleOnMind: [],
+    isReckoning: false,
+    keyMemories: [],
     worldKnowledge: WORLD_KNOWLEDGE,
     validTargets: { places: ["bakery", "farm"], agents: ["Tom"], entities: ["oven"], aimOnly: [] },
     validItems: [{ name: "coin", plural: "coins" }, { name: "bread" }],

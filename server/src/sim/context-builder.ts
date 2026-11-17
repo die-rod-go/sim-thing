@@ -164,6 +164,7 @@ export function buildDecisionContext(
             itemText: runtime.pendingOffer.itemText,
           },
     ownOffer: findOwnOffer(state, agentId),
+    isReckoning: false,
     peopleOnMind: listPeopleOnMind(state, agent, [
       agent.intention,
       ...agent.agenda.map((item) => item.text),

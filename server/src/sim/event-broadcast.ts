@@ -14,6 +14,7 @@ import { isNotable } from "./attention";
 import {
   buildPerceptionWorld,
   findAgent,
+  getAgentMemory,
   listLivingAgents,
   markAgentChanged,
   appendToStream,
@@ -88,6 +89,20 @@ export const ATTACK_KINDS: readonly WorldEvent["kind"][] = ["attacked", "missed"
 /** The one an offer, its acceptance or its refusal is aimed at gets its decision from the offer itself. */
 const OFFER_KINDS: readonly WorldEvent["kind"][] = ["offered", "gave", "declined"];
 
+/**
+ * Whether being attacked now is a reckoning: the first blow of a fight is, and later ones within
+ * `reckoning.attackCooldownTicks` of it are not. Marks the reckoning when it is one.
+ */
+function takeAttackReckoning(state: WorldState, agentId: string): boolean {
+  const memory = getAgentMemory(state, agentId);
+  const lastTick = memory.lastAttackReckoningTick;
+  if (lastTick !== null && state.tick - lastTick < config.reckoning.attackCooldownTicks) {
+    return false;
+  }
+  state.agentMemories[agentId] = { ...memory, lastAttackReckoningTick: state.tick };
+  return true;
+}
+
 /** Whether the perceiver clearly heard the event's words name it. */
 function isOwnNameHeard(event: WorldEvent, perception: EventPerception, name: string): boolean {
   if (event.speech === undefined || perception.hearing !== "clear") return false;
@@ -95,9 +110,10 @@ function isOwnNameHeard(event: WorldEvent, perception: EventPerception, name: st
 }
 
 /**
- * Flags decisions for those who perceived the event. Being attacked, seeing an attack or a death,
- * clearly hearing one's own name and a sound loud enough to reach a sleeper are urgent; anything
- * else notable waits on the cooldown, which the decision phase applies; background flags nothing.
+ * Flags decisions for those who perceived the event. Seeing a death, and the first blow of a fight
+ * against the perceiver, are reckonings; seeing an attack, clearly hearing one's own name and a
+ * sound loud enough to reach a sleeper are urgent; anything else notable waits on the cooldown,
+ * which the decision phase applies; background flags nothing.
  */
 function flagDecisions(state: WorldState, event: WorldEvent, perceptions: EventPerception[]): void {
   const isAttack = ATTACK_KINDS.includes(event.kind);
@@ -106,7 +122,8 @@ function flagDecisions(state: WorldState, event: WorldEvent, perceptions: EventP
     const runtime = getAgentRuntime(state, perceiver.id);
     if (OFFER_KINDS.includes(event.kind) && event.targetId === perceiver.id) continue;
     if (isAttack && event.targetId === perceiver.id) {
-      requestDecision(runtime, `${event.actorName} attacked me`, true);
+      const isReckoning = takeAttackReckoning(state, perceiver.id);
+      requestDecision(runtime, `${event.actorName} attacked me`, true, isReckoning);
     } else if (isAttack && perception.isInSight) {
       requestDecision(
         runtime,
@@ -114,7 +131,7 @@ function flagDecisions(state: WorldState, event: WorldEvent, perceptions: EventP
         true,
       );
     } else if (event.kind === "died" && perception.isInSight) {
-      requestDecision(runtime, `I saw ${event.actorName} die`, true);
+      requestDecision(runtime, `I saw ${event.actorName} die`, true, true);
     } else if (isOwnNameHeard(event, perception, perceiver.name)) {
       const reason = config.perception.ownNameReason.split("{speaker}").join(event.actorName);
       requestDecision(runtime, reason, true);
@@ -158,7 +175,8 @@ export function broadcastEvent(
   mergeHeardAwareness(state, event, perceptions, result);
   if (event.kind === "said") state.conversationLog = recordSpeech(state.conversationLog, perceived);
   for (const filed of fileEvent(perceived, buildFilingContext(state))) {
-    if (!unperceivedBy.includes(filed.agentId)) appendToStream(state, filed.agentId, filed.text);
+    if (unperceivedBy.includes(filed.agentId)) continue;
+    appendToStream(state, filed.agentId, filed.text, filed.speech ? { speech: filed.speech } : {});
   }
   if (event.kind === "said") applyConversationSocial(state, event, perceptions, result);
   flagDecisions(state, event, perceptions);

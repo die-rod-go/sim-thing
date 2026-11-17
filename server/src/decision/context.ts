@@ -6,6 +6,7 @@ import type {
   Personality,
   PersonEntry,
   AgendaItem,
+  KeyMemory,
 } from "@village/shared";
 
 /** Names the agent may use as an action `target` right now. */
@@ -113,6 +114,8 @@ export interface HeldKnowledge {
   longTermGoals: LongTermGoal[];
   /** Today: the agent's plan, numbered. */
   agenda: AgendaItem[];
+  /** Moments the agent will never forget, oldest first. */
+  keyMemories: KeyMemory[];
   /** Everyone the agent has a person entry for. */
   people: KnownPerson[];
 }
@@ -174,6 +177,8 @@ export interface DecisionContext extends HeldKnowledge {
   ownOffer: OwnOfferSummary | null;
   /** The people whose full entries the decision shows: in the conversation, in sight, named. */
   peopleOnMind: KnownPerson[];
+  /** Something significant flagged the decision: it ends with "Something has happened". */
+  isReckoning: boolean;
   validTargets: DecisionTargets;
   validItems: ValidItem[];
   /** Things the agent can see into that hold something: what `from` may name. */

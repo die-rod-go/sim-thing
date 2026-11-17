@@ -163,6 +163,7 @@ function summarizeReply(
 ): Pick<ThoughtEntry, "headline" | "parts"> {
   switch (kind) {
     case "decision":
+    case "reckoning":
       return summarizeDecision(fields);
     case "episode":
     case "chronicle":

@@ -35,6 +35,7 @@ const nullReply = {
   done: null,
   dropped: null,
   added: null,
+  remember: null,
 };
 
 describe("buildDecisionReplySchema", () => {

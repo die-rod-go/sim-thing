@@ -22,6 +22,7 @@ export function buildHeldKnowledge(state: WorldState, agent: Agent): HeldKnowled
     })),
     longTermGoals: agent.longTermGoals,
     agenda: agent.agenda,
+    keyMemories: memory.keyMemories,
     people: state.agents.flatMap((other) => {
       const entry = agent.people[other.id];
       return entry === undefined ? [] : [{ name: other.name, pronouns: other.pronouns, entry }];

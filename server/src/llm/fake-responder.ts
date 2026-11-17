@@ -88,6 +88,10 @@ function buildBuiltInAnswers(hitRollVerbs: ReadonlySet<string>): Record<string, 
       selfImage: null,
     }),
     reality_reply: () => ({ noticed: "", thought: null }),
+    episode_reply: (_request, random) => ({
+      summary: random.pick(config.llm.fakeResponder.lines),
+      keyMemory: null,
+    }),
     long_term_goals_reply: () => ({
       goals: [{ goal: "Keep my work going", reason: "It is my living", progress: "Steady." }],
     }),

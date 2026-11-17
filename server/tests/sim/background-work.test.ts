@@ -41,6 +41,7 @@ function waitPlan(agentId: string): DecisionPlan {
     speech: null,
     unknownNameNotes: [],
     offerEventId: null,
+    isReckoning: false,
     action: { kind: "wait", minutes: 10 },
   };
 }

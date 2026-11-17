@@ -6,9 +6,7 @@ import {
   locateInside,
 } from "../../src/items/entity-store";
 import { config } from "../../src/config";
-import { findDuePass } from "../../src/memory/summaries";
 import { getAgentRuntime } from "../../src/sim/agent-runtime";
-import { getAgentMemory } from "../../src/sim/world-access";
 import {
   BESIDE_SQUARE,
   buildCombatSim,
@@ -42,6 +40,7 @@ describe("god mode: moving people", () => {
     expect(getAgentRuntime(sim.state, "mara").pendingDecision).toEqual({
       reason: "I suddenly found myself somewhere else",
       isUrgent: true,
+      isReckoning: true,
     });
   });
 
@@ -171,6 +170,7 @@ describe("god mode: speaking from the sky", () => {
       expect(getAgentRuntime(sim.state, agentId).pendingDecision).toEqual({
         reason: 'a booming voice from the sky said: "Repent!"',
         isUrgent: true,
+        isReckoning: true,
       });
     }
   });
@@ -183,13 +183,20 @@ describe("god mode: speaking from the sky", () => {
     expect(memoryTexts(sim, "mara")).toContain(`A booming voice from the sky said: "${words}"`);
   });
 
-  it("makes everyone alive rethink their goals at once", () => {
+  it("makes everyone alive reckon with it, and take stock afterwards", async () => {
     const sim = buildCombatSim();
     place(sim, { mara: SQUARE, tobias: COTTAGE });
     applyGodAction(contextOf(sim), { kind: "speak", words: "Goblins are coming" });
-    for (const agentId of ["mara", "tobias"]) {
-      expect(findDuePass(getAgentMemory(sim.state, agentId))).toBe("longTermGoals");
-    }
+    sim.records.length = 0;
+    await sim.advance();
+    const decisionKinds = sim.records
+      .filter((record) => record.kind === "decision" || record.kind === "reckoning")
+      .map((record) => record.kind);
+    expect(decisionKinds).toEqual(["reckoning", "reckoning"]);
+    expect(sim.records.find((record) => record.kind === "reckoning")?.prompt).toContain(
+      "## Something has happened",
+    );
+    expect(sim.records.map((record) => record.kind)).toContain("long_term_goals");
   });
 
   it("is not heard by the dead", () => {

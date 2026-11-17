@@ -46,6 +46,8 @@ export interface DecisionPlan {
   unknownNameNotes: string[];
   /** The `offered` event of the offer the decision was shown, which its `offer` answers. */
   offerEventId: number | null;
+  /** The decision was a reckoning, so its `agenda` replaces Today. */
+  isReckoning: boolean;
 }
 
 function fallbackWait(agent: Agent): DecisionReply {
@@ -62,13 +64,16 @@ async function askForDecision(
   dependencies: SimDependencies,
   request: DecisionRequest,
 ): Promise<DecidedReply> {
-  const context = buildDecisionContext(
-    state,
-    request.agentId,
-    request.isMidActionInterrupt,
-    request.reason,
-    dependencies.promptsDirectory,
-  );
+  const context = {
+    ...buildDecisionContext(
+      state,
+      request.agentId,
+      request.isMidActionInterrupt,
+      request.reason,
+      dependencies.promptsDirectory,
+    ),
+    isReckoning: request.isReckoning,
+  };
   const { text: prompt, cacheBreakpoints } = buildCacheableDecisionPrompt(
     context,
     dependencies.promptsDirectory,
@@ -80,10 +85,11 @@ async function askForDecision(
     {
       isMidActionInterrupt: request.isMidActionInterrupt,
       isReplySchemaStable: dependencies.isReplySchemaStable,
+      isReckoning: request.isReckoning,
     },
   );
   const reply = await dependencies.callStructured({
-    kind: "decision",
+    kind: request.isReckoning ? "reckoning" : "decision",
     agentId: request.agentId,
     tick: state.tick,
     prompt,
@@ -157,5 +163,6 @@ export async function runDecision(
     speech: planSpeech(decided),
     unknownNameNotes: [...new Set(decided.unknownNameNotes ?? [])],
     offerEventId,
+    isReckoning: request.isReckoning,
   };
 }

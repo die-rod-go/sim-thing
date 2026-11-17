@@ -35,6 +35,9 @@ export function createAgentMemory(
       isLongTermGoalsOwed: false,
     },
     dayPlanOwedSinceTick,
+    keyMemories: [],
+    keyMemoryCandidates: [],
+    lastAttackReckoningTick: null,
   };
 }
 
@@ -142,8 +145,13 @@ function lastTickOf(entry: StreamEntry): number {
 
 function spanOf(job: SummaryJob): { startTick: number; endTick: number } {
   if (job.level === "episode") {
-    const last = job.entries[job.entries.length - 1];
-    return { startTick: job.entries[0]?.tick ?? 0, endTick: last ? lastTickOf(last) : 0 };
+    // A merged repeat moves to the end of the stream, so the entries need not be in time order.
+    const ticks = job.entries.map((entry) => entry.tick);
+    const endTicks = job.entries.map(lastTickOf);
+    return {
+      startTick: ticks.length === 0 ? 0 : Math.min(...ticks),
+      endTick: endTicks.length === 0 ? 0 : Math.max(...endTicks),
+    };
   }
   if (job.level === "history") {
     return {
@@ -232,11 +240,19 @@ export function findDuePass(memory: AgentMemory): PassName | null {
 }
 
 /**
- * The long-term goals pass is owed now rather than when a chronicle forms, so news that changes
- * everything can change the agent's aims at once instead of hours later.
+ * Something has changed the agent's life (a reckoning, a moment marked to remember): the passes
+ * that rewrite its aims and what it holds about people are owed now, rather than when a chronicle
+ * or enough episodes form, so it can take stock at once instead of hours later.
  */
-export function oweLongTermGoalsPass(memory: AgentMemory): AgentMemory {
-  return { ...memory, passes: { ...memory.passes, isLongTermGoalsOwed: true } };
+export function oweTakingStock(memory: AgentMemory): AgentMemory {
+  const episodesSincePeople = Math.max(
+    memory.passes.episodesSincePeople,
+    config.people.everyEpisodes,
+  );
+  return {
+    ...memory,
+    passes: { ...memory.passes, isLongTermGoalsOwed: true, episodesSincePeople },
+  };
 }
 
 /** Whether the agent owes a day plan. */

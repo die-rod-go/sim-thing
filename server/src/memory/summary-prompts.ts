@@ -2,13 +2,15 @@ import type { LlmCallKind, Summary, SummaryLevel } from "@village/shared";
 import { z } from "zod";
 import { config } from "../config";
 import type { ReplySchemas } from "../decision/reply-schema";
-import { strictJsonObject, writtenText } from "../decision/schema-fields";
+import { nullableJsonString, strictJsonObject, writtenText } from "../decision/schema-fields";
 import { renderTemplate } from "../llm/templates";
 import { describeStreamEntry, describeSummary } from "./stream";
 import type { SummaryJob } from "./summaries";
 
 export interface SummaryReply {
   summary: string;
+  /** An episode's moment to remember for life, in one sentence; null most of the time. */
+  keyMemory?: string | null;
 }
 
 interface LevelSettings {
@@ -100,12 +102,26 @@ export function buildSummaryPrompt(
   );
 }
 
-/** One `summary` field, held to the level's length limit with the usual slack. */
+/**
+ * One `summary` field, held to the level's length limit with the usual slack; an episode may also
+ * name a key memory.
+ */
 export function buildSummaryReplySchema(level: SummaryLevel): ReplySchemas<SummaryReply> {
   const settings = LEVEL_SETTINGS[level];
+  const summary = writtenText(settings.maxChars).min(1);
+  if (level !== "episode") {
+    return {
+      schema: z.object({ summary }),
+      jsonSchema: strictJsonObject({ summary: { type: "string" } }),
+      schemaName: `${settings.callKind}_reply`,
+    };
+  }
   return {
-    schema: z.object({ summary: writtenText(settings.maxChars).min(1) }),
-    jsonSchema: strictJsonObject({ summary: { type: "string" } }),
+    schema: z.object({
+      summary,
+      keyMemory: writtenText(config.memory.keyMemoryMaxChars).nullable().default(null),
+    }),
+    jsonSchema: strictJsonObject({ summary: { type: "string" }, keyMemory: nullableJsonString() }),
     schemaName: `${settings.callKind}_reply`,
   };
 }
