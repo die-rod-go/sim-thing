@@ -129,7 +129,7 @@ export const config = {
 
   needs: {
     startValue: 0.8,
-    decayPerDayAwake: { hunger: 0.25, energy: 0.8, social: 0.8, fun: 0.6 } satisfies Record<
+    decayPerDayAwake: { hunger: 0.5, energy: 0.8, social: 0.8, fun: 0.6 } satisfies Record<
       NeedName,
       number
     >,
@@ -461,6 +461,15 @@ export const config = {
         "I went to take the {what} {giver} offered me, but they no longer had them",
       acceptFailedGiverEntry:
         "{recipient} went to take the {what} I offered, but I no longer had them",
+      /** Joins a trade's two sides in `{what}`: "1 bread for 10 coins". */
+      tradeJoiner: " for ",
+      /** Private stream entries when an accepted trade fails because the recipient lacks `{price}`. */
+      tradeShortRecipientEntry:
+        "I went to take the {what} {giver} offered me, but I didn't have {price} to give back",
+      tradeShortGiverEntry:
+        "{recipient} went to take the {what} I offered, but didn't have {price} to give me",
+      /** Why a trade fails to be offered: nothing in the world goes by the name asked for. */
+      unknownReturnReason: "I couldn't think what {price} would be",
       /** Why an offer to someone fails. */
       asleepReason: "{recipient} is asleep",
       alreadyOfferedReason: "{recipient} hasn't answered another offer yet",
@@ -667,6 +676,9 @@ export const config = {
     /** How a key memory reads in prompts, under its title. */
     keyMemoryText: "Day {day}: {text}",
     keyMemoriesTitle: "Things you will never forget",
+    /** The labels of the persona lines in "Who you are", shown only when the seed gives them. */
+    voiceLabel: "How you talk",
+    routineLabel: "Your usual day",
     /** What the reflection reads of the moments waiting for it. */
     keyMemoryCandidatesTitle: "Moments you marked to remember",
     /** How a summary reads in a prompt: the absolute span it covers, then its text. */

@@ -17,6 +17,8 @@ import {
 
 const SQUARE = { x: 19, y: 15 };
 const NEXT_TO_OVEN = { x: 4, y: 13 };
+/** Queued after a wait: a later act may name someone out of sight, and fails when it starts. */
+const giveIlsaBread = { action: "give", target: "Ilsa", item: "bread", amount: 1 };
 
 type TestSim = ReturnType<typeof createTestSim>;
 
@@ -218,24 +220,23 @@ describe("decision loop", () => {
     expect(sim.agent("mara").currentAction).toMatchObject({ verb: "bake bread" });
   });
 
-  it("a give to an agent out of reach fails in the world and is remembered", async () => {
+  it("a give to someone out of sight and reach fails in the world and is remembered", async () => {
     const sim = createTestSim({
       agentIds: ["mara", "ilsa"],
       responder: scriptByAgent({
         Mara: (_request, callIndex) =>
           callIndex === 0
-            ? decisionReply({ action: "give", target: "Ilsa", item: "bread", amount: 1 })
+            ? decisionReply({ acts: [{ action: "wait", minutes: 1 }, giveIlsaBread] })
             : undefined,
       }),
     });
     sim.placeAgent("mara", SQUARE);
-    sim.placeAgent("ilsa", { x: SQUARE.x + 4, y: SQUARE.y });
-    await sim.advance();
+    sim.placeAgent("ilsa", NEXT_TO_OVEN);
+    await sim.advance(2);
     const failure =
       "I tried to hand Ilsa 1 bread but Ilsa is too far away to hand anything to: I have to be right next to them";
     expect(countHeld(sim.state, "mara", "bread")).toBe(2);
     expect(sim.streamTexts("mara").at(-1)).toBe(failure);
-    expect(sim.agent("mara").currentAction).toBeNull();
     await sim.advance();
     const secondPrompt = promptOf(
       sim.client.requests.filter((request) => findPromptAgentName(request) === "Mara")[1]!,
@@ -249,14 +250,14 @@ describe("decision loop", () => {
       responder: scriptByAgent({
         Mara: (_request, callIndex) =>
           callIndex === 0
-            ? decisionReply({ action: "give", target: "Ilsa", item: "bread", amount: 1 })
+            ? decisionReply({ acts: [{ action: "wait", minutes: 1 }, giveIlsaBread] })
             : undefined,
       }),
     });
     sim.placeAgent("mara", SQUARE);
-    sim.placeAgent("ilsa", { x: SQUARE.x + 4, y: SQUARE.y });
+    sim.placeAgent("ilsa", NEXT_TO_OVEN);
     sim.placeAgent("tobias", { x: SQUARE.x, y: SQUARE.y + 1 });
-    await sim.advance();
+    await sim.advance(2);
     expect(sim.streamTexts("tobias")).toContain(
       "I saw that Mara tried to hand Ilsa 1 bread, but Ilsa is too far away to hand anything to: they have to be right next to them",
     );

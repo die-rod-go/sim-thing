@@ -1,7 +1,12 @@
-import { findDefinition, type Agent } from "@village/shared";
+import { describeCount, findDefinition, findDefinitionByName, type Agent } from "@village/shared";
 import { config } from "../config";
 import { resolveName } from "../decision/resolve-name";
-import { chooseEntitiesToGive, computeChebyshevDistance, executeGive } from "../economy/give";
+import {
+  chooseEntitiesToGive,
+  computeChebyshevDistance,
+  executeGive,
+  type GiveRequest,
+} from "../economy/give";
 import { isAsleep } from "../economy/sleep";
 import { canSee } from "../perception/sight";
 import { isDead } from "../status/health";
@@ -26,18 +31,27 @@ import type { WorldState } from "./world-state";
 
 const words = config.economy.offer;
 
+type OfferGoods = Pick<PendingOffer, "itemText" | "inReturn">;
+
 /** What the offer phrases name: who gives, who is offered, and what. */
 interface OfferNames {
   giver: Agent;
   recipient: Agent;
-  offer: Pick<PendingOffer, "itemText">;
+  offer: OfferGoods;
+}
+
+/** "3 coins", or for a trade "1 bread for 10 coins". */
+export function describeOfferWhat(offer: OfferGoods): string {
+  return offer.inReturn === null
+    ? offer.itemText
+    : `${offer.itemText}${words.tradeJoiner}${offer.inReturn.itemText}`;
 }
 
 interface OfferParties extends OfferNames {
   offer: PendingOffer;
 }
 
-/** Fills `{giver}`, `{recipient}` and `{what}` in one of the offer phrases. */
+/** Fills `{giver}`, `{recipient}`, `{what}` and `{price}` in one of the offer phrases. */
 function fillOfferWords(phrase: string, parties: OfferNames): string {
   return phrase
     .split("{giver}")
@@ -45,7 +59,9 @@ function fillOfferWords(phrase: string, parties: OfferNames): string {
     .split("{recipient}")
     .join(parties.recipient.name)
     .split("{what}")
-    .join(parties.offer.itemText);
+    .join(describeOfferWhat(parties.offer))
+    .split("{price}")
+    .join(parties.offer.inReturn?.itemText ?? "");
 }
 
 /** The giver's offer was answered or lapsed: it stops waiting and goes on with its queued acts. */
@@ -113,7 +129,8 @@ function findOfferBlocker(state: WorldState, giver: Agent, recipient: Agent): st
           ? words.outOfSightReason
           : null;
   if (phrase === null) return null;
-  return fillOfferWords(phrase, { giver, recipient, offer: { itemText: pending?.itemText ?? "" } });
+  const offer = { itemText: pending?.itemText ?? "", inReturn: pending?.inReturn ?? null };
+  return fillOfferWords(phrase, { giver, recipient, offer });
 }
 
 /** What the giver is offering someone, waiting for their answer; null when nothing. */
@@ -125,7 +142,7 @@ export function findOwnOffer(
     const offer = runtime.pendingOffer;
     if (offer === null || offer.giverId !== giverId) continue;
     const recipient = findAgent(state, recipientId);
-    return { recipientName: describeAgentAsSeen(recipient), itemText: offer.itemText };
+    return { recipientName: describeAgentAsSeen(recipient), itemText: describeOfferWhat(offer) };
   }
   return null;
 }
@@ -181,7 +198,13 @@ export function makeOffer(
     fail(`hand ${recipient.name} ${chosen.description}`, blocker);
     return;
   }
-  const parties = { giver, recipient, offer: { itemText: chosen.description } };
+  const inReturn = describeAskedReturn(state, action.inReturn);
+  if (typeof inReturn === "string") {
+    const price = `${action.inReturn?.amount ?? ""} ${action.inReturn?.item ?? ""}`.trim();
+    fail(attempt, words.unknownReturnReason.split("{price}").join(price));
+    return;
+  }
+  const parties = { giver, recipient, offer: { itemText: chosen.description, inReturn } };
   const event = createEvent(state, giver, {
     kind: "offered",
     description: fillOfferWords(words.offeredDescription, parties),
@@ -199,6 +222,7 @@ export function makeOffer(
     itemName: action.item,
     amount: action.amount,
     itemText: chosen.description,
+    inReturn,
     offeredAtTick: state.tick,
   };
   requestDecision(recipientRuntime, fillOfferWords(words.decisionReason, parties), true);
@@ -206,31 +230,68 @@ export function makeOffer(
   markAgentChanged(result, recipientId);
 }
 
-function acceptOffer(context: TickContext, parties: OfferParties): void {
+/**
+ * What the giver asks back, named and counted ("10 coins"); null when nothing, or the name asked
+ * for when nothing in the world goes by it.
+ */
+function describeAskedReturn(
+  state: WorldState,
+  asked: { item: string; amount: number } | undefined,
+): PendingOffer["inReturn"] | string {
+  if (asked === undefined) return null;
+  const definition = findDefinitionByName(state.items, asked.item);
+  if (definition === undefined) return asked.item;
+  return {
+    itemName: asked.item,
+    amount: asked.amount,
+    itemText: describeCount(definition, asked.amount),
+  };
+}
+
+/** Moves the things from one agent to the other, as checked just before, and lets all around see. */
+function handOver(context: TickContext, request: GiveRequest): void {
   const { state, result } = context;
-  const { giver, recipient, offer } = parties;
-  const given = executeGive(state, {
-    giver,
-    recipient,
-    itemName: offer.itemName,
-    amount: offer.amount,
-  });
-  if (!given.isSuccess) {
-    noteForBoth(state, parties, [words.acceptFailedRecipientEntry, words.acceptFailedGiverEntry]);
-    return;
-  }
+  const given = executeGive(state, request);
+  if (!given.isSuccess) throw new Error(`a checked give failed: ${given.reason}`);
   for (const entityId of given.movedEntityIds) markEntityChanged(result, entityId);
-  markAgentChanged(result, giver.id);
-  const event = createEvent(state, giver, {
+  markAgentChanged(result, request.giver.id);
+  markAgentChanged(result, request.recipient.id);
+  const event = createEvent(state, request.giver, {
     kind: "gave",
-    description: `gave ${recipient.name} ${given.description}`,
-    targetId: recipient.id,
-    targetName: recipient.name,
+    description: `gave ${request.recipient.name} ${given.description}`,
+    targetId: request.recipient.id,
+    targetName: request.recipient.name,
     item: findDefinition(state.items, given.definitionId).name,
     amount: given.amount,
     itemText: given.description,
   });
   broadcastEvent(state, event, result);
+}
+
+/** Accepting moves the gift, and for a trade what was asked back too: both at once, or neither. */
+function acceptOffer(context: TickContext, parties: OfferParties): void {
+  const { state } = context;
+  const { giver, recipient, offer } = parties;
+  const gift = { giver, recipient, itemName: offer.itemName, amount: offer.amount };
+  if (!chooseEntitiesToGive(state, gift).isSuccess) {
+    noteForBoth(state, parties, [words.acceptFailedRecipientEntry, words.acceptFailedGiverEntry]);
+    return;
+  }
+  const payment =
+    offer.inReturn === null
+      ? null
+      : {
+          giver: recipient,
+          recipient: giver,
+          itemName: offer.inReturn.itemName,
+          amount: offer.inReturn.amount,
+        };
+  if (payment !== null && !chooseEntitiesToGive(state, payment).isSuccess) {
+    noteForBoth(state, parties, [words.tradeShortRecipientEntry, words.tradeShortGiverEntry]);
+    return;
+  }
+  handOver(context, gift);
+  if (payment !== null) handOver(context, payment);
 }
 
 function declineOffer(context: TickContext, parties: OfferParties): void {

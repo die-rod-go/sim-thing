@@ -26,6 +26,10 @@ export interface Personality {
   traits: Record<TraitName, number>;
   core: string;
   selfImage: string;
+  /** How they talk, in a sentence or two; empty when the seed gives none. */
+  voice: string;
+  /** A usual day: where they are when; empty when the seed gives none. */
+  routine: string;
 }
 
 /** A goal the agent holds over days; rewritten by its day plans and reflections. */
@@ -267,6 +271,9 @@ export interface DecisionAct {
   item?: string;
   from?: string;
   amount?: number;
+  /** For a give: what the giver asks back, by name; it changes hands with the gift or not at all. */
+  inReturn?: string;
+  inReturnAmount?: number;
   minutes?: number;
   say?: string;
   volume?: Volume;
@@ -392,7 +399,7 @@ export interface PersonalityChange {
   id: number;
   agentId: string;
   tick: number;
-  field: TraitName | "core" | "selfImage" | "profession";
+  field: TraitName | "core" | "selfImage" | "voice" | "profession";
   oldValue: string;
   newValue: string;
   reason: string;

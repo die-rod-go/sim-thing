@@ -26,6 +26,8 @@ const nullAct = {
   target: "bob",
   text: null,
   amount: 1,
+  inReturn: null,
+  inReturnAmount: null,
   minutes: null,
   say: null,
   volume: null,
@@ -145,6 +147,15 @@ describe("buildDecisionReplySchema", () => {
     const noAmount = { ...nullReply, acts: [{ ...nullAct, amount: null }] };
     expect(schema.safeParse(noAmount).success).toBe(false);
     expect(schema.safeParse(reply({ action: "wait" }, { action: "follow" })).success).toBe(false);
+  });
+
+  it("lets a give ask for something back, and needs how many", () => {
+    const give = { action: "give", target: "Bob", item: "bread", amount: 1, inReturn: "coins" };
+    expect(schema.parse(reply({ ...give, inReturnAmount: 4 })).acts[0]).toMatchObject({
+      inReturn: "coins",
+      inReturnAmount: 4,
+    });
+    expect(schema.safeParse(reply(give)).success).toBe(false);
   });
 
   it("takes words with each act", () => {

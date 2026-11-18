@@ -19,6 +19,10 @@ export const seedAgentSchema = z.object({
   }),
   core: z.string(),
   selfImage: z.string(),
+  /** How they talk, in a sentence or two; optional. */
+  voice: z.string().optional(),
+  /** A usual day: where they are when; optional. */
+  routine: z.string().optional(),
   sleepRecoveryPerHour: z.number(),
   strength: z.number(),
   agility: z.number(),

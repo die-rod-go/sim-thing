@@ -25,6 +25,8 @@ function buildContext(overrides: Partial<DecisionContext> = {}): DecisionContext
       },
       core: "Values honest work. Fears debt.",
       selfImage: "The one who keeps the village fed.",
+      voice: "",
+      routine: "",
     },
     mood: "busy but content",
     needs: { hunger: 0.4, energy: 0.9, social: 0.45, fun: 0.6 },
@@ -170,6 +172,15 @@ describe("buildDecisionPrompt", () => {
       prompt.indexOf("## How you feel"),
     );
     expect(whoSection).toContain("Your body: quite strong, rather clumsy");
+  });
+
+  it("shows the agent's voice and routine in Who you are only when the seed gives them", () => {
+    const base = buildContext();
+    const personality = { ...base.personality, voice: "Short and dry.", routine: "Bakes at dawn." };
+    const prompt = buildDecisionPrompt(buildContext({ personality }));
+    expect(prompt).toContain(`${config.memory.voiceLabel}: Short and dry.`);
+    expect(prompt).toContain(`${config.memory.routineLabel}: Bakes at dawn.`);
+    expect(buildDecisionPrompt(base)).not.toContain(`${config.memory.voiceLabel}:`);
   });
 
   it("shows needs next to the time in the Now section", () => {

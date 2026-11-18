@@ -99,7 +99,7 @@ on the entity: no creature settings in the config, and no creature state kept by
   rules, matchers, `items.json` validation, `give`, creature instincts, place names, attention,
   the people on an agent's mind, the agenda (numbering, done, dropped, added, reminders), the day
   plan, reckonings, remembering and key memories, queued acts (starting, words per act, waiting
-  on a give), following, and the measurement script's measures.
+  on a give, walking up to give), following, trades, and the measurement script's measures.
 - Name tests by behavior: `"muffles speech heard through a closed door"`.
 - Tests live in each workspace's `tests/` folder (`server/tests`, `client/tests`, `shared/tests`),
   mirroring the layout of its `src/`. Test-only helpers live there too; helpers that runtime code
@@ -140,6 +140,9 @@ on the entity: no creature settings in the config, and no creature state kept by
 | reckoning       | A decision flagged by something significant, ending in "Something has happened"              |
 | act             | One thing a decision does (`walk_to`, `interact`, `give`, `wait`, `follow`), with its words  |
 | queue           | A decision's acts after the first, started in turn with no LLM call                          |
+| trade           | A give with something asked back: both change hands on accepting, or neither                 |
+| voice           | How an agent talks, a seed field shown in Who you are; reflections may rewrite it            |
+| routine         | An agent's usual day, a seed field shown in Who you are                                      |
 | follow          | An act that keeps within reach of someone in sight for a while                               |
 | key memory      | A moment the agent will never forget: never compressed, kept or dropped by taking stock      |
 | remember        | A decision's one sentence marking a moment; it waits as a key memory candidate               |

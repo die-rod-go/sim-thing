@@ -129,6 +129,11 @@ export function describeKeyMemories(keyMemories: readonly KeyMemory[]): string {
   return `## ${config.memory.keyMemoriesTitle}\n${lines.join("\n")}`;
 }
 
+/** "How you talk: short and dry", or nothing when the text is empty. */
+export function describePersonaLine(label: string, text: string): string {
+  return text.trim() === "" ? "" : `${label}: ${text.trim()}`;
+}
+
 /** "Beckett (she/her)", or the bare name when no pronouns are known. */
 export function describeNameWithPronouns(name: string, pronouns: string): string {
   return pronouns.trim() === "" ? name : `${name} (${pronouns.trim()})`;

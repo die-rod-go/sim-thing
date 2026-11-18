@@ -43,6 +43,16 @@ export function PersonalityTab({
       <PanelSection title="How they see themselves">
         <p className="prose self-image">{personality.selfImage}</p>
       </PanelSection>
+      {personality.voice ? (
+        <PanelSection title="How they talk">
+          <p className="prose">{personality.voice}</p>
+        </PanelSection>
+      ) : null}
+      {personality.routine ? (
+        <PanelSection title="Their usual day">
+          <p className="prose">{personality.routine}</p>
+        </PanelSection>
+      ) : null}
       <PanelSection title="Traits">
         {TRAIT_NAMES.map((traitName) => (
           <TraitRow key={traitName} traitName={traitName} value={personality.traits[traitName]} />

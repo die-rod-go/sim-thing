@@ -40,6 +40,27 @@ function createOfferSim(answer: Record<string, unknown>, agentIds = ["mara", "il
   return sim;
 }
 
+/** Mara offers Ilsa 1 bread for `price` coins first thing; Ilsa accepts. */
+function createTradeSim(price: number): TestSim {
+  const offer = { action: "give", target: "Ilsa", item: "bread", amount: 1 };
+  const sim = createTestSim({
+    agentIds: ["mara", "ilsa"],
+    responder: scriptByAgent({
+      Mara: (_request, callIndex) =>
+        callIndex === 0
+          ? decisionReply({ ...offer, inReturn: "coins", inReturnAmount: price })
+          : undefined,
+      Ilsa: (request: LlmRequest) =>
+        promptOf(request).includes(`Mara is offering you 1 bread for ${price} coins`)
+          ? decisionReply({ action: "continue", offer: "accept" })
+          : undefined,
+    }),
+  });
+  sim.placeAgent("mara", SQUARE);
+  sim.placeAgent("ilsa", NEXT_TO_SQUARE);
+  return sim;
+}
+
 function decisionPromptsOf(sim: TestSim, agentName: string): string[] {
   return sim.client.requests
     .filter((request) => request.schemaName === "decision_reply")
@@ -210,5 +231,47 @@ describe("offers", () => {
     expect(sim.streamTexts("mara")).toContain(
       "I tried to hand Ilsa 3 coins but I couldn't reach Ilsa from where I stood",
     );
+  });
+
+  it("trades both ways at once when a recipient accepts an offer with something asked back", async () => {
+    const sim = createTradeSim(4);
+    await sim.advance(2);
+    expect(countHeld(sim.state, "ilsa", "bread")).toBe(3);
+    expect(countHeld(sim.state, "ilsa", "coin")).toBe(6);
+    expect(countHeld(sim.state, "mara", "coin")).toBe(34);
+    expect(sim.streamTexts("ilsa")).toContain("Mara gave me 1 bread");
+  });
+
+  it("moves nothing when the recipient of a trade doesn't have what was asked back", async () => {
+    const sim = createTradeSim(40);
+    await sim.advance(2);
+    expect(countHeld(sim.state, "ilsa", "bread")).toBe(2);
+    expect(countHeld(sim.state, "mara", "coin")).toBe(30);
+    expect(sim.streamTexts("mara")).toContain(
+      "Ilsa went to take the 1 bread for 40 coins I offered, but didn't have 40 coins to give me",
+    );
+  });
+
+  it("refuses to ask back something that doesn't exist", () => {
+    const sim = createOfferSim({}, ["mara", "ilsa"]);
+    const inReturn = { item: "moonbeams", amount: 2 };
+    makeOffer(contextOf(sim), "mara", {
+      kind: "give",
+      target: "Ilsa",
+      item: "bread",
+      amount: 1,
+      inReturn,
+    });
+    expect(getAgentRuntime(sim.state, "ilsa").pendingOffer).toBeNull();
+  });
+
+  it("walks up to someone in sight but out of reach before offering", async () => {
+    const sim = createOfferSim({ offer: "accept" });
+    sim.placeAgent("ilsa", { x: SQUARE.x + 4, y: SQUARE.y });
+    await sim.advance();
+    expect(sim.agent("mara").currentAction?.kind).toBe("walk_to");
+    expect(getAgentRuntime(sim.state, "mara").queuedActs[0]?.act.kind).toBe("give");
+    await sim.advance(8);
+    expect(sim.streamTexts("mara")).toContain("I offered Ilsa 3 coins");
   });
 });

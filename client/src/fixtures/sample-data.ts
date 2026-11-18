@@ -30,6 +30,8 @@ export function makeSampleAgent(id: string, name: string, x: number, y: number):
       },
       core: `${name} is curious and talks a lot.`,
       selfImage: `${name} thinks of themself as a good neighbor.`,
+      voice: "",
+      routine: "",
     },
     body: { sleepRecoveryPerHour: 0.15, strength: 0.5, agility: 0.5 },
     profession: "baker",

@@ -164,6 +164,32 @@ function PersonalitySection({ agent, rules, problems, onChange }: SectionProps) 
           />
         )}
       </Field>
+      <Field
+        label="Voice"
+        hint="How they talk, in a sentence or two: their words, rhythm, what they never say. Their reflections may rewrite it."
+        problems={selectFieldProblems(problems, "voice")}
+      >
+        {(inputId) => (
+          <TextArea
+            id={inputId}
+            value={agent.voice ?? ""}
+            onChange={(voice) => onChange({ ...agent, voice })}
+          />
+        )}
+      </Field>
+      <Field
+        label="Routine"
+        hint="A usual day: where they are when. They start from it; nothing makes them keep to it."
+        problems={selectFieldProblems(problems, "routine")}
+      >
+        {(inputId) => (
+          <TextArea
+            id={inputId}
+            value={agent.routine ?? ""}
+            onChange={(routine) => onChange({ ...agent, routine })}
+          />
+        )}
+      </Field>
     </FormSection>
   );
 }

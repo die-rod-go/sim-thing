@@ -36,6 +36,8 @@ const agent = {
     },
     core: "",
     selfImage: "",
+    voice: "",
+    routine: "",
   },
   body: { sleepRecoveryPerHour: 0.15, strength: 0.5, agility: 0.5 },
   profession: "baker",

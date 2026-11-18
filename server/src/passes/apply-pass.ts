@@ -17,6 +17,7 @@ export interface IdentityChanges {
   profession: string | null;
   core: string | null;
   selfImage: string | null;
+  voice: string | null;
 }
 
 export type PersonalityChangeDraft = Omit<PersonalityChange, "id">;
@@ -98,7 +99,7 @@ function applyTraitChanges(
 }
 
 function proseChange(
-  field: "profession" | "core" | "selfImage",
+  field: "profession" | "core" | "selfImage" | "voice",
   oldValue: string,
   newValue: string | null,
 ): Omit<PersonalityChangeDraft, "agentId" | "tick"> | null {
@@ -130,6 +131,7 @@ export function applyIdentityChanges(
     proseChange("profession", agent.profession, reply.profession),
     proseChange("core", personality.core, reply.core),
     proseChange("selfImage", personality.selfImage, reply.selfImage),
+    proseChange("voice", personality.voice, reply.voice),
   ].filter((change) => change !== null);
   const changes = [...traitChanges, ...proseChanges].map((change) => ({
     ...change,
@@ -140,9 +142,11 @@ export function applyIdentityChanges(
     ...agent,
     profession: reply.profession ?? agent.profession,
     personality: {
+      ...personality,
       traits: traitResult.traits,
       core: reply.core ?? personality.core,
       selfImage: reply.selfImage ?? personality.selfImage,
+      voice: reply.voice ?? personality.voice,
     },
   };
   return { agent: updatedAgent, changes };

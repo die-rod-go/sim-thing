@@ -13,6 +13,8 @@ The latest things you did, saw and heard, word for word, oldest first.
 Work: {{profession}}
 {{core}}
 How you see yourself: {{selfImage}}
+{{voice}}
+{{routine}}
 Your traits, each from -1 to 1:
 {{traits}}
 

@@ -1,5 +1,7 @@
 import { config } from "../config";
+import { resolveName } from "../decision/resolve-name";
 import { computeChebyshevDistance } from "../economy/give";
+import { isDead } from "../status/health";
 import { describeLocation } from "../world/place-names";
 import { WAIT_ACTION } from "./action-phrases";
 import { getAgentRuntime, type PlannedAct, type PlannedSpeech } from "./agent-runtime";
@@ -62,6 +64,35 @@ function executeWalk(context: TickContext, agentId: string, targetName: string):
   startWalk(context, agentId, destination, null);
 }
 
+/**
+ * A give to someone in sight but out of reach walks up to them first; the give then waits at the
+ * front of the queue, its words with it. Returns whether the walk started.
+ */
+function approachForGive(
+  context: TickContext,
+  agentId: string,
+  act: Extract<PlannedAct, { kind: "give" }>,
+  speech: PlannedSpeech | null,
+): boolean {
+  const { state } = context;
+  const runtime = getAgentRuntime(state, agentId);
+  const inSight = runtime.visibleAgentIds
+    .map((otherId) => findAgent(state, otherId))
+    .filter((other) => !isDead(other))
+    .map((other) => ({ id: other.id, name: describeAgentAsSeen(other) }));
+  const recipientId = resolveName(act.target, inSight);
+  if (recipientId === null) return false;
+  const giver = findAgent(state, agentId);
+  const recipient = findAgent(state, recipientId);
+  if (computeChebyshevDistance(giver.pos, recipient.pos) <= config.economy.giveReachTiles) {
+    return false;
+  }
+  // A walk that can't start fails the act, which clears the queue, the give included.
+  runtime.queuedActs.unshift({ act, speech });
+  startWalk(context, agentId, { kind: "agent", agentId: recipientId }, null);
+  return true;
+}
+
 function executeAct(context: TickContext, agentId: string, act: PlannedAct): void {
   switch (act.kind) {
     case "walk_to":
@@ -88,6 +119,7 @@ export function startAct(
   act: PlannedAct,
   speech: PlannedSpeech | null,
 ): void {
+  if (act.kind === "give" && approachForGive(context, agentId, act, speech)) return;
   const eventsBefore = context.result.events.length;
   executeAct(context, agentId, act);
   const hasFailed = context.result.events

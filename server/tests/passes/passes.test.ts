@@ -41,6 +41,7 @@ const NO_CHANGE: ReflectionReply = {
   profession: null,
   core: null,
   selfImage: null,
+  voice: null,
   keyMemories: null,
   agenda: null,
 };
@@ -136,7 +137,13 @@ describe("applyPeopleChanges", () => {
 
 describe("applyIdentityChanges", () => {
   const agent = makeAgent();
-  const unchanged = { traitChanges: [], profession: null, core: null, selfImage: null };
+  const unchanged = {
+    traitChanges: [],
+    profession: null,
+    core: null,
+    selfImage: null,
+    voice: null,
+  };
 
   it("moves a trait by at most the clamp and records the change with its reason", () => {
     const { agent: updated, changes } = applyIdentityChanges(
@@ -166,13 +173,14 @@ describe("applyIdentityChanges", () => {
     expect(same.changes).toEqual([]);
     const { agent: updated, changes } = applyIdentityChanges(
       agent,
-      { ...unchanged, profession: "miller", selfImage: "restless" },
+      { ...unchanged, profession: "miller", selfImage: "restless", voice: "Curt now." },
       70,
     );
     expect(updated.profession).toBe("miller");
     expect(updated.personality.selfImage).toBe("restless");
     expect(updated.personality.core).toBe(agent.personality.core);
-    expect(changes.map((change) => change.field)).toEqual(["profession", "selfImage"]);
+    expect(updated.personality.voice).toBe("Curt now.");
+    expect(changes.map((change) => change.field)).toEqual(["profession", "selfImage", "voice"]);
   });
 });
 

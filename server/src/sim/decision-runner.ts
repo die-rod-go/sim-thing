@@ -123,6 +123,9 @@ export function planAct(act: DecisionAct): PlannedAct {
         target: act.target ?? "",
         item: act.item ?? "",
         amount: act.amount ?? 0,
+        ...(act.inReturn === undefined
+          ? {}
+          : { inReturn: { item: act.inReturn, amount: act.inReturnAmount ?? 1 } }),
       };
     case "follow":
       return {

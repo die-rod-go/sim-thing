@@ -116,6 +116,8 @@ function buildAgent(
       traits: { ...seed.traits },
       core: seed.core,
       selfImage: seed.selfImage,
+      voice: seed.voice?.trim() ?? "",
+      routine: seed.routine?.trim() ?? "",
     },
     body: {
       sleepRecoveryPerHour: seed.sleepRecoveryPerHour,

@@ -104,6 +104,7 @@ const reflectionReplySchema = z.preprocess(
     profession: proseSchema,
     core: proseSchema,
     selfImage: proseSchema,
+    voice: proseSchema,
     keyMemories: z
       .array(keyMemorySchema)
       .transform((memories) => memories.slice(-config.memory.keyMemoriesMax))
@@ -150,6 +151,7 @@ export function buildReflectionReplySchema(): ReplySchemas<ReflectionReply> {
       profession: nullableJsonString(),
       core: nullableJsonString(),
       selfImage: nullableJsonString(),
+      voice: nullableJsonString(),
       keyMemories: nullableJsonObject({
         type: "array",
         items: strictJsonObject({ day: { type: "integer" }, text: TEXT }),

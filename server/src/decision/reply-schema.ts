@@ -80,6 +80,8 @@ function buildActJsonSchema(names: OfferedNames, isStable: boolean): JsonSchema 
     target: nameField(names.targets),
     text: nullableJsonString(),
     amount: nullableJsonInteger(),
+    inReturn: nullableJsonString(),
+    inReturnAmount: nullableJsonInteger(),
     minutes: nullableJsonInteger(),
     say: nullableJsonString(),
     volume: nullableJsonEnum(VOLUMES),
@@ -113,6 +115,9 @@ function requireFieldsForAct(act: DecisionAct, context: z.RefinementCtx): void {
   }
   if (act.action === "give" && !act.item) missingFields.push("item");
   if (act.action === "give" && act.amount === undefined) missingFields.push("amount");
+  if (act.inReturn !== undefined && act.inReturnAmount === undefined) {
+    missingFields.push("inReturnAmount");
+  }
   for (const field of missingFields) {
     context.addIssue({ code: "custom", path: [field], message: `${act.action} needs ${field}` });
   }
@@ -158,6 +163,8 @@ function buildActShape(
     target: z.string().trim().optional(),
     text: z.string().trim().optional(),
     amount: z.number().int().positive().optional(),
+    inReturn: z.string().trim().min(1).optional(),
+    inReturnAmount: z.number().int().positive().optional(),
     minutes: z.number().positive().optional(),
     say: z.string().trim().optional(),
     volume: looseEnum(VOLUMES).optional(),

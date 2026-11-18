@@ -11,6 +11,7 @@ import {
   describeLongTermGoals,
   describeOlderMemory,
   describePeople,
+  describePersonaLine,
   describeSeenPlaces,
   describeStream,
 } from "../decision/sections";
@@ -61,6 +62,8 @@ export function buildPassContext(
       profession: agent.profession,
       core: agent.personality.core,
       selfImage: agent.personality.selfImage,
+      voice: describePersonaLine(config.memory.voiceLabel, agent.personality.voice),
+      routine: describePersonaLine(config.memory.routineLabel, agent.personality.routine),
       traits: describeTraitValues(agent.personality.traits),
       longTermGoals: describeLongTermGoals(held.longTermGoals),
       today: describeAgenda(held.agenda),

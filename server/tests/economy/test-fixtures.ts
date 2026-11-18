@@ -17,6 +17,8 @@ export function makeAgent(overrides: Partial<Agent> = {}): Agent {
       },
       core: "a careful baker",
       selfImage: "dependable",
+      voice: "",
+      routine: "",
     },
     body: { sleepRecoveryPerHour: 0.15, strength: 0.5, agility: 0.5 },
     profession: "baker",

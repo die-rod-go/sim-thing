@@ -104,6 +104,8 @@ const ACT_FIELDS = [
   "from",
   "text",
   "amount",
+  "inReturn",
+  "inReturnAmount",
   "minutes",
   "say",
   "volume",

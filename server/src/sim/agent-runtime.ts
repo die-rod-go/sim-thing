@@ -41,6 +41,8 @@ const plannedActSchema = z.discriminatedUnion("kind", [
     target: z.string(),
     item: z.string(),
     amount: z.number().int(),
+    /** What the giver asks back, by name, if anything. */
+    inReturn: z.object({ item: z.string(), amount: z.number().int() }).optional(),
   }),
   z.object({ kind: z.literal("wait"), minutes: z.number() }),
   z.object({ kind: z.literal("follow"), target: z.string(), minutes: z.number() }),
@@ -154,6 +156,10 @@ const pendingOfferSchema = z.object({
   amount: z.number().int().positive(),
   /** "3 coins", "a knife". */
   itemText: z.string(),
+  /** What the giver asks back: it moves with the gift when the offer is accepted, or neither does. */
+  inReturn: z
+    .object({ itemName: z.string(), amount: z.number().int().positive(), itemText: z.string() })
+    .nullable(),
   offeredAtTick: z.number().int(),
 });
 

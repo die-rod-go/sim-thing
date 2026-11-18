@@ -135,6 +135,7 @@ export const DEFAULT_PASS_REPLIES: Record<string, unknown> = {
     profession: null,
     core: null,
     selfImage: null,
+    voice: null,
     keyMemories: null,
     agenda: null,
   },

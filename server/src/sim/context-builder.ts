@@ -15,7 +15,7 @@ import { computeStarvationDamage, describeHealthAsSeen, isDead } from "../status
 import { describeDoing } from "./action-phrases";
 import { describeQueuedActs } from "./act-queue";
 import { getAgentRuntime } from "./agent-runtime";
-import { findOwnOffer } from "./offers";
+import { describeOfferWhat, findOwnOffer } from "./offers";
 import { listPeopleOnMind } from "./people-on-mind";
 import { buildHeldKnowledge } from "./held-knowledge";
 import { describeBodyHolding } from "./prompt-lines";
@@ -163,7 +163,7 @@ export function buildDecisionContext(
         ? null
         : {
             giverName: describeAgentAsSeen(findAgent(state, runtime.pendingOffer.giverId)),
-            itemText: runtime.pendingOffer.itemText,
+            itemText: describeOfferWhat(runtime.pendingOffer),
           },
     ownOffer: findOwnOffer(state, agentId),
     isReckoning: false,
