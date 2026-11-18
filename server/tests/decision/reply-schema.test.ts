@@ -50,6 +50,22 @@ function reply(...acts: Record<string, unknown>[]) {
   return { thought: "Hm.", intention: "go on", acts };
 }
 
+/** Fields whose schema is a type array or an `anyOf`, nested ones included, as the provider counts. */
+function countUnionParameters(schema: unknown): number {
+  if (typeof schema !== "object" || schema === null) return 0;
+  const node = schema as Record<string, unknown>;
+  const isUnion = Array.isArray(node.type) || Array.isArray(node.anyOf);
+  const children = [
+    ...Object.values((node.properties ?? {}) as Record<string, unknown>),
+    node.items,
+    ...(Array.isArray(node.anyOf) ? node.anyOf : []),
+  ];
+  return (
+    (isUnion ? 1 : 0) +
+    children.reduce<number>((sum, child) => sum + countUnionParameters(child), 0)
+  );
+}
+
 function readActProperties(jsonSchema: JsonSchema): Record<string, unknown> {
   const properties = jsonSchema.properties as Record<string, { items: JsonSchema }>;
   return properties.acts?.items.properties as Record<string, unknown>;
@@ -173,6 +189,22 @@ describe("buildDecisionReplySchema", () => {
     expect(jsonSchema.additionalProperties).toBe(false);
     const properties = jsonSchema.properties as Record<string, { items: JsonSchema }>;
     expect(properties.acts?.items.required).toEqual(Object.keys(nullAct));
+  });
+
+  it("stays within the provider's limit on nullable fields, a reckoning mid-action included", () => {
+    const largest = buildDecisionReplySchema(targets, items, holders, {
+      isReckoning: true,
+      isMidActionInterrupt: true,
+    });
+    expect(countUnionParameters(largest.jsonSchema)).toBeLessThanOrEqual(
+      config.llm.maxUnionParameters,
+    );
+  });
+
+  it("reads a blank mood and remember as none", () => {
+    const parsed = schema.parse({ ...reply({ action: "wait" }), mood: "", remember: " " });
+    expect(parsed).not.toHaveProperty("mood");
+    expect(parsed).not.toHaveProperty("remember");
   });
 
   it("lets a reckoning alone write the whole new agenda", () => {

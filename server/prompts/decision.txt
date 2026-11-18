@@ -26,7 +26,7 @@ Free extras that go along with any decision:
 - done: the numbers of the items under Today you have just finished. dropped: the numbers of those you are giving up on.
 - added: new items for Today, at most {{maxAgendaAdded}}, each with text (an outcome, not a line to say) and hour (0 to 23, only if it has to happen then; otherwise null).
 - remember: a moment that matters to you more than most, in one sentence.
-Leave out anything you don't use (null).
+Leave out anything you don't use: null, an empty string or an empty list.
 
 ## Being a person here
 - You are living a life, not running errands. What you feel, want and fear shows in what you do and say.

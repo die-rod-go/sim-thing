@@ -918,6 +918,11 @@ export const config = {
     } as Partial<Record<LlmCallKind, LlmEffort>>,
     dailyTokenBudget: 999_999_999,
     /**
+     * Anthropic refuses a strict reply schema with more nullable or union-typed fields than this,
+     * nested ones included. Tests hold every decision schema to it.
+     */
+    maxUnionParameters: 16,
+    /**
      * How the daily count and the top bar weigh cached prompt tokens, as they bill against fresh
      * input: reads at a tenth, writes at a quarter more. So the count tracks spend.
      */

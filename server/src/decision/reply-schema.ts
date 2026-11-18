@@ -58,7 +58,7 @@ export interface DecisionSchemaOptions {
   isReckoning?: boolean;
 }
 
-const AGENDA_JSON: JsonSchema = nullableJsonObject({ type: "array", items: PLANNED_ITEM_JSON });
+const AGENDA_LIST_JSON: JsonSchema = { type: "array", items: PLANNED_ITEM_JSON };
 
 interface OfferedNames {
   actions: readonly string[];
@@ -97,13 +97,15 @@ function buildDecisionJsonSchema(names: OfferedNames, options: DecisionSchemaOpt
       description: "One line: what you are doing now and why.",
     },
     acts: { type: "array", items: buildActJsonSchema(names, isStable) },
-    mood: nullableJsonString(),
+    // Plain strings and lists, empty for none: a strict schema allows only so many nullable
+    // fields (`llm.maxUnionParameters`), and each act already has eleven.
+    mood: { type: "string" },
     offer: nullableJsonEnum(OFFER_ANSWERS),
-    done: nullableJsonObject(NUMBER_LIST_JSON),
-    dropped: nullableJsonObject(NUMBER_LIST_JSON),
-    added: AGENDA_JSON,
-    remember: nullableJsonString(),
-    ...(options.isReckoning ? { agenda: AGENDA_JSON } : {}),
+    done: NUMBER_LIST_JSON,
+    dropped: NUMBER_LIST_JSON,
+    added: AGENDA_LIST_JSON,
+    remember: { type: "string" },
+    ...(options.isReckoning ? { agenda: nullableJsonObject(AGENDA_LIST_JSON) } : {}),
   });
 }
 
