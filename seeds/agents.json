@@ -3,6 +3,7 @@
     {
       "id": "jess",
       "name": "Jess",
+      "pronouns": "she/her",
       "profession": "baker; bakes bread at the oven in the bakery (each loaf uses one wheat and one water) and sleeps in rose cottage",
       "traits": {
         "extraversion": -0.3,
@@ -13,7 +14,7 @@
       },
       "core": "A natural born leader. You like things done properly and have no patience for fuss or small talk. Your humor is dry and deadpan; you rarely laugh at your own jokes. You talk in short, blunt sentences and say exactly what you think.",
       "selfImage": "The only person around here who gets anything done on time. In charge and not afraid to tell people what they need to do to survive. Life is good, but it's not kind.",
-      "sleepRecoveryPerHour": 0.15,
+      "sleepRecoveryPerHour": 0.12,
       "strength": 0.5,
       "agility": 0.55,
       "inventory": {
@@ -127,6 +128,7 @@
     {
       "id": "z",
       "name": "Z",
+      "pronouns": "she/her",
       "profession": "carpenter; makes benches, chests, doors, beds, dice, lutes, fishing rods, bows and paper at the carpentry table in the carpenter's workshop (all need wood) and sleeps in elm cottage",
       "traits": {
         "extraversion": 1,
@@ -230,6 +232,7 @@
     {
       "id": "beckett",
       "name": "Beckett",
+      "pronouns": "she/her",
       "profession": "apothecary; harvests herbs and brews healing potions (mugwort and water), antidotes (chamomile and mugwort) and sleeping draughts (chamomile and water) at the cauldron in the apothecary, where she lives",
       "traits": {
         "extraversion": 0.25,
@@ -344,6 +347,7 @@
     {
       "id": "diego",
       "name": "Diego",
+      "pronouns": "they/them",
       "profession": "butcher; slaughters pigs from the pig nest in the animal pens, cooks meat at the oven in the bakery and sells it from the butcher's shop, where he lives",
       "traits": {
         "extraversion": 0.35,
@@ -453,6 +457,7 @@
     {
       "id": "tony",
       "name": "Tony",
+      "pronouns": "he/him",
       "profession": "woodcutter; chops trees in the woods with his axe and sells the wood, and sleeps in the woodcutter's hut",
       "traits": {
         "extraversion": 1,
@@ -557,6 +562,7 @@
     {
       "id": "pell",
       "name": "Pell",
+      "pronouns": "she/her",
       "profession": "tavernkeeper; runs the tavern, sells ale and food to whoever comes in, and sleeps in the tavern keeper's bed",
       "traits": {
         "extraversion": -0.7,
@@ -651,6 +657,7 @@
     {
       "id": "wil",
       "name": "Wil",
+      "pronouns": "he/him",
       "profession": "farmer; harvests the wheat fields in the south fields, keeps the kitchen garden and the pig nest in the animal pens, and lives in the farmhouse",
       "traits": {
         "extraversion": -0.2,
@@ -756,6 +763,7 @@
     {
       "id": "nell",
       "name": "Nell",
+      "pronouns": "she/her",
       "profession": "fisher; fishes the lake from the fishing spots and lives in the fisher's hut on the south shore",
       "traits": {
         "extraversion": -0.4,
@@ -850,6 +858,7 @@
     {
       "id": "cobb",
       "name": "Cobb",
+      "pronouns": "he/him",
       "profession": "miner; mines the iron veins at the quarry and the diamond veins in the old shaft with his pickaxe, sells the ore to the smithy, and sleeps in the miner's shed",
       "traits": {
         "extraversion": 0.5,
@@ -948,6 +957,7 @@
     {
       "id": "ambrose",
       "name": "Ambrose",
+      "pronouns": "she/her",
       "profession": "chapel keeper and village scribe; looks after the chapel and graveyard, sleeps in the chapel keeper's bed, and keeps the records in the records chest at the town hall",
       "traits": {
         "extraversion": 0.1,
@@ -1054,6 +1064,7 @@
     {
       "id": "malin",
       "name": "Malin",
+      "pronouns": "he/him",
       "profession": "no trade; lives off 100 coin and sleeps in ivy cottage",
       "traits": {
         "extraversion": -0.65,
@@ -1165,6 +1176,7 @@
     {
       "id": "nastya",
       "name": "Nastya",
+      "pronouns": "she/her",
       "profession": "blacksmith; smelts iron at the forge (iron ore and wood) and forges axes, pickaxes, cleavers, swords, locks and rings at the anvil in the smithy, and sleeps in oak cottage",
       "traits": {
         "extraversion": 0.2,
@@ -1266,6 +1278,7 @@
     {
       "id": "mell",
       "name": "Mell",
+      "pronouns": "she/her",
       "profession": "brewer; brews ale at the brewing vat in the tavern (each ale uses one wheat and one water) and sleeps in birch cottage",
       "traits": {
         "extraversion": 0.75,
@@ -1357,6 +1370,7 @@
     {
       "id": "wabi",
       "name": "Wabi",
+      "pronouns": "he/him",
       "profession": "townguard; in charge of protecting and keeping order",
       "traits": {
         "extraversion": -0.7,
