@@ -220,13 +220,14 @@ describe("buildDecisionPrompt", () => {
 
   it("offers continue only when interrupted mid-action", () => {
     const calm = buildDecisionPrompt(buildContext());
-    expect(calm).toMatch(/^Actions: walk_to, interact, give, wait$/m);
+    expect(calm).toMatch(/^Actions: walk_to, interact, give, wait, follow$/m);
     const interrupted = buildDecisionPrompt(
       buildContext({
         currentAction: {
           description: "baking bread at the oven",
           minutesLeft: 40,
           slowedBy: null,
+          queued: [],
         },
         isMidActionInterrupt: true,
       }),
@@ -256,6 +257,7 @@ describe("buildDecisionPrompt", () => {
           description: "chopping wood at the trees",
           minutesLeft: 40,
           slowedBy: "exhausted",
+          queued: [],
         },
         isMidActionInterrupt: true,
       }),

@@ -98,7 +98,8 @@ on the entity: no creature settings in the config, and no creature state kept by
   decay, each step type, the verb runner,
   rules, matchers, `items.json` validation, `give`, creature instincts, place names, attention,
   the people on an agent's mind, the agenda (numbering, done, dropped, added, reminders), the day
-  plan, reckonings, remembering and key memories, and the measurement script's measures.
+  plan, reckonings, remembering and key memories, queued acts (starting, words per act, waiting
+  on a give), following, and the measurement script's measures.
 - Name tests by behavior: `"muffles speech heard through a closed door"`.
 - Tests live in each workspace's `tests/` folder (`server/tests`, `client/tests`, `shared/tests`),
   mirroring the layout of its `src/`. Test-only helpers live there too; helpers that runtime code
@@ -137,6 +138,9 @@ on the entity: no creature settings in the config, and no creature state kept by
 | day plan        | The LLM call that writes the agenda on waking from a long sleep, and at the start            |
 | reminder        | The urgent decision an agenda item with an hour gives when that hour comes                   |
 | reckoning       | A decision flagged by something significant, ending in "Something has happened"              |
+| act             | One thing a decision does (`walk_to`, `interact`, `give`, `wait`, `follow`), with its words  |
+| queue           | A decision's acts after the first, started in turn with no LLM call                          |
+| follow          | An act that keeps within reach of someone in sight for a while                               |
 | key memory      | A moment the agent will never forget: never compressed, kept or dropped by taking stock      |
 | remember        | A decision's one sentence marking a moment; it waits as a key memory candidate               |
 | reality pass    | A pass, run when the agent seems stuck, that may give it one thought about the world's rules |

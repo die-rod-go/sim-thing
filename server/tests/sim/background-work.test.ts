@@ -37,8 +37,9 @@ function waitPlan(agentId: string): DecisionPlan {
   return {
     agentId,
     isMidActionInterrupt: false,
-    reply: { reply: { thought: "", intention: "", action: "wait" }, llmCallId: null },
+    reply: { reply: { thought: "", intention: "", acts: [{ action: "wait" }] }, llmCallId: null },
     speech: null,
+    queued: [],
     unknownNameNotes: [],
     offerEventId: null,
     isReckoning: false,

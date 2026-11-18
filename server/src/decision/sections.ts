@@ -190,7 +190,12 @@ export function describeCurrentAction(
     currentAction.minutesLeft === null ? null : `about ${currentAction.minutesLeft} min left`,
   ].filter((note) => note !== null);
   const aside = notes.length === 0 ? "" : ` (${notes.join(", ")})`;
-  return `${CURRENT_ACTION_PREFIX}${currentAction.description}${aside}.`;
+  const texts = config.decision.queuedActTexts;
+  const queued =
+    currentAction.queued.length === 0
+      ? ""
+      : `${texts.prefix}${currentAction.queued.join(texts.joiner)}`;
+  return `${CURRENT_ACTION_PREFIX}${currentAction.description}${aside}${queued}.`;
 }
 
 export function describeDecisionReason(reason: string | null): string {

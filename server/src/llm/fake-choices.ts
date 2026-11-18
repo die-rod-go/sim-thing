@@ -10,10 +10,20 @@ export function isRecord(value: unknown): value is JsonRecord {
   return typeof value === "object" && value !== null && !Array.isArray(value);
 }
 
+/** The properties of one act in a decision reply's schema, where the act fields live. */
+function readActProperties(schema: JsonSchema): JsonRecord | null {
+  const acts = isRecord(schema.properties) ? schema.properties.acts : undefined;
+  const items = isRecord(acts) ? acts.items : undefined;
+  return isRecord(items) && isRecord(items.properties) ? items.properties : null;
+}
+
+/** The enum values of a property, at the top of the schema or in a decision's acts. */
 export function readEnum(schema: JsonSchema, property: string): string[] {
   const properties = schema.properties;
   if (!isRecord(properties)) return [];
-  return readJsonEnumValues(properties[property]);
+  const actProperties = readActProperties(schema);
+  const field = properties[property] ?? actProperties?.[property];
+  return readJsonEnumValues(field);
 }
 
 export function readLine(prompt: string, prefix: string): string | null {

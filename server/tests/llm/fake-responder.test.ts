@@ -6,13 +6,14 @@ import { createFakeResponder } from "../../src/llm/fake-responder";
 const ATTEMPTS = 300;
 
 function buildTavernRequest() {
-  const jsonSchema = strictJsonObject({
+  const act = strictJsonObject({
     action: { type: "string", enum: ["interact", "wait"] },
     target: nullableJsonEnum(["tavern chest", "Tobias", "yourself"]),
     verb: { type: ["string", "null"] },
     item: nullableJsonEnum(["bread", "coin", "oven", "tavern chest"]),
     from: nullableJsonEnum(["tavern chest"]),
   });
+  const jsonSchema = strictJsonObject({ acts: { type: "array", items: act } });
   const prompt = [
     "You are Mara, the baker.",
     "You are at the tavern.",
@@ -35,7 +36,10 @@ async function collectReplies(): Promise<Record<string, unknown>[]> {
     const answer = await responder(request, attempt);
     const text = typeof answer === "string" || answer instanceof Error ? null : answer.text;
     if (typeof text !== "string") throw new Error("the fake responder should answer with text");
-    replies.push(JSON.parse(text) as Record<string, unknown>);
+    const reply = JSON.parse(text) as { acts: Record<string, unknown>[] };
+    const [firstAct] = reply.acts;
+    if (firstAct === undefined) throw new Error("the fake responder should give an act");
+    replies.push(firstAct);
   }
   return replies;
 }

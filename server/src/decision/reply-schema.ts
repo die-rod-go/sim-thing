@@ -1,4 +1,10 @@
-import type { DecisionAction, DecisionReply, OfferAnswer, Volume } from "@village/shared";
+import type {
+  DecisionAct,
+  DecisionAction,
+  DecisionReply,
+  OfferAnswer,
+  Volume,
+} from "@village/shared";
 import { z } from "zod";
 import { PLANNED_ITEM_JSON, plannedItemSchema } from "../agenda/agenda-schema";
 import { config } from "../config";
@@ -24,7 +30,15 @@ import {
 const VOLUMES: readonly [Volume, ...Volume[]] = ["whisper", "normal", "shout"];
 const NUMBER_LIST_JSON: JsonSchema = { type: "array", items: { type: "integer" } };
 const OFFER_ANSWERS: readonly [OfferAnswer, ...OfferAnswer[]] = ["accept", "decline"];
-const ACTIONS_NEEDING_TARGET: readonly DecisionAction[] = ["walk_to", "give"];
+const ACTIONS_NEEDING_TARGET: readonly DecisionAction[] = ["walk_to", "give", "follow"];
+/** What an act after the first may be: anything but `continue`. */
+const LATER_ACTIONS: readonly [DecisionAction, ...DecisionAction[]] = [
+  "walk_to",
+  "interact",
+  "give",
+  "wait",
+  "follow",
+];
 
 export interface ReplySchemas<Value> {
   schema: z.ZodType<Value>;
@@ -46,33 +60,41 @@ export interface DecisionSchemaOptions {
 
 const AGENDA_JSON: JsonSchema = nullableJsonObject({ type: "array", items: PLANNED_ITEM_JSON });
 
-function buildDecisionJsonSchema(
-  actions: readonly string[],
-  targetNames: string[],
-  itemNames: string[],
-  holderNames: string[],
-  options: DecisionSchemaOptions,
-): JsonSchema {
+interface OfferedNames {
+  actions: readonly string[];
+  targets: string[];
+  items: string[];
+  holders: string[];
+}
+
+function buildActJsonSchema(names: OfferedNames, isStable: boolean): JsonSchema {
+  // Later acts may name what isn't here yet, so names are offered rather than required; zod
+  // checks the first act's names.
+  const nameField = (offered: string[]) =>
+    isStable ? nullableJsonString() : nullableJsonStringOffering(offered);
+  return strictJsonObject({
+    action: isStable ? { type: "string" } : { type: "string", enum: [...names.actions] },
+    verb: nullableJsonString(),
+    item: nameField(names.items),
+    from: nameField(names.holders),
+    target: nameField(names.targets),
+    text: nullableJsonString(),
+    amount: nullableJsonInteger(),
+    minutes: nullableJsonInteger(),
+    say: nullableJsonString(),
+    volume: nullableJsonEnum(VOLUMES),
+  });
+}
+
+function buildDecisionJsonSchema(names: OfferedNames, options: DecisionSchemaOptions): JsonSchema {
   const isStable = options.isReplySchemaStable ?? false;
-  const nameField = (names: string[]) =>
-    isStable ? nullableJsonString() : nullableJsonEnum(names);
   return strictJsonObject({
     thought: { type: "string", description: "One or two short private sentences." },
     intention: {
       type: "string",
       description: "One line: what you are doing now and why.",
     },
-    say: nullableJsonString(),
-    volume: nullableJsonEnum(VOLUMES),
-    action: isStable ? { type: "string" } : { type: "string", enum: [...actions] },
-    verb: nullableJsonString(),
-    item: nameField(itemNames),
-    from: nameField(holderNames),
-    // `walk_to` takes any name, so the names are only offered; zod checks the other actions' targets.
-    target: isStable ? nullableJsonString() : nullableJsonStringOffering(targetNames),
-    text: nullableJsonString(),
-    amount: nullableJsonInteger(),
-    minutes: nullableJsonInteger(),
+    acts: { type: "array", items: buildActJsonSchema(names, isStable) },
     mood: nullableJsonString(),
     offer: nullableJsonEnum(OFFER_ANSWERS),
     done: nullableJsonObject(NUMBER_LIST_JSON),
@@ -83,22 +105,22 @@ function buildDecisionJsonSchema(
   });
 }
 
-function requireFieldsForAction(reply: DecisionReply, context: z.RefinementCtx): void {
-  const missingFields: (keyof DecisionReply)[] = [];
-  if (ACTIONS_NEEDING_TARGET.includes(reply.action) && !reply.target) missingFields.push("target");
-  if (reply.action === "interact" && !reply.target && !reply.item && !reply.verb) {
+function requireFieldsForAct(act: DecisionAct, context: z.RefinementCtx): void {
+  const missingFields: (keyof DecisionAct)[] = [];
+  if (ACTIONS_NEEDING_TARGET.includes(act.action) && !act.target) missingFields.push("target");
+  if (act.action === "interact" && !act.target && !act.item && !act.verb) {
     missingFields.push("target");
   }
-  if (reply.action === "give" && !reply.item) missingFields.push("item");
-  if (reply.action === "give" && reply.amount === undefined) missingFields.push("amount");
+  if (act.action === "give" && !act.item) missingFields.push("item");
+  if (act.action === "give" && act.amount === undefined) missingFields.push("amount");
   for (const field of missingFields) {
-    context.addIssue({ code: "custom", path: [field], message: `${reply.action} needs ${field}` });
+    context.addIssue({ code: "custom", path: [field], message: `${act.action} needs ${field}` });
   }
 }
 
 /**
- * A target must be one of the names valid right now, and parses to that name's spelling. Only
- * `walk_to` takes any name: an agent may set out for a place it has only heard of.
+ * A first act's target must be one of the names valid right now, and parses to that name's
+ * spelling. Only `walk_to` takes any name: an agent may set out for a place it has only heard of.
  */
 function checkTarget(targetNames: readonly string[]) {
   const canonicalByNormalized = new Map(
@@ -106,26 +128,46 @@ function checkTarget(targetNames: readonly string[]) {
   );
   const findCanonical = (target: string) => canonicalByNormalized.get(normalizeDisplayName(target));
   return {
-    refine(reply: DecisionReply, context: z.RefinementCtx): void {
-      if (reply.target === undefined || reply.action === "walk_to") return;
-      if (findCanonical(reply.target) !== undefined) return;
+    refine(act: DecisionAct, context: z.RefinementCtx): void {
+      if (act.target === undefined || act.action === "walk_to") return;
+      if (findCanonical(act.target) !== undefined) return;
       context.addIssue({
         code: "custom",
         path: ["target"],
         message: `target must be one of: ${targetNames.join(", ")}`,
       });
     },
-    canonicalize(reply: DecisionReply): DecisionReply {
-      if (reply.target === undefined) return reply;
-      return { ...reply, target: findCanonical(reply.target) ?? reply.target };
+    canonicalize(act: DecisionAct): DecisionAct {
+      if (act.target === undefined) return act;
+      return { ...act, target: findCanonical(act.target) ?? act.target };
     },
   };
 }
 
+/** The fields every act has, with its own `action` and naming checks. */
+function buildActShape(
+  action: z.ZodType<DecisionAction>,
+  item: z.ZodType<string>,
+  from: z.ZodType<string>,
+) {
+  return {
+    action,
+    verb: z.string().trim().optional(),
+    item: item.optional(),
+    from: from.optional(),
+    target: z.string().trim().optional(),
+    text: z.string().trim().optional(),
+    amount: z.number().int().positive().optional(),
+    minutes: z.number().positive().optional(),
+    say: z.string().trim().optional(),
+    volume: looseEnum(VOLUMES).optional(),
+  };
+}
+
 /**
- * The decision reply as a zod schema plus the matching strict JSON schema. `action`, `item` and
- * `from` are enums of what is valid right now, so a structured-output provider can't produce
- * anything else; `item` also accepts plurals ("coins"). `target` is checked by zod alone.
+ * The decision reply as a zod schema plus the matching strict JSON schema. The first act is
+ * checked against what is valid right now (`item` also accepts plurals, "coins"); the later ones
+ * take any name and are resolved when they start, as `walk_to` already is.
  */
 export function buildDecisionReplySchema(
   validTargets: DecisionTargets,
@@ -141,37 +183,48 @@ export function buildDecisionReplySchema(
     validItems.flatMap((item) => (item.plural ? [[item.plural, item.name] as const] : [])),
   );
   const targetCheck = checkTarget(targetNames);
-  const replyObject = z
-    .object({
-      thought: z.string().trim().min(1),
-      intention: z.string().trim().min(1),
-      say: z.string().trim().optional(),
-      volume: looseEnum(VOLUMES).optional(),
-      action: looseEnum(actions),
-      verb: z.string().trim().optional(),
-      item: aliasedNameEnum(itemNames, itemAliases, "item").optional(),
-      from: displayNameEnum(validHolders, "from").optional(),
-      target: z.string().trim().optional(),
-      text: z.string().trim().optional(),
-      amount: z.number().int().positive().optional(),
-      minutes: z.number().positive().optional(),
-      mood: z.string().trim().optional(),
-      offer: looseEnum(OFFER_ANSWERS).optional(),
-      done: z.array(z.number().int()).optional(),
-      dropped: z.array(z.number().int()).optional(),
-      added: z.array(plannedItemSchema).optional(),
-      remember: writtenText(config.memory.keyMemoryMaxChars).min(1).optional(),
-      agenda: z
-        .array(plannedItemSchema)
-        .transform((items) => items.slice(0, config.agenda.maxItems))
-        .optional(),
-    })
-    .superRefine(requireFieldsForAction)
-    .superRefine(targetCheck.refine)
-    .transform(targetCheck.canonicalize);
+  const firstAct = z.preprocess(
+    dropEmptyFields,
+    z
+      .object(
+        buildActShape(
+          looseEnum(actions),
+          aliasedNameEnum(itemNames, itemAliases, "item"),
+          displayNameEnum(validHolders, "from"),
+        ),
+      )
+      .superRefine(requireFieldsForAct)
+      .superRefine(targetCheck.refine)
+      .transform(targetCheck.canonicalize),
+  );
+  const laterAct = z.preprocess(
+    dropEmptyFields,
+    z
+      .object(buildActShape(looseEnum(LATER_ACTIONS), z.string().trim(), z.string().trim()))
+      .superRefine(requireFieldsForAct),
+  );
+  const replyObject = z.object({
+    thought: z.string().trim().min(1),
+    intention: z.string().trim().min(1),
+    acts: z
+      .tuple([firstAct])
+      .rest(laterAct)
+      .transform((acts) => acts.slice(0, config.decision.maxActs)),
+    mood: z.string().trim().optional(),
+    offer: looseEnum(OFFER_ANSWERS).optional(),
+    done: z.array(z.number().int()).optional(),
+    dropped: z.array(z.number().int()).optional(),
+    added: z.array(plannedItemSchema).optional(),
+    remember: writtenText(config.memory.keyMemoryMaxChars).min(1).optional(),
+    agenda: z
+      .array(plannedItemSchema)
+      .transform((items) => items.slice(0, config.agenda.maxItems))
+      .optional(),
+  });
+  const names = { actions, targets: targetNames, items: itemNames, holders: validHolders };
   return {
     schema: z.preprocess(dropEmptyFields, replyObject),
-    jsonSchema: buildDecisionJsonSchema(actions, targetNames, itemNames, validHolders, options),
+    jsonSchema: buildDecisionJsonSchema(names, options),
     schemaName: "decision_reply",
   };
 }

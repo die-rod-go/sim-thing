@@ -13,6 +13,7 @@ import { findObviousListeners } from "../perception/listeners";
 import { listBodyWords } from "../status/conditions";
 import { computeStarvationDamage, describeHealthAsSeen, isDead } from "../status/health";
 import { describeDoing } from "./action-phrases";
+import { describeQueuedActs } from "./act-queue";
 import { getAgentRuntime } from "./agent-runtime";
 import { findOwnOffer } from "./offers";
 import { listPeopleOnMind } from "./people-on-mind";
@@ -152,6 +153,7 @@ export function buildDecisionContext(
             minutesLeft:
               action.endsAtTick === null ? null : minutesSince(state.tick, action.endsAtTick),
             slowedBy: runtime.verbRun?.slowedBy ?? null,
+            queued: describeQueuedActs(runtime.queuedActs),
           },
     isMidActionInterrupt,
     decisionReason,

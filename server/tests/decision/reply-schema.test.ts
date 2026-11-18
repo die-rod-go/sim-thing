@@ -5,6 +5,7 @@ import { buildInteractPrompt, buildInteractReplySchema } from "../../src/decisio
 import { buildDecisionReplySchema } from "../../src/decision/reply-schema";
 import { resolveName } from "../../src/decision/resolve-name";
 import { readJsonEnumValues } from "../../src/decision/schema-fields";
+import type { JsonSchema } from "../../src/llm/types";
 
 const targets: DecisionTargets = {
   places: ["bakery", "town square"],
@@ -17,11 +18,7 @@ const items: ValidItem[] = [{ name: "bread" }, { name: "coin", plural: "coins" }
 
 const holders = ["chest", "Mara's body"];
 
-const nullReply = {
-  thought: "Bob looks hungry.",
-  intention: "sell Bob some bread",
-  say: null,
-  volume: null,
+const nullAct = {
   action: "give",
   verb: null,
   item: "bread",
@@ -30,6 +27,14 @@ const nullReply = {
   text: null,
   amount: 1,
   minutes: null,
+  say: null,
+  volume: null,
+};
+
+const nullReply = {
+  thought: "Bob looks hungry.",
+  intention: "sell Bob some bread",
+  acts: [nullAct],
   mood: null,
   offer: null,
   done: null,
@@ -38,118 +43,131 @@ const nullReply = {
   remember: null,
 };
 
+/** A reply with the given acts and the required fields filled in. */
+function reply(...acts: Record<string, unknown>[]) {
+  return { thought: "Hm.", intention: "go on", acts };
+}
+
+function readActProperties(jsonSchema: JsonSchema): Record<string, unknown> {
+  const properties = jsonSchema.properties as Record<string, { items: JsonSchema }>;
+  return properties.acts?.items.properties as Record<string, unknown>;
+}
+
 describe("buildDecisionReplySchema", () => {
+  const { schema, jsonSchema } = buildDecisionReplySchema(targets, items, holders);
+
   it("normalizes null optional fields", () => {
-    const { schema } = buildDecisionReplySchema(targets, items, holders);
     expect(schema.parse(nullReply)).toEqual({
       thought: "Bob looks hungry.",
       intention: "sell Bob some bread",
-      action: "give",
-      target: "Bob",
-      item: "bread",
-      amount: 1,
+      acts: [{ action: "give", target: "Bob", item: "bread", amount: 1 }],
     });
   });
 
-  it("accepts an answer to an offer alongside any action", () => {
-    const { schema, jsonSchema } = buildDecisionReplySchema(targets, items, holders);
-    const wait = { thought: "Kind of her.", intention: "rest", action: "wait" };
-    expect(schema.parse({ ...wait, offer: "Accept" }).offer).toBe("accept");
-    expect(schema.safeParse({ ...wait, offer: "maybe" }).success).toBe(false);
+  it("accepts an answer to an offer alongside any act", () => {
+    expect(schema.parse({ ...reply({ action: "wait" }), offer: "Accept" }).offer).toBe("accept");
+    expect(schema.safeParse({ ...reply({ action: "wait" }), offer: "maybe" }).success).toBe(false);
     const properties = jsonSchema.properties as Record<string, { anyOf: unknown[] }>;
     expect(properties.offer?.anyOf).toContainEqual({ type: "string", enum: ["accept", "decline"] });
   });
 
-  it("has no note field in the reply or its JSON schema", () => {
-    const { schema, jsonSchema } = buildDecisionReplySchema(targets, items, holders);
-    const note = { person: "Bob", text: "owes me" };
-    expect(schema.parse({ ...nullReply, note })).not.toHaveProperty("note");
-    expect(jsonSchema.properties).not.toHaveProperty("note");
-  });
-
   it("lets walk_to name anything, keeping the spelling of a name it knows", () => {
-    const { schema, jsonSchema } = buildDecisionReplySchema(targets, items, holders);
-    const walk = { thought: "Go.", intention: "go", action: "walk_to" };
-    expect(schema.parse({ ...walk, target: "brewery" }).target).toBe("brewery");
-    expect(schema.parse({ ...walk, target: "The Bakery" }).target).toBe("bakery");
-    const properties = jsonSchema.properties as Record<string, { anyOf: unknown[] }>;
-    expect(properties.target?.anyOf).toContainEqual({ type: "string" });
+    const walkTo = (target: string) => schema.parse(reply({ action: "walk_to", target }));
+    expect(walkTo("brewery").acts[0]?.target).toBe("brewery");
+    expect(walkTo("The Bakery").acts[0]?.target).toBe("bakery");
+    const target = readActProperties(jsonSchema).target as { anyOf: unknown[] };
+    expect(target.anyOf).toContainEqual({ type: "string" });
   });
 
-  it("validates action enums against current targets", () => {
-    const { schema, jsonSchema } = buildDecisionReplySchema(targets, items, holders);
-    const walk = { thought: "Go.", intention: "go", action: "walk_to" };
-    expect(schema.safeParse({ ...walk, target: "The Bakery" }).success).toBe(true);
-    const give = { ...walk, action: "give", item: "bread", amount: 1 };
-    expect(schema.safeParse({ ...give, target: "Zed" }).success).toBe(false);
-    expect(schema.safeParse({ ...walk, action: "fly", target: "bakery" }).success).toBe(false);
-    expect(schema.safeParse({ ...walk, action: "continue" }).success).toBe(false);
-    const properties = jsonSchema.properties as Record<string, unknown>;
+  it("checks the first act against what is here, and offers the names", () => {
+    const give = { action: "give", item: "bread", amount: 1 };
+    expect(schema.safeParse(reply({ ...give, target: "Zed" })).success).toBe(false);
+    expect(schema.safeParse(reply({ action: "fly", target: "bakery" })).success).toBe(false);
+    expect(schema.safeParse(reply({ action: "continue" })).success).toBe(false);
+    const properties = readActProperties(jsonSchema);
     expect(readJsonEnumValues(properties.target)).toEqual(["bakery", "town square", "Bob", "oven"]);
     expect(readJsonEnumValues(properties.item)).toEqual(["bread", "coin"]);
     expect(readJsonEnumValues(properties.action)).not.toContain("continue");
+    expect(readJsonEnumValues(properties.action)).toContain("follow");
+  });
+
+  it("lets later acts name what isn't here yet, to be resolved when they start", () => {
+    const later = { action: "give", target: "Zed", item: "pie", amount: 1 };
+    const parsed = schema.parse(reply({ action: "walk_to", target: "bakery" }, later));
+    expect(parsed.acts[1]).toEqual(later);
+    const continuing = reply({ action: "wait" }, { action: "continue" });
+    expect(schema.safeParse(continuing).success).toBe(false);
+  });
+
+  it("keeps no more acts than allowed, and needs at least one", () => {
+    const waits = Array.from({ length: config.decision.maxActs + 2 }, () => ({ action: "wait" }));
+    expect(schema.parse(reply(...waits)).acts).toHaveLength(config.decision.maxActs);
+    expect(schema.safeParse(reply()).success).toBe(false);
   });
 
   it("accepts a from holder, rejects an unknown one and drops a null one", () => {
-    const { schema, jsonSchema } = buildDecisionReplySchema(targets, items, holders);
-    const take = { thought: "Take.", intention: "take", action: "interact", verb: "take" };
-    expect(schema.parse({ ...take, item: "coin", from: "The Chest" })).toMatchObject({
+    const take = { action: "interact", verb: "take", item: "coin" };
+    expect(schema.parse(reply({ ...take, from: "The Chest" })).acts[0]).toMatchObject({
       from: "chest",
     });
-    expect(schema.safeParse({ ...take, item: "coin", from: "barrel" }).success).toBe(false);
-    expect(schema.parse({ ...take, item: "coin", from: null })).not.toHaveProperty("from");
-    const properties = jsonSchema.properties as Record<string, unknown>;
-    expect(Object.keys(properties).indexOf("from")).toBe(
-      Object.keys(properties).indexOf("item") + 1,
-    );
-    expect(properties.from).toEqual({
-      anyOf: [{ type: "string", enum: holders }, { type: "null" }],
-    });
+    expect(schema.safeParse(reply({ ...take, from: "barrel" })).success).toBe(false);
+    expect(schema.parse(reply({ ...take, from: null })).acts[0]).not.toHaveProperty("from");
   });
 
   it("accepts continue only when interrupted mid-action", () => {
-    const { schema, jsonSchema } = buildDecisionReplySchema(targets, items, holders, {
+    const interrupted = buildDecisionReplySchema(targets, items, holders, {
       isMidActionInterrupt: true,
     });
-    expect(
-      schema.safeParse({ thought: "Fine.", intention: "bake", action: "continue" }).success,
-    ).toBe(true);
-    const properties = jsonSchema.properties as Record<string, unknown>;
+    expect(interrupted.schema.safeParse(reply({ action: "continue" })).success).toBe(true);
+    const properties = readActProperties(interrupted.jsonSchema);
     expect(readJsonEnumValues(properties.action)).toContain("continue");
   });
 
   it("accepts an item by its plural and parses it to the definition name", () => {
-    const { schema } = buildDecisionReplySchema(targets, items, holders);
-    const give = { ...nullReply, item: "Coins", amount: 3 };
-    expect(schema.parse(give)).toMatchObject({ item: "coin", amount: 3 });
-    expect(schema.safeParse({ ...nullReply, item: "knife" }).success).toBe(false);
+    const coins = { ...nullAct, item: "Coins", amount: 3 };
+    expect(schema.parse({ ...nullReply, acts: [coins] }).acts[0]).toMatchObject({
+      item: "coin",
+      amount: 3,
+    });
+    const knife = { ...nullAct, item: "knife" };
+    expect(schema.safeParse({ ...nullReply, acts: [knife] }).success).toBe(false);
   });
 
   it("lets interact name a held item, a target here, or just a verb", () => {
-    const { schema } = buildDecisionReplySchema(targets, items, holders);
-    const interact = { thought: "Eat.", intention: "eat", action: "interact" };
-    expect(schema.safeParse({ ...interact, item: "bread", verb: "eat" }).success).toBe(true);
-    expect(schema.safeParse({ ...interact, target: "oven" }).success).toBe(true);
-    expect(schema.safeParse({ ...interact, verb: "eat" }).success).toBe(true);
-    expect(schema.safeParse(interact).success).toBe(false);
+    const interact = { action: "interact" };
+    expect(schema.safeParse(reply({ ...interact, item: "bread", verb: "eat" })).success).toBe(true);
+    expect(schema.safeParse(reply({ ...interact, target: "oven" })).success).toBe(true);
+    expect(schema.safeParse(reply({ ...interact, verb: "eat" })).success).toBe(true);
+    expect(schema.safeParse(reply(interact)).success).toBe(false);
   });
 
-  it("requires the fields an action needs", () => {
-    const { schema } = buildDecisionReplySchema(targets, items, holders);
-    expect(schema.safeParse({ ...nullReply, amount: null }).success).toBe(false);
-    expect(schema.safeParse({ ...nullReply, action: "recall" }).success).toBe(false);
+  it("requires the fields an act needs, in later acts too", () => {
+    const noAmount = { ...nullReply, acts: [{ ...nullAct, amount: null }] };
+    expect(schema.safeParse(noAmount).success).toBe(false);
+    expect(schema.safeParse(reply({ action: "wait" }, { action: "follow" })).success).toBe(false);
   });
 
-  it("takes words alongside any action", () => {
-    const { schema } = buildDecisionReplySchema(targets, items, holders);
-    const greeting = { thought: "Hm.", intention: "greet", say: "Morning!" };
-    expect(schema.safeParse({ ...greeting, action: "wait" }).success).toBe(true);
+  it("takes words with each act", () => {
+    const parsed = schema.parse(
+      reply({ action: "wait", say: "Morning!" }, { action: "wait", say: "Bye!", volume: "Shout" }),
+    );
+    expect(parsed.acts.map((act) => [act.say, act.volume])).toEqual([
+      ["Morning!", undefined],
+      ["Bye!", "shout"],
+    ]);
   });
 
   it("lists every field as required in field order for strict mode", () => {
-    const { jsonSchema } = buildDecisionReplySchema(targets, items, holders);
     expect(jsonSchema.required).toEqual(Object.keys(nullReply));
     expect(jsonSchema.additionalProperties).toBe(false);
+    const properties = jsonSchema.properties as Record<string, { items: JsonSchema }>;
+    expect(properties.acts?.items.required).toEqual(Object.keys(nullAct));
+  });
+
+  it("lets a reckoning alone write the whole new agenda", () => {
+    const reckoning = buildDecisionReplySchema(targets, items, holders, { isReckoning: true });
+    expect(reckoning.jsonSchema.properties).toHaveProperty("agenda");
+    expect(jsonSchema.properties).not.toHaveProperty("agenda");
   });
 });
 

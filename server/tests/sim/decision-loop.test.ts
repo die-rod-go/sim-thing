@@ -276,7 +276,9 @@ describe("decision loop", () => {
     await sim.advance();
     expect(sim.records).toHaveLength(1);
     expect(sim.client.requests[0]?.jsonSchema).toMatchObject({
-      properties: { action: { enum: expect.arrayContaining(["continue"]) } },
+      properties: {
+        acts: { items: { properties: { action: { enum: expect.arrayContaining(["continue"]) } } } },
+      },
     });
     expect(sim.agent("mara").currentAction).toEqual({ kind: "wait", endsAtTick: 200 });
   });

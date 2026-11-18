@@ -22,7 +22,8 @@ import { findEntityIfPresent } from "../items/entity-store";
 import { writeField } from "../items/thing-writes";
 import { isNoticedOnSight } from "../items/world-physics";
 import { wakeAgent } from "./action-stopping";
-import { WAIT_ACTION, WALK_ACTION, describeDoing } from "./action-phrases";
+import { FOLLOW_ACTION, WAIT_ACTION, WALK_ACTION, describeDoing } from "./action-phrases";
+import { advanceFollow } from "./following";
 import { getAgentRuntime, requestDecision } from "./agent-runtime";
 import { isWaitingForDayPlan } from "./agenda-reminders";
 import { EMPTY_PERSON_ENTRY } from "../passes/apply-pass";
@@ -109,7 +110,7 @@ function hasEnded(endsAtTick: number | null, tick: number): boolean {
   return endsAtTick !== null && tick >= endsAtTick;
 }
 
-/** Phase 2: walks step, verbs finish, sleepers wake on their own, waits run out. */
+/** Phase 2: walks step, follows keep up, verbs finish, sleepers wake on their own, waits run out. */
 export function progressActions(context: TickContext): void {
   const { state, result } = context;
   for (const agentId of state.agents.map((agent) => agent.id)) {
@@ -118,6 +119,8 @@ export function progressActions(context: TickContext): void {
     if (action === null || isDead(agent)) continue;
     if (action.kind === WALK_ACTION && getAgentRuntime(state, agentId).walk) {
       advanceWalk(context, agentId);
+    } else if (action.kind === FOLLOW_ACTION) {
+      advanceFollow(context, agentId);
     } else if (isAsleep(agent)) {
       const wakeReason = findWakeReason(agent, state.tick);
       if (wakeReason !== null) wakeAgent(context, agentId, wakeReason);

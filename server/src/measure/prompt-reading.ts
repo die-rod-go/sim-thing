@@ -107,8 +107,10 @@ export function readAgendaMarks(parsed: unknown): { done: number[]; dropped: num
   return { done: readNumbers(parsed, "done"), dropped: readNumbers(parsed, "dropped") };
 }
 
-/** The act a decision reply settled on ("wait", "walk_to"); "unreadable" when it has none. */
+/** The first act a decision reply settled on ("wait", "walk_to"); "unreadable" when it has none. */
 export function readDecisionOutcome(parsed: unknown): string {
-  if (!isRecord(parsed) || typeof parsed.action !== "string") return "unreadable";
-  return parsed.action;
+  const acts = isRecord(parsed) ? parsed.acts : undefined;
+  const first: unknown = Array.isArray(acts) ? acts[0] : undefined;
+  if (!isRecord(first) || typeof first.action !== "string") return "unreadable";
+  return first.action;
 }

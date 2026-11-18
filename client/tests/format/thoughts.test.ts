@@ -9,9 +9,7 @@ describe("summarizeLlmCall", () => {
       parsed: {
         thought: "Bob looks hungry",
         intention: "Sell Bob bread",
-        say: "Bread, Bob?",
-        volume: "whisper",
-        action: "continue",
+        acts: [{ say: "Bread, Bob?", volume: "whisper", action: "continue" }],
       },
     };
     const entry = summarizeLlmCall(call);
@@ -28,11 +26,7 @@ describe("summarizeLlmCall", () => {
       parsed: {
         thought: "Bob looks hungry",
         intention: "Sell Bob bread",
-        say: "Bread, Bob?",
-        action: "give",
-        target: "Bob",
-        item: "bread",
-        amount: 1,
+        acts: [{ say: "Bread, Bob?", action: "give", target: "Bob", item: "bread", amount: 1 }],
       },
     };
     expect(summarizeLlmCall(call).parts).toEqual([

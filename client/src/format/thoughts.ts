@@ -68,19 +68,25 @@ function describeDecisionAction(fields: ReplyFields): string | null {
       const minutes = readNumber(fields, "minutes");
       return minutes === null ? "wait" : `wait ${minutes} min`;
     }
+    case "follow":
+      return `follow ${target ?? "?"}`;
     default:
       return target ? `${action} → ${target}` : action;
   }
 }
 
-function summarizeDecision(fields: ReplyFields): Pick<ThoughtEntry, "headline" | "parts"> {
-  const volume = readText(fields, "volume");
+/** Each act: the words said as it starts, then what it does. */
+function summarizeAct(act: ReplyFields): ThoughtPart[] {
+  const volume = readText(act, "volume");
   const saidLabel = volume === "whisper" ? "whispered" : volume === "shout" ? "shouted" : "said";
+  return [...part(saidLabel, readText(act, "say")), ...part("does", describeDecisionAction(act))];
+}
+
+function summarizeDecision(fields: ReplyFields): Pick<ThoughtEntry, "headline" | "parts"> {
   return {
     headline: readText(fields, "thought"),
     parts: [
-      ...part(saidLabel, readText(fields, "say")),
-      ...part("does", describeDecisionAction(fields)),
+      ...readRecords(fields, "acts").flatMap(summarizeAct),
       ...part("intends", readText(fields, "intention")),
       ...part("feels", readText(fields, "mood")),
       ...part("offer", readText(fields, "offer")),

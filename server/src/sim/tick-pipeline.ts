@@ -3,6 +3,7 @@ import { config } from "../config";
 import { pruneConversationLog } from "../memory/conversation";
 import { ATTACK_KINDS } from "./event-broadcast";
 import { applyDecisionPlan } from "./action-executor";
+import { startQueuedActs } from "./act-queue";
 import { flagReminders } from "./agenda-reminders";
 import { BackgroundWork } from "./background-work";
 import { carryBodiesAlong } from "./carried-bodies";
@@ -61,7 +62,8 @@ function createFightWatch() {
  * 3b. offers lapse: withdrawn when the giver left reach, unanswered after their time is up;
  * 4. needs that crossed the decision threshold flag a decision, and so does an agenda item whose
  *    hour has come (a sleeper finds it missed on waking);
- * 5. decisions: everyone who needs one gets it, all in parallel through the limiter; the tick
+ * 5. queued acts: an agent whose act ended starts its next queued one, with no LLM call;
+ * 5b. decisions: everyone who needs one gets it, all in parallel through the limiter; the tick
  *    waits for all of them, then applies them in agent order (speech first, the answer to an
  *    offer, then the act), so
  *    the result doesn't depend on which LLM call returned first;
@@ -102,9 +104,9 @@ export function createDecisionStrategy(dependencies: SimDependencies): AdvanceTi
       for (const plan of backgroundDecisions.collectFinished(state)) {
         applyDecisionPlan(context, plan);
       }
-      const requests = selectDecisionRequests(context, (agentId) =>
-        backgroundDecisions.isRunning(state, agentId),
-      );
+      const isDeciding = (agentId: string) => backgroundDecisions.isRunning(state, agentId);
+      startQueuedActs(context, isDeciding);
+      const requests = selectDecisionRequests(context, isDeciding);
       for (const request of requests) {
         backgroundDecisions.start(state, request.agentId, () => decide(state, request));
       }
@@ -124,6 +126,7 @@ export function createDecisionStrategy(dependencies: SimDependencies): AdvanceTi
         applyDecisionPlan(context, plan);
       }
     } else {
+      startQueuedActs(context);
       const requests = selectDecisionRequests(context);
       const plans = await Promise.all(requests.map((request) => decide(state, request)));
       for (const plan of plans) applyDecisionPlan(context, plan);

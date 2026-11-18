@@ -60,7 +60,9 @@ export function stopCurrentAction(context: TickContext, agentId: string): void {
   const agent = findAgent(context.state, agentId);
   if (isAsleep(agent)) wakeAgent(context, agentId);
   else if (agent.currentAction?.verb !== undefined) cancelRunningVerb(context, agentId);
-  getAgentRuntime(context.state, agentId).walk = null;
+  const runtime = getAgentRuntime(context.state, agentId);
+  runtime.walk = null;
+  runtime.follow = null;
   const current = findAgent(context.state, agentId);
   if (current.currentAction !== null) {
     replaceAgent(context.state, { ...current, currentAction: null });

@@ -602,6 +602,17 @@ export const config = {
      * counted as this many extra steps, so it crosses as few of those things as it can.
      */
     blockedTileExtraSteps: 100,
+    /** How long a `follow` lasts when the reply names no minutes. */
+    followDefaultMinutes: 30,
+    /** Ticks the followed person may be out of sight before the follow gives up. */
+    followLostTicks: 10,
+    /** What others see a follower doing, and the event of setting out after someone. */
+    followingText: "following {name}",
+    followStartedText: "started following {name}",
+    /** Filed when the followed person has been out of sight too long. */
+    followLostText: "I lost sight of {name}",
+    /** Why a follow fails to start. */
+    followNoOneReason: "there was no one by that name in sight",
   },
 
   memory: {
@@ -816,6 +827,21 @@ export const config = {
     /** Rough characters per token, for estimating token counts. Measured from logged Haiku calls: about 2.3. */
     charsPerToken: 2.3,
     defaultWaitMinutes: 10,
+    /** Most acts one decision may queue; the first starts now, each later one when the last ends. */
+    maxActs: 3,
+    /**
+     * How the acts still queued read after "You are in the middle of": "baking bread at the oven;
+     * then: put bread in the bakery chest".
+     */
+    queuedActTexts: {
+      walk_to: "walk to {target}",
+      interact: "{verb} {item}",
+      give: "give {target} {amount} {item}",
+      wait: "wait {minutes} min",
+      follow: "follow {target}",
+      prefix: "; then: ",
+      joiner: ", then ",
+    },
     /** How long a speaker stays to hear an answer when the reply names no minutes. */
     sayWaitMinutes: 5,
     maxWaitMinutes: 240,

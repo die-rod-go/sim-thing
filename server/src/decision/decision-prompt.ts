@@ -32,7 +32,7 @@ const OWN_OFFER_TEMPLATE = "decision-own-offer";
 const RECKONING_TEMPLATE = "decision-reckoning";
 /** Marks the end of a part of the template that is stable enough for the provider to cache. */
 const CACHE_BREAKPOINT_MARKER = "<<<cache>>>\n";
-const BASE_ACTIONS: readonly DecisionAction[] = ["walk_to", "interact", "give", "wait"];
+const BASE_ACTIONS: readonly DecisionAction[] = ["walk_to", "interact", "give", "wait", "follow"];
 
 export function listOfferedActions(isMidActionInterrupt: boolean): DecisionAction[] {
   return isMidActionInterrupt ? [...BASE_ACTIONS, "continue"] : [...BASE_ACTIONS];
@@ -75,6 +75,8 @@ function buildTemplateValues(
     longTermGoals: describeLongTermGoals(context.longTermGoals),
     today: describeAgenda(context.agenda),
     maxAgendaAdded: String(config.agenda.maxAddedPerDecision),
+    maxActs: String(config.decision.maxActs),
+    followMinutes: String(config.walking.followDefaultMinutes),
     people: describePersonLines(context.people),
     peopleOnMind: describePeopleOnMind(context.peopleOnMind),
     keyMemories: describeKeyMemories(context.keyMemories),

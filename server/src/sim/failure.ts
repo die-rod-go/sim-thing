@@ -28,10 +28,11 @@ export function describeReasonAsSeen(reason: string): string {
 }
 
 /**
- * An act that couldn't be carried out fails in the world: the agent stops, an `action_failed`
- * event is broadcast (so "I tried to ... but ..." enters the agent's stream and onlookers see the
- * attempt and why it failed), and the text is shown as the last failure in the next prompt. With
- * no current action, the agent gets a decision on the next decision phase.
+ * An act that couldn't be carried out fails in the world: the agent stops and its queued acts are
+ * dropped, an `action_failed` event is broadcast (so "I tried to ... but ..." enters the agent's
+ * stream and onlookers see the attempt and why it failed), and the text is shown as the last
+ * failure in the next prompt. With no current action, the agent gets a decision on the next
+ * decision phase.
  */
 export function failAction(
   state: WorldState,
@@ -45,6 +46,8 @@ export function failAction(
   const runtime = getAgentRuntime(state, agentId);
   runtime.walk = null;
   runtime.verbRun = null;
+  runtime.follow = null;
+  runtime.queuedActs = [];
   state.agentMemories[agentId] = noteFailedAct(getAgentMemory(state, agentId));
   const actorDescription = `tried to ${attempt} but ${continueSentence(reason)}`;
   runtime.lastFailure = `I ${actorDescription}`;

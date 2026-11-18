@@ -81,7 +81,9 @@ describe("reading a decision prompt", () => {
   });
 
   it("reads the act a reply settled on", () => {
-    expect(readDecisionOutcome({ action: "walk_to" })).toBe("walk_to");
+    expect(readDecisionOutcome({ acts: [{ action: "walk_to" }, { action: "wait" }] })).toBe(
+      "walk_to",
+    );
     expect(readDecisionOutcome(null)).toBe("unreadable");
   });
 });

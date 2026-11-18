@@ -29,6 +29,43 @@ const interactRequestSchema = z.object({
   minutes: z.number().optional(),
 });
 
+/**
+ * An act a decision settled on, with names left as the reply wrote them: a queued act is resolved
+ * only when it starts, since the world moves on in the meantime.
+ */
+const plannedActSchema = z.discriminatedUnion("kind", [
+  z.object({ kind: z.literal("walk_to"), target: z.string() }),
+  z.object({ kind: z.literal("interact"), request: interactRequestSchema }),
+  z.object({
+    kind: z.literal("give"),
+    target: z.string(),
+    item: z.string(),
+    amount: z.number().int(),
+  }),
+  z.object({ kind: z.literal("wait"), minutes: z.number() }),
+  z.object({ kind: z.literal("follow"), target: z.string(), minutes: z.number() }),
+]);
+
+/** Words to say as an act starts, and the decision they came from, for the viewer. */
+const plannedSpeechSchema = z.object({
+  line: z.object({ words: z.string(), volume: z.enum(["whisper", "normal", "shout"]) }),
+  origin: z.object({ thought: z.string(), llmCallId: z.number().int().nullable() }),
+});
+
+/** A later act of a decision, waiting for the one before it to end. */
+const queuedActSchema = z.object({
+  act: plannedActSchema,
+  speech: plannedSpeechSchema.nullable(),
+});
+
+/** Someone the agent is keeping within reach of, and for how long they have been out of sight. */
+const followSchema = z.object({
+  agentId: z.string(),
+  ticksOutOfSight: z.number().int(),
+  /** Where the followed person was last seen, so the follower can go after them out of sight. */
+  lastSeenPos: positionSchema,
+});
+
 const walkSchema = z.object({
   destination: walkDestinationSchema,
   remainingSteps: z.array(positionSchema),
@@ -134,6 +171,11 @@ const agentRuntimeSchema = z.object({
   firedReminderNumbers: z.array(z.number().int()),
   /** Of those, the ones that came while the agent slept, filed when it wakes. */
   missedReminderNumbers: z.array(z.number().int()),
+  /** The decision's later acts, oldest first, each started when the act before it ends. */
+  queuedActs: z.array(queuedActSchema),
+  /** Waiting for the answer to its own offer before going on with its queued acts. */
+  isAwaitingAnswer: z.boolean(),
+  follow: followSchema.nullable(),
 });
 
 /** The verb a creature is in the middle of. Everything else about it is in its components. */
@@ -173,6 +215,9 @@ export type VerbChoice = z.infer<typeof verbChoiceSchema>;
 export type ThingSnapshot = z.infer<typeof thingSnapshotSchema>;
 export type PendingDecision = z.infer<typeof pendingDecisionSchema>;
 export type PendingOffer = z.infer<typeof pendingOfferSchema>;
+export type PlannedAct = z.infer<typeof plannedActSchema>;
+export type PlannedSpeech = z.infer<typeof plannedSpeechSchema>;
+export type QueuedAct = z.infer<typeof queuedActSchema>;
 
 export function createAgentRuntime(): AgentRuntime {
   return {
@@ -186,6 +231,9 @@ export function createAgentRuntime(): AgentRuntime {
     pendingOffer: null,
     firedReminderNumbers: [],
     missedReminderNumbers: [],
+    queuedActs: [],
+    isAwaitingAnswer: false,
+    follow: null,
   };
 }
 

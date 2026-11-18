@@ -1,1 +1,1 @@
-- continue: keep doing what you are in the middle of.
+- continue: keep doing what you are in the middle of, and the acts you queued after it.

@@ -21,7 +21,7 @@ import {
 import type { Agent, Position } from "@village/shared";
 
 /** Takes one step; false when something in the way couldn't be dealt with and the walk failed. */
-function stepOnce(context: TickContext, agentId: string, nextStep: Position): boolean {
+export function stepOnce(context: TickContext, agentId: string, nextStep: Position): boolean {
   const { state, result } = context;
   const refusal = clearTileInPassing(context, agentId, nextStep);
   if (refusal !== null) {

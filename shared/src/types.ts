@@ -253,16 +253,13 @@ export interface ReflectionProgress {
 
 export type Volume = "whisper" | "normal" | "shout";
 
-export type DecisionAction = "walk_to" | "interact" | "give" | "wait" | "continue";
+export type DecisionAction = "walk_to" | "interact" | "give" | "wait" | "follow" | "continue";
 
 /** How an agent answers what someone is offering it. */
 export type OfferAnswer = "accept" | "decline";
 
-export interface DecisionReply {
-  thought: string;
-  intention: string;
-  say?: string;
-  volume?: Volume;
+/** One act of a decision, with the words spoken as it starts. */
+export interface DecisionAct {
   action: DecisionAction;
   target?: string;
   verb?: string;
@@ -271,6 +268,15 @@ export interface DecisionReply {
   from?: string;
   amount?: number;
   minutes?: number;
+  say?: string;
+  volume?: Volume;
+}
+
+export interface DecisionReply {
+  thought: string;
+  intention: string;
+  /** In order: the first starts now, each later one when the one before ends. */
+  acts: DecisionAct[];
   mood?: string;
   offer?: OfferAnswer;
   /** Numbers of agenda items finished. */

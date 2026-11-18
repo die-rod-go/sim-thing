@@ -120,7 +120,7 @@ function parseReply<Value>(
   }
   const validation = schema.safeParse(parsed);
   if (!validation.success) {
-    const fields = validation.error.issues.map((issue) => String(issue.path[0] ?? ""));
+    const fields = validation.error.issues.map((issue) => issue.path.map(String).join("."));
     return {
       ok: false,
       error: `invalid reply: ${z.prettifyError(validation.error)}`,

@@ -11,6 +11,7 @@ import {
 } from "@village/shared";
 import { config } from "../config";
 import type { LlmCallDraft } from "../llm/call-structured";
+import { moveFieldsIntoActs } from "../llm/fake-decision";
 import { FakeLlmClient, type FakeResponder } from "../llm/fake-llm-client";
 import { buildLlmStack, type LlmStack } from "../llm/llm-stack";
 import { InMemoryTokenUsageStore } from "../llm/token-budget";
@@ -110,9 +111,14 @@ export function promptOf(request: LlmRequest): string {
     : request.messages.map((message) => message.content).join("\n");
 }
 
-/** A decision reply with the required fields filled in. */
+/**
+ * A decision reply with the required fields filled in. One act's fields may be given at the top
+ * (`action`, `target`, `say`, ...); they become the reply's only act.
+ */
 export function decisionReply(fields: Record<string, unknown>): string {
-  return JSON.stringify({ thought: "Thinking it over.", intention: "getting on", ...fields });
+  return JSON.stringify(
+    moveFieldsIntoActs({ thought: "Thinking it over.", intention: "getting on", ...fields }),
+  );
 }
 
 export type AgentScript = (request: LlmRequest, callIndex: number) => string | undefined;

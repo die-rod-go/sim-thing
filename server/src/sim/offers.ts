@@ -5,6 +5,7 @@ import { chooseEntitiesToGive, computeChebyshevDistance, executeGive } from "../
 import { isAsleep } from "../economy/sleep";
 import { canSee } from "../perception/sight";
 import { isDead } from "../status/health";
+import { WAIT_ACTION } from "./action-phrases";
 import { getAgentRuntime, requestDecision, type PendingOffer } from "./agent-runtime";
 import type { DecisionPlan, PlannedAction } from "./decision-runner";
 import { broadcastEvent } from "./event-broadcast";
@@ -19,6 +20,7 @@ import {
   listOthersAsSeen,
   markAgentChanged,
   markEntityChanged,
+  replaceAgent,
 } from "./world-access";
 import type { WorldState } from "./world-state";
 
@@ -44,6 +46,17 @@ function fillOfferWords(phrase: string, parties: OfferNames): string {
     .join(parties.recipient.name)
     .split("{what}")
     .join(parties.offer.itemText);
+}
+
+/** The giver's offer was answered or lapsed: it stops waiting and goes on with its queued acts. */
+function endWaitingForAnswer(context: TickContext, giverId: string): void {
+  const runtime = getAgentRuntime(context.state, giverId);
+  if (!runtime.isAwaitingAnswer) return;
+  runtime.isAwaitingAnswer = false;
+  const giver = findAgent(context.state, giverId);
+  if (giver.currentAction?.kind !== WAIT_ACTION) return;
+  replaceAgent(context.state, { ...giver, currentAction: null });
+  markAgentChanged(context.result, giverId);
 }
 
 /** Only the living remember, so a dead giver or recipient files nothing. */
@@ -119,12 +132,14 @@ export function findOwnOffer(
 
 function withdrawOffer(context: TickContext, parties: OfferParties): void {
   getAgentRuntime(context.state, parties.recipient.id).pendingOffer = null;
+  endWaitingForAnswer(context, parties.giver.id);
   noteForBoth(context.state, parties, [words.withdrawnRecipientEntry, words.withdrawnGiverEntry]);
   markAgentChanged(context.result, parties.recipient.id);
 }
 
 function leaveOfferUnanswered(context: TickContext, parties: OfferParties): void {
   getAgentRuntime(context.state, parties.recipient.id).pendingOffer = null;
+  endWaitingForAnswer(context, parties.giver.id);
   noteForBoth(context.state, parties, [words.unansweredRecipientEntry, words.unansweredGiverEntry]);
   markAgentChanged(context.result, parties.recipient.id);
 }
@@ -247,6 +262,7 @@ export function answerOffer(context: TickContext, plan: DecisionPlan): void {
     return;
   }
   getAgentRuntime(context.state, plan.agentId).pendingOffer = null;
+  endWaitingForAnswer(context, parties.giver.id);
   markAgentChanged(context.result, plan.agentId);
   const answer = plan.reply.reply.offer;
   if (answer === "accept") acceptOffer(context, parties);

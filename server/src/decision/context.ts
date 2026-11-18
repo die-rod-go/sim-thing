@@ -96,6 +96,8 @@ export interface CurrentActionSummary {
   minutesLeft: number | null;
   /** What is making it take longer than usual ("exhausted"), or null. */
   slowedBy: string | null;
+  /** The acts queued after it, each in a few words. */
+  queued: string[];
 }
 
 /** What the agent remembers and holds, as prompts read it; decisions and passes show the same. */

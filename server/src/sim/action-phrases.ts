@@ -16,6 +16,7 @@ import type { WorldState } from "./world-state";
 
 export const WALK_ACTION = "walk_to";
 export const WAIT_ACTION = "wait";
+export const FOLLOW_ACTION = "follow";
 export const INTERACT_ACTION = "interact";
 
 const PLACEHOLDERS = {
@@ -153,6 +154,9 @@ export function describeDoing(state: WorldState, agent: Agent, runtime: AgentRun
     return target.startsWith("towards ") ? `walking ${target}` : `walking to ${target}`;
   }
   if (action.kind === WAIT_ACTION) return "waiting around";
+  if (action.kind === FOLLOW_ACTION) {
+    return config.walking.followingText.split("{name}").join(action.target ?? "someone");
+  }
   if (action.verb !== undefined) {
     const verbRun = runtime.verbRun;
     return describeOngoingVerb(state.items, action.verb, {

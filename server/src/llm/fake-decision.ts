@@ -95,7 +95,41 @@ function answerOffer(random: SeededRandom): string {
   return random.next() < config.llm.fakeResponder.acceptOfferChance ? "accept" : "decline";
 }
 
+/** The fields of a decision reply that belong to its one act. */
+const ACT_FIELDS = [
+  "action",
+  "target",
+  "verb",
+  "item",
+  "from",
+  "text",
+  "amount",
+  "minutes",
+  "say",
+  "volume",
+] as const;
+
+/** A reply written with one act's fields at the top, as a reply with that one act in `acts`. */
+export function moveFieldsIntoActs(fields: JsonRecord): JsonRecord {
+  if (Array.isArray(fields.acts)) return fields;
+  const act = Object.fromEntries(
+    ACT_FIELDS.filter((field) => field in fields).map((field) => [field, fields[field]]),
+  );
+  const rest = Object.fromEntries(
+    Object.entries(fields).filter(([field]) => !(ACT_FIELDS as readonly string[]).includes(field)),
+  );
+  return { ...rest, acts: [act] };
+}
+
 export function buildDecisionReply(
+  random: SeededRandom,
+  choices: DecisionChoices,
+  hitRollVerbs: ReadonlySet<string>,
+): JsonRecord {
+  return moveFieldsIntoActs(buildOneActReply(random, choices, hitRollVerbs));
+}
+
+function buildOneActReply(
   random: SeededRandom,
   choices: DecisionChoices,
   hitRollVerbs: ReadonlySet<string>,
