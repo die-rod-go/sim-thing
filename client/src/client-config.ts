@@ -33,7 +33,7 @@ export const clientConfig = {
     speechBubbleWrapWidth: 240,
     speechBubbleGap: 4,
     /** Text sizes in screen pixels, by how loudly the line was said. */
-    speechBubbleFontSizes: { whisper: 10, normal: 11, shout: 12 },
+    speechBubbleFontSizes: { whisper: 10, normal: 12, shout: 12 },
     speechBubbleLeaderLineWidth: 1,
     speechBubbleLeaderLineAlpha: 0.6,
     /** How much of the speaker's color is mixed into a speech bubble's background, 0–1. */

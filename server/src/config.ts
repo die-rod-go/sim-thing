@@ -818,7 +818,7 @@ export const config = {
      * The running sim lets the clock go on while an agent interrupted mid-action decides; idle
      * agents' decisions still hold it. Tests always wait for every call.
      */
-    shouldCallLlmInBackground: true,
+    shouldCallLlmInBackground: false,
     /**
      * Whether decisions stay in the background while a fight is on (`combat.fightTicks`). Off, every
      * decision holds the clock until it lands, so a fight doesn't run ahead of the fighters' replies.
