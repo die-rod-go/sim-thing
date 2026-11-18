@@ -6,6 +6,8 @@ import { describeUnknownNames } from "../decision/unknown-names";
 import type { PlannedAct, PlannedSpeech, QueuedAct } from "./agent-runtime";
 import { buildDecisionContext } from "./context-builder";
 import { buildInteractRequest, planInteract } from "./interact-planning";
+import { normalizeVerbName } from "../items/verb-offers";
+import { listVerbsNamed } from "./interact-request-repair";
 import { findShownOfferEventId } from "./offers";
 import type { SimDependencies } from "./tick-context";
 import type { DecisionRequest } from "./tick-phases";
@@ -110,6 +112,26 @@ function chooseWaitMinutes(act: DecisionAct): number {
   return hasWords ? config.decision.sayWaitMinutes : config.decision.defaultWaitMinutes;
 }
 
+/**
+ * An interact whose verb is a way of talking ("say", "speak") that no verb in `items.json` has as
+ * its name, read as what it meant: words said while waiting a moment for an answer.
+ */
+export function readSpeechVerbAsWords(state: WorldState, act: DecisionAct): DecisionAct {
+  if (act.action !== "interact" || act.verb === undefined) return act;
+  const verbName = normalizeVerbName(act.verb);
+  const isSpeechVerb = config.decision.speechVerbNames.some(
+    (speechVerbName) => normalizeVerbName(speechVerbName) === verbName,
+  );
+  if (!isSpeechVerb || listVerbsNamed(state, act.verb).length > 0) return act;
+  const words = act.say?.trim() || act.text?.trim() || "";
+  return {
+    action: "wait",
+    ...(words === "" ? {} : { say: words }),
+    ...(act.volume === undefined ? {} : { volume: act.volume }),
+    ...(act.minutes === undefined || act.minutes === null ? {} : { minutes: act.minutes }),
+  };
+}
+
 /** An act in the reply's own words, to be resolved when it starts. */
 export function planAct(act: DecisionAct): PlannedAct {
   switch (act.action) {
@@ -151,7 +173,7 @@ export async function runDecision(
   const agent = findAgent(state, request.agentId);
   const offerEventId = findShownOfferEventId(state, agent.id);
   const decided = await askForDecision(state, dependencies, request);
-  const [first, ...later] = decided.reply.acts;
+  const [first, ...later] = decided.reply.acts.map((act) => readSpeechVerbAsWords(state, act));
   const firstAct: DecisionAct = first ?? { action: "wait" };
   const action: PlannedAction =
     firstAct.action === "continue"
