@@ -99,7 +99,7 @@ function StatusPill({
   const { stats } = state;
   const usedFraction =
     stats.dailyTokenBudget > 0 ? Math.min(stats.tokensToday / stats.dailyTokenBudget, 1) : 0;
-  const tokenTitle = `Tokens today: ${formatCount(stats.tokensToday)} / ${formatCount(stats.dailyTokenBudget)}`;
+  const tokenTitle = `Tokens today, weighted by how they bill (cached ones count less): ${formatCount(stats.tokensToday)} / ${formatCount(stats.dailyTokenBudget)}`;
   return (
     <div className="status-pill">
       <span

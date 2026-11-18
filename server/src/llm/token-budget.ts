@@ -8,6 +8,25 @@ export function formatCalendarDay(date: Date): string {
   return `${date.getFullYear()}-${month}-${day}`;
 }
 
+/** A call's tokens weighted by how they bill: cache reads and writes at `llm.tokenWeights`. */
+export function computeWeightedTokens(usage: {
+  promptTokens: number;
+  completionTokens: number;
+  cacheReadTokens?: number | null;
+  cacheWriteTokens?: number | null;
+}): number {
+  const weights = config.llm.tokenWeights;
+  const cacheRead = usage.cacheReadTokens ?? 0;
+  const cacheWrite = usage.cacheWriteTokens ?? 0;
+  const freshInput = Math.max(0, usage.promptTokens - cacheRead - cacheWrite);
+  const weighted =
+    freshInput +
+    cacheRead * weights.cacheRead +
+    cacheWrite * weights.cacheWrite +
+    usage.completionTokens;
+  return Math.round(weighted);
+}
+
 export interface TokenBudgetOptions {
   dailyTokenBudget?: number;
   now?: () => Date;

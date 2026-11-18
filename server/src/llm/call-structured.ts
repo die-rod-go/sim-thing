@@ -4,7 +4,7 @@ import { config } from "../config";
 import { createLogger } from "../logger";
 import type { ConcurrencyLimiter } from "./concurrency-limiter";
 import { renderTemplate } from "./templates";
-import type { TokenBudget } from "./token-budget";
+import { computeWeightedTokens, type TokenBudget } from "./token-budget";
 import type { JsonSchema, LlmCallSink, LlmClient } from "./types";
 
 const logger = createLogger("llm");
@@ -249,7 +249,7 @@ export function createStructuredCaller(
         attemptCall(dependencies.client, request, prompt, model),
       );
       const callId = dependencies.recordLlmCall(outcome.record);
-      dependencies.budget.addTokens(outcome.record.promptTokens + outcome.record.completionTokens);
+      dependencies.budget.addTokens(computeWeightedTokens(outcome.record));
       if (outcome.ok) {
         logger.debug(`${request.kind} call for ${request.agentId} ok`, {
           attempt,

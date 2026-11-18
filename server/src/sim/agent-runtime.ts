@@ -41,6 +41,8 @@ const plannedActSchema = z.discriminatedUnion("kind", [
     target: z.string(),
     item: z.string(),
     amount: z.number().int(),
+    /** Set once the giver has walked up to the recipient, so a give approaches only once. */
+    hasApproached: z.boolean().optional(),
     /** What the giver asks back, by name, if anything. */
     inReturn: z.object({ item: z.string(), amount: z.number().int() }).optional(),
   }),

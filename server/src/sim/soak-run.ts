@@ -4,9 +4,13 @@ import { isAsleep } from "../economy/sleep";
 import { createFakeResponder } from "../llm/fake-responder";
 import { listHitRollVerbNames } from "../items/verb-offers";
 import { createTestSim, loadTestItems, type TestSim } from "./test-sim";
+import { getAgentRuntime } from "./agent-runtime";
 import { getAgentMemory } from "./world-access";
 
-/** Events that only a decision can start, so each needs an LLM call by the actor on that tick. */
+/**
+ * Events that only a decision can start, so each needs an LLM call by the actor on that tick, or
+ * acts the actor had queued from an earlier one.
+ */
 const DECIDED_EVENT_KINDS: readonly WorldEventKind[] = ["said", "walk_started", "gave"];
 
 export interface SoakReport {
@@ -31,7 +35,7 @@ const ticksPerHour = 60 / config.clock.minutesPerTick;
 /**
  * Runs all seed agents with the fake LLM responder and checks the brief's done-when conditions:
  * no crash, no awake agent left without an action or decision for over a sim-hour, every decided
- * act traceable to a stored LLM call, every living agent's stream and episodes within their limits, and no reaction chain
+ * act traceable to a stored LLM call or a queue, every living agent's stream and episodes within their limits, and no reaction chain
  * cut off at the depth cap. Any thrown error ends the run with that error.
  */
 export async function runSoak(options: SoakOptions): Promise<SoakReport> {
@@ -48,6 +52,11 @@ export async function runSoak(options: SoakOptions): Promise<SoakReport> {
   let llmCalls = 0;
   let eventCount = 0;
   for (let count = 0; count < options.ticks; count += 1) {
+    const queuingAgentIds = new Set(
+      sim.state.agents
+        .filter((agent) => getAgentRuntime(sim.state, agent.id).queuedActs.length > 0)
+        .map((agent) => agent.id),
+    );
     const [result] = await sim.advance();
     if (!result) throw new Error("advance returned no result");
     sim.results.length = 0;
@@ -63,7 +72,8 @@ export async function runSoak(options: SoakOptions): Promise<SoakReport> {
     eventCount += result.events.length;
     problems.push(...result.ruleDepthCapHits);
     for (const event of result.events) {
-      const isDecided = DECIDED_EVENT_KINDS.includes(event.kind);
+      const isDecided =
+        DECIDED_EVENT_KINDS.includes(event.kind) && !queuingAgentIds.has(event.actorId);
       if (isDecided && !callTicksByAgent.get(event.actorId)?.has(event.tick)) {
         problems.push(`tick ${event.tick}: ${event.actorId} ${event.kind} without an LLM call`);
       }

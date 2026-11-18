@@ -66,7 +66,8 @@ function executeWalk(context: TickContext, agentId: string, targetName: string):
 
 /**
  * A give to someone in sight but out of reach walks up to them first; the give then waits at the
- * front of the queue, its words with it. Returns whether the walk started.
+ * front of the queue, its words with it, and is tried where the walk ends even if the recipient
+ * has moved on. Returns whether the act was taken over by the approach.
  */
 function approachForGive(
   context: TickContext,
@@ -74,6 +75,7 @@ function approachForGive(
   act: Extract<PlannedAct, { kind: "give" }>,
   speech: PlannedSpeech | null,
 ): boolean {
+  if (act.hasApproached === true) return false;
   const { state } = context;
   const runtime = getAgentRuntime(state, agentId);
   const inSight = runtime.visibleAgentIds
@@ -88,7 +90,7 @@ function approachForGive(
     return false;
   }
   // A walk that can't start fails the act, which clears the queue, the give included.
-  runtime.queuedActs.unshift({ act, speech });
+  runtime.queuedActs.unshift({ act: { ...act, hasApproached: true }, speech });
   startWalk(context, agentId, { kind: "agent", agentId: recipientId }, null);
   return true;
 }

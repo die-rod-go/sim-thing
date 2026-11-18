@@ -918,6 +918,11 @@ export const config = {
     } as Partial<Record<LlmCallKind, LlmEffort>>,
     dailyTokenBudget: 999_999_999,
     /**
+     * How the daily count and the top bar weigh cached prompt tokens, as they bill against fresh
+     * input: reads at a tenth, writes at a quarter more. So the count tracks spend.
+     */
+    tokenWeights: { cacheRead: 0.1, cacheWrite: 1.25 },
+    /**
      * List prices in dollars per million tokens, for estimating spend. A model takes the first
      * entry whose `model` appears in its id once dots read as dashes ("claude-haiku-5.5" too).
      */
