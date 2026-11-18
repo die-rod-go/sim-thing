@@ -8,8 +8,9 @@ import { appendToStream, findAgent, getAgentMemory } from "./world-access";
 import type { WorldState } from "./world-state";
 
 /**
- * The reality pass, owed when the agent seems stuck (a merged repeat grown large, acts failing in
- * a row): it checks the agent against how the world works and may give it one thought.
+ * The reality pass, owed every few episodes or when the agent seems stuck (a merged repeat grown
+ * large, acts failing in a row): it checks the agent against how the world works and may give it
+ * one thought.
  */
 export async function checkReality(
   dependencies: SimDependencies,

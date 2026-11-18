@@ -6,6 +6,7 @@ import type {
   SummaryLevel,
 } from "@village/shared";
 import { config } from "../config";
+import { noteEpisodeMade } from "./reflection-progress";
 
 /** One summary to write: what goes in, and for the first two levels what is shown as context. */
 export type SummaryJob =
@@ -31,6 +32,7 @@ export function createAgentMemory(
     reflection: { lastTick: null, awakeTicksSince: 0, streamEntriesSince: 0, isOwed: false },
     isRealityPassOwed: false,
     failedActsInARow: 0,
+    episodesSinceRealityPass: 0,
     dayPlanOwedSinceTick,
     keyMemories: [],
     keyMemoryCandidates: [],
@@ -184,11 +186,11 @@ export function applySummary(memory: AgentMemory, job: SummaryJob, text: string)
   const summary: Summary = { level: job.level, ...spanOf(job), text };
   if (job.level === "episode") {
     return advanceMidnightPast(
-      {
+      noteEpisodeMade({
         ...memory,
         stream: memory.stream.slice(job.entries.length),
         episodes: [...memory.episodes, summary],
-      },
+      }),
       "episode",
     );
   }

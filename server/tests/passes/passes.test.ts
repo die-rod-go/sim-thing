@@ -4,7 +4,9 @@ import { config } from "../../src/config";
 import {
   isReflectionDue,
   noteActDone,
+  markRealityPassDone,
   noteAwakeTick,
+  noteEpisodeMade,
   noteFailedAct,
   noteRepeatCount,
   noteStreamEntry,
@@ -82,6 +84,15 @@ describe("when an agent reflects", () => {
     expect(repeat(failures, noteFailedAct, fresh).isRealityPassOwed).toBe(true);
     const interrupted = noteFailedAct(noteActDone(repeat(failures - 1, noteFailedAct, fresh)));
     expect(interrupted.isRealityPassOwed).toBe(false);
+  });
+
+  it("owes a reality pass every half of the episodes before a chronicle, counting from the last", () => {
+    const interval = Math.floor(config.memory.episodesMax / config.realityPass.episodesMaxDivisor);
+    expect(repeat(interval - 1, noteEpisodeMade, fresh).isRealityPassOwed).toBe(false);
+    const owed = repeat(interval, noteEpisodeMade, fresh);
+    expect(owed.isRealityPassOwed).toBe(true);
+    const checked = markRealityPassDone(owed);
+    expect(noteEpisodeMade(checked).isRealityPassOwed).toBe(false);
   });
 });
 

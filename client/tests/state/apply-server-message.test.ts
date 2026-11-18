@@ -43,6 +43,7 @@ function makeDetail(agentId: string): AgentDetailMessage {
       reflection: { lastTick: null, awakeTicksSince: 0, streamEntriesSince: 0, isOwed: false },
       isRealityPassOwed: false,
       failedActsInARow: 0,
+      episodesSinceRealityPass: 0,
     },
     llmCalls: [],
     personalityHistory: [],

@@ -781,6 +781,8 @@ export const config = {
   },
 
   realityPass: {
+    /** The reality pass also runs every `memory.episodesMax / episodesMaxDivisor` episodes made. */
+    episodesMaxDivisor: 2,
     /** A merged repeat this large owes a reality pass. */
     repeatCountSignal: 3,
     /** This many acts failing in a row owe a reality pass. */

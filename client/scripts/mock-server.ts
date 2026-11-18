@@ -103,6 +103,7 @@ function buildDetail(agent: Agent): AgentDetailMessage {
       reflection: { lastTick: null, awakeTicksSince: 0, streamEntriesSince: 0, isOwed: false },
       isRealityPassOwed: false,
       failedActsInARow: 0,
+      episodesSinceRealityPass: 0,
     },
     llmCalls: [1, 2, 3].map((index) => makeSampleLlmCall(index, agent.id, tick - index * 5)),
     personalityHistory: [],

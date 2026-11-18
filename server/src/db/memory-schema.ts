@@ -48,6 +48,7 @@ export const agentMemorySchema: z.ZodType<AgentMemory> = z.object({
   reflection: reflectionProgressSchema,
   isRealityPassOwed: z.boolean(),
   failedActsInARow: z.number().int().nonnegative(),
+  episodesSinceRealityPass: z.number().int().nonnegative(),
   dayPlanOwedSinceTick: tickSchema.nullable(),
   keyMemories: z.array(keyMemorySchema),
   keyMemoryCandidates: z.array(keyMemorySchema),

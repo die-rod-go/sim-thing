@@ -4,7 +4,8 @@ import { config } from "../config";
 /*
  * When an agent next takes stock, and when it owes a reality pass: the reflection runs on the
  * agent's own clock (hours awake, how much has happened, falling asleep for the night) and soon
- * after something owes it; the reality pass runs only on a signal that the agent is stuck.
+ * after something owes it; the reality pass runs every few episodes, and sooner on a signal that the
+ * agent is stuck.
  */
 
 const MINUTES_PER_HOUR = 60;
@@ -73,6 +74,23 @@ export function noteActDone(memory: AgentMemory): AgentMemory {
   return memory.failedActsInARow === 0 ? memory : { ...memory, failedActsInARow: 0 };
 }
 
+function realityPassEpisodeInterval(): number {
+  return Math.max(1, Math.floor(config.memory.episodesMax / config.realityPass.episodesMaxDivisor));
+}
+
+/** One more episode made; every `realityPassEpisodeInterval` of them owe a reality pass. */
+export function noteEpisodeMade(memory: AgentMemory): AgentMemory {
+  const episodesSinceRealityPass = memory.episodesSinceRealityPass + 1;
+  const isRealityPassOwed =
+    memory.isRealityPassOwed || episodesSinceRealityPass >= realityPassEpisodeInterval();
+  return { ...memory, episodesSinceRealityPass, isRealityPassOwed };
+}
+
 export function markRealityPassDone(memory: AgentMemory): AgentMemory {
-  return { ...memory, isRealityPassOwed: false, failedActsInARow: 0 };
+  return {
+    ...memory,
+    isRealityPassOwed: false,
+    failedActsInARow: 0,
+    episodesSinceRealityPass: 0,
+  };
 }

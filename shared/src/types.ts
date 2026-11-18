@@ -233,6 +233,8 @@ export interface AgentMemory {
   isRealityPassOwed: boolean;
   /** Acts that failed one after another, with none done in between. */
   failedActsInARow: number;
+  /** Episodes made since the last reality pass; enough of them owe the next one. */
+  episodesSinceRealityPass: number;
   /** Since when the agent has owed a day plan (it woke, or the sim began); null when it owes none. */
   dayPlanOwedSinceTick: number | null;
   /** A few moments that are never compressed, oldest first; written only by the reflection. */

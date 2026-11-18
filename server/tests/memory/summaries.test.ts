@@ -78,6 +78,7 @@ describe("stream to episode", () => {
         text: "I did things.",
       },
     ]);
+    expect(after.episodesSinceRealityPass).toBe(1);
   });
 });
 
