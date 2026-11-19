@@ -3,6 +3,7 @@ import {
   isBodyInWorld,
   type Agent,
   type Entity,
+  type Position,
   type SimTimeSettings,
   type ThingCatalog,
 } from "@village/shared";
@@ -13,6 +14,7 @@ import type { SpeechBubble } from "../state/client-state";
 import { pickActivityCue } from "./activity-cues";
 import { retargetMotion, type AgentMotion } from "./agent-motion";
 import { AgentMarker } from "./AgentMarker";
+import { FogOverlay } from "./FogOverlay";
 import { HoverCard } from "./HoverCard";
 import type { MutedSpeakers } from "./muted-speakers";
 import { PerceptionOverlay, type PerceptionView } from "./perception-overlay";
@@ -50,8 +52,18 @@ interface VillageWorldProps {
   timeSettings: SimTimeSettings;
   currentTick: number;
   inspectedAgentId: string | null;
+  /** Whom the camera keeps centered in follow mode: the played agent, else the inspected one. */
+  followedAgentId: string | null;
+  /** The player's own agent, marked as such on the map. */
+  playedAgentId: string | null;
+  /** When seeing as the played agent, only these agents are drawn; null draws everyone. */
+  sensedAgentIds: ReadonlySet<string> | null;
   highlightedAgentIds: readonly string[];
   perceptionView: PerceptionView;
+  /** Tiles the played agent sees, everything else under fog; null to show the whole village. */
+  fogTiles: readonly number[] | null;
+  /** Speech reads as the played agent heard it. */
+  isSeeingAsPlayer: boolean;
   daylightTint: string;
   isPlaceLabelsOn: boolean;
   moveDurationMs: number;
@@ -61,22 +73,27 @@ interface VillageWorldProps {
   onToggleMute: (agentId: string) => void;
   /** While god mode edits, takes clicks on tiles and agents instead of pinning and selecting. */
   godClick: ((target: GodClickTarget) => void) | null;
+  /** While the player plays, a click on a tile walks there instead of pinning it. */
+  playerTileClick: ((tile: Position) => void) | null;
 }
 
 const NO_BUBBLES: readonly SpeechBubble[] = [];
 
-function withGodClicks(
+function withTileClicks(
   handlers: MapPointerHandlers,
   map: TiledMap,
   godClick: ((target: GodClickTarget) => void) | null,
+  playerTileClick: ((tile: Position) => void) | null,
 ): MapPointerHandlers {
-  if (godClick === null) return handlers;
+  if (godClick === null && playerTileClick === null) return handlers;
   return {
     ...handlers,
     onClick: (event) => {
       const pointer = { x: event.clientX, y: event.clientY };
       const tile = findPointedTile(pointer, event.currentTarget.getBoundingClientRect(), map);
-      if (tile) godClick({ kind: "tile", pos: tile });
+      if (!tile) return;
+      if (godClick) godClick({ kind: "tile", pos: tile });
+      else playerTileClick?.(tile);
     },
   };
 }
@@ -146,14 +163,24 @@ function useAgentMotions(
  * (place names, agents, speech bubbles) that the frame loop keeps aligned.
  */
 export function VillageWorld(props: VillageWorldProps) {
-  const { map, agents, inspectedAgentId, camera } = props;
+  const { map, agents, inspectedAgentId, camera, sensedAgentIds } = props;
   const world = useWorldElements();
   const bubbleKeys = useBubbleKeys();
   const { liveBubbles, expireBubble } = useLiveSpeechBubbles(props.speechBubbles);
-  const shownBubbles = liveBubbles.filter((bubble) => !props.mutedSpeakers.has(bubble.agentId));
   const agentColors = useMemo(() => buildAgentColors(agents), [agents]);
   const agentNames = new Map(agents.map((agent) => [agent.id, agent.name]));
-  const drawnAgents = useMemo(() => agents.filter(isBodyInWorld), [agents]);
+  const drawnAgents = useMemo(
+    () =>
+      agents.filter(
+        (agent) =>
+          isBodyInWorld(agent) && (sensedAgentIds === null || sensedAgentIds.has(agent.id)),
+      ),
+    [agents, sensedAgentIds],
+  );
+  const drawnAgentIds = new Set(drawnAgents.map((agent) => agent.id));
+  const shownBubbles = liveBubbles.filter(
+    (bubble) => drawnAgentIds.has(bubble.agentId) && !props.mutedSpeakers.has(bubble.agentId),
+  );
   const bubblesBySpeaker = groupBubblesBySpeaker(shownBubbles);
   const highlighted = new Set(props.highlightedAgentIds);
   const visiblePlaces = props.isPlaceLabelsOn ? map.places : [];
@@ -178,10 +205,10 @@ export function VillageWorld(props: VillageWorldProps) {
     catalog: props.catalog,
   });
   const { shownTile } = tileInspector;
-  const { godClick } = props;
+  const { godClick, playerTileClick } = props;
   const mapPointerHandlers = useMemo(
-    () => withGodClicks(tileInspector.mapPointerHandlers, map, godClick),
-    [tileInspector.mapPointerHandlers, map, godClick],
+    () => withTileClicks(tileInspector.mapPointerHandlers, map, godClick, playerTileClick),
+    [tileInspector.mapPointerHandlers, map, godClick, playerTileClick],
   );
   const selectAgent = godClick
     ? (agentId: string) => godClick({ kind: "agent", agentId })
@@ -198,7 +225,7 @@ export function VillageWorld(props: VillageWorldProps) {
     inspectedTile: null,
     tileSize: map.tileWidth,
   });
-  const followedAgentIdRef = useRef(inspectedAgentId);
+  const followedAgentIdRef = useRef(props.followedAgentId);
 
   useAgentMotions(world, drawnAgents, map.tileWidth, props.moveDurationMs);
 
@@ -228,7 +255,7 @@ export function VillageWorld(props: VillageWorldProps) {
       inspectedTile: shownTile,
       tileSize: map.tileWidth,
     };
-    followedAgentIdRef.current = inspectedAgentId;
+    followedAgentIdRef.current = props.followedAgentId;
     renderFrame(performance.now());
   });
   useAnimationFrames(renderFrame);
@@ -255,6 +282,7 @@ export function VillageWorld(props: VillageWorldProps) {
           catalog={props.catalog}
           tileSize={map.tileWidth}
         />
+        {props.fogTiles && <FogOverlay map={map} visibleTiles={props.fogTiles} />}
         <TileHighlight
           tile={shownTile}
           isPinned={tileInspector.isPinned}
@@ -283,6 +311,7 @@ export function VillageWorld(props: VillageWorldProps) {
             isSpeaking={bubblesBySpeaker.has(agent.id)}
             isMuted={props.mutedSpeakers.has(agent.id)}
             isDead={agent.death !== null}
+            isPlayed={agent.id === props.playedAgentId}
             visibleConditions={listVisibleBodyComponents(props.catalog, agent)}
             activityCue={pickActivityCue(agent.currentAction, activity)}
             markerRef={world.markers.register(agent.id)}
@@ -304,6 +333,7 @@ export function VillageWorld(props: VillageWorldProps) {
             stackRef={world.bubbleStacks.register(agentId)}
             leaderLineRef={world.leaderLines.register(agentId)}
             onExpire={expireBubble}
+            isSeeingAsPlayer={props.isSeeingAsPlayer}
           />
         ))}
         <HoverCard

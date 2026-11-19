@@ -258,6 +258,18 @@ export const clientConfig = {
     nightStartHour: 20,
   },
 
+  /** Playing an agent: the panel, and seeing the village as the played agent does. */
+  player: {
+    /** Minutes the Wait button waits, unless the player types another number. */
+    defaultWaitMinutes: 10,
+    /** How many of the latest journal entries the panel shows. */
+    journalEntries: 14,
+    /** How dark the fog over tiles the played agent can't see is, 0–1. */
+    fogAlpha: 0.72,
+    /** What a line the played agent heard muffled shows in its bubble. */
+    muffledSpeechText: "…",
+  },
+
   /** localStorage keys; each viewer's layout and filters survive a reload. */
   storageKeys: {
     sidePanelWidth: "village.sidePanelWidth",
@@ -267,6 +279,8 @@ export const clientConfig = {
     storyFilter: "village.storyFilter",
     activityFilter: "village.activityFilter",
     isNotifyingPersonalityChanges: "village.isNotifyingPersonalityChanges",
+    isSeeingAsPlayer: "village.isSeeingAsPlayer",
+    playerPanelTab: "village.playerPanelTab",
   },
 
   /** Words for need levels, from worst to best; `upperBounds` splits 0–1 into those levels. */

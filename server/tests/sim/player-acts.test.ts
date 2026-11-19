@@ -54,9 +54,13 @@ describe("the player's acts", () => {
     sim.placeAgent("mara", SQUARE);
     sim.placeAgent("ilsa", { x: SQUARE.x + 2, y: SQUARE.y });
     playAs("mara");
-    expect(choose({ action: "move", pos: { x: SQUARE.x - 1, y: SQUARE.y } })).toBeNull();
+    const west = { x: -1, y: 0 };
+    expect(choose({ action: "move", direction: west })).toBeNull();
     await sim.advance(1);
     expect(sim.agent("mara").pos).toEqual({ x: SQUARE.x - 1, y: SQUARE.y });
+    choose({ action: "move", direction: west });
+    await sim.advance(1);
+    expect(sim.agent("mara").pos).toEqual({ x: SQUARE.x - 2, y: SQUARE.y });
     const walkEvents = sim.results
       .flatMap((result) => result.events)
       .filter((event) => event.actorId === "mara" && event.kind.startsWith("walk"));
@@ -66,21 +70,19 @@ describe("the player's acts", () => {
 
   it("keeps only the newest of two moves still waiting, so a held key can't run ahead", () => {
     const inbox = new PlayerInbox();
-    inbox.put("mara", { action: "move", pos: { x: 1, y: 0 } });
-    inbox.put("mara", { action: "move", pos: { x: 2, y: 0 } });
-    expect(inbox.list("mara")).toEqual([{ action: "move", pos: { x: 2, y: 0 } }]);
+    inbox.put("mara", { action: "move", direction: { x: 1, y: 0 } });
+    inbox.put("mara", { action: "move", direction: { x: 0, y: 1 } });
+    expect(inbox.list("mara")).toEqual([{ action: "move", direction: { x: 0, y: 1 } }]);
   });
 
-  it("turns down a move that isn't next to the agent, goes into a wall or onto someone", () => {
+  it("turns down a move into a wall or onto someone", () => {
     const { sim, playAs, choose } = createPlayedSim(["mara", "ilsa"]);
-    const { standOn, wall } = findTileBesideWall(sim);
+    const { standOn } = findTileBesideWall(sim);
     sim.placeAgent("mara", standOn);
     sim.placeAgent("ilsa", { x: standOn.x - 1, y: standOn.y });
     playAs("mara");
-    const moveTo = (pos: { x: number; y: number }) => choose({ action: "move", pos });
-    expect(moveTo({ x: standOn.x + 2, y: standOn.y })).toBe(refusals.moveNotNextTo);
-    expect(moveTo(wall)).toBe(refusals.moveIntoWall);
-    expect(moveTo({ x: standOn.x - 1, y: standOn.y })).toBe(refusals.moveIntoSomeone);
+    expect(choose({ action: "move", direction: { x: 1, y: 0 } })).toBe(refusals.moveIntoWall);
+    expect(choose({ action: "move", direction: { x: -1, y: 0 } })).toBe(refusals.moveIntoSomeone);
   });
 
   it("walks to a tile picked on the map, setting off where others can see", async () => {

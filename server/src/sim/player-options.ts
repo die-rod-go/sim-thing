@@ -28,7 +28,10 @@ interface TargetCandidate {
   thing: ThingRef;
 }
 
-/** Everything the agent could aim at: itself, everyone in sight, things here and things carried. */
+/**
+ * Everything the agent could aim at: everyone in sight, things here, things carried, and itself
+ * last, so a list of targets leads with someone else.
+ */
 export function listTargetCandidates(state: WorldState, agent: Agent): TargetCandidate[] {
   const entityCandidate = (entity: Entity): TargetCandidate => ({
     name: describeEntityName(state, entity),
@@ -39,10 +42,10 @@ export function listTargetCandidates(state: WorldState, agent: Agent): TargetCan
     thing: { kind: "agent", agentId: otherId } as const,
   }));
   return [
-    { name: config.verbs.selfTargetName, thing: { kind: "agent", agentId: agent.id } },
     ...people,
     ...listHereNearestFirst(state, agent.id).map(entityCandidate),
     ...listHeldEntities(state, agent.id).map(entityCandidate),
+    { name: config.verbs.selfTargetName, thing: { kind: "agent", agentId: agent.id } },
   ];
 }
 

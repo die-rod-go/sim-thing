@@ -397,7 +397,6 @@ export const config = {
       dead: "{name} is dead",
       tooManyActs: "Let the acts you chose start first",
       wordsTooLong: "That is too much to say at once",
-      moveNotNextTo: "A move goes to a tile right next to you",
       moveOffMap: "That way is the edge of the village",
       moveIntoWall: "That way is a wall",
       moveIntoSomeone: "Someone is standing there",

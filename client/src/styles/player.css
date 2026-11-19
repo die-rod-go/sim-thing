@@ -1,0 +1,192 @@
+/* Playing an agent: the panel over the village view, and the player's own marker. */
+
+.player-panel {
+  position: absolute;
+  left: 12px;
+  bottom: 12px;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  width: 340px;
+  max-height: calc(100% - 24px);
+  padding: 10px;
+  overflow: hidden;
+  background: rgb(23 26 33 / 94%);
+  border: 1px solid var(--success);
+  border-radius: 6px;
+  box-shadow: 0 2px 8px rgb(0 0 0 / 40%);
+}
+
+.player-panel p {
+  margin: 0;
+  line-height: 1.35;
+}
+
+.player-panel-title {
+  display: flex;
+  align-items: baseline;
+  gap: 8px;
+}
+
+.player-panel-title button {
+  margin-left: auto;
+}
+
+.player-senses-toggle {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  color: var(--text-muted);
+  font-size: 0.9em;
+}
+
+.player-turn {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  padding: 6px 8px;
+  border: 1px solid var(--border);
+  border-radius: 4px;
+}
+
+.player-turn.is-your-turn {
+  border-color: var(--success);
+  background: rgb(90 209 138 / 10%);
+}
+
+.player-turn button {
+  align-self: flex-start;
+}
+
+.player-failure {
+  color: var(--danger);
+}
+
+.player-offer {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 6px;
+  padding: 6px 8px;
+  border: 1px solid var(--warning);
+  border-radius: 4px;
+  background: var(--warning-soft);
+}
+
+.player-talk {
+  display: flex;
+  gap: 4px;
+}
+
+.player-talk input {
+  flex: 1;
+  min-width: 0;
+}
+
+.player-tabs {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 2px;
+  border-bottom: 1px solid var(--border);
+}
+
+.player-tab-body {
+  min-height: 60px;
+  overflow-y: auto;
+}
+
+.player-things {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.player-things .player-things {
+  margin-top: 4px;
+  padding-left: 12px;
+  border-left: 1px solid var(--border);
+}
+
+.player-thing-text {
+  font-weight: 600;
+}
+
+.player-options {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px;
+  margin-top: 3px;
+}
+
+.player-options button.is-active {
+  background: var(--accent-soft);
+  border-color: var(--accent);
+}
+
+.player-option-form,
+.player-give,
+.player-go form {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 4px;
+  margin-top: 4px;
+}
+
+.player-option-form input[type="number"],
+.player-give input[type="number"],
+.player-go input[type="number"] {
+  width: 5em;
+}
+
+.player-option-form input[type="text"] {
+  flex: 1 1 100%;
+}
+
+.player-give {
+  padding-top: 8px;
+  border-top: 1px solid var(--border);
+}
+
+.player-go {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.player-bare-handed {
+  margin-top: 8px;
+}
+
+.player-body {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.player-journal {
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+  max-height: 260px;
+  margin: 0;
+  padding: 0;
+  overflow-y: auto;
+  list-style: none;
+  font-size: 0.9em;
+}
+
+.agent-marker.is-played .agent-label {
+  color: var(--success);
+}
+
+.sheet-play {
+  margin-left: auto;
+}
+
+.sheet-play + .sheet-close {
+  margin-left: 8px;
+}

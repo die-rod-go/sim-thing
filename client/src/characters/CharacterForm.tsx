@@ -105,6 +105,22 @@ function IdentitySection({ agent, rules, problems, onChange, onRename }: Section
           />
         )}
       </Field>
+      <Field
+        label="Played by you"
+        hint="The sim starts with you playing this character, so the LLM never decides for them. Anyone can also be taken over from the village view."
+        problems={selectFieldProblems(problems, "isPlayed")}
+      >
+        {(inputId) => (
+          <input
+            id={inputId}
+            type="checkbox"
+            checked={agent.isPlayed ?? false}
+            onChange={(event) =>
+              onChange({ ...agent, isPlayed: event.target.checked ? true : undefined })
+            }
+          />
+        )}
+      </Field>
       <p className="field-hint">
         {hasStartTile ? "Has a start tile on the map. " : ""}
         Where they wake on day 1 is set in the{" "}

@@ -1,6 +1,5 @@
 import type { Agent, DecisionAct, DecisionAction, PlayerAct, Position } from "@village/shared";
 import { config } from "../config";
-import { computeChebyshevDistance } from "../economy/give";
 import { isDead } from "../status/health";
 import { findPlaceAt } from "../world/map-loader";
 import { isWalkable } from "../world/pathfinding";
@@ -42,12 +41,16 @@ function isOnMap(state: WorldState, pos: Position): boolean {
   return pos.x >= 0 && pos.y >= 0 && pos.x < width && pos.y < height;
 }
 
+/** The tile one move that way takes the agent to, from where it stands now. */
+function findMoveTile(agent: Agent, direction: Position): Position {
+  return { x: agent.pos.x + direction.x, y: agent.pos.y + direction.y };
+}
+
 /** Why the agent can't move onto the tile now, or null when it can. */
-function findMoveRefusal(state: WorldState, agent: Agent, pos: Position): string | null {
-  if (computeChebyshevDistance(agent.pos, pos) !== 1) return refusals.moveNotNextTo;
-  if (!isOnMap(state, pos)) return refusals.moveOffMap;
-  if (!isWalkable(state.map.grid, pos)) return refusals.moveIntoWall;
-  if (findAgentBlockingTile(state, agent.id, pos) !== undefined) return refusals.moveIntoSomeone;
+function findMoveRefusal(state: WorldState, agent: Agent, tile: Position): string | null {
+  if (!isOnMap(state, tile)) return refusals.moveOffMap;
+  if (!isWalkable(state.map.grid, tile)) return refusals.moveIntoWall;
+  if (findAgentBlockingTile(state, agent.id, tile) !== undefined) return refusals.moveIntoSomeone;
   return null;
 }
 
@@ -58,7 +61,9 @@ function findMoveRefusal(state: WorldState, agent: Agent, pos: Position): string
 function findActRefusal(state: WorldState, agent: Agent, act: PlayerAct): string | null {
   const longestWords = Math.max(act.say?.length ?? 0, act.text?.length ?? 0);
   if (longestWords > config.player.maxWordsChars) return refusals.wordsTooLong;
-  if (act.action === "move" && act.pos !== undefined) return findMoveRefusal(state, agent, act.pos);
+  if (act.action === "move" && act.direction !== undefined) {
+    return findMoveRefusal(state, agent, findMoveTile(agent, act.direction));
+  }
   if (act.action === "walk_to" && act.pos !== undefined && !isWalkable(state.map.grid, act.pos)) {
     return refusals.walkToWall;
   }
@@ -164,10 +169,10 @@ function fillText(template: string, values: Record<string, string>): string {
   );
 }
 
-function describeBareAct(state: WorldState, act: PlayerAct): string {
+function describeBareAct(state: WorldState, agent: Agent, act: PlayerAct): string {
   const texts = config.player.pendingActTexts;
-  if (act.action === "move" && act.pos !== undefined) {
-    return fillText(texts.move, { place: describeSpot(state, act.pos) });
+  if (act.action === "move" && act.direction !== undefined) {
+    return fillText(texts.move, { place: describeSpot(state, findMoveTile(agent, act.direction)) });
   }
   if (act.action === "walk_to" && act.pos !== undefined) {
     return fillText(texts.walkToTile, { place: describeSpot(state, act.pos) });
@@ -184,20 +189,27 @@ function describeBareAct(state: WorldState, act: PlayerAct): string {
 }
 
 /** An act still waiting for the clock, in a few words: 'walk to the bakery, saying "hello"'. */
-export function describePlayerAct(state: WorldState, act: PlayerAct): string {
-  const bare = describeBareAct(state, act);
+export function describePlayerAct(state: WorldState, agent: Agent, act: PlayerAct): string {
+  const bare = describeBareAct(state, agent, act);
   return act.say === undefined
     ? bare
     : fillText(config.player.pendingActTexts.withWords, { act: bare, words: act.say });
 }
 
 /**
- * One tile in any direction, at once and announced to no one: onlookers see where the agent
- * stands, not each move. It ends whatever the agent was doing, as any new act does, and does what
- * a door or the like allows in passing. A move the world no longer allows is dropped.
+ * One tile in any direction from where the agent stands, at once and announced to no one:
+ * onlookers see where it stands, not each move. It ends whatever the agent was doing, as any new
+ * act does, and does what a door or the like allows in passing. A move the world no longer allows
+ * (a wall or someone in the way) is dropped, as a held key bumping into it would be.
  */
-function moveOneTile(context: TickContext, agent: Agent, act: PlayerAct, pos: Position): void {
+function moveOneTile(
+  context: TickContext,
+  agent: Agent,
+  act: PlayerAct,
+  direction: Position,
+): void {
   const { state, result } = context;
+  const pos = findMoveTile(agent, direction);
   if (findMoveRefusal(state, agent, pos) !== null) return;
   stopCurrentAction(context, agent.id);
   const runtime = getAgentRuntime(state, agent.id);
@@ -224,7 +236,7 @@ export function carryOutPlayerActs(context: TickContext): void {
     const act = agent.isPlayed ? inbox.take(agentId) : null;
     if (act === null) continue;
     if (act.action === "move") {
-      if (act.pos !== undefined) moveOneTile(context, agent, act, act.pos);
+      if (act.direction !== undefined) moveOneTile(context, agent, act, act.direction);
       continue;
     }
     applyDecisionPlan(context, buildPlayerPlan(context.state, agent, act, act.action));

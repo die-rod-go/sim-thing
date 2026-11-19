@@ -9,6 +9,13 @@ import type { Volume } from "./types";
 
 const tilePositionSchema = z.object({ x: z.number().int(), y: z.number().int() });
 
+const directionStepSchema = z.number().int().min(-1).max(1);
+
+/** One tile's way from where the agent stands: x and y each -1, 0 or 1, not both 0. */
+const directionSchema = z
+  .object({ x: directionStepSchema, y: directionStepSchema })
+  .refine((direction) => direction.x !== 0 || direction.y !== 0, "a move needs a way to go");
+
 /** The acts an agent's decision has, plus `move`: one tile in any direction, announced to no one. */
 export const PLAYER_ACTIONS = [
   "walk_to",
@@ -28,8 +35,13 @@ const playerActFields = z.object({
   action: z.enum(PLAYER_ACTIONS),
   /** Who or where, by name: a walk's destination, whom to give to or follow, a verb's aim. */
   target: z.string().trim().min(1).optional(),
-  /** A tile instead of a name: where a walk ends, or the tile next to the agent a move goes to. */
+  /** A tile instead of a name: where a walk ends. */
   pos: tilePositionSchema.optional(),
+  /**
+   * Which way a move goes, from wherever the agent stands when the clock reaches it, so a held
+   * key never aims at a tile the agent has already left.
+   */
+  direction: directionSchema.optional(),
   verb: z.string().trim().min(1).optional(),
   /** The thing the verb is done with or to, or the thing given. */
   item: z.string().trim().min(1).optional(),
@@ -56,7 +68,7 @@ function requireFieldsForAction(act: PlayerActFields, context: z.RefinementCtx):
   if (act.action === "walk_to" && act.target === undefined && act.pos === undefined) {
     missing("target");
   }
-  if (act.action === "move" && act.pos === undefined) missing("pos");
+  if (act.action === "move" && act.direction === undefined) missing("direction");
   if (act.action === "move" && act.offer !== undefined) {
     context.addIssue({ code: "custom", path: ["offer"], message: "a move can't answer an offer" });
   }
@@ -166,6 +178,11 @@ export interface PlayerView {
   journal: string[];
   /** Map tile indexes (y * width + x) the agent can see. */
   visibleTiles: number[];
+  /**
+   * Every creature's entity id, seen or not: the map draws creatures like any entity, so seeing
+   * the world as the agent does needs to know which ones to hide when they are out of sight.
+   */
+  creatureIds: string[];
 }
 
 /** How the played agent took in a line of speech: null when nobody is played. */

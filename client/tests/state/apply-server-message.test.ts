@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import type { AgentDetailMessage } from "@village/shared";
+import type { AgentDetailMessage, PlayerView } from "@village/shared";
 import { clientConfig } from "../../src/client-config";
 import {
   makeSampleAgent,
@@ -277,5 +277,28 @@ describe("applyServerMessage catalog", () => {
       makeSampleSnapshot([ada, bob]),
     );
     expect(reconnected.isGodActionPending).toBe(false);
+  });
+
+  it("keeps the player view and the last refusal of a player act", () => {
+    const view = { agentId: "ada", isYourTurn: true } as PlayerView;
+    let state = applyServerMessage(loadedState(), { type: "player_view", view });
+    expect(state.playerView).toBe(view);
+    state = applyServerMessage(state, { type: "player_act_result", refusal: "That way is a wall" });
+    expect(state.playerRefusal).toBe("That way is a wall");
+    state = applyServerMessage(state, { type: "player_act_result", refusal: null });
+    expect(state.playerRefusal).toBeNull();
+    expect(applyServerMessage(state, { type: "player_view", view: null }).playerView).toBeNull();
+  });
+
+  it("keeps how the played agent heard each line with its bubble", () => {
+    const state = applyServerMessage(loadedState(), {
+      type: "said",
+      agentId: "bob",
+      text: "psst",
+      volume: "whisper",
+      tick: 3,
+      playerHearing: "muffled",
+    });
+    expect(state.speechBubbles.at(-1)?.playerHearing).toBe("muffled");
   });
 });

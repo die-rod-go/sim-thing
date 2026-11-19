@@ -1,6 +1,7 @@
 import { useCallback, useState, type CSSProperties } from "react";
 import { clientConfig } from "../client-config";
 import type { SpeechBubble } from "../state/client-state";
+import { describeBubbleText } from "./player-senses";
 import type { VisibleThought } from "./thought-bubbles";
 
 /**
@@ -39,6 +40,8 @@ interface SpeechBubbleStackProps {
   stackRef: (element: HTMLElement | null) => void;
   leaderLineRef: (element: HTMLElement | null) => void;
   onExpire: (bubble: SpeechBubble) => void;
+  /** Lines read as the played agent heard them: a muffled one is only a murmur. */
+  isSeeingAsPlayer: boolean;
 }
 
 /**
@@ -54,6 +57,7 @@ export function SpeechBubbleStack({
   stackRef,
   leaderLineRef,
   onExpire,
+  isSeeingAsPlayer,
 }: SpeechBubbleStackProps) {
   const {
     speechBubbleGap,
@@ -100,7 +104,7 @@ export function SpeechBubbleStack({
           }}
           onAnimationEnd={() => onExpire(bubble)}
         >
-          {bubble.text}
+          {describeBubbleText(bubble, isSeeingAsPlayer)}
         </div>
       ))}
       <div

@@ -19,6 +19,7 @@ import { describeLocation } from "../world/place-names";
 import { describeDoing } from "./action-phrases";
 import { getAgentRuntime } from "./agent-runtime";
 import { listCreaturesInSight } from "./context-builder";
+import { listCreatures } from "./creatures/creature-instincts";
 import { listHereEntities } from "./here-entities";
 import { describeOfferWhat, findOwnOffer } from "./offers";
 import { describePlayerAct } from "./player-acts";
@@ -142,7 +143,12 @@ function buildDeadView(state: WorldState, agent: Agent): PlayerView {
     pendingActs: [],
     journal: getAgentMemory(state, agent.id).stream.map(describeStreamEntry),
     visibleTiles: [],
+    creatureIds: listCreatureIds(state),
   };
+}
+
+function listCreatureIds(state: WorldState): string[] {
+  return listCreatures(state).map((creature) => creature.id);
 }
 
 function buildOffer(state: WorldState, agent: Agent): PlayerView["offer"] {
@@ -209,8 +215,9 @@ export function buildPlayerView(
     offer: buildOffer(state, agent),
     ownOffer: findOwnOffer(state, agent.id),
     lastFailure: getAgentRuntime(state, agent.id).lastFailure,
-    pendingActs: pending.map((act) => describePlayerAct(state, act)),
+    pendingActs: pending.map((act) => describePlayerAct(state, agent, act)),
     journal: getAgentMemory(state, agent.id).stream.map(describeStreamEntry),
     visibleTiles: listVisibleTiles(state, agent),
+    creatureIds: listCreatureIds(state),
   };
 }

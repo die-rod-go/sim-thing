@@ -22,8 +22,12 @@ import {
 } from "./muted-speakers";
 import { useDirector } from "./use-director";
 import { useGodMode } from "./use-god-mode";
+import { PlayerPanel } from "./PlayerPanel";
+import { usePlayer } from "./use-player";
+import { useSensedWorld } from "./use-sensed-world";
 import { useVillageMap } from "./use-village-map";
 import { VillageWorld } from "./VillageWorld";
+import type { VisibleThought } from "./thought-bubbles";
 
 /** Asks the camera to frame these agents; a new requestId repeats the request. */
 export interface CameraFocus {
@@ -42,6 +46,8 @@ interface VillageViewProps {
 
 const NO_HIGHLIGHTS: readonly string[] = [];
 const NO_MUTED_SPEAKERS: MutedSpeakers = new Set();
+/** Seeing as the played agent, nobody's thoughts show: an agent can't see into another's head. */
+const NO_THOUGHTS: ReadonlyMap<string, VisibleThought> = new Map();
 
 function useElementSize(elementRef: RefObject<HTMLElement | null>): Size {
   const [size, setSize] = useState<Size>({ width: 0, height: 0 });
@@ -117,8 +123,15 @@ export function VillageView({
   );
   const toggleMute = (agentId: string) =>
     setMutedSpeakers(toggleMutedSpeaker(mutedSpeakers, agentId));
-  const canFollow = state.inspectedAgentId !== null;
   const godMode = useGodMode(state, sendControl);
+  const player = usePlayer(state, sendControl, !godMode.isOn);
+  const playedAgentId = player.agent?.id ?? null;
+  const canFollow = state.inspectedAgentId !== null || playedAgentId !== null;
+  const sensed = useSensedWorld(
+    state,
+    player,
+    mapStatus.kind === "ready" ? mapStatus.map.width : null,
+  );
   const heldAgentId =
     godMode.tool.kind === "holding" && godMode.tool.held.kind === "agent"
       ? godMode.tool.held.agentId
@@ -139,6 +152,10 @@ export function VillageView({
   useLayoutEffect(() => {
     controls.viewSizeRef.current = viewSize;
   }, [controls, viewSize]);
+
+  useEffect(() => {
+    if (playedAgentId !== null) controls.follow();
+  }, [controls, playedAgentId]);
 
   // Only a new request id refocuses; a re-rendered request with the same id does not.
   const focusRequestId = cameraFocus?.requestId;
@@ -169,15 +186,20 @@ export function VillageView({
             map={mapStatus.map}
             glyphPainter={mapStatus.glyphPainter}
             agents={state.agents}
-            entities={state.entities}
+            entities={sensed.entities}
             catalog={state.catalog}
-            speechBubbles={state.speechBubbles}
-            thoughtsByAgent={thoughtsByAgent}
+            speechBubbles={sensed.speechBubbles}
+            thoughtsByAgent={player.isSeeingAsPlayer ? NO_THOUGHTS : thoughtsByAgent}
             timeSettings={state.timeSettings}
             currentTick={state.clock.tick}
             inspectedAgentId={state.inspectedAgentId}
+            followedAgentId={playedAgentId ?? state.inspectedAgentId}
+            playedAgentId={playedAgentId}
+            sensedAgentIds={sensed.sensedAgentIds}
             highlightedAgentIds={shownHighlights}
             perceptionView={selectPerceptionView(state, isDebugOverlayOn)}
+            fogTiles={sensed.fogTiles}
+            isSeeingAsPlayer={player.isSeeingAsPlayer}
             daylightTint={daylightTint}
             isPlaceLabelsOn={isPlaceLabelsOn}
             moveDurationMs={moveDurationMs}
@@ -186,9 +208,24 @@ export function VillageView({
             onSelectAgent={onSelectAgent}
             onToggleMute={toggleMute}
             godClick={godMode.click}
+            playerTileClick={player.clickTile}
           />
         )}
       </div>
+      {player.view && player.agent && (
+        <PlayerPanel
+          view={player.view}
+          agent={player.agent}
+          catalog={state.catalog}
+          itemDefinitions={state.itemDefinitions}
+          isPaused={state.clock.isPaused}
+          refusal={state.playerRefusal}
+          isSeeingAsPlayer={player.isSeeingAsPlayer}
+          onSeeingAsPlayerChange={player.setSeeingAsPlayer}
+          onAct={player.act}
+          onStopPlaying={player.stopPlaying}
+        />
+      )}
       {mapStatus.kind === "ready" && (
         <CameraControls
           mode={mode}
