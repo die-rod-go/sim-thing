@@ -20,14 +20,22 @@ import {
 } from "./world-access";
 import type { Agent, Position } from "@village/shared";
 
-/** Takes one step; false when something in the way couldn't be dealt with and the walk failed. */
-export function stepOnce(context: TickContext, agentId: string, nextStep: Position): boolean {
+/**
+ * Takes one step; false when something in the way couldn't be dealt with and the act failed.
+ * `attempt` is what the failure says was tried; by default, the walk the agent is on.
+ */
+export function stepOnce(
+  context: TickContext,
+  agentId: string,
+  nextStep: Position,
+  attempt?: string,
+): boolean {
   const { state, result } = context;
   const refusal = clearTileInPassing(context, agentId, nextStep);
   if (refusal !== null) {
     const walk = getAgentRuntime(state, agentId).walk;
     const where = walk ? describeDestination(state, walk.destination) : "there";
-    failAction(state, result, agentId, `walk to ${where}`, refusal);
+    failAction(state, result, agentId, attempt ?? `walk to ${where}`, refusal);
     return false;
   }
   const agent = findAgent(state, agentId);

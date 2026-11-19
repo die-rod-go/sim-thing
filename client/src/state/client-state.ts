@@ -6,6 +6,8 @@ import type {
   Entity,
   ItemDefinition,
   Moment,
+  PlayerHearing,
+  PlayerView,
   SimStats,
   SimTimeSettings,
   ThingCatalog,
@@ -18,6 +20,8 @@ export interface SpeechBubble {
   text: string;
   volume: Volume;
   tick: number;
+  /** How the played agent heard it; null when nobody was played. */
+  playerHearing: PlayerHearing | null;
 }
 
 /** Everything the client knows, rebuilt only from server messages. */
@@ -50,6 +54,10 @@ export interface ClientState {
   isGodActionPending: boolean;
   /** The last words spoken from the sky, for the banner; null until something is said. */
   lastVoice: { words: string; tick: number } | null;
+  /** What the played agent perceives and can do; null when nobody is played. */
+  playerView: PlayerView | null;
+  /** Why the server turned down the last play or act; null once one went through. */
+  playerRefusal: string | null;
 }
 
 const DEFAULT_MINUTES_PER_TICK = 1;
@@ -75,6 +83,8 @@ export const initialClientState: ClientState = {
   godRefusal: null,
   isGodActionPending: false,
   lastVoice: null,
+  playerView: null,
+  playerRefusal: null,
 };
 
 export function findAgent(state: ClientState, agentId: string | null): Agent | null {

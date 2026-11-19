@@ -89,7 +89,7 @@ export function buildValidTargets(state: WorldState, agent: Agent): DecisionTarg
 }
 
 /** The creatures the agent saw this tick, each with how far off it is. */
-function listCreaturesInSight(state: WorldState, agent: Agent): CreatureInSight[] {
+export function listCreaturesInSight(state: WorldState, agent: Agent): CreatureInSight[] {
   return getAgentRuntime(state, agent.id).visibleCreatureIds.flatMap((entityId) => {
     const thing = { kind: "entity", entityId } as const;
     if (findEntityIfPresent(state, entityId) === undefined) return [];

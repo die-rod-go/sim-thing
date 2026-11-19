@@ -89,6 +89,7 @@ export function applyServerMessage(state: ClientState, message: ServerMessage): 
           text: message.text,
           volume: message.volume,
           tick: message.tick,
+          playerHearing: message.playerHearing,
         }),
       };
     case "interacted":
@@ -119,6 +120,10 @@ export function applyServerMessage(state: ClientState, message: ServerMessage): 
       return { ...state, godRefusal: message.refusal, isGodActionPending: false };
     case "voice_spoke":
       return { ...state, lastVoice: { words: message.words, tick: message.tick } };
+    case "player_view":
+      return { ...state, playerView: message.view };
+    case "player_act_result":
+      return { ...state, playerRefusal: message.refusal };
     case "seed_file":
     case "seed_file_saved":
     case "item_file":

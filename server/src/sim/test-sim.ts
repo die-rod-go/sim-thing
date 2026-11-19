@@ -23,6 +23,7 @@ import { buildReflectionReplySchema } from "../passes/reflection";
 import { buildSeededWorld, loadSeedFile, type SeededWorld } from "../seeds";
 import { findPlaceAt, loadWorldMap } from "../world/map-loader";
 import { getAgentRuntime, requestDecision } from "./agent-runtime";
+import type { PlayerInbox } from "./player-inbox";
 import { createDecisionStrategy } from "./tick-pipeline";
 import { findAgent, getAgentMemory, replaceAgent } from "./world-access";
 import { createWorldState, type TickResult, type WorldState } from "./world-state";
@@ -197,6 +198,8 @@ export interface TestSimOptions {
   shouldCallLlmInBackgroundDuringFight?: boolean;
   /** Caps how long idle agents' decisions hold a tick; no cap when omitted. */
   idleDecisionWaitMs?: number;
+  /** The acts the player chooses for played agents; played agents only stand idle when omitted. */
+  playerInbox?: PlayerInbox;
 }
 
 export function createTestSim(options: TestSimOptions): TestSim {
@@ -230,6 +233,7 @@ export function createTestSim(options: TestSimOptions): TestSim {
     shouldCallLlmInBackgroundDuringFight: options.shouldCallLlmInBackgroundDuringFight,
     idleDecisionWaitMs: options.idleDecisionWaitMs,
     recordPersonalityChange: options.recordPersonalityChange,
+    playerInbox: options.playerInbox,
   });
   const results: TickResult[] = [];
   return {

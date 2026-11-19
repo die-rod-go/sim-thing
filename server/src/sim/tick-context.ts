@@ -1,5 +1,6 @@
 import type { PersonalityChange } from "@village/shared";
 import type { StructuredCaller } from "../llm/call-structured";
+import type { PlayerInbox } from "./player-inbox";
 import type { TickResult, WorldState } from "./world-state";
 
 /** What the decision strategy needs from outside the world. */
@@ -23,6 +24,8 @@ export interface SimDependencies {
   shouldCallLlmInBackgroundDuringFight?: boolean;
   /** With `shouldCallLlmInBackground`, caps how long idle agents' decisions hold a tick; no cap when omitted. */
   idleDecisionWaitMs?: number;
+  /** The acts the player chose for played agents; with none, played agents only stand idle. */
+  playerInbox?: PlayerInbox;
 }
 
 /** One tick in progress: the world, what the tick has produced so far, and the dependencies. */

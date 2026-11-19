@@ -43,6 +43,7 @@ const currentAgentFieldsSchema = z.object({
   bodyReplacedById: z.string().nullable(),
   bodyHolderId: z.string().nullable(),
   seenPlaces: z.array(z.unknown()),
+  isPlayed: z.boolean(),
 });
 
 /** Agent rows were written by saveWorld from typed values, so a current-format row is trusted. */

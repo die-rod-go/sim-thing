@@ -96,7 +96,8 @@ async function askForDecision(
     : { reply: fallbackWait(findAgent(state, request.agentId)), llmCallId: null, unknownNameNotes };
 }
 
-function planSpeech(act: DecisionAct, decided: DecidedReply): PlannedSpeech | null {
+/** The act's words, spoken as it starts, with the decision they came from; null when it says nothing. */
+export function planSpeech(act: DecisionAct, decided: DecidedReply): PlannedSpeech | null {
   const words = act.say?.trim() ?? "";
   if (words === "") return null;
   return {

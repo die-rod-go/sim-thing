@@ -99,7 +99,8 @@ on the entity: no creature settings in the config, and no creature state kept by
   rules, matchers, `items.json` validation, `give`, creature instincts, place names, attention,
   the people on an agent's mind, the agenda (numbering, done, dropped, added, reminders), the day
   plan, reckonings, remembering and key memories, queued acts (starting, words per act, waiting
-  on a give, walking up to give), following, trades, and the measurement script's measures.
+  on a give, walking up to give), following, trades, the player (the turn, taking over and handing
+  back, acts and moves, the player view), and the measurement script's measures.
 - Name tests by behavior: `"muffles speech heard through a closed door"`.
 - Tests live in each workspace's `tests/` folder (`server/tests`, `client/tests`, `shared/tests`),
   mirroring the layout of its `src/`. Test-only helpers live there too; helpers that runtime code
@@ -170,3 +171,8 @@ on the entity: no creature settings in the config, and no creature state kept by
 | glyph           | How a tile or item is drawn: a CP437 index in the glyph sheet, a color, a background                               |
 | creature        | An entity some instinct applies to: an animal that acts with no LLM                                                |
 | instinct        | A creature's scripted behavior in `items.json`: `verb`, `flee` or `wander`                                         |
+| player          | The person at the browser who plays one agent, making its decisions in the LLM's place                             |
+| played agent    | The agent the player plays (`isPlayed`): no LLM decisions, day plans, reflections or reality passes                |
+| turn            | When the clock waits for the player: their agent is idle, something urgent happened, or a wait was answered        |
+| move            | A player act that takes the played agent one tile, announced to no one                                             |
+| player view     | What the played agent perceives and can do, sent to the browser whenever it changes                                |

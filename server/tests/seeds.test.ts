@@ -100,6 +100,14 @@ describe("seeds", () => {
     expect(world.agents.find((agent) => agent.id === "ilsa")?.place).toBe("town square");
   });
 
+  it("starts the character the seed marks as played in the player's hands", () => {
+    const playedFile = parseSeedFile({
+      agents: [makeSeedAgent({ isPlayed: true }), makeSeedAgent({ id: "ilsa", name: "Ilsa" })],
+    });
+    const playedWorld = buildSeededWorld(playedFile, map, items);
+    expect(playedWorld.agents.map((agent) => agent.isPlayed)).toEqual([true, false]);
+  });
+
   it("makes the map's objects first, then each seed inventory, with ids from one counter", () => {
     const placedCount = map.placements.length;
     const placed = world.entities.slice(0, placedCount);

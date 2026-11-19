@@ -4,6 +4,7 @@ import { createLogger } from "../logger";
 import type { ItemEditor } from "../item-editor";
 import type { MapEditor } from "../map-editor";
 import type { SeedEditor } from "../seed-editor";
+import { findPlayerHearing } from "../sim/player-view";
 import type { TickResult } from "../sim/world-state";
 import {
   handleClientMessage,
@@ -11,7 +12,12 @@ import {
   type Broadcaster,
   type ConnectionSession,
 } from "./control-handler";
-import { buildSnapshot, buildStats, type SimServerContext } from "./message-builders";
+import {
+  buildPlayerViewMessage,
+  buildSnapshot,
+  buildStats,
+  type SimServerContext,
+} from "./message-builders";
 
 export const WEBSOCKET_PATH = "/ws";
 
@@ -48,6 +54,8 @@ export function startSimServer(options: SimServerOptions): Promise<SimServer> {
   const sendTo = (socket: WebSocket, message: ServerMessage) => {
     if (socket.readyState === WebSocket.OPEN) socket.send(JSON.stringify(message));
   };
+  // Rebuilt after every tick, but sent only when it changed, which at speed is far less often.
+  let lastPlayerViewText: string | null = null;
 
   const broadcaster: Broadcaster = {
     broadcast(message) {
@@ -58,6 +66,8 @@ export function startSimServer(options: SimServerOptions): Promise<SimServer> {
     },
     sendSnapshotToAll() {
       broadcaster.broadcast(buildSnapshot(context));
+      lastPlayerViewText = null;
+      broadcaster.publishPlayerView();
     },
     notifyAgentsChanged(agentIds) {
       const changedIds = new Set(agentIds);
@@ -67,9 +77,18 @@ export function startSimServer(options: SimServerOptions): Promise<SimServer> {
         }
       }
     },
+    publishPlayerView() {
+      const text = JSON.stringify(buildPlayerViewMessage(context));
+      if (text === lastPlayerViewText) return;
+      lastPlayerViewText = text;
+      for (const socket of sessions.keys()) {
+        if (socket.readyState === WebSocket.OPEN) socket.send(text);
+      }
+    },
   };
 
   const publishTickResult = (result: TickResult) => {
+    const state = context.loop.getState();
     for (const move of result.moves) broadcaster.broadcast({ type: "agent_moved", ...move });
     for (const start of result.verbStarts) {
       broadcaster.broadcast({ type: "interacted", ...start, tick: result.tick });
@@ -82,12 +101,12 @@ export function startSimServer(options: SimServerOptions): Promise<SimServer> {
           text: event.speech.words,
           volume: event.speech.volume,
           tick: event.tick,
+          playerHearing: findPlayerHearing(state, event),
         });
       }
       broadcaster.broadcast({ type: "event_logged", event });
     }
     for (const moment of result.moments) broadcaster.broadcast({ type: "moment", moment });
-    const state = context.loop.getState();
     const changedAgents = state.agents.filter((agent) => result.changedAgentIds.includes(agent.id));
     if (changedAgents.length > 0) {
       broadcaster.broadcast({ type: "state_changed", agents: changedAgents });
@@ -104,6 +123,7 @@ export function startSimServer(options: SimServerOptions): Promise<SimServer> {
     }
     broadcaster.broadcast({ type: "tick", tick: state.tick, stats: buildStats(context) });
     broadcaster.notifyAgentsChanged(result.changedAgentIds);
+    broadcaster.publishPlayerView();
   };
 
   const removeTickListener = context.loop.addTickListener(publishTickResult);
@@ -118,6 +138,7 @@ export function startSimServer(options: SimServerOptions): Promise<SimServer> {
     };
     sessions.set(socket, session);
     session.send(buildSnapshot(context));
+    session.send(buildPlayerViewMessage(context));
 
     socket.on("message", (data) => {
       let message;

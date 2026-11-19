@@ -10,6 +10,7 @@ import { createItemEditor } from "../../src/item-editor";
 import { createMapEditor } from "../../src/map-editor";
 import { createSeedEditor } from "../../src/seed-editor";
 import { SimLoop } from "../../src/sim/loop";
+import { PlayerInbox } from "../../src/sim/player-inbox";
 import { buildEmptySeededWorld, loadTestItems } from "../../src/sim/test-sim";
 import { ManualScheduler } from "../../src/sim/manual-scheduler";
 import {
@@ -61,6 +62,7 @@ const agent = {
   people: {},
   seenPlaces: [],
   lastThought: null,
+  isPlayed: false,
 };
 
 const seedAgent = {
@@ -175,6 +177,7 @@ describe("sim WebSocket server", () => {
       loop,
       simDependencies: {
         callStructured: () => Promise.reject(new Error("No LLM in the server tests")),
+        playerInbox: new PlayerInbox(),
       },
       database,
       settings,
@@ -242,6 +245,32 @@ describe("sim WebSocket server", () => {
       pos: { x: 1, y: 0 },
     });
     expect(loop.getState().tick).toBe(0);
+  });
+
+  it("plays an agent and lines up the player's acts, showing every viewer the player view", async () => {
+    const player = await connect();
+    const watcher = await connect();
+    await player.waitFor("snapshot");
+    expect((await player.waitFor("player_view")).view).toBeNull();
+    player.send({ type: "play_as", agentId: "mara" });
+    expect((await player.waitFor("player_act_result")).refusal).toBeNull();
+    expect((await player.waitFor("player_view")).view).toMatchObject({
+      agentId: "mara",
+      isYourTurn: true,
+    });
+    player.send({ type: "player_act", act: { action: "wait", say: "Hello" } });
+    expect((await player.waitFor("player_act_result")).refusal).toBeNull();
+    expect((await player.waitFor("player_view")).view?.pendingActs).toHaveLength(1);
+    await watcher.waitFor("snapshot");
+    expect((await watcher.waitFor("player_view")).view).toBeNull();
+    expect((await watcher.waitFor("player_view")).view?.agentId).toBe("mara");
+  });
+
+  it("turns down an act while nobody is played", async () => {
+    const client = await connect();
+    await client.waitFor("snapshot");
+    client.send({ type: "player_act", act: { action: "wait" } });
+    expect((await client.waitFor("player_act_result")).refusal).toBe("You aren't playing anyone");
   });
 
   it("tells every viewer what was spoken from the sky", async () => {

@@ -1,9 +1,12 @@
-import type { ClientMessage, GodAction, ServerMessage } from "@village/shared";
+import type { ClientMessage, GodAction, PlayerAct, ServerMessage } from "@village/shared";
+import { config } from "../config";
 import { createLogger } from "../logger";
 import type { ItemEditor } from "../item-editor";
 import type { MapEditor } from "../map-editor";
 import type { SeedEditor } from "../seed-editor";
 import { applyGodAction } from "../sim/god-actions";
+import { acceptPlayerAct } from "../sim/player-acts";
+import { choosePlayedAgent } from "../sim/player-control";
 import type { TickContext } from "../sim/tick-context";
 import { createEmptyTickResult } from "../sim/world-state";
 import { buildAgentDetail, buildSettingsMessage, type SimServerContext } from "./message-builders";
@@ -16,6 +19,8 @@ export interface Broadcaster {
   sendSnapshotToAll(): void;
   /** Re-sends `agent_detail` to every connection inspecting one of these agents. */
   notifyAgentsChanged(agentIds: readonly string[]): void;
+  /** Sends everyone the player view, if it changed since it was last sent. */
+  publishPlayerView(): void;
 }
 
 export interface ConnectionSession {
@@ -55,6 +60,32 @@ async function applyGodActionWhilePaused(
     const refusal = applyGodAction(tickContext, action);
     return { result: tickContext.result, answer: refusal };
   }, "The sim was resumed before the minute in progress finished, so nothing changed");
+}
+
+/** Plays the agent (null: nobody), between ticks; returns why nothing changed, or null. */
+function choosePlayedAgentBetweenTicks(
+  context: SimServerContext,
+  agentId: string | null,
+): Promise<string | null> {
+  return context.loop.editBetweenTicks((state) => {
+    const tickContext: TickContext = {
+      state,
+      result: createEmptyTickResult(state.tick),
+      dependencies: context.simDependencies,
+    };
+    const refusal = choosePlayedAgent(tickContext, agentId, context.simDependencies.playerInbox);
+    return { result: tickContext.result, answer: refusal };
+  });
+}
+
+/** Lines the act up for the clock, between ticks; returns why it was turned down, or null. */
+function acceptPlayerActBetweenTicks(
+  context: SimServerContext,
+  act: PlayerAct,
+): Promise<string | null> {
+  const inbox = context.simDependencies.playerInbox;
+  if (inbox === undefined) return Promise.resolve(config.player.refusals.notPlaying);
+  return context.loop.runBetweenTicks(() => acceptPlayerAct(context.loop.getState(), inbox, act));
 }
 
 async function resetAndAnnounce(dependencies: ControlDependencies): Promise<void> {
@@ -140,6 +171,18 @@ export async function handleClientMessage(
       const shouldResetWorld = result.isSaved && message.shouldResetWorld;
       if (shouldResetWorld) await resetAndAnnounce(dependencies);
       session.send({ type: "map_file_saved", ...result, isWorldReset: shouldResetWorld });
+      return;
+    }
+    case "play_as": {
+      const refusal = await choosePlayedAgentBetweenTicks(context, message.agentId);
+      session.send({ type: "player_act_result", refusal });
+      broadcaster.publishPlayerView();
+      return;
+    }
+    case "player_act": {
+      const refusal = await acceptPlayerActBetweenTicks(context, message.act);
+      session.send({ type: "player_act_result", refusal });
+      broadcaster.publishPlayerView();
       return;
     }
   }

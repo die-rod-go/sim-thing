@@ -19,6 +19,11 @@ export interface SimLoopOptions {
   scheduler: Scheduler;
   speed?: number;
   isPaused?: boolean;
+  /**
+   * Whether the clock may go on to the next tick. While false it holds between ticks, running or
+   * not, until `wake`: this is how the world waits for its player. Always true when omitted.
+   */
+  canAdvance?: (state: WorldState) => boolean;
 }
 
 const MILLISECONDS_PER_SECOND = 1000;
@@ -42,6 +47,8 @@ export class SimLoop {
   private exclusiveChain: Promise<unknown> = Promise.resolve();
   private readonly tickListeners = new Set<TickListener>();
   private readonly pauseListeners = new Set<PauseListener>();
+  private readonly canAdvance: (state: WorldState) => boolean;
+  private lastTickStartedAtMs: number | null = null;
 
   constructor(options: SimLoopOptions) {
     this.state = options.state;
@@ -49,6 +56,7 @@ export class SimLoop {
     this.scheduler = options.scheduler;
     this.speed = options.speed ?? 1;
     this.isPausedFlag = options.isPaused ?? false;
+    this.canAdvance = options.canAdvance ?? (() => true);
   }
 
   getState(): WorldState {
@@ -117,7 +125,7 @@ export class SimLoop {
 
   /**
    * Runs `task` with no tick in flight and none starting until it finishes: the safe moment to
-   * replace or save the world.
+   * replace or save the world. The clock then goes on at its speed.
    */
   runBetweenTicks<Result>(task: () => Result | Promise<Result>): Promise<Result> {
     const run = async (): Promise<Result> => {
@@ -128,7 +136,7 @@ export class SimLoop {
         return await task();
       } finally {
         this.holdCount -= 1;
-        if (this.canScheduleTicks()) this.scheduleNextTick(0);
+        this.wake();
       }
     };
     const result = this.exclusiveChain.then(run, run);
@@ -137,21 +145,38 @@ export class SimLoop {
   }
 
   /**
-   * Changes the paused world by hand without advancing the clock. What the edit produced reaches
-   * the tick listeners like a tick's result, so it is logged and broadcast the same way. Resolves
-   * to the edit's own answer, or to `answerIfRunning` without editing when the sim was resumed
-   * before the tick it waited on finished.
+   * Changes the world by hand between ticks without advancing the clock. What the edit produced
+   * reaches the tick listeners like a tick's result, so it is logged and broadcast the same way.
+   */
+  editBetweenTicks<Answer>(
+    edit: (state: WorldState) => { result: TickResult; answer: Answer },
+  ): Promise<Answer> {
+    return this.runBetweenTicks(() => this.applyEdit(edit));
+  }
+
+  /**
+   * As `editBetweenTicks`, only while paused. Resolves to the edit's own answer, or to
+   * `answerIfRunning` without editing when the sim was resumed before the tick it waited on finished.
    */
   editWhilePaused<Answer>(
     edit: (state: WorldState) => { result: TickResult; answer: Answer },
     answerIfRunning: Answer,
   ): Promise<Answer> {
-    return this.runBetweenTicks(() => {
-      if (!this.isPausedFlag) return answerIfRunning;
-      const { result, answer } = edit(this.state);
-      for (const listener of this.tickListeners) listener(result, this.state);
-      return answer;
-    });
+    return this.runBetweenTicks(() => (this.isPausedFlag ? this.applyEdit(edit) : answerIfRunning));
+  }
+
+  /**
+   * Lets the clock go on once `canAdvance` allows it again, e.g. when the player has chosen what
+   * to do. The speed still holds: the tick comes no sooner than one interval after the last began.
+   */
+  wake(): void {
+    if (!this.canScheduleTicks() || this.runningTick !== null) return;
+    if (this.cancelScheduledTick !== null) return;
+    const sinceLastTickMs =
+      this.lastTickStartedAtMs === null
+        ? Number.POSITIVE_INFINITY
+        : this.scheduler.now() - this.lastTickStartedAtMs;
+    this.scheduleNextTick(Math.max(0, this.tickIntervalMs() - sinceLastTickMs));
   }
 
   /** Replaces the world, e.g. after a reset. Call inside `runBetweenTicks`. */
@@ -171,7 +196,19 @@ export class SimLoop {
   }
 
   private canScheduleTicks(): boolean {
-    return this.isStarted && !this.isStopped && !this.isPausedFlag && this.holdCount === 0;
+    return (
+      this.isStarted &&
+      !this.isStopped &&
+      !this.isPausedFlag &&
+      this.holdCount === 0 &&
+      this.canAdvance(this.state)
+    );
+  }
+
+  private applyEdit<Answer>(edit: (state: WorldState) => { result: TickResult; answer: Answer }) {
+    const { result, answer } = edit(this.state);
+    for (const listener of this.tickListeners) listener(result, this.state);
+    return answer;
   }
 
   private cancelPendingTick(): void {
@@ -197,6 +234,7 @@ export class SimLoop {
 
   private launchTick(): Promise<void> {
     if (this.runningTick) return this.runningTick;
+    this.lastTickStartedAtMs = this.scheduler.now();
     const tickPromise = this.runTick()
       .catch((error: unknown) => {
         logger.error(`tick ${this.state.tick} failed; pausing`, error);

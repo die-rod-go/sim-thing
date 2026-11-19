@@ -44,6 +44,8 @@ export const seedAgentSchema = z.object({
   ),
   /** Names of the map's places the character has already seen when the sim starts. */
   seenPlaces: z.array(z.string()),
+  /** The player plays this character from the start, so the LLM never decides for them. */
+  isPlayed: z.boolean().optional(),
 });
 
 /** The shape of `seeds/agents.json`. Value rules that need the map or config are in `findSeedFileProblems`. */
@@ -230,6 +232,17 @@ function findDuplicateProblems(agents: readonly SeedAgent[]): SeedProblem[] {
   return problems;
 }
 
+/** There is one player, so every played character after the first is an error. */
+function findPlayedProblems(agents: readonly SeedAgent[]): SeedProblem[] {
+  const playedIndexes = agents.flatMap((agent, agentIndex) => (agent.isPlayed ? [agentIndex] : []));
+  return playedIndexes.slice(1).map((agentIndex) => ({
+    severity: "error",
+    agentIndex,
+    field: "isPlayed",
+    message: "Only one character can be played by you.",
+  }));
+}
+
 /**
  * Everything wrong with a seed file. Errors stop it from being saved or seeded; warnings are
  * shown in the editor but allowed.
@@ -249,6 +262,7 @@ export function findSeedFileProblems(seedFile: SeedFile, rules: SeedRules): Seed
   const knownNames = new Set(agents.map((agent) => agent.name.trim().toLowerCase()));
   return [
     ...findDuplicateProblems(agents),
+    ...findPlayedProblems(agents),
     ...agents.flatMap((agent, agentIndex) => [
       ...findIdentityProblems(agent, agentIndex),
       ...findTraitProblems(agent.traits, agentIndex, rules),

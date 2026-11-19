@@ -12,6 +12,7 @@ import type { AdvanceTick } from "./loop";
 import { actCreatures } from "./creatures/creature-phase";
 import { createMemoryWork } from "./memory-work";
 import { lapseOffers } from "./offers";
+import { carryOutPlayerActs } from "./player-acts";
 import type { SimDependencies, TickContext } from "./tick-context";
 import type { DecisionRequest } from "./tick-phases";
 import {
@@ -67,6 +68,9 @@ function createFightWatch() {
  *    waits for all of them, then applies them in agent order (speech first, the answer to an
  *    offer, then the act), so
  *    the result doesn't depend on which LLM call returned first;
+ * 5c. the player: each played agent's oldest waiting act is carried out as its decision (played
+ *    agents never get one from the LLM); between ticks the loop waits for the player when it is
+ *    their turn;
  * 6. memory: each agent's due day plan, summary (episode, chronicle, and at midnight the day
  *    summary and history) or pass (identity, long-term goals, people, reality) is started or
  *    applied; an agent waiting for its day plan makes no decision but an urgent one;
@@ -90,6 +94,7 @@ export function createDecisionStrategy(dependencies: SimDependencies): AdvanceTi
   const fightWatch = createFightWatch();
   const decide = (state: WorldState, request: DecisionRequest) =>
     runDecision(state, dependencies, request);
+  const hasPlayerAct = (agentId: string) => dependencies.playerInbox?.hasAny(agentId) ?? false;
   return async (state) => {
     const context: TickContext = { state, result: createEmptyTickResult(state.tick), dependencies };
     const needsBefore = applyMechanics(context);
@@ -104,7 +109,8 @@ export function createDecisionStrategy(dependencies: SimDependencies): AdvanceTi
       for (const plan of backgroundDecisions.collectFinished(state)) {
         applyDecisionPlan(context, plan);
       }
-      const isDeciding = (agentId: string) => backgroundDecisions.isRunning(state, agentId);
+      const isDeciding = (agentId: string) =>
+        backgroundDecisions.isRunning(state, agentId) || hasPlayerAct(agentId);
       startQueuedActs(context, isDeciding);
       const requests = selectDecisionRequests(context, isDeciding);
       for (const request of requests) {
@@ -126,11 +132,12 @@ export function createDecisionStrategy(dependencies: SimDependencies): AdvanceTi
         applyDecisionPlan(context, plan);
       }
     } else {
-      startQueuedActs(context);
+      startQueuedActs(context, hasPlayerAct);
       const requests = selectDecisionRequests(context);
       const plans = await Promise.all(requests.map((request) => decide(state, request)));
       for (const plan of plans) applyDecisionPlan(context, plan);
     }
+    carryOutPlayerActs(context);
     fightWatch.noteAttacks(state, context.result.events);
     await runMemoryWork(state, context.result);
     state.conversationLog = pruneConversationLog(state.conversationLog, state.tick);

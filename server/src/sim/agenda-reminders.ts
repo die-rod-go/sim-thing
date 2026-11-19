@@ -10,10 +10,12 @@ import type { WorldState } from "./world-state";
 /**
  * When an agenda item's hour comes, an awake agent gets an urgent decision with the item as its
  * reason; a sleeper isn't woken, and finds it missed when it wakes. Each item reminds only once.
+ * A played agent's agenda is the LLM's, from before the player took over, so it reminds no one.
  */
 export function flagReminders(context: TickContext): void {
   const { state } = context;
   for (const agent of listLivingAgents(state)) {
+    if (agent.isPlayed) continue;
     const runtime = getAgentRuntime(state, agent.id);
     const numbers = new Set(agent.agenda.map((item) => item.number));
     runtime.firedReminderNumbers = runtime.firedReminderNumbers.filter((number) =>

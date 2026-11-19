@@ -140,6 +140,7 @@ describe("applyServerMessage", () => {
         text: `line ${lineIndex}`,
         volume: "normal",
         tick: lineIndex,
+        playerHearing: null,
       });
     }
     state = applyServerMessage(state, {
@@ -148,6 +149,7 @@ describe("applyServerMessage", () => {
       text: "hi",
       volume: "shout",
       tick: 9,
+      playerHearing: null,
     });
     const adaLines = state.speechBubbles.filter((bubble) => bubble.agentId === "ada");
     expect(adaLines).toHaveLength(clientConfig.state.maxSpeechBubblesPerAgent);

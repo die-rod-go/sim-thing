@@ -366,6 +366,45 @@ export const config = {
     voiceDecisionReason: 'a booming voice from the sky said: "{words}"',
   },
 
+  /**
+   * The player, who plays one agent in the LLM's place. Their acts wait in order and the clock
+   * carries out one per tick, where decisions are applied.
+   */
+  player: {
+    /** Why the clock stops for the player the moment they take an agent over. */
+    takeOverReason: "you have just taken over",
+    /** Most acts the player can line up before the clock reaches them; a new move replaces a waiting one. */
+    maxPendingActs: 3,
+    /** Longest words one act can say or write. */
+    maxWordsChars: 500,
+    /** What a move that something in the way stopped is remembered as trying: "step into the bakery". */
+    moveAttempt: "step into {place}",
+    /** How an act still waiting reads in the player's view, beside `decision.queuedActTexts`. */
+    pendingActTexts: {
+      move: "move to {place}",
+      walkToTile: "walk to {place}",
+      continue: "carry on",
+      wait: "wait",
+      /** `{act}` is one of the above, or a queued act's text. */
+      withWords: '{act}, saying "{words}"',
+      /** An act that only answers an offer: `{answer}` is accept or decline. */
+      answer: "{answer} the offer",
+    },
+    /** Why an act or a take-over is turned down before it reaches the world. */
+    refusals: {
+      notPlaying: "You aren't playing anyone",
+      unknownAgent: "No one by that id is in the village",
+      dead: "{name} is dead",
+      tooManyActs: "Let the acts you chose start first",
+      wordsTooLong: "That is too much to say at once",
+      moveNotNextTo: "A move goes to a tile right next to you",
+      moveOffMap: "That way is the edge of the village",
+      moveIntoWall: "That way is a wall",
+      moveIntoSomeone: "Someone is standing there",
+      walkToWall: "Nobody can stand there",
+    },
+  },
+
   conditions: {
     /** Added to a rule's killed phrase when an agent is behind it. */
     causedBySuffix: " after being hurt by {actor}",

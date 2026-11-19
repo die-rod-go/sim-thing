@@ -139,7 +139,14 @@ function speakRandomLine(): void {
   const thought = pickRandom(THOUGHTS);
   agent.lastThought = { text: thought, tick: snapshot.clock.tick };
   broadcast({ type: "state_changed", agents: [agent] });
-  broadcast({ type: "said", agentId: agent.id, text, volume, tick: snapshot.clock.tick });
+  broadcast({
+    type: "said",
+    agentId: agent.id,
+    text,
+    volume,
+    tick: snapshot.clock.tick,
+    playerHearing: null,
+  });
   broadcast({
     type: "event_logged",
     event: {

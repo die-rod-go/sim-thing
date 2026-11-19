@@ -118,7 +118,68 @@ describe("SimLoop", () => {
     replacement.tick = 100;
     await loop.runBetweenTicks(() => loop.replaceState(replacement));
     await scheduler.advance(0);
+    expect(counter.ticksSeen).toEqual([0]);
+    await scheduler.advance(INTERVAL_AT_1X_MS);
     expect(counter.ticksSeen).toEqual([0, 100]);
+  });
+
+  it("holds the clock between ticks while it can't advance, until woken", async () => {
+    const counter = countingAdvance();
+    const scheduler = new ManualScheduler();
+    let isPlayerDone = false;
+    const loop = new SimLoop({
+      state: buildEmptyState(),
+      advanceTick: counter.advanceTick,
+      scheduler,
+      canAdvance: () => isPlayerDone,
+    });
+    loop.start();
+    await scheduler.advance(INTERVAL_AT_1X_MS * 3);
+    expect(counter.ticksSeen).toEqual([]);
+    isPlayerDone = true;
+    loop.wake();
+    await scheduler.advance(0);
+    expect(counter.ticksSeen).toEqual([0]);
+  });
+
+  it("keeps its speed when woken: the next tick comes an interval after the last began", async () => {
+    const counter = countingAdvance();
+    const scheduler = new ManualScheduler();
+    let isPlayerDone = true;
+    const loop = new SimLoop({
+      state: buildEmptyState(),
+      advanceTick: (state) => {
+        isPlayerDone = false;
+        return counter.advanceTick(state);
+      },
+      scheduler,
+      canAdvance: () => isPlayerDone,
+    });
+    loop.start();
+    await scheduler.advance(0);
+    expect(counter.ticksSeen).toEqual([0]);
+    isPlayerDone = true;
+    loop.wake();
+    await scheduler.advance(INTERVAL_AT_1X_MS / 2);
+    expect(counter.ticksSeen).toEqual([0]);
+    await scheduler.advance(INTERVAL_AT_1X_MS / 2);
+    expect(counter.ticksSeen).toEqual([0, 1]);
+  });
+
+  it("edits the running world between ticks and reports the edit like a tick", async () => {
+    const counter = countingAdvance();
+    const { loop, scheduler } = buildLoop(counter.advanceTick);
+    const reportedTicks: number[] = [];
+    loop.addTickListener((result) => reportedTicks.push(result.tick));
+    loop.start();
+    await scheduler.advance(0);
+    const answer = await loop.editBetweenTicks((state) => ({
+      result: createEmptyTickResult(state.tick),
+      answer: "edited",
+    }));
+    expect(answer).toBe("edited");
+    expect(reportedTicks).toEqual([0, 1]);
+    expect(loop.getState().tick).toBe(1);
   });
 
   it("answers without editing when the sim resumes before the tick an edit waited on ends", async () => {

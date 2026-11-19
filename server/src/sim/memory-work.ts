@@ -95,9 +95,14 @@ export function createMemoryWork(dependencies: SimDependencies): RunMemoryWork {
     }
   }
 
-  /** Starts the agent's next due job; false when nothing is due. */
+  /**
+   * Starts the agent's next due job; false when nothing is due. A played agent's mind is its
+   * player's: its memory is still summarized, but no day plan, reality pass or reflection runs
+   * for it until the LLM takes it back.
+   */
   function startDueJob(state: WorldState, agentId: string, memory: AgentMemory): boolean {
-    if (isDayPlanDue(memory)) {
+    const isPlayed = findAgent(state, agentId).isPlayed;
+    if (!isPlayed && isDayPlanDue(memory)) {
       work.start(state, agentId, () => planDay(dependencies, state, agentId));
       return true;
     }
@@ -109,11 +114,11 @@ export function createMemoryWork(dependencies: SimDependencies): RunMemoryWork {
       work.start(state, agentId, () => summarize(state, agentId, compression));
       return true;
     }
-    if (memory.isRealityPassOwed) {
+    if (!isPlayed && memory.isRealityPassOwed) {
       work.start(state, agentId, () => checkReality(dependencies, state, agentId));
       return true;
     }
-    if (isReflectionDue(memory, state.tick)) {
+    if (!isPlayed && isReflectionDue(memory, state.tick)) {
       work.start(state, agentId, () => reflect(dependencies, state, agentId));
       return true;
     }
