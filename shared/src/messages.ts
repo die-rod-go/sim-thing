@@ -16,6 +16,7 @@ import type { ComponentDeclarations } from "./items/component-schema";
 import type { ItemDefinition, ItemFile, WorldSettings } from "./items/item-file";
 import type { ItemProblem, ItemReference } from "./items/item-problems";
 import type { MapProblem, MapReferences } from "./map-file";
+import { playerActSchema, type PlayerHearing, type PlayerView } from "./player";
 import {
   seedFileSchema,
   type SeedAgent,
@@ -83,6 +84,10 @@ export const clientMessageSchema = z.discriminatedUnion("type", [
     shouldResetWorld: z.boolean(),
   }),
   z.object({ type: z.literal("god_action"), action: godActionSchema }),
+  /** Starts playing this agent, handing any other played agent back to the LLM; null stops. */
+  z.object({ type: z.literal("play_as"), agentId: z.string().nullable() }),
+  /** An act for the played agent, carried out when the clock next reaches decisions. */
+  z.object({ type: z.literal("player_act"), act: playerActSchema }),
 ]);
 
 export type ClientMessage = z.infer<typeof clientMessageSchema>;
@@ -139,6 +144,8 @@ export interface SaidMessage {
   text: string;
   volume: Volume;
   tick: number;
+  /** How the played agent heard it; null when nobody is played. */
+  playerHearing: PlayerHearing | null;
 }
 
 export interface InteractedMessage {
@@ -251,6 +258,19 @@ export interface VoiceSpokeMessage {
   tick: number;
 }
 
+/** Broadcast whenever what the played agent perceives or can do changes; null when nobody is played. */
+export interface PlayerViewMessage {
+  type: "player_view";
+  view: PlayerView | null;
+}
+
+/** Sent in reply to play_as and player_act. What the act did arrives in the player view. */
+export interface PlayerActResultMessage {
+  type: "player_act_result";
+  /** Why it was turned down, or null when it was taken. */
+  refusal: string | null;
+}
+
 export type ServerMessage =
   | SnapshotMessage
   | TickMessage
@@ -271,7 +291,9 @@ export type ServerMessage =
   | MapFileMessage
   | MapFileSavedMessage
   | GodActionResultMessage
-  | VoiceSpokeMessage;
+  | VoiceSpokeMessage
+  | PlayerViewMessage
+  | PlayerActResultMessage;
 
 export const SERVER_MESSAGE_TYPES = [
   "snapshot",
@@ -294,6 +316,8 @@ export const SERVER_MESSAGE_TYPES = [
   "map_file_saved",
   "god_action_result",
   "voice_spoke",
+  "player_view",
+  "player_act_result",
 ] as const satisfies readonly ServerMessage["type"][];
 
 const serverEnvelopeSchema = z.looseObject({ type: z.enum(SERVER_MESSAGE_TYPES) });

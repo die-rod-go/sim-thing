@@ -142,6 +142,7 @@ function buildAgent(
     people,
     seenPlaces: [],
     lastThought: null,
+    isPlayed: seed.isPlayed ?? false,
   };
 }
 

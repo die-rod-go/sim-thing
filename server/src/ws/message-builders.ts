@@ -1,5 +1,6 @@
 import type {
   AgentDetailMessage,
+  PlayerViewMessage,
   SettingsMessage,
   SimStats,
   SnapshotMessage,
@@ -17,6 +18,7 @@ import { computeVisibleTiles } from "../perception/sight";
 import { getAgentMemory } from "../sim/world-access";
 import { computeSpeechReachTiles } from "../perception/sound";
 import type { SimLoop } from "../sim/loop";
+import { buildPlayerView } from "../sim/player-view";
 import type { SimDependencies } from "../sim/tick-context";
 import { buildPerceptionWorld } from "../sim/world-access";
 import type { SimSettings, WorldState } from "../sim/world-state";
@@ -84,6 +86,11 @@ export function buildSettingsMessage(context: SimServerContext): SettingsMessage
     speed: context.loop.getSpeed(),
     dailyTokenBudget: context.settings.dailyTokenBudget,
   };
+}
+
+export function buildPlayerViewMessage(context: SimServerContext): PlayerViewMessage {
+  const view = buildPlayerView(context.loop.getState(), context.simDependencies.playerInbox);
+  return { type: "player_view", view };
 }
 
 /** Null when no agent has that id. */

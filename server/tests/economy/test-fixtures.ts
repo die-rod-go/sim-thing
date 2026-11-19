@@ -39,6 +39,7 @@ export function makeAgent(overrides: Partial<Agent> = {}): Agent {
     people: {},
     seenPlaces: [],
     lastThought: null,
+    isPlayed: false,
     ...overrides,
   };
 }

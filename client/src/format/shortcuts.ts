@@ -21,6 +21,9 @@ export const SHORTCUT_HELP: readonly ShortcutHelpEntry[] = [
   { keys: "?", does: "Show these shortcuts" },
   { keys: "F  0  +  −", does: "Map: follow, fit, zoom" },
   { keys: "G", does: "Map: god mode (edits while paused)" },
+  { keys: "Arrows  WASD", does: "Playing: move a tile (Q E Z C diagonally)" },
+  { keys: "Enter", does: "Playing: talk" },
+  { keys: "Click map", does: "Playing: walk there" },
 ];
 
 const DIGIT_PATTERN = /^[1-9]$/;

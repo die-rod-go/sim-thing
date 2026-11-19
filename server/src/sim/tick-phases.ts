@@ -28,6 +28,7 @@ import { getAgentRuntime, requestDecision } from "./agent-runtime";
 import { isWaitingForDayPlan } from "./agenda-reminders";
 import { EMPTY_PERSON_ENTRY } from "../passes/apply-pass";
 import { lookAtPlaces } from "./place-sighting";
+import { settlePlayerFlag } from "./player-turn";
 import { NO_RULE_CAUSE } from "./rule-cause";
 import { expireComponents, runEveryRules } from "./rule-timers";
 import type { TickContext } from "./tick-context";
@@ -257,7 +258,8 @@ export interface DecisionRequest {
  * name, conversation, woken, need, offered something, an agenda item's hour) or a notable flag
  * outside the cooldown. Every flag is consumed here, so flags raised later in the tick count for
  * the next tick. An agent still waiting on a decision, or lying awake waiting for its day plan with
- * nothing urgent, is skipped and keeps its flag for later.
+ * nothing urgent, is skipped and keeps its flag for later. A played agent is never asked: its
+ * player answers what stops it, and a flag that won't is let go.
  */
 export function selectDecisionRequests(
   context: TickContext,
@@ -266,6 +268,10 @@ export function selectDecisionRequests(
   const { state } = context;
   const requests: DecisionRequest[] = [];
   for (const agent of listLivingAgents(state)) {
+    if (agent.isPlayed) {
+      settlePlayerFlag(state, agent);
+      continue;
+    }
     if (isAgentDeciding(agent.id)) continue;
     const runtime = getAgentRuntime(state, agent.id);
     if (isWaitingForDayPlan(state, agent.id) && !runtime.pendingDecision?.isUrgent) continue;

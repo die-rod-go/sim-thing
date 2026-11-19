@@ -1,3 +1,4 @@
+import type { Position } from "@village/shared";
 import { config } from "../config";
 import { resolveName } from "../decision/resolve-name";
 import { computeChebyshevDistance } from "../economy/give";
@@ -64,6 +65,22 @@ function executeWalk(context: TickContext, agentId: string, targetName: string):
   startWalk(context, agentId, destination, null);
 }
 
+/** A walk to a tile the player picked on the map; `spotName` is how that spot reads. */
+function executeWalkToTile(
+  context: TickContext,
+  agentId: string,
+  spotName: string,
+  pos: Position,
+): void {
+  const { state, result } = context;
+  const agent = findAgent(state, agentId);
+  if (agent.pos.x === pos.x && agent.pos.y === pos.y) {
+    failAction(state, result, agentId, `walk to ${spotName}`, "I was already there");
+    return;
+  }
+  startWalk(context, agentId, { kind: "tile", pos: { ...pos }, name: spotName }, null);
+}
+
 /**
  * A give to someone in sight but out of reach walks up to them first; the give then waits at the
  * front of the queue, its words with it, and is tried where the walk ends even if the recipient
@@ -98,7 +115,9 @@ function approachForGive(
 function executeAct(context: TickContext, agentId: string, act: PlannedAct): void {
   switch (act.kind) {
     case "walk_to":
-      return executeWalk(context, agentId, act.target);
+      return act.pos === undefined
+        ? executeWalk(context, agentId, act.target)
+        : executeWalkToTile(context, agentId, act.target, act.pos);
     case "interact":
       return startOrApproachVerb(context, agentId, act.request);
     case "give":
@@ -113,7 +132,8 @@ function executeAct(context: TickContext, agentId: string, act: PlannedAct): voi
 /**
  * Starts one act and says its words as it starts; the words of an act that fails at once are never
  * said. After an offer, with acts still queued, the agent waits for the answer before going on,
- * so it doesn't walk off and withdraw what it offered.
+ * so it doesn't walk off and withdraw what it offered. A played agent always waits for it, so the
+ * clock runs on until the answer comes instead of stopping for its player at once.
  */
 export function startAct(
   context: TickContext,
@@ -130,7 +150,9 @@ export function startAct(
   if (hasFailed) return;
   if (speech !== null) speak(context, agentId, speech);
   const runtime = getAgentRuntime(context.state, agentId);
-  if (act.kind !== "give" || runtime.queuedActs.length === 0) return;
+  const isAnswerAwaited =
+    runtime.queuedActs.length > 0 || findAgent(context.state, agentId).isPlayed;
+  if (act.kind !== "give" || !isAnswerAwaited) return;
   startWait(context, agentId, config.economy.offerLapseMinutes);
   runtime.isAwaitingAnswer = true;
 }

@@ -12,6 +12,8 @@ export interface PanelContextValue {
   focusThread: (agentIds: readonly string[]) => void;
   /** Agents to highlight on the map while the pointer is over something about them. */
   highlightAgents: (agentIds: readonly string[]) => void;
+  /** Starts playing this agent, handing any other back to the LLM; null stops playing. */
+  playAs: (agentId: string | null) => void;
 }
 
 export const PanelContext = createContext<PanelContextValue | null>(null);

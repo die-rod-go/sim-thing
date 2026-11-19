@@ -57,6 +57,7 @@ export function makeSampleAgent(id: string, name: string, x: number, y: number):
     people: {},
     seenPlaces: [],
     lastThought: { text: `${name} wonders whether anyone wants bread today.`, tick: 28 },
+    isPlayed: false,
   };
 }
 

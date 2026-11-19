@@ -34,7 +34,12 @@ const interactRequestSchema = z.object({
  * only when it starts, since the world moves on in the meantime.
  */
 const plannedActSchema = z.discriminatedUnion("kind", [
-  z.object({ kind: z.literal("walk_to"), target: z.string() }),
+  z.object({
+    kind: z.literal("walk_to"),
+    target: z.string(),
+    /** A tile the player chose on the map, in place of a destination by name; `target` names it. */
+    pos: positionSchema.optional(),
+  }),
   z.object({ kind: z.literal("interact"), request: interactRequestSchema }),
   z.object({
     kind: z.literal("give"),

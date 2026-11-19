@@ -90,6 +90,28 @@ function SheetBody({ tab, agent, detail, focusedCallId, onViewPrompt }: SheetBod
   return <PromptsTab detail={detail} focusedCallId={focusedCallId} />;
 }
 
+/** Takes the agent over from the LLM, or hands back the one the player is playing. */
+function PlayButton({ agent }: { agent: Agent }) {
+  const { playAs } = usePanelContext();
+  if (agent.isPlayed) {
+    return (
+      <button className="sheet-play" onClick={() => playAs(null)} title="Hand back to the LLM">
+        Stop playing
+      </button>
+    );
+  }
+  if (agent.death !== null) return null;
+  return (
+    <button
+      className="sheet-play"
+      onClick={() => playAs(agent.id)}
+      title={`Make ${agent.name}'s decisions yourself, in the LLM's place`}
+    >
+      Play as {agent.name}
+    </button>
+  );
+}
+
 /** The selected agent's sheet: a sticky "now" header over tabbed pages, activity first. */
 export function CharacterSheet({ agent, onClose }: { agent: Agent; onClose: () => void }) {
   const { state } = usePanelContext();
@@ -127,6 +149,7 @@ export function CharacterSheet({ agent, onClose }: { agent: Agent; onClose: () =
           <ColorDot agentId={agent.id} />
           <h2>{agent.name}</h2>
           <span className="sheet-profession">{agent.profession}</span>
+          <PlayButton agent={agent} />
           <button className="icon-button sheet-close" onClick={onClose} title="Close (Esc)">
             ✕
           </button>

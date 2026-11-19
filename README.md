@@ -52,6 +52,30 @@ change speed, inspect an agent and read every LLM prompt and reply. Editors for 
 The sim saves to SQLite as it runs and resumes on restart. Seed and map changes take effect after a
 reset (`make reset`, or reset from the UI).
 
+## Playing a character
+
+You can play any villager yourself: select them and click **Play as** in their sheet. To start the
+sim already playing someone, tick **Played by you** for that character in the character editor and
+reset.
+
+- **The clock waits for you** when your character has nothing to do, or something urgent happens
+  to them: someone says their name, offers them something or attacks them. While they walk, work or
+  sleep, the village runs on. A wait, which is how you listen after speaking, also ends when
+  someone answers.
+- **Controls:** click the map to walk there, use the arrow keys or WASD to move one tile (Q, E, Z
+  and C go diagonally), and press Enter to talk. The play panel lists what is here and what you
+  carry with every verb you can use, the people in sight (walk to, follow, give or trade), places
+  to walk to, your needs and your journal.
+- **See only what they see and hear:** on by default. It darkens what is out of sight, hides the
+  people and animals there, shows only the speech your character heard (muffled lines as "…") and
+  hides everyone's thoughts. The side panel still shows everything.
+- **Stop playing** hands the character back to the LLM. It finds what you did in its memory as its
+  own doings, plans the rest of its day and takes stock in a reflection.
+
+While you play someone, the LLM makes no decisions for them and runs no day plan, reflection or
+reality pass for them; their memory is still summarized. The other villagers treat them like
+anyone else.
+
 ## Commands
 
 | Command        | Use                                        |

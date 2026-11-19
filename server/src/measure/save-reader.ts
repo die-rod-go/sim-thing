@@ -24,8 +24,20 @@ const eventSchema = z.object({
   kind: z.string(),
   place: z.string(),
   description: z.string(),
-  speech: z.object({ words: z.string() }).optional(),
+  speech: z.object({ words: z.string(), llmCallId: z.number().optional() }).optional(),
 });
+
+type SavedEvent = z.infer<typeof eventSchema>;
+
+/**
+ * A line of speech as the talk measures read it; null for any other event. Only lines an LLM call
+ * made count: the player's own words, which no call made, say nothing about the LLM.
+ */
+export function readSpeechRecord(event: SavedEvent): SpeechRecord | null {
+  if (event.kind !== "said" || event.speech?.llmCallId === undefined) return null;
+  const { actorId, tick, place } = event;
+  return { speakerId: actorId, tick, place, words: event.speech.words };
+}
 
 const callRowSchema = z.object({
   agent_id: z.string(),
@@ -78,9 +90,9 @@ function readEventRecords(database: Database): EventRecords {
   const statement = database.prepare("SELECT data FROM events ORDER BY id");
   for (const row of statement.iterate() as Iterable<{ data: string }>) {
     const event = eventSchema.parse(JSON.parse(row.data));
-    if (event.kind === "said" && event.speech !== undefined) {
-      const { actorId, tick, place } = event;
-      records.speech.push({ speakerId: actorId, tick, place, words: event.speech.words });
+    const speech = readSpeechRecord(event);
+    if (speech !== null) {
+      records.speech.push(speech);
     } else if (event.kind === "action_failed") {
       const separatorIndex = event.description.indexOf(FAILURE_SEPARATOR);
       const reason =

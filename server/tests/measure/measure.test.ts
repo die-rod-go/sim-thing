@@ -6,6 +6,7 @@ import { buildNameGrouper } from "../../src/measure/grouping";
 import { readDecisionOutcome, readDecisionPrompt } from "../../src/measure/prompt-reading";
 import { readReminderItem, summarizeAgendaDays } from "../../src/measure/agenda-measures";
 import type { CallRecord, DecisionRecord, SaveRecords } from "../../src/measure/records";
+import { readSpeechRecord } from "../../src/measure/save-reader";
 import {
   measureConversations,
   measureNearRepeats,
@@ -145,6 +146,19 @@ describe("measuring talk", () => {
       { speakerId: "mara", tick: 9, place: "bakery", words: "Cobb owes Tom ten coins, I hear" },
     ];
     expect(measurePassedOn(streamLines, retold)).toEqual({ overheard: 1, passedOn: 1 });
+  });
+
+  it("measures only lines an LLM call made, leaving out the player's own", () => {
+    const event = { tick: 3, actorId: "mara", kind: "said", place: "square", description: "" };
+    const fromDecision = { ...event, speech: { words: "Fresh bread!", llmCallId: 12 } };
+    expect(readSpeechRecord(fromDecision)).toEqual({
+      speakerId: "mara",
+      tick: 3,
+      place: "square",
+      words: "Fresh bread!",
+    });
+    expect(readSpeechRecord({ ...event, speech: { words: "Hello there" } })).toBeNull();
+    expect(readSpeechRecord({ ...event, kind: "arrived" })).toBeNull();
   });
 });
 

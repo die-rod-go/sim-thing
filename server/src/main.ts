@@ -24,6 +24,8 @@ import { createMapEditor } from "./map-editor";
 import { createSeedEditor } from "./seed-editor";
 import { buildSeededWorld, loadSeedFile } from "./seeds";
 import { SimLoop } from "./sim/loop";
+import { PlayerInbox } from "./sim/player-inbox";
+import { isWaitingForPlayer } from "./sim/player-turn";
 import { createRealScheduler } from "./sim/scheduler";
 import { createDecisionStrategy } from "./sim/tick-pipeline";
 import {
@@ -146,6 +148,7 @@ async function run(): Promise<void> {
   );
   const findPauseReason = () => describeBudgetPause(llm.budget);
 
+  const playerInbox = new PlayerInbox();
   const simDependencies: SimDependencies = {
     callStructured: llm.callStructured,
     isReplySchemaStable: environment.LLM_PROVIDER === "anthropic",
@@ -155,12 +158,14 @@ async function run(): Promise<void> {
     recordPersonalityChange: (change) => {
       appendPersonalityChange(database, change);
     },
+    playerInbox,
   };
   const loop = new SimLoop({
     state: initialState,
     advanceTick: createDecisionStrategy(simDependencies),
     scheduler: createRealScheduler(),
     speed: settings.speed,
+    canAdvance: (state) => !isWaitingForPlayer(state, playerInbox),
   });
   loop.addTickListener((result, state) => {
     for (const event of result.events) appendEvent(database, event);
@@ -199,6 +204,7 @@ async function run(): Promise<void> {
         const reloadedMap = loadWorldMap(mapFilePath);
         loop.replaceState(resetDatabase(database, reloadedMap, settings));
         map = reloadedMap;
+        playerInbox.clear();
       }),
   });
   loop.start();

@@ -57,6 +57,13 @@ describe("findSeedFileProblems", () => {
     expect(findSeedFileProblems({ agents: [buildSeedAgent()] }, rules)).toEqual([]);
   });
 
+  it("lets the player play one character, and no second", () => {
+    const played = buildSeedAgent({ isPlayed: true });
+    expect(listFields([played, buildSeedAgent({ id: "ilsa", name: "Ilsa" })])).toEqual([]);
+    const second = buildSeedAgent({ id: "ilsa", name: "Ilsa", isPlayed: true });
+    expect(listFields([played, second])).toEqual(["isPlayed"]);
+  });
+
   it("needs at least one character", () => {
     const problems = findSeedFileProblems({ agents: [] }, rules);
     expect(hasSeedErrors(problems)).toBe(true);

@@ -35,6 +35,8 @@ export interface CameraControls {
   pan: (deltaX: number, deltaY: number) => void;
   fit: () => void;
   toggleFollow: () => void;
+  /** Starts following, e.g. the agent the player has just taken over. */
+  follow: () => void;
   /** A user focus counts as manual input; an automatic one (director mode) does not. */
   focus: (request: CameraFocusRequest, origin?: CameraInputOrigin) => void;
 }
@@ -122,6 +124,11 @@ export function useCameraRig(): CameraRig {
     [update],
   );
 
+  const follow = useCallback(
+    () => update((controller) => setCameraMode(controller, "follow")),
+    [update],
+  );
+
   const focus = useCallback(
     (request: CameraFocusRequest, origin: CameraInputOrigin = "user") =>
       update((controller) => focusCamera(controller, request), origin),
@@ -138,9 +145,10 @@ export function useCameraRig(): CameraRig {
       pan,
       fit,
       toggleFollow,
+      follow,
       focus,
     }),
-    [advanceFrame, zoomAt, zoomByStep, pan, fit, toggleFollow, focus],
+    [advanceFrame, zoomAt, zoomByStep, pan, fit, toggleFollow, follow, focus],
   );
   return { mode, manualInputCount, controls };
 }

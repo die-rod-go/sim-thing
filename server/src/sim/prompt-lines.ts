@@ -45,12 +45,23 @@ function listHoldingWords(state: WorldState, contents: readonly Entity[]): strin
   return contents.length > 0 ? [describeContents(state, contents)] : [];
 }
 
+/** One line of Here or Belongings with the entities it stands for, before a prompt words it. */
+export interface EntityLine {
+  /** The entities the line counts together; the first stands for them all. */
+  entities: Entity[];
+  text: string;
+  details: string[];
+  verbs: string[];
+  toolUses: string[];
+  contents: EntityLine[];
+}
+
 interface EntityEntry {
   entity: Entity;
   details: string[];
   verbs: string[];
   toolUses: string[];
-  contents: PromptEntityGroup[];
+  contents: EntityLine[];
   hasVisibleContents: boolean;
 }
 
@@ -78,7 +89,7 @@ function buildEntityEntry(state: WorldState, agentId: string, entity: Entity): E
     toolUses: isCarriedBy(entity, agentId)
       ? listToolUses(state, agentId, entity).map((use) => use.phrase)
       : [],
-    contents: groupEntitiesForPrompt(state, agentId, contentEntities),
+    contents: groupEntityLines(state, agentId, contentEntities),
     hasVisibleContents: contentEntities.length > 0,
   };
 }
@@ -90,15 +101,14 @@ function buildGroupKey(entry: EntityEntry): string {
 }
 
 /**
- * Entities as a prompt lists them: one entry per distinct line, identical unlabelled ones counted
- * together ("3 bread"). Each shows its words and verbs, and what the agent can see inside it as
- * nested entries.
+ * Entities as a prompt lists them: one line per distinct entry, identical unlabelled ones counted
+ * together ("3 bread"), each with what the agent can see inside it as nested lines.
  */
-export function groupEntitiesForPrompt(
+export function groupEntityLines(
   state: WorldState,
   agentId: string,
   entities: readonly Entity[],
-): PromptEntityGroup[] {
+): EntityLine[] {
   const groups = new Map<string, EntityEntry[]>();
   for (const entity of entities) {
     const entry = buildEntityEntry(state, agentId, entity);
@@ -111,8 +121,27 @@ export function groupEntitiesForPrompt(
     const text =
       first.entity.label ?? describeCount(getDefinition(state, first.entity), members.length);
     const { details, verbs, toolUses, contents } = first;
-    return [{ text, details, verbs, toolUses, contents }];
+    const entities = members.map((member) => member.entity);
+    return [{ entities, text, details, verbs, toolUses, contents }];
   });
+}
+
+function toPromptGroup(line: EntityLine): PromptEntityGroup {
+  const { text, details, verbs, toolUses } = line;
+  return { text, details, verbs, toolUses, contents: line.contents.map(toPromptGroup) };
+}
+
+/**
+ * Entities as a prompt lists them: one entry per distinct line, identical unlabelled ones counted
+ * together ("3 bread"). Each shows its words and verbs, and what the agent can see inside it as
+ * nested entries.
+ */
+export function groupEntitiesForPrompt(
+  state: WorldState,
+  agentId: string,
+  entities: readonly Entity[],
+): PromptEntityGroup[] {
+  return groupEntityLines(state, agentId, entities).map(toPromptGroup);
 }
 
 /** A dead body in sight: how it reads, and what it carries when the agent can see in. */

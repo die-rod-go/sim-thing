@@ -74,9 +74,14 @@ export function App() {
   const highlightAgents = useCallback((agentIds: readonly string[]) => {
     setHighlightedAgentIds(agentIds.length === 0 ? NO_AGENTS : agentIds);
   }, []);
+  const { sendControl } = simClient;
+  const playAs = useCallback(
+    (agentId: string | null) => void sendControl({ type: "play_as", agentId }),
+    [sendControl],
+  );
   const contextValue = useMemo<PanelContextValue>(
-    () => ({ state, agentColors, threads, selectAgent, focusThread, highlightAgents }),
-    [state, agentColors, threads, selectAgent, focusThread, highlightAgents],
+    () => ({ state, agentColors, threads, selectAgent, focusThread, highlightAgents, playAs }),
+    [state, agentColors, threads, selectAgent, focusThread, highlightAgents, playAs],
   );
 
   return (

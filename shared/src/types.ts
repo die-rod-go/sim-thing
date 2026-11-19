@@ -146,6 +146,8 @@ export interface Agent {
   seenPlaces: SeenPlace[];
   /** The `thought` from the agent's latest decision, for the viewer; never shown to agents. */
   lastThought: AgentThought | null;
+  /** The player makes this agent's decisions, not the LLM. */
+  isPlayed: boolean;
 }
 
 /** What was at a place when the agent last saw inside it. */

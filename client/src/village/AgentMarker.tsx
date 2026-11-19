@@ -16,6 +16,8 @@ interface AgentMarkerProps {
   isMuted: boolean;
   /** Drawn lying down and greyed out. */
   isDead: boolean;
+  /** The player's own agent, labelled as such. */
+  isPlayed: boolean;
   /** Drawn over the figure (flames for `burning`). */
   visibleConditions: readonly VisibleComponent[];
   activityCue: ActivityCue;
@@ -105,6 +107,7 @@ export function AgentMarker({
   isSpeaking,
   isMuted,
   isDead,
+  isPlayed,
   visibleConditions,
   activityCue,
   markerRef,
@@ -121,6 +124,7 @@ export function AgentMarker({
   if (isSpeaking) classNames.push("is-speaking");
   if (isMuted) classNames.push("is-muted");
   if (isDead) classNames.push("is-dead");
+  if (isPlayed) classNames.push("is-played");
   return (
     <div
       className={classNames.join(" ")}
@@ -164,7 +168,7 @@ export function AgentMarker({
         />
       ))}
       <ActivityCueBadge cue={activityCue} />
-      <span className="agent-label">{name}</span>
+      <span className="agent-label">{isPlayed ? `${name} (you)` : name}</span>
     </div>
   );
 }
