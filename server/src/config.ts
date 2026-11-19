@@ -900,10 +900,17 @@ export const config = {
     /** How long a speaker stays to hear an answer when the reply names no minutes. */
     sayWaitMinutes: 5,
     /**
-     * Interact verbs a reply may misuse to talk ("say", "speak"). With no verb of that name in
-     * `items.json`, the act becomes a wait whose words are its `say`, or its `text` if that is empty.
+     * Interact verbs a reply may misuse to talk ("speak", "whisper"). With no verb of that name in
+     * `items.json`, the act becomes a `say` whose words are its `say`, or its `text` if that is
+     * empty, at the verb's volume unless the reply chose one.
      */
-    speechVerbNames: ["say", "speak"],
+    speechVerbs: [
+      { name: "say" },
+      { name: "speak" },
+      { name: "talk" },
+      { name: "whisper", volume: "whisper" },
+      { name: "shout", volume: "shout" },
+    ] satisfies { name: string; volume?: Volume }[] as { name: string; volume?: Volume }[],
     maxWaitMinutes: 240,
   },
 

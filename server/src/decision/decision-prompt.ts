@@ -33,7 +33,14 @@ const OWN_OFFER_TEMPLATE = "decision-own-offer";
 const RECKONING_TEMPLATE = "decision-reckoning";
 /** Marks the end of a part of the template that is stable enough for the provider to cache. */
 const CACHE_BREAKPOINT_MARKER = "<<<cache>>>\n";
-const BASE_ACTIONS: readonly DecisionAction[] = ["walk_to", "interact", "give", "wait", "follow"];
+const BASE_ACTIONS: readonly DecisionAction[] = [
+  "walk_to",
+  "say",
+  "interact",
+  "give",
+  "wait",
+  "follow",
+];
 
 export function listOfferedActions(isMidActionInterrupt: boolean): DecisionAction[] {
   return isMidActionInterrupt ? [...BASE_ACTIONS, "continue"] : [...BASE_ACTIONS];

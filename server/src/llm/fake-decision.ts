@@ -173,7 +173,7 @@ function buildOneActReply(
     [ATTACK_CHOICE, tuning.attackWeight] as [string, number],
   ].filter(([action]) => {
     if (action === ATTACK_CHOICE) return attack !== null && choices.actions.includes("interact");
-    if (action === SPEAK_CHOICE) return choices.actions.includes("wait");
+    if (action === SPEAK_CHOICE) return choices.actions.includes("say");
     if (!choices.actions.includes(action)) return false;
     if (action === "interact") return interact !== null;
     if (action === "walk_to") return otherPlaces.length > 0;
@@ -206,7 +206,7 @@ function buildOneActReply(
     const line = random.pick(tuning.lines);
     const say = choices.inSight.length > 0 ? `${random.pick(choices.inSight)}! ${line}` : line;
     const { min, max } = tuning.waitMinutes;
-    return { ...reply, action: "wait", say, volume: "normal", minutes: random.nextInt(min, max) };
+    return { ...reply, action: "say", say, volume: "normal", minutes: random.nextInt(min, max) };
   }
   const { min, max } = tuning.waitMinutes;
   return { ...reply, action: "wait", minutes: random.nextInt(min, max) };

@@ -231,7 +231,7 @@ describe("buildDecisionPrompt", () => {
 
   it("offers continue only when interrupted mid-action", () => {
     const calm = buildDecisionPrompt(buildContext());
-    expect(calm).toMatch(/^Actions: walk_to, interact, give, wait, follow$/m);
+    expect(calm).toMatch(/^Actions: walk_to, say, interact, give, wait, follow$/m);
     const interrupted = buildDecisionPrompt(
       buildContext({
         currentAction: {

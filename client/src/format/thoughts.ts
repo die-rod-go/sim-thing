@@ -70,6 +70,8 @@ function describeDecisionAction(fields: ReplyFields): string | null {
     }
     case "follow":
       return `follow ${target ?? "?"}`;
+    case "say":
+      return "wait for an answer";
     default:
       return target ? `${action} → ${target}` : action;
   }

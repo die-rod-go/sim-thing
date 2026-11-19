@@ -261,7 +261,8 @@ export interface ReflectionProgress {
 
 export type Volume = "whisper" | "normal" | "shout";
 
-export type DecisionAction = "walk_to" | "interact" | "give" | "wait" | "follow" | "continue";
+export type DecisionAction =
+  "walk_to" | "say" | "interact" | "give" | "wait" | "follow" | "continue";
 
 /** How an agent answers what someone is offering it. */
 export type OfferAnswer = "accept" | "decline";

@@ -165,6 +165,14 @@ describe("buildDecisionReplySchema", () => {
     expect(schema.safeParse(reply({ action: "wait" }, { action: "follow" })).success).toBe(false);
   });
 
+  it("offers say, first or later, and needs its words", () => {
+    expect(readJsonEnumValues(readActProperties(jsonSchema).action)).toContain("say");
+    const say = { action: "say", say: "Bob, are you hungry?", volume: "whisper" };
+    expect(schema.parse(reply(say, say)).acts).toEqual([say, say]);
+    expect(schema.safeParse(reply({ action: "say" })).success).toBe(false);
+    expect(schema.safeParse(reply({ action: "wait" }, { action: "say" })).success).toBe(false);
+  });
+
   it("lets a give ask for something back, and needs how many", () => {
     const give = { action: "give", target: "Bob", item: "bread", amount: 1, inReturn: "coins" };
     expect(schema.parse(reply({ ...give, inReturnAmount: 4 })).acts[0]).toMatchObject({

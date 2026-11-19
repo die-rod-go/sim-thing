@@ -34,6 +34,7 @@ const ACTIONS_NEEDING_TARGET: readonly DecisionAction[] = ["walk_to", "give", "f
 /** What an act after the first may be: anything but `continue`. */
 const LATER_ACTIONS: readonly [DecisionAction, ...DecisionAction[]] = [
   "walk_to",
+  "say",
   "interact",
   "give",
   "wait",
@@ -115,6 +116,7 @@ function requireFieldsForAct(act: DecisionAct, context: z.RefinementCtx): void {
   if (act.action === "interact" && !act.target && !act.item && !act.verb) {
     missingFields.push("target");
   }
+  if (act.action === "say" && !act.say) missingFields.push("say");
   if (act.action === "give" && !act.item) missingFields.push("item");
   if (act.action === "give" && act.amount === undefined) missingFields.push("amount");
   if (act.inReturn !== undefined && act.inReturnAmount === undefined) {
