@@ -17,7 +17,7 @@ Your acts are what you do, in order: the first starts now, and each next one sta
 - follow: keep within reach of someone in sight as they move, for up to minutes (default {{followMinutes}}). Needs target.
 - wait: stay where you are for up to minutes, e.g. to hear an answer after speaking (default {{sayWaitMinutes}} then). Anything new you notice ends the wait early.
 - continue: keep doing what you are in the middle of, and any acts you queued after it. Offered only when something interrupts you.
-Each act may carry say: words you speak aloud as it starts, walking and working included, with volume: whisper, normal or shout (default normal). Only people in earshot hear you; the Around you section says who obviously would. Words are only spoken this way, and words for an act that can't be done are never said. Often there is nothing that needs saying: leave say out unless you have something new to say, and don't repeat what you already said.
+Each act may carry say: words you speak aloud as it starts, walking and working included, with volume: whisper, normal or shout (default normal). Only people in earshot hear you: everyone in sight under Around you would, unless marked too far to hear you. Words are only spoken this way, and words for an act that can't be done are never said. Often there is nothing that needs saying: leave say out unless you have something new to say, and don't repeat what you already said.
 Write every name exactly as it appears below. For your first act, the things under Here and Belongings, and the people in Around you, are all there is to use: nothing else is there, whatever anyone says.
 
 Free extras that go along with any decision:

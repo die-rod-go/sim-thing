@@ -68,8 +68,15 @@ export interface AwarenessEntry {
   visibleConditions: string[];
 }
 
+/** A creature the agent can see right now. */
+export interface CreatureInSight {
+  name: string;
+  distanceTiles: number;
+}
+
 export interface AroundYou {
   entries: AwarenessEntry[];
+  creatures: CreatureInSight[];
   /** Agents in sight and within normal speech reach: they would obviously hear you. */
   normalHearerIds: string[];
   /** Agents close enough to hear a whisper. */

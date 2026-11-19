@@ -122,8 +122,8 @@ describe("carrying a body", () => {
     const sim = await setUpBody();
     doVerb(sim, "mara", "carry");
     await sim.advance();
-    expect(promptLines(sim, "mara").join("\n")).toContain(
-      `${TOBIAS_BODY}, next to you, carried by you`,
+    expect(promptLines(sim, "mara").join("\n")).toMatch(
+      new RegExp(`^Next to you: .*${TOBIAS_BODY}, carried by you`, "m"),
     );
     expect(promptLines(sim, "ilsa").join("\n")).toContain("carried by Mara");
   });

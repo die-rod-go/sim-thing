@@ -3,11 +3,14 @@ import { config } from "../config";
 import type {
   AroundYou,
   AwarenessEntry,
+  CreatureInSight,
   DecisionContext,
   DecisionTargets,
   Situation,
 } from "../decision/context";
 import { computeChebyshevDistance } from "../economy/give";
+import { findEntityIfPresent } from "../items/entity-store";
+import { describeThingName, locateThing } from "../items/things";
 import { describeWorldKnowledge } from "../passes/world-knowledge";
 import { findObviousListeners } from "../perception/listeners";
 import { listBodyWords } from "../status/conditions";
@@ -85,6 +88,22 @@ export function buildValidTargets(state: WorldState, agent: Agent): DecisionTarg
   };
 }
 
+/** The creatures the agent saw this tick, each with how far off it is. */
+function listCreaturesInSight(state: WorldState, agent: Agent): CreatureInSight[] {
+  return getAgentRuntime(state, agent.id).visibleCreatureIds.flatMap((entityId) => {
+    const thing = { kind: "entity", entityId } as const;
+    if (findEntityIfPresent(state, entityId) === undefined) return [];
+    const position = locateThing(state, thing);
+    if (position === null) return [];
+    return [
+      {
+        name: describeThingName(state, thing),
+        distanceTiles: computeChebyshevDistance(agent.pos, position.pos),
+      },
+    ];
+  });
+}
+
 /** Who is around the agent, who would hear it, and everyone it has perceived before. */
 export function buildAroundYou(state: WorldState, agent: Agent): AroundYou {
   const listeners = findObviousListeners(
@@ -96,6 +115,7 @@ export function buildAroundYou(state: WorldState, agent: Agent): AroundYou {
   );
   return {
     entries: buildAwarenessEntries(state, agent),
+    creatures: listCreaturesInSight(state, agent),
     normalHearerIds: listeners.wouldHearNormal,
     whisperHearerIds: listeners.wouldHearWhisper,
   };

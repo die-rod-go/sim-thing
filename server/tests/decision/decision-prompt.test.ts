@@ -69,7 +69,7 @@ function buildContext(overrides: Partial<DecisionContext> = {}): DecisionContext
     nearbyEntities: [
       { text: "oven", details: [], verbs: ["bake bread"], toolUses: [], contents: [] },
     ],
-    aroundYou: { entries: [], normalHearerIds: [], whisperHearerIds: [] },
+    aroundYou: { entries: [], creatures: [], normalHearerIds: [], whisperHearerIds: [] },
     belongings: [
       { text: "30 coins", details: [], verbs: [], toolUses: [], contents: [] },
       { text: "2 bread", details: [], verbs: ["eat"], toolUses: [], contents: [] },
@@ -488,12 +488,14 @@ describe("describeAroundYou", () => {
           visibleConditions: [],
         },
       ],
+      creatures: [],
       normalHearerIds: ["bob", "clara"],
       whisperHearerIds: ["bob"],
     });
     expect(text).toBe(
       [
-        "In sight, would hear you: Bob, next to you (kneading dough), Clara, a few steps away.",
+        "Next to you: Bob (kneading dough).",
+        "A few steps away: Clara.",
         "Within whisper reach: Bob.",
         "Recently around, now out of sight: Dave, seen 3 min ago walking into the back room (bakery).",
         "Ed's voice, heard 5 min ago from the street.",
@@ -532,15 +534,11 @@ describe("describeAroundYou", () => {
           visibleConditions: [],
         },
       ],
+      creatures: [],
       normalHearerIds: ["bob", "mara"],
       whisperHearerIds: [],
     });
-    expect(text).toBe(
-      [
-        "In sight, would hear you: Bob, looks in poor shape (sitting).",
-        "Also in sight: Mara's body.",
-      ].join("\n"),
-    );
+    expect(text).toBe("Farther off: Bob, looks in poor shape (sitting); Mara's body.");
   });
 
   it("shows the visible conditions of others and of bodies", () => {
@@ -574,21 +572,52 @@ describe("describeAroundYou", () => {
           visibleConditions: ["on fire"],
         },
       ],
+      creatures: [],
       normalHearerIds: ["tobias"],
+      whisperHearerIds: [],
+    });
+    expect(text).toBe("Farther off: Mara's body, on fire; Tobias, looks in poor shape, bleeding.");
+  });
+
+  it("sorts people and creatures in sight into sections by how far off they are", () => {
+    const person = {
+      pronouns: "",
+      via: "saw" as const,
+      place: "the road",
+      doing: "",
+      minutesAgo: 0,
+      isInSight: true,
+      isDead: false,
+      holding: null,
+      healthAsSeen: null,
+      visibleCarried: [],
+      visibleConditions: [],
+    };
+    const text = describeAroundYou({
+      entries: [
+        { ...person, agentId: "cobb", name: "Cobb", distanceTiles: 12 },
+        { ...person, agentId: "jess", name: "Jess", distanceTiles: 3 },
+      ],
+      creatures: [
+        { name: "goblin", distanceTiles: 1 },
+        { name: "wolf", distanceTiles: 20 },
+      ],
+      normalHearerIds: ["jess"],
       whisperHearerIds: [],
     });
     expect(text).toBe(
       [
-        "In sight, would hear you: Tobias, looks in poor shape, bleeding.",
-        "Also in sight: Mara's body, farther off, on fire.",
+        "Next to you: goblin.",
+        "A few steps away: Jess.",
+        "Farther off: Cobb, too far to hear you; wolf.",
       ].join("\n"),
     );
   });
 
   it("says when no one is around", () => {
-    expect(describeAroundYou({ entries: [], normalHearerIds: [], whisperHearerIds: [] })).toBe(
-      "No one else is around.",
-    );
+    expect(
+      describeAroundYou({ entries: [], creatures: [], normalHearerIds: [], whisperHearerIds: [] }),
+    ).toBe("No one else is around.");
   });
 });
 
@@ -635,7 +664,9 @@ describe("not seen lately", () => {
       { ...away, agentId: "tom", name: "Tom", minutesAgo: 5 },
     ];
     const prompt = buildDecisionPrompt(
-      buildContext({ aroundYou: { entries, normalHearerIds: [], whisperHearerIds: [] } }),
+      buildContext({
+        aroundYou: { entries, creatures: [], normalHearerIds: [], whisperHearerIds: [] },
+      }),
     );
     expect(prompt).toContain(
       `## ${config.perception.notSeenLatelyTitle}\n- Cobb: seen 9 h ago at the quarry, mining`,

@@ -90,11 +90,14 @@ export const config = {
     awarenessPromptWindowMinutes: 60,
     notSeenLatelyTitle: "Not seen lately",
     /**
-     * How far off someone in sight reads in "Around you". Within `economy.giveReachTiles` they are
-     * in reach (to hand things to, and for most verbs); within `nearTiles` they are near.
+     * The sections "Around you" sorts what is in sight into, by how far off it is. Within
+     * `economy.giveReachTiles` it is in reach (to hand things to, and for most verbs); within
+     * `nearTiles` it is near; anything farther is far.
      */
-    distanceWords: { inReach: "next to you", near: "a few steps away", far: "farther off" },
+    distanceTitles: { inReach: "Next to you", near: "A few steps away", far: "Farther off" },
     nearTiles: 4,
+    /** Noted on someone in sight who would not hear a normal voice. */
+    outOfEarshotWords: "too far to hear you",
     /** How an item on the ground reads in Here, indoors and out ("a knife (pick up; on the floor)"). */
     groundWords: { indoor: "on the floor", outdoor: "on the ground" },
     /** How what a thing holds reads, once the agent can see inside it. */

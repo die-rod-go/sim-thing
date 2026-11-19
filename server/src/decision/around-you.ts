@@ -17,22 +17,30 @@ export function formatMinutesAgo(minutesAgo: number): string {
   return days === 1 ? "1 day ago" : `${days} days ago`;
 }
 
-/** "next to you", "a few steps away", "farther off": how far off someone in sight is. */
-export function describeDistance(distanceTiles: number): string {
-  const words = config.perception.distanceWords;
-  if (distanceTiles <= config.economy.giveReachTiles) return words.inReach;
-  return distanceTiles <= config.perception.nearTiles ? words.near : words.far;
+type DistanceBand = keyof typeof config.perception.distanceTitles;
+
+const DISTANCE_BANDS: readonly DistanceBand[] = ["inReach", "near", "far"];
+
+/** Which section of "Around you" something in sight goes under, by how many tiles off it is. */
+export function findDistanceBand(distanceTiles: number | null): DistanceBand {
+  if (distanceTiles === null) return "far";
+  if (distanceTiles <= config.economy.giveReachTiles) return "inReach";
+  return distanceTiles <= config.perception.nearTiles ? "near" : "far";
+}
+
+interface ThingInSight {
+  distanceTiles: number | null;
+  text: string;
 }
 
 /**
- * "Tobias (he/him), next to you, looks in poor shape, carrying a knife (chopping wood)", or "Mara's
- * body, a few steps away" for someone lying dead in sight ("Mara's body, next to you, carried by
- * Tobias, on fire").
+ * "Tobias (he/him), looks in poor shape, carrying a knife (chopping wood)", or "Mara's body,
+ * carried by Tobias, on fire" for someone lying dead in sight. Someone who would not hear a normal
+ * voice is noted as too far to hear.
  */
-function describeInSight(entry: AwarenessEntry): string {
-  const distance = entry.distanceTiles === null ? null : describeDistance(entry.distanceTiles);
+function describeInSight(entry: AwarenessEntry, canHear: boolean): string {
   if (entry.isDead) {
-    return [describeBodyName(entry.name), distance, entry.holding, ...entry.visibleConditions]
+    return [describeBodyName(entry.name), entry.holding, ...entry.visibleConditions]
       .filter(Boolean)
       .join(", ");
   }
@@ -40,10 +48,10 @@ function describeInSight(entry: AwarenessEntry): string {
     entry.visibleCarried.length > 0 ? `carrying ${entry.visibleCarried.join(" and ")}` : null;
   const name = [
     describeNameWithPronouns(entry.name, entry.pronouns),
-    distance,
     entry.healthAsSeen,
     ...entry.visibleConditions,
     carrying,
+    canHear ? null : config.perception.outOfEarshotWords,
   ]
     .filter(Boolean)
     .join(", ");
@@ -62,38 +70,58 @@ function describeOutOfSight(entry: AwarenessEntry): string {
   return `${source}, heard ${muffled}${when} from ${entry.place}`;
 }
 
-function sentence(label: string, parts: string[]): string | null {
-  return parts.length > 0 ? `${label}: ${parts.join(", ")}.` : null;
+function sentence(label: string, parts: string[], separator = ", "): string | null {
+  return parts.length > 0 ? `${label}: ${parts.join(separator)}.` : null;
+}
+
+/** One line per distance section, nearest first, each listing what is in it nearest first. */
+function describeDistanceSections(thingsInSight: ThingInSight[]): (string | null)[] {
+  const sorted = [...thingsInSight].sort(
+    (first, second) =>
+      (first.distanceTiles ?? Number.POSITIVE_INFINITY) -
+      (second.distanceTiles ?? Number.POSITIVE_INFINITY),
+  );
+  return DISTANCE_BANDS.map((band) =>
+    sentence(
+      config.perception.distanceTitles[band],
+      sorted
+        .filter((thing) => findDistanceBand(thing.distanceTiles) === band)
+        .map((thing) => thing.text),
+      "; ",
+    ),
+  );
 }
 
 /**
- * The brief's "Around you" lines: who would obviously hear you, who could hear a whisper, and who
- * was perceived recently but is now out of sight. Entries past the prompt window are left out.
+ * The brief's "Around you" lines: everyone and every creature in sight, sorted into sections by how
+ * far off they are, who could hear a whisper, and who was perceived recently but is now out of
+ * sight. Entries past the prompt window are left out.
  */
 export function describeAroundYou(aroundYou: AroundYou): string {
   const recentEntries = aroundYou.entries
     .filter((entry) => entry.minutesAgo <= config.perception.awarenessPromptWindowMinutes)
     .sort((first, second) => first.minutesAgo - second.minutesAgo);
   const normalHearers = new Set(aroundYou.normalHearerIds);
-  const inSight = recentEntries.filter((entry) => entry.isInSight && !entry.isDead);
-  const bodiesInSight = recentEntries.filter((entry) => entry.isInSight && entry.isDead);
+  const inSight = recentEntries.filter((entry) => entry.isInSight);
   const outOfSight = recentEntries.filter((entry) => !entry.isInSight);
+  const thingsInSight: ThingInSight[] = [
+    ...inSight.map((entry) => ({
+      distanceTiles: entry.distanceTiles,
+      text: describeInSight(entry, entry.isDead || normalHearers.has(entry.agentId)),
+    })),
+    ...aroundYou.creatures.map((creature) => ({
+      distanceTiles: creature.distanceTiles,
+      text: creature.name,
+    })),
+  ];
   const lines = [
-    sentence(
-      "In sight, would hear you",
-      inSight.filter((entry) => normalHearers.has(entry.agentId)).map(describeInSight),
-    ),
-    sentence(
-      "In sight, too far to hear you",
-      inSight.filter((entry) => !normalHearers.has(entry.agentId)).map(describeInSight),
-    ),
+    ...describeDistanceSections(thingsInSight),
     sentence(
       "Within whisper reach",
       inSight
-        .filter((entry) => aroundYou.whisperHearerIds.includes(entry.agentId))
+        .filter((entry) => !entry.isDead && aroundYou.whisperHearerIds.includes(entry.agentId))
         .map((entry) => entry.name),
     ),
-    sentence("Also in sight", bodiesInSight.map(describeInSight)),
     sentence(
       "Recently around, now out of sight",
       outOfSight.filter((entry) => entry.via === "saw").map(describeOutOfSight),
