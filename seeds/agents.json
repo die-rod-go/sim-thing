@@ -73,9 +73,6 @@
         "Cobb": {
           "whatIThinkOfThem": "The miner at the quarry. Works when he feels like it, then drinks it away at the tavern."
         },
-        "Malin": {
-          "whatIThinkOfThem": "No job, plenty of coin, too much opinion. Wants to run things. Doesn't run anything."
-        },
         "Nastya": {
           "whatIThinkOfThem": "No trade that I know of. Can't make up their mind. Could be put to work."
         },
@@ -87,10 +84,6 @@
         },
         "Pell": {
           "whatIThinkOfThem": "Runs the tavern now. Too nervous for it. I give it a week."
-        },
-        "Wabi": {
-          "whatIThinkOfThem": "New in town",
-          "misc": "The town guard"
         }
       },
       "seenPlaces": [
@@ -172,9 +165,6 @@
         "Beckett": {
           "whatIThinkOfThem": "Really cool"
         },
-        "Malin": {
-          "whatIThinkOfThem": "Suspicious"
-        },
         "Jess": {
           "whatIThinkOfThem": "The baker. Bosses everyone like she runs the village. Told me to get a job."
         },
@@ -193,10 +183,6 @@
         },
         "Nell": {
           "whatIThinkOfThem": "The fisher. Quiet. Asked once if I could make a second fishing rod."
-        },
-        "Wabi": {
-          "whatIThinkOfThem": "New in town",
-          "misc": "The town guard"
         }
       },
       "seenPlaces": [
@@ -304,15 +290,8 @@
         "Nastya": {
           "whatIThinkOfThem": "Always following me around and getting flustered. Sweet, I guess."
         },
-        "Malin": {
-          "whatIThinkOfThem": "Says we've met. Gives me a weird feeling."
-        },
         "Ambrose": {
           "whatIThinkOfThem": "Old chapel keeper. Writes everything down. Might like my art."
-        },
-        "Wabi": {
-          "whatIThinkOfThem": "New in town",
-          "misc": "The town guard"
         }
       },
       "seenPlaces": [
@@ -409,9 +388,6 @@
         "Z": {
           "whatIThinkOfThem": "Good friend. Wants to get everyone together at the tavern."
         },
-        "Malin": {
-          "whatIThinkOfThem": "Rich and quiet. Has a lot of coin for someone with no job. Could be an investor."
-        },
         "Nell": {
           "whatIThinkOfThem": "The fisher on the south shore. Fish is meat too, kind of."
         },
@@ -420,10 +396,6 @@
         },
         "Nastya": {
           "whatIThinkOfThem": "The blacksmith. Could forge me a better cleaver. Always near Beckett."
-        },
-        "Wabi": {
-          "whatIThinkOfThem": "New in town",
-          "misc": "The town guard"
         }
       },
       "seenPlaces": [
@@ -508,9 +480,6 @@
         }
       ],
       "people": {
-        "Malin": {
-          "whatIThinkOfThem": "I love him. I will have him. I will change him for the better."
-        },
         "Jess": {
           "whatIThinkOfThem": "The baker. Bossy, but I like her."
         },
@@ -526,10 +495,6 @@
         "Nastya": {
           "whatIThinkOfThem": "The blacksmith. Scatterbrained.",
           "whatIWantFromThem": "An iron ring for Malin."
-        },
-        "Wabi": {
-          "whatIThinkOfThem": "New in town",
-          "misc": "The town guard"
         }
       },
       "seenPlaces": [
@@ -622,10 +587,6 @@
         "Mell": {
           "whatIThinkOfThem": "My sister and complete opposite. Brews the ale I sell, when she feels like it.",
           "whatIWantFromThem": "Ale for the tavern at a fair price."
-        },
-        "Wabi": {
-          "whatIThinkOfThem": "New in town",
-          "misc": "The town guard"
         }
       },
       "seenPlaces": [
@@ -728,10 +689,6 @@
         },
         "Mell": {
           "whatIThinkOfThem": "Brews ale from my wheat."
-        },
-        "Wabi": {
-          "whatIThinkOfThem": "New in town",
-          "misc": "The town guard"
         }
       },
       "seenPlaces": [
@@ -823,10 +780,6 @@
         },
         "Z": {
           "whatIThinkOfThem": "The carpenter. Could make a fishing rod."
-        },
-        "Wabi": {
-          "whatIThinkOfThem": "New in town",
-          "misc": "The town guard"
         }
       },
       "seenPlaces": [
@@ -917,15 +870,8 @@
         "Z": {
           "whatIThinkOfThem": "Always trying to get people together at the tavern. Fine by me."
         },
-        "Malin": {
-          "whatIThinkOfThem": "Has lots of coin. Might buy a drink."
-        },
         "Nastya": {
           "whatIThinkOfThem": "The blacksmith. Buys my ore and forgets to pay."
-        },
-        "Wabi": {
-          "whatIThinkOfThem": "New in town",
-          "misc": "The town guard"
         }
       },
       "seenPlaces": [
@@ -1021,131 +967,11 @@
         "Nell": {
           "whatIThinkOfThem": "The fisher on the south shore."
         },
-        "Malin": {
-          "whatIThinkOfThem": "No trade. Wealthy. Speaks of leadership in a way that unsettles me."
-        },
         "Z": {
           "whatIThinkOfThem": "The carpenter. Says she wants to write a novel."
         },
         "Mell": {
           "whatIThinkOfThem": "The brewer. Says whatever is convenient."
-        },
-        "Wabi": {
-          "whatIThinkOfThem": "New in town",
-          "misc": "The town guard"
-        }
-      },
-      "seenPlaces": [
-        "town square",
-        "rose cottage",
-        "ivy cottage",
-        "elm cottage",
-        "birch cottage",
-        "oak cottage",
-        "willow cottage",
-        "chapel",
-        "graveyard",
-        "meadow",
-        "apothecary",
-        "town hall",
-        "bakery",
-        "smithy",
-        "tavern",
-        "carpenter's workshop",
-        "miner's shed",
-        "quarry",
-        "old shaft",
-        "woods",
-        "deep woods",
-        "woodcutter's hut",
-        "butcher's shop",
-        "animal pens",
-        "farmhouse",
-        "kitchen garden",
-        "farm",
-        "south fields",
-        "lake",
-        "south shore",
-        "fisher's hut"
-      ]
-    },
-    {
-      "id": "malin",
-      "name": "Malin",
-      "pronouns": "he/him",
-      "profession": "no trade; lives off 100 coin and sleeps in ivy cottage",
-      "traits": {
-        "extraversion": -0.65,
-        "agreeableness": -1,
-        "conscientiousness": -0.15,
-        "neuroticism": 0.35,
-        "openness": -0.8
-      },
-      "core": "You are smarter and better than other people. You want to be in charge and dominate the entire village. Everyone should depend on you. You are cunning and witty and smart.",
-      "selfImage": "I am the smartest most capable person and I will rule.",
-      "voice": "Oh it wouldn't be a bother at all. One day these terrible sanctimonious assholes will all pay. ",
-      "sleepRecoveryPerHour": 0.15,
-      "strength": 0.55,
-      "agility": 1,
-      "inventory": {
-        "coin": 100,
-        "bread": 2,
-        "ale": 1
-      },
-      "mood": "Reflective. Eager to learn new things and get job and dominate",
-      "goals": [
-        {
-          "goal": "Buy up the village's bread and ale so people have to come to me",
-          "reason": "Control the food, control the village",
-          "progress": "100 coin"
-        },
-        {
-          "goal": "Get hold of the records chest at the town hall",
-          "reason": "Whoever controls the records controls what people remember",
-          "progress": ""
-        },
-        {
-          "goal": "Get Nastya to forge me a lock for whatever I take",
-          "reason": "",
-          "progress": ""
-        },
-        {
-          "goal": "Become happier with myself",
-          "reason": "",
-          "progress": ""
-        }
-      ],
-      "people": {
-        "Diego": {
-          "whatIThinkOfThem": "Is alright"
-        },
-        "Beckett": {
-          "whatIThinkOfThem": "Is alright. I've only met her once, though I don't know if she remembers me."
-        },
-        "Z": {
-          "whatIThinkOfThem": "Something is up with her"
-        },
-        "Tony": {
-          "whatIThinkOfThem": "Gross"
-        },
-        "Jess": {
-          "whatIThinkOfThem": "The baker. Thinks she's in charge because she bakes the bread. Control the bread, control the village."
-        },
-        "Ambrose": {
-          "whatIThinkOfThem": "Keeps the records at the town hall. Whoever controls the records controls what people remember."
-        },
-        "Wil": {
-          "whatIThinkOfThem": "The farmer. Grows the food. If the farm works for me, the village does too."
-        },
-        "Cobb": {
-          "whatIThinkOfThem": "The miner. Cheap. Will do anything for a drink."
-        },
-        "Nastya": {
-          "whatIThinkOfThem": "Easily led. Could be useful."
-        },
-        "Wabi": {
-          "whatIThinkOfThem": "New in town",
-          "misc": "The town guard"
         }
       },
       "seenPlaces": [
@@ -1244,10 +1070,6 @@
         },
         "Tony": {
           "whatIThinkOfThem": "The woodcutter. Brings wood for the forge."
-        },
-        "Wabi": {
-          "whatIThinkOfThem": "New in town",
-          "misc": "The town guard"
         }
       },
       "seenPlaces": [
@@ -1336,10 +1158,6 @@
         },
         "Cobb": {
           "whatIThinkOfThem": "The miner. Will buy ale from anyone, at any hour."
-        },
-        "Wabi": {
-          "whatIThinkOfThem": "New in town",
-          "misc": "The town guard"
         }
       },
       "seenPlaces": [
@@ -1377,37 +1195,28 @@
       ]
     },
     {
-      "id": "wabi",
-      "name": "Wabi",
-      "pronouns": "he/him",
-      "profession": "townguard; in charge of protecting and keeping order",
+      "id": "taram",
+      "name": "Taram",
+      "pronouns": "he/they",
+      "profession": "",
       "traits": {
-        "extraversion": -0.7,
-        "agreeableness": -0.35,
-        "conscientiousness": 0.8,
-        "neuroticism": -1,
-        "openness": -0.45
+        "extraversion": 0.45,
+        "agreeableness": 0.45,
+        "conscientiousness": -0.35,
+        "neuroticism": 0.3,
+        "openness": 0.2
       },
-      "core": "You prefer to keep to yourself, but you love this town and the people in it. You like listening to what's going on around town and want to stand up for what's right. You value order and process. You are decisive, and a natural born leader. You are not scared to get in harms way to defend someone. You like to keep the peace. You are new in town and still getting to know the others.",
-      "selfImage": "I am strong and confident. People look up to me and respect me.",
-      "voice": "What the piss is going on around here.",
+      "core": "",
+      "selfImage": "",
       "sleepRecoveryPerHour": 0.15,
-      "strength": 0.8,
-      "agility": 0.7,
+      "strength": 0.65,
+      "agility": 0.5,
       "inventory": {
         "coin": 30,
-        "bread": 2,
-        "sword": 1,
-        "bow": 1
+        "bread": 2
       },
       "mood": "",
-      "goals": [
-        {
-          "goal": "Patrol the town and keep the peace",
-          "reason": "I am the guard",
-          "progress": ""
-        }
-      ],
+      "goals": [],
       "people": {},
       "seenPlaces": []
     }

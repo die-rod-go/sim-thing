@@ -11,7 +11,7 @@
  "tilewidth": 16,
  "tileheight": 16,
  "nextlayerid": 7,
- "nextobjectid": 280,
+ "nextobjectid": 281,
  "layers": [
   {
    "id": 1,
@@ -5647,18 +5647,6 @@
      "point": true
     },
     {
-     "id": 214,
-     "name": "malin",
-     "type": "",
-     "rotation": 0,
-     "visible": true,
-     "x": 200,
-     "y": 88,
-     "width": 0,
-     "height": 0,
-     "point": true
-    },
-    {
      "id": 215,
      "name": "z",
      "type": "",
@@ -5689,18 +5677,6 @@
      "rotation": 0,
      "visible": true,
      "x": 632,
-     "y": 88,
-     "width": 0,
-     "height": 0,
-     "point": true
-    },
-    {
-     "id": 218,
-     "name": "maeve",
-     "type": "",
-     "rotation": 0,
-     "visible": true,
-     "x": 744,
      "y": 88,
      "width": 0,
      "height": 0,
@@ -5803,13 +5779,13 @@
      "point": true
     },
     {
-     "id": 267,
-     "name": "wabi",
+     "id": 280,
+     "name": "taram",
      "type": "",
      "rotation": 0,
      "visible": true,
-     "x": 488,
-     "y": 664,
+     "x": 200,
+     "y": 88,
      "width": 0,
      "height": 0,
      "point": true
