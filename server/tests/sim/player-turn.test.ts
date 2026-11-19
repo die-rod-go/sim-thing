@@ -1,9 +1,11 @@
 import { describe, expect, it } from "vitest";
 import { config } from "../../src/config";
 import { getAgentRuntime, requestDecision } from "../../src/sim/agent-runtime";
+import { PlayerInbox } from "../../src/sim/player-inbox";
 import { isWaitingForPlayer, needsPlayer } from "../../src/sim/player-turn";
+import { createTestSim, decisionReply } from "../../src/sim/test-sim";
 import { findAgent, getAgentMemory, replaceAgent } from "../../src/sim/world-access";
-import { createPlayedSim, SQUARE } from "./player-test-kit";
+import { createPlayedSim, playAsIn, SQUARE } from "./player-test-kit";
 
 const DECISION_KINDS = ["decision", "reckoning", "interact"];
 
@@ -113,6 +115,26 @@ describe("taking an agent over and handing it back", () => {
     const memory = getAgentMemory(sim.state, "mara");
     expect(memory.dayPlanOwedSinceTick).toBe(sim.state.tick);
     expect(memory.reflection.isOwed).toBe(true);
+  });
+
+  it("drops an LLM decision still being made when the player took the agent over", async () => {
+    let releaseReply: (reply: string) => void = () => undefined;
+    const pendingReply = new Promise<string>((resolveReply) => {
+      releaseReply = resolveReply;
+    });
+    const inbox = new PlayerInbox();
+    const sim = createTestSim({
+      agentIds: ["mara"],
+      responder: () => pendingReply,
+      shouldCallLlmInBackground: true,
+      idleDecisionWaitMs: 0,
+      playerInbox: inbox,
+    });
+    await sim.advance(1);
+    playAsIn(sim, inbox, "mara");
+    releaseReply(decisionReply({ action: "walk_to", target: "town square" }));
+    await sim.advance(2);
+    expect(sim.agent("mara").currentAction).toBeNull();
   });
 
   it("won't play someone who isn't there or has died", () => {

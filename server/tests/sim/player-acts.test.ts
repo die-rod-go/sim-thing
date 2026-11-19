@@ -130,7 +130,7 @@ describe("the player's acts", () => {
     expect(countCarried(sim, "ilsa", "bread")).toBe(1);
   });
 
-  it("offers what the player gives, for the other agent to answer", async () => {
+  it("offers what the player gives and waits for the answer, which the other agent gives", async () => {
     const { sim, playAs, choose } = createPlayedSim(["mara", "ilsa"], {
       Ilsa: (request) =>
         promptOf(request).includes("Mara is offering you")
@@ -141,8 +141,12 @@ describe("the player's acts", () => {
     sim.placeAgent("ilsa", { x: SQUARE.x + 1, y: SQUARE.y });
     playAs("mara");
     choose({ action: "give", target: "Ilsa", item: "bread", amount: 1 });
-    await sim.advance(3);
+    await sim.advance(1);
+    expect(sim.agent("mara").currentAction?.kind).toBe("wait");
+    expect(getAgentRuntime(sim.state, "mara").isAwaitingAnswer).toBe(true);
+    await sim.advance(2);
     expect(countCarried(sim, "ilsa", "bread")).toBe(3);
     expect(countCarried(sim, "mara", "bread")).toBe(1);
+    expect(sim.agent("mara").currentAction).toBeNull();
   });
 });

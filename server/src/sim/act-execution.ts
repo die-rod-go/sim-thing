@@ -132,7 +132,8 @@ function executeAct(context: TickContext, agentId: string, act: PlannedAct): voi
 /**
  * Starts one act and says its words as it starts; the words of an act that fails at once are never
  * said. After an offer, with acts still queued, the agent waits for the answer before going on,
- * so it doesn't walk off and withdraw what it offered.
+ * so it doesn't walk off and withdraw what it offered. A played agent always waits for it, so the
+ * clock runs on until the answer comes instead of stopping for its player at once.
  */
 export function startAct(
   context: TickContext,
@@ -149,7 +150,9 @@ export function startAct(
   if (hasFailed) return;
   if (speech !== null) speak(context, agentId, speech);
   const runtime = getAgentRuntime(context.state, agentId);
-  if (act.kind !== "give" || runtime.queuedActs.length === 0) return;
+  const isAnswerAwaited =
+    runtime.queuedActs.length > 0 || findAgent(context.state, agentId).isPlayed;
+  if (act.kind !== "give" || !isAnswerAwaited) return;
   startWait(context, agentId, config.economy.offerLapseMinutes);
   runtime.isAwaitingAnswer = true;
 }

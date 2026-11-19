@@ -22,8 +22,14 @@ import {
   selectDecisionRequests,
   updateSight,
 } from "./tick-phases";
-import { listLivingAgents } from "./world-access";
+import { findAgent, listLivingAgents } from "./world-access";
 import { createEmptyTickResult, type WorldState } from "./world-state";
+
+/** A reply for someone the player took over while it was being made is dropped. */
+function applyLlmPlan(context: TickContext, plan: DecisionPlan): void {
+  if (findAgent(context.state, plan.agentId).isPlayed) return;
+  applyDecisionPlan(context, plan);
+}
 
 function listIdleAgentIds(state: WorldState): string[] {
   return listLivingAgents(state)
@@ -107,7 +113,7 @@ export function createDecisionStrategy(dependencies: SimDependencies): AdvanceTi
     flagReminders(context);
     if (backgroundDecisions) {
       for (const plan of backgroundDecisions.collectFinished(state)) {
-        applyDecisionPlan(context, plan);
+        applyLlmPlan(context, plan);
       }
       const isDeciding = (agentId: string) =>
         backgroundDecisions.isRunning(state, agentId) || hasPlayerAct(agentId);
@@ -129,13 +135,13 @@ export function createDecisionStrategy(dependencies: SimDependencies): AdvanceTi
         );
       }
       for (const plan of backgroundDecisions.collectFinished(state)) {
-        applyDecisionPlan(context, plan);
+        applyLlmPlan(context, plan);
       }
     } else {
       startQueuedActs(context, hasPlayerAct);
       const requests = selectDecisionRequests(context);
       const plans = await Promise.all(requests.map((request) => decide(state, request)));
-      for (const plan of plans) applyDecisionPlan(context, plan);
+      for (const plan of plans) applyLlmPlan(context, plan);
     }
     carryOutPlayerActs(context);
     fightWatch.noteAttacks(state, context.result.events);

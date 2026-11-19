@@ -24,6 +24,16 @@ export interface PlayedSim {
   choose: (act: PlayerAct) => string | null;
 }
 
+/** Plays the agent in the sim between ticks, as the take-over control does; returns why not, or null. */
+export function playAsIn(sim: TestSim, inbox: PlayerInbox, agentId: string | null): string | null {
+  const context = {
+    state: sim.state,
+    result: createEmptyTickResult(sim.state.tick),
+    dependencies: { callStructured: sim.llm.callStructured, playerInbox: inbox },
+  };
+  return choosePlayedAgent(context, agentId, inbox);
+}
+
 /** A test sim with a player inbox; the agents named in `scripts` are driven by the fake LLM. */
 export function createPlayedSim(
   agentIds: string[],
@@ -34,14 +44,7 @@ export function createPlayedSim(
   return {
     sim,
     inbox,
-    playAs: (agentId) => {
-      const context = {
-        state: sim.state,
-        result: createEmptyTickResult(sim.state.tick),
-        dependencies: { callStructured: sim.llm.callStructured, playerInbox: inbox },
-      };
-      return choosePlayedAgent(context, agentId, inbox);
-    },
+    playAs: (agentId) => playAsIn(sim, inbox, agentId),
     choose: (act) => acceptPlayerAct(sim.state, inbox, act),
   };
 }
