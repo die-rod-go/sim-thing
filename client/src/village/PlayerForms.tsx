@@ -67,17 +67,16 @@ function GiveForm({
   itemDefinitions: readonly ItemDefinition[];
   onAct: SendPlayerAct;
 }) {
+  const itemNames = [...new Set(carrying.map((thing) => thing.name))];
   const [person, setPerson] = useState(people[0]?.name ?? "");
-  const [item, setItem] = useState(carrying[0]?.name ?? "");
+  const [item, setItem] = useState(itemNames[0] ?? "");
   const [amount, setAmount] = useState(1);
   const [inReturn, setInReturn] = useState("");
   const [inReturnAmount, setInReturnAmount] = useState(1);
   const chosenPerson = people.some((candidate) => candidate.name === person)
     ? person
     : (people[0]?.name ?? "");
-  const chosenItem = carrying.some((thing) => thing.name === item)
-    ? item
-    : (carrying[0]?.name ?? "");
+  const chosenItem = itemNames.includes(item) ? item : (itemNames[0] ?? "");
   const canGive = chosenPerson !== "" && chosenItem !== "";
   const submit = (event: FormEvent) => {
     event.preventDefault();
@@ -96,9 +95,9 @@ function GiveForm({
         onChange={(event) => setAmount(Math.max(1, Number(event.target.value) || 1))}
       />
       <select value={chosenItem} onChange={(event) => setItem(event.target.value)}>
-        {carrying.map((thing) => (
-          <option key={thing.name} value={thing.name}>
-            {thing.name}
+        {itemNames.map((name) => (
+          <option key={name} value={name}>
+            {name}
           </option>
         ))}
       </select>
